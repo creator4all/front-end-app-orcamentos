@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/cnpj_search_screen.dart';
 import 'services/auth_service.dart';
+import 'services/partner_service.dart';
 import 'theme/app_theme.dart';
 
 void main() {
@@ -14,8 +16,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (ctx) => AuthService(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (ctx) => AuthService()),
+        ChangeNotifierProvider(create: (ctx) => PartnerService()),
+      ],
       child: Consumer<AuthService>(
         builder: (ctx, auth, _) => MaterialApp(
           title: 'Multimídia Parceiro B2B',
@@ -24,6 +29,7 @@ class MyApp extends StatelessWidget {
           routes: {
             '/login': (ctx) => const LoginScreen(),
             '/home': (ctx) => const HomeScreen(),
+            '/cnpj-search': (ctx) => const CNPJSearchScreen(),
           },
         ),
       ),
