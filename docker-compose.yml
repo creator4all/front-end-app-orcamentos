@@ -1,0 +1,22 @@
+version: '3.9'
+
+services:
+  flutter:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: flutter-dev
+    volumes:
+      - ./:/app
+      - flutter_pub_cache:/root/.pub-cache
+    ports:
+      - "8080:8080"   # Flutter web
+      - "9100:9100"   # DevTools
+    environment:
+      - DISPLAY=${DISPLAY}
+      - PUB_CACHE=/root/.pub-cache
+    tty: true
+    command: ["bash"]
+
+volumes:
+  flutter_pub_cache:
