@@ -13,6 +13,6 @@ COPY . .
 RUN flutter pub get
 
 EXPOSE 9100
-EXPOSE 8080
+EXPOSE 8181
 
 CMD ["bash"]
