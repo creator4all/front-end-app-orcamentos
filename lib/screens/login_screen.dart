@@ -157,6 +157,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     text: 'Cadastrar',
                     onPressed: () {
                       // Navegar para tela de cadastro
+                      Navigator.pushNamed(context, '/cnpj-search');
                     },
                   ),
                   
