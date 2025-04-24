@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../controllers/login_controller.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/index.dart';
@@ -16,6 +17,14 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  late LoginController _loginController;
+
+  @override
+  void initState() {
+    super.initState();
+    final authService = Provider.of<AuthService>(context, listen: false);
+    _loginController = LoginController(authService);
+  }
 
   @override
   void dispose() {
@@ -26,8 +35,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _login() async {
     if (_formKey.currentState?.validate() ?? false) {
-      final authService = Provider.of<AuthService>(context, listen: false);
-      final success = await authService.login(
+      final success = await _loginController.login(
         _emailController.text,
         _passwordController.text,
       );
@@ -41,9 +49,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final authService = Provider.of<AuthService>(context);
-    
-    return Scaffold(
+    // Use ChangeNotifierProvider to listen to LoginController changes
+    return ChangeNotifierProvider.value(
+      value: _loginController,
+      child: Consumer<LoginController>(
+        builder: (ctx, controller, _) => Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Center(
@@ -147,7 +157,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   // Botão de login
                   PrimaryButton(
                     text: 'Acessar',
-                    isLoading: authService.isLoading,
+                    isLoading: controller.isLoading,
                     onPressed: _login,
                   ),
                   const SizedBox(height: 16),
@@ -184,11 +194,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   
                   // Exibir mensagem de erro, se houver
-                  if (authService.error != null)
+                  if (controller.error != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 16.0),
                       child: Text(
-                        authService.error!,
+                        controller.error!,
                         style: const TextStyle(
                           color: Colors.red,
                           fontSize: 14,
@@ -200,6 +210,8 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ),
+        ),
+      ),
         ),
       ),
     );
