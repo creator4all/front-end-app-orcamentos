@@ -1,36 +1,40 @@
-import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
+import "package:flutter/material.dart";
+import "../theme/app_theme.dart";
 
 class BudgetCard extends StatelessWidget {
-  final String title;
-  final String description;
+  final String city;
+  final String state;
+  final String code;
   final String date;
+  final int daysRemaining;
   final double value;
   final String status;
   final VoidCallback onTap;
-  final VoidCallback? onEdit;
-  final VoidCallback? onDelete;
 
   const BudgetCard({
     Key? key,
-    required this.title,
-    required this.description,
+    required this.city,
+    required this.state,
+    required this.code,
     required this.date,
+    required this.daysRemaining,
     required this.value,
     required this.status,
     required this.onTap,
-    this.onEdit,
-    this.onDelete,
   }) : super(key: key);
 
   Color _getStatusColor() {
     switch (status.toLowerCase()) {
-      case 'aprovado':
+      case "aprovado":
         return Colors.green;
-      case 'pendente':
+      case "pendente":
         return Colors.orange;
-      case 'rejeitado':
+      case "expirado":
         return Colors.red;
+      case "não aprovado":
+        return Colors.red;
+      case "arquivado":
+        return Colors.grey;
       default:
         return Colors.grey;
     }
@@ -39,48 +43,85 @@ class BudgetCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 2,
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
+      elevation: 1,
+      margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Text(
+                "$city - $state",
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textColor,
+                ),
+              ),
+              const SizedBox(height: 8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.textColor,
+                  Row(
+                    children: [
+                      Text(
+                        code,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: AppTheme.lightTextColor,
+                        ),
                       ),
-                      overflow: TextOverflow.ellipsis,
+                      const SizedBox(width: 8),
+                      Text(
+                        date,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: AppTheme.lightTextColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    "R\$${_formatCurrency(value)}",
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textColor,
                     ),
                   ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.access_time, size: 14, color: Colors.grey),
+                      const SizedBox(width: 4),
+                      Text(
+                        "$daysRemaining dias rest.",
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: _getStatusColor().withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(
-                        color: _getStatusColor(),
-                        width: 1,
-                      ),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      status,
+                      status.toLowerCase(),
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -90,74 +131,14 @@ class BudgetCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                description,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppTheme.lightTextColor,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Data: $date',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: AppTheme.lightTextColor,
-                    ),
-                  ),
-                  Text(
-                    'R\$ ${value.toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.primaryColor,
-                    ),
-                  ),
-                ],
-              ),
-              if (onEdit != null || onDelete != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      if (onEdit != null)
-                        IconButton(
-                          icon: const Icon(
-                            Icons.edit,
-                            color: AppTheme.primaryColor,
-                            size: 20,
-                          ),
-                          onPressed: onEdit,
-                          constraints: const BoxConstraints(),
-                          padding: const EdgeInsets.all(8),
-                          tooltip: 'Editar',
-                        ),
-                      if (onDelete != null)
-                        IconButton(
-                          icon: const Icon(
-                            Icons.delete,
-                            color: Colors.red,
-                            size: 20,
-                          ),
-                          onPressed: onDelete,
-                          constraints: const BoxConstraints(),
-                          padding: const EdgeInsets.all(8),
-                          tooltip: 'Excluir',
-                        ),
-                    ],
-                  ),
-                ),
             ],
           ),
         ),
       ),
     );
+  }
+  
+  String _formatCurrency(double value) {
+    return value.toStringAsFixed(2).replaceAll(".", ",");
   }
 }
