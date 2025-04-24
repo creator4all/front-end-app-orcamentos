@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../controllers/login_controller.dart';
-import '../services/auth_service.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
+import '../stores/auth_store.dart';
+import '../stores/login_store.dart';
 import '../theme/app_theme.dart';
 import '../widgets/index.dart';
 
@@ -17,13 +17,18 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
-  late LoginController _loginController;
-
+  
+  // MobX stores
+  late final AuthStore _authStore;
+  late final LoginStore _loginStore;
+  
   @override
   void initState() {
     super.initState();
-    final authService = Provider.of<AuthService>(context, listen: false);
-    _loginController = LoginController(authService);
+    // Get stores from StoreProvider
+    final storeProvider = StoreProvider.of(context);
+    _authStore = storeProvider.authStore;
+    _loginStore = storeProvider.loginStore;
   }
 
   @override
@@ -35,7 +40,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _login() async {
     if (_formKey.currentState?.validate() ?? false) {
-      final success = await _loginController.login(
+      final success = await _loginStore.login(
         _emailController.text,
         _passwordController.text,
       );
@@ -49,11 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Use ChangeNotifierProvider to listen to LoginController changes
-    return ChangeNotifierProvider.value(
-      value: _loginController,
-      child: Consumer<LoginController>(
-        builder: (ctx, controller, _) => Scaffold(
+    return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Center(
@@ -155,10 +156,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 24),
                   
                   // Botão de login
-                  PrimaryButton(
-                    text: 'Acessar',
-                    isLoading: controller.isLoading,
-                    onPressed: _login,
+                  Observer(
+                    builder: (_) => PrimaryButton(
+                      text: 'Acessar',
+                      isLoading: _loginStore.isLoading,
+                      onPressed: _login,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   
@@ -194,18 +197,21 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   
                   // Exibir mensagem de erro, se houver
-                  if (controller.error != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 16.0),
-                      child: Text(
-                        controller.error!,
-                        style: const TextStyle(
-                          color: Colors.red,
-                          fontSize: 14,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
+                  Observer(
+                    builder: (_) => _loginStore.error != null
+                      ? Padding(
+                          padding: const EdgeInsets.only(top: 16.0),
+                          child: Text(
+                            _loginStore.error!,
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontSize: 14,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        )
+                      : const SizedBox.shrink(),
+                  ),
                 ],
               ),
             ),
