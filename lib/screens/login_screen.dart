@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import '../stores/auth_store.dart';
 import '../stores/login_store.dart';
+import '../stores/store_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/index.dart';
 
@@ -216,8 +217,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ),
-        ),
-      ),
         ),
       ),
     );
