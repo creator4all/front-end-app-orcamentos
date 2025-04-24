@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../services/partner_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/index.dart';
+import 'cadastro/partner_registration_screen.dart';
 
 class CNPJSearchScreen extends StatefulWidget {
   const CNPJSearchScreen({Key? key}) : super(key: key);
@@ -229,8 +230,12 @@ class _CNPJSearchScreenState extends State<CNPJSearchScreen> {
                 SecondaryButton(
                   text: 'Quero me tornar um parceiro',
                   onPressed: () {
-                    // Navigate to partner registration screen
-                    // (Implementation would be added when that screen exists)
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const PartnerRegistrationScreen(),
+                      ),
+                    );
                   },
                 ),
                 
