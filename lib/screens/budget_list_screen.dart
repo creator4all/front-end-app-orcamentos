@@ -1,137 +1,255 @@
-import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
-import '../widgets/index.dart';
+import "package:flutter/material.dart";
+import "package:flutter_mobx/flutter_mobx.dart";
+import "../theme/app_theme.dart";
+import "../widgets/index.dart";
+import "../stores/store_provider.dart";
 
-class BudgetListScreen extends StatelessWidget {
+class BudgetListScreen extends StatefulWidget {
   const BudgetListScreen({Key? key}) : super(key: key);
 
   @override
+  State<BudgetListScreen> createState() => _BudgetListScreenState();
+}
+
+class _BudgetListScreenState extends State<BudgetListScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  final List<String> _filterOptions = [
+    "Aprovados",
+    "Não aprovados",
+    "Expirados",
+    "Pendentes",
+    "Arquivados",
+  ];
+  String _selectedFilter = "";
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final budgetStore = StoreProvider.of(context).budgetStore;
+      budgetStore.fetchBudgets();
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Dados de exemplo para demonstração
-    final dummyBudgets = [
-      {
-        'id': '1',
-        'title': 'Orçamento para Projeto A',
-        'description': 'Desenvolvimento de sistema de gestão para empresa de logística',
-        'date': '10/04/2025',
-        'value': 15000.00,
-        'status': 'Aprovado',
-      },
-      {
-        'id': '2',
-        'title': 'Orçamento para Projeto B',
-        'description': 'Consultoria em implementação de ERP para indústria de alimentos',
-        'date': '05/04/2025',
-        'value': 8500.00,
-        'status': 'Pendente',
-      },
-      {
-        'id': '3',
-        'title': 'Orçamento para Projeto C',
-        'description': 'Desenvolvimento de aplicativo mobile para empresa de transporte',
-        'date': '01/04/2025',
-        'value': 12000.00,
-        'status': 'Rejeitado',
-      },
-    ];
+    final budgetStore = StoreProvider.of(context).budgetStore;
+    final authStore = StoreProvider.of(context).authStore;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Orçamentos'),
-        backgroundColor: AppTheme.primaryColor,
-        foregroundColor: Colors.white,
+        title: const Text(
+          "Orçamentos",
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: false,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: () {
-              // Implementar filtro de orçamentos
-            },
+          CircleAvatar(
+            backgroundColor: AppTheme.primaryColor,
+            child: const Icon(
+              Icons.person,
+              color: Colors.white,
+            ),
           ),
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {
-              // Implementar busca de orçamentos
-            },
-          ),
+          const SizedBox(width: 16),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SectionHeader(
-              title: 'Seus Orçamentos',
-              subtitle: 'Total: ${dummyBudgets.length} orçamentos',
-              trailing: const Icon(
-                Icons.add_circle,
-                color: AppTheme.primaryColor,
-                size: 28,
-              ),
-              onTrailingTap: () {
-                // Navegar para tela de criação de orçamento
-              },
+      body: Column(
+        children: [
+          // Filters section
+          Container(
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.1),
+                  spreadRadius: 1,
+                  blurRadius: 4,
+                  offset: const Offset(0, 1),
+                ),
+              ],
             ),
-            
-            Expanded(
-              child: ListView.builder(
-                itemCount: dummyBudgets.length,
-                itemBuilder: (context, index) {
-                  final budget = dummyBudgets[index];
-                  return BudgetCard(
-                    title: budget['title'] as String,
-                    description: budget['description'] as String,
-                    date: budget['date'] as String,
-                    value: budget['value'] as double,
-                    status: budget['status'] as String,
-                    onTap: () {
-                      // Navegar para detalhes do orçamento
-                    },
-                    onEdit: () {
-                      // Navegar para edição do orçamento
-                    },
-                    onDelete: () {
-                      // Mostrar diálogo de confirmação para excluir orçamento
-                      showDialog(
-                        context: context,
-                        builder: (ctx) => AlertDialog(
-                          title: const Text('Confirmar exclusão'),
-                          content: const Text(
-                            'Tem certeza que deseja excluir este orçamento? Esta ação não pode ser desfeita.',
-                          ),
-                          actions: [
-                            TextButtonLink(
-                              text: 'Cancelar',
-                              onPressed: () {
-                                Navigator.of(ctx).pop();
-                              },
-                            ),
-                            PrimaryButton(
-                              text: 'Excluir',
-                              onPressed: () {
-                                // Implementar exclusão do orçamento
-                                Navigator.of(ctx).pop();
-                              },
-                              width: 100,
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                            ),
-                          ],
+            child: Column(
+              children: [
+                // Filtros and Resetar row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "Filtros",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    TextButtonLink(
+                      text: "Resetar",
+                      onPressed: () {
+                        setState(() {
+                          _selectedFilter = "";
+                          _searchController.clear();
+                        });
+                        budgetStore.setSelectedFilter("todos");
+                        budgetStore.setSearchQuery("");
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                
+                // Search field
+                TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: "Busca por código ou cidade",
+                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide.none,
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey.shade100,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  ),
+                  onChanged: (value) {
+                    budgetStore.setSearchQuery(value);
+                  },
+                ),
+                const SizedBox(height: 16),
+                
+                // Filter buttons
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: _filterOptions.map((filter) {
+                      final isSelected = _selectedFilter == filter;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: BudgetFilter(
+                          label: filter,
+                          isSelected: isSelected,
+                          onTap: () {
+                            setState(() {
+                              _selectedFilter = isSelected ? "" : filter;
+                            });
+                            final storeFilter = isSelected
+                                ? "todos"
+                                : filter.toLowerCase();
+                            budgetStore.setSelectedFilter(storeFilter);
+                          },
                         ),
                       );
-                    },
-                  );
-                },
-              ),
+                    }).toList(),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Navegar para tela de criação de orçamento
-        },
-        backgroundColor: AppTheme.primaryColor,
-        child: const Icon(Icons.add),
+          ),
+          
+          // Realizados section
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  "Realizados",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    // Navigate to create budget screen
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                  child: const Text("Novo"),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          
+          // Budget list
+          Expanded(
+            child: Observer(
+              builder: (_) {
+                if (budgetStore.isLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                
+                if (budgetStore.error != null) {
+                  return Center(
+                    child: Text(
+                      "Erro ao carregar orçamentos: ${budgetStore.error}",
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  );
+                }
+                
+                final budgets = budgetStore.filteredBudgets;
+                
+                if (budgets.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(Icons.search_off, size: 48, color: Colors.grey),
+                        SizedBox(height: 16),
+                        Text(
+                          "Nenhum orçamento encontrado",
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: budgets.length,
+                  itemBuilder: (context, index) {
+                    final budget = budgets[index];
+                    return BudgetCard(
+                      city: budget["city"],
+                      state: budget["state"],
+                      code: budget["code"],
+                      date: budget["date"],
+                      daysRemaining: budget["daysRemaining"],
+                      value: budget["value"],
+                      status: budget["status"],
+                      onTap: () {
+                        // Navigate to budget details
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

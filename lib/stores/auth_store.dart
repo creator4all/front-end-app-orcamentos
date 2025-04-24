@@ -1,8 +1,8 @@
-import 'package:mobx/mobx.dart';
-import '../entities/user_entity.dart';
+import "package:mobx/mobx.dart";
+import "../entities/user_entity.dart";
 
 // Include generated file
-part 'auth_store.g.dart';
+part "auth_store.g.dart";
 
 // This is the class used by rest of the codebase
 class AuthStore = _AuthStore with _$AuthStore;
@@ -20,6 +20,15 @@ abstract class _AuthStore with Store {
 
   @computed
   bool get isAuthenticated => user != null;
+  
+  @computed
+  bool get isManager => user?.role == "manager";
+  
+  @computed
+  bool get isSeller => user?.role == "seller";
+  
+  @computed
+  bool get isAdmin => user?.role == "admin";
 
   @action
   void setUser(UserEntity newUser) {
