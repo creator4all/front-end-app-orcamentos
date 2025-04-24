@@ -55,4 +55,10 @@ abstract class _AuthStore with Store {
   void clearError() {
     error = null;
   }
+  
+  @action
+  Future<void> logout() async {
+    // Clear user data
+    clearUser();
+  }
 }
