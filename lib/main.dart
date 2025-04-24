@@ -3,8 +3,9 @@ import 'package:provider/provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/cnpj_search_screen.dart';
-import 'services/auth_service.dart';
 import 'services/partner_service.dart';
+import 'stores/auth_store.dart';
+import 'stores/store_provider.dart';
 import 'theme/app_theme.dart';
 
 void main() {
@@ -16,16 +17,19 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Create stores
+    final authStore = AuthStore();
+    
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (ctx) => AuthService()),
+        // Keep PartnerService with Provider for now
         ChangeNotifierProvider(create: (ctx) => PartnerService()),
       ],
-      child: Consumer<AuthService>(
-        builder: (ctx, auth, _) => MaterialApp(
+      child: StoreProvider(
+        child: MaterialApp(
           title: 'Multimídia Parceiro B2B',
           theme: AppTheme.lightTheme,
-          home: auth.isAuthenticated ? const HomeScreen() : const LoginScreen(),
+          home: authStore.isAuthenticated ? const HomeScreen() : const LoginScreen(),
           routes: {
             '/login': (ctx) => const LoginScreen(),
             '/home': (ctx) => const HomeScreen(),
