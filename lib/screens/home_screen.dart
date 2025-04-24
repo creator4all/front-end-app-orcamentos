@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../services/auth_service.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
+import '../stores/auth_store.dart';
+import '../stores/store_provider.dart';
 import '../widgets/index.dart';
 import 'budget_list_screen.dart';
 
@@ -9,7 +10,7 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final authService = Provider.of<AuthService>(context);
+    final authStore = StoreProvider.of(context).authStore;
     
     return Scaffold(
       appBar: AppBar(
@@ -18,7 +19,7 @@ class HomeScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
-              await authService.logout();
+              await authStore.logout();
               if (context.mounted) {
                 Navigator.pushReplacementNamed(context, '/login');
               }
@@ -30,9 +31,11 @@ class HomeScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              'Bem-vindo, ${authService.user?.name ?? "Usuário"}!',
-              style: const TextStyle(fontSize: 24),
+            Observer(
+              builder: (_) => Text(
+                'Bem-vindo, ${authStore.user?.name ?? "Usuário"}!',
+                style: const TextStyle(fontSize: 24),
+              ),
             ),
             const SizedBox(height: 20),
             const Text(
