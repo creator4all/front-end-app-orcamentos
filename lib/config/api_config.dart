@@ -1,5 +1,5 @@
 class ApiConfig {
-  static const String _localBaseUrl = 'http://localhost:8080';
+  static const String _localBaseUrl = 'http://192.168.3.2:8080';
   static const String _testBaseUrl = 'https://test-api.multimidiaeducacional.com.br';
   static const String _productionBaseUrl = 'https://api.multimidiaeducacional.com.br';
   
