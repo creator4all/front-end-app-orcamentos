@@ -20,12 +20,17 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
   
   // MobX stores
-  late final AuthStore _authStore;
-  late final LoginStore _loginStore;
+  late AuthStore _authStore;
+  late LoginStore _loginStore;
   
   @override
   void initState() {
     super.initState();
+  }
+  
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
     // Get stores from StoreProvider
     final storeProvider = StoreProvider.of(context);
     _authStore = storeProvider.authStore;
