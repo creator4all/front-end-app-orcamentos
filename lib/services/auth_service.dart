@@ -2,51 +2,62 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../models/user.dart';
+import '../config/api_config.dart';
+import '../entities/user_entity.dart';
 
 class AuthService with ChangeNotifier {
-  User? _user;
+  UserEntity? _user;
   bool _isLoading = false;
   String? _error;
   final storage = const FlutterSecureStorage();
 
-  User? get user => _user;
+  UserEntity? get user => _user;
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get isAuthenticated => _user != null;
 
-  // Simulação de API para login
+  // Set user data (called from controller)
+  void setUser(UserEntity user) {
+    _user = user;
+    notifyListeners();
+  }
+  
+  // Clear user data (called from controller)
+  void clearUser() {
+    _user = null;
+    notifyListeners();
+  }
+
+  // Login method (now delegated to controller)
   Future<bool> login(String email, String password) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      // Em um cenário real, isso seria uma chamada de API
-      // Simulando um atraso de rede
-      await Future.delayed(const Duration(seconds: 1));
-
-      // Simulando validação de credenciais
-      if (email.isNotEmpty && password.isNotEmpty) {
-        // Simulando resposta do servidor
-        final userData = {
-          'id': '1',
+      final response = await http.post(
+        Uri.parse(ApiConfig.signInEndpoint),
+        headers: ApiConfig.headers,
+        body: jsonEncode({
           'email': email,
-          'name': 'Usuário Parceiro',
-          'token': 'token_simulado_${DateTime.now().millisecondsSinceEpoch}',
-        };
+          'password': password,
+        }),
+      ).timeout(ApiConfig.requestTimeout);
 
-        _user = User.fromJson(userData);
+      final responseData = jsonDecode(response.body);
+      
+      if (response.statusCode == 200) {
+        _user = UserEntity.fromJson(responseData);
         
         // Salvar token para persistência de login
         await storage.write(key: 'auth_token', value: _user!.token);
-        await storage.write(key: 'user_data', value: jsonEncode(userData));
+        await storage.write(key: 'user_data', value: jsonEncode(responseData));
         
         _isLoading = false;
         notifyListeners();
         return true;
       } else {
-        _error = 'Email ou senha inválidos';
+        _error = responseData['message'] ?? 'Falha na autenticação';
         _isLoading = false;
         notifyListeners();
         return false;
@@ -72,7 +83,7 @@ class AuthService with ChangeNotifier {
     
     if (token != null && userData != null) {
       try {
-        _user = User.fromJson(jsonDecode(userData));
+        _user = UserEntity.fromJson(jsonDecode(userData));
         notifyListeners();
         return true;
       } catch (e) {
@@ -89,16 +100,22 @@ class AuthService with ChangeNotifier {
     notifyListeners();
 
     try {
-      // Simulando um atraso de rede
-      await Future.delayed(const Duration(seconds: 1));
+      final response = await http.post(
+        Uri.parse(ApiConfig.resetPasswordEndpoint),
+        headers: ApiConfig.headers,
+        body: jsonEncode({
+          'email': email,
+        }),
+      ).timeout(ApiConfig.requestTimeout);
+
+      final responseData = jsonDecode(response.body);
       
-      // Em um cenário real, isso enviaria um email de recuperação
-      if (email.isNotEmpty) {
+      if (response.statusCode == 200) {
         _isLoading = false;
         notifyListeners();
         return true;
       } else {
-        _error = 'Email inválido';
+        _error = responseData['message'] ?? 'Falha ao resetar senha';
         _isLoading = false;
         notifyListeners();
         return false;
