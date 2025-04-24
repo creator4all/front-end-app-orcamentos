@@ -68,11 +68,22 @@ mixin _$LoginStore on _LoginStore, Store {
       ActionController(name: '_LoginStore', context: context);
 
   @override
-  Map<String, dynamic> validateLoginInput(String email, String password) {
+  void setLoading(bool loading) {
     final _$actionInfo = _$_LoginStoreActionController.startAction(
-        name: '_LoginStore.validateLoginInput');
+        name: '_LoginStore.setLoading');
     try {
-      return super.validateLoginInput(email, password);
+      return super.setLoading(loading);
+    } finally {
+      _$_LoginStoreActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void setError(String? errorMessage) {
+    final _$actionInfo =
+        _$_LoginStoreActionController.startAction(name: '_LoginStore.setError');
+    try {
+      return super.setError(errorMessage);
     } finally {
       _$_LoginStoreActionController.endAction(_$actionInfo);
     }

@@ -1,11 +1,13 @@
 import "package:flutter/material.dart";
 import "package:flutter_mobx/flutter_mobx.dart";
+import "package:multimidiaapp/widgets/CustomAppBar.dart";
+
+import "../stores/store_provider.dart";
 import "../theme/app_theme.dart";
 import "../widgets/index.dart";
-import "../stores/store_provider.dart";
 
 class BudgetListScreen extends StatefulWidget {
-  const BudgetListScreen({Key? key}) : super(key: key);
+  const BudgetListScreen({super.key});
 
   @override
   State<BudgetListScreen> createState() => _BudgetListScreenState();
@@ -43,26 +45,17 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
     final authStore = StoreProvider.of(context).authStore;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          "Orçamentos",
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: false,
+      appBar: const CustomAppBar(
+        isBackButtonVisible: false,
+        title: "Orçamentos",
         actions: [
           CircleAvatar(
-            backgroundColor: AppTheme.primaryColor,
-            child: const Icon(
+            backgroundColor: Colors.blue,
+            child: Icon(
               Icons.person,
               color: Colors.white,
             ),
           ),
-          const SizedBox(width: 16),
         ],
       ),
       body: Column(
@@ -110,7 +103,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Search field
                 TextField(
                   controller: _searchController,
@@ -130,7 +123,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                   },
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Filter buttons
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -146,9 +139,8 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                             setState(() {
                               _selectedFilter = isSelected ? "" : filter;
                             });
-                            final storeFilter = isSelected
-                                ? "todos"
-                                : filter.toLowerCase();
+                            final storeFilter =
+                                isSelected ? "todos" : filter.toLowerCase();
                             budgetStore.setSelectedFilter(storeFilter);
                           },
                         ),
@@ -159,7 +151,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
               ],
             ),
           ),
-          
+
           // Realizados section
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -183,7 +175,8 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
                   ),
                   child: const Text("Novo"),
                 ),
@@ -191,7 +184,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          
+
           // Budget list
           Expanded(
             child: Observer(
@@ -199,7 +192,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                 if (budgetStore.isLoading) {
                   return const Center(child: CircularProgressIndicator());
                 }
-                
+
                 if (budgetStore.error != null) {
                   return Center(
                     child: Text(
@@ -208,14 +201,14 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                     ),
                   );
                 }
-                
+
                 final budgets = budgetStore.filteredBudgets;
-                
+
                 if (budgets.isEmpty) {
-                  return Center(
+                  return const Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
-                      children: const [
+                      children: [
                         Icon(Icons.search_off, size: 48, color: Colors.grey),
                         SizedBox(height: 16),
                         Text(
@@ -226,7 +219,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                     ),
                   );
                 }
-                
+
                 return ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: budgets.length,

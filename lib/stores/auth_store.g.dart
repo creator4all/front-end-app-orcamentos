@@ -16,6 +16,24 @@ mixin _$AuthStore on _AuthStore, Store {
       (_$isAuthenticatedComputed ??= Computed<bool>(() => super.isAuthenticated,
               name: '_AuthStore.isAuthenticated'))
           .value;
+  Computed<bool>? _$isManagerComputed;
+
+  @override
+  bool get isManager => (_$isManagerComputed ??=
+          Computed<bool>(() => super.isManager, name: '_AuthStore.isManager'))
+      .value;
+  Computed<bool>? _$isSellerComputed;
+
+  @override
+  bool get isSeller => (_$isSellerComputed ??=
+          Computed<bool>(() => super.isSeller, name: '_AuthStore.isSeller'))
+      .value;
+  Computed<bool>? _$isAdminComputed;
+
+  @override
+  bool get isAdmin => (_$isAdminComputed ??=
+          Computed<bool>(() => super.isAdmin, name: '_AuthStore.isAdmin'))
+      .value;
 
   late final _$userAtom = Atom(name: '_AuthStore.user', context: context);
 
@@ -63,36 +81,12 @@ mixin _$AuthStore on _AuthStore, Store {
     });
   }
 
-  late final _$loginAsyncAction =
-      AsyncAction('_AuthStore.login', context: context);
-
-  @override
-  Future<bool> login(String email, String password) {
-    return _$loginAsyncAction.run(() => super.login(email, password));
-  }
-
   late final _$logoutAsyncAction =
       AsyncAction('_AuthStore.logout', context: context);
 
   @override
   Future<void> logout() {
     return _$logoutAsyncAction.run(() => super.logout());
-  }
-
-  late final _$tryAutoLoginAsyncAction =
-      AsyncAction('_AuthStore.tryAutoLogin', context: context);
-
-  @override
-  Future<bool> tryAutoLogin() {
-    return _$tryAutoLoginAsyncAction.run(() => super.tryAutoLogin());
-  }
-
-  late final _$resetPasswordAsyncAction =
-      AsyncAction('_AuthStore.resetPassword', context: context);
-
-  @override
-  Future<bool> resetPassword(String email) {
-    return _$resetPasswordAsyncAction.run(() => super.resetPassword(email));
   }
 
   late final _$_AuthStoreActionController =
@@ -121,12 +115,48 @@ mixin _$AuthStore on _AuthStore, Store {
   }
 
   @override
+  void setLoading(bool loading) {
+    final _$actionInfo =
+        _$_AuthStoreActionController.startAction(name: '_AuthStore.setLoading');
+    try {
+      return super.setLoading(loading);
+    } finally {
+      _$_AuthStoreActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void setError(String? errorMessage) {
+    final _$actionInfo =
+        _$_AuthStoreActionController.startAction(name: '_AuthStore.setError');
+    try {
+      return super.setError(errorMessage);
+    } finally {
+      _$_AuthStoreActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void clearError() {
+    final _$actionInfo =
+        _$_AuthStoreActionController.startAction(name: '_AuthStore.clearError');
+    try {
+      return super.clearError();
+    } finally {
+      _$_AuthStoreActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
   String toString() {
     return '''
 user: ${user},
 isLoading: ${isLoading},
 error: ${error},
-isAuthenticated: ${isAuthenticated}
+isAuthenticated: ${isAuthenticated},
+isManager: ${isManager},
+isSeller: ${isSeller},
+isAdmin: ${isAdmin}
     ''';
   }
 }
