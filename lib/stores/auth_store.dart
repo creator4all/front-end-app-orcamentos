@@ -61,4 +61,33 @@ abstract class _AuthStore with Store {
     // Clear user data
     clearUser();
   }
+  
+  @action
+  Future<bool> deleteAccount(String confirmation) async {
+    setLoading(true);
+    clearError();
+    
+    try {
+      // Verify confirmation text
+      if (confirmation.toLowerCase() != 'confirmar') {
+        setError('Texto de confirmação incorreto. Digite "confirmar" para excluir sua conta.');
+        setLoading(false);
+        return false;
+      }
+
+      // Simulate network delay
+      await Future.delayed(const Duration(seconds: 1));
+      
+      // In a real scenario, this would be an API call to delete the account
+      // For this simulation, just logout
+      await logout();
+      
+      setLoading(false);
+      return true;
+    } catch (e) {
+      setError('Erro ao excluir conta: ${e.toString()}');
+      setLoading(false);
+      return false;
+    }
+  }
 }

@@ -3,12 +3,14 @@ class User {
   final String email;
   final String name;
   final String token;
+  final String role; // Nova propriedade para o papel do usuário
 
   User({
     required this.id,
     required this.email,
     required this.name,
     required this.token,
+    this.role = 'vendedor', // Valor padrão
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -17,6 +19,7 @@ class User {
       email: json['email'] ?? '',
       name: json['name'] ?? '',
       token: json['token'] ?? '',
+      role: json['role'] ?? 'vendedor', // Valor padrão se não estiver no JSON
     );
   }
 
@@ -26,6 +29,7 @@ class User {
       'email': email,
       'name': name,
       'token': token,
+      'role': role,
     };
   }
 }
