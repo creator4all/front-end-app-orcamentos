@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/cnpj_search_screen.dart';
+import 'screens/profile/profile_screen.dart';
 import 'services/partner_service.dart';
 import 'stores/auth_store.dart';
 import 'stores/store_provider.dart';
@@ -34,6 +35,7 @@ class MyApp extends StatelessWidget {
             '/login': (ctx) => const LoginScreen(),
             '/home': (ctx) => const HomeScreen(),
             '/cnpj-search': (ctx) => const CNPJSearchScreen(),
+            '/profile': (ctx) => const ProfileScreen(),
           },
         ),
       ),

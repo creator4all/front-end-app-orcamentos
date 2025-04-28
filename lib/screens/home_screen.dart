@@ -16,6 +16,14 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Dashboard de Orçamentos'),
         actions: [
+          // Add profile button
+          IconButton(
+            icon: const Icon(Icons.person),
+            onPressed: () {
+              Navigator.pushNamed(context, '/profile');
+            },
+          ),
+          // Existing logout button
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
