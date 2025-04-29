@@ -37,4 +37,13 @@ class UserEntity {
   String toString() {
     return "UserEntity(id: $id, email: $email, name: $name, role: $role)";
   }
+  
+  // Helper to normalize role values between English and Portuguese
+  String get normalizedRole {
+    // Map English roles to Portuguese
+    if (role == "seller") return "vendedor";
+    if (role == "manager") return "gestor";
+    if (role == "admin") return "administrador";
+    return role; // Return original if no mapping exists
+  }
 }
