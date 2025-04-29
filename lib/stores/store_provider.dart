@@ -8,14 +8,36 @@ class StoreProvider extends InheritedWidget {
   final LoginStore loginStore;
   final BudgetStore budgetStore;
 
-  StoreProvider({
+  // Private constructor that takes pre-initialized stores
+  StoreProvider._({
+    Key? key,
+    required this.authStore,
+    required this.loginStore,
+    required this.budgetStore,
+    required Widget child,
+  }) : super(key: key, child: child);
+  
+  // Factory constructor that properly initializes all stores
+  factory StoreProvider({
     Key? key,
     required Widget child,
-  }) : 
-    authStore = AuthStore(),
-    loginStore = LoginStore(authStore), // Fixed: Uses the same authStore instance
-    budgetStore = BudgetStore(authStore), // Fixed: Uses the same authStore instance
-    super(key: key, child: child);
+  }) {
+    // Create a single shared AuthStore instance
+    final authStore = AuthStore();
+    
+    // Create other stores using the shared AuthStore
+    final loginStore = LoginStore(authStore);
+    final budgetStore = BudgetStore(authStore);
+    
+    // Return a new StoreProvider with all stores properly initialized
+    return StoreProvider._(
+      key: key,
+      authStore: authStore,
+      loginStore: loginStore,
+      budgetStore: budgetStore,
+      child: child,
+    );
+  }
 
   static StoreProvider of(BuildContext context) {
     final StoreProvider? result =
