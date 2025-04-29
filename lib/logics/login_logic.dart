@@ -54,12 +54,16 @@ class LoginLogic {
       
       if (result['success']) {
         // Parse user data
-        final userData = result['data'];
-        final user = UserEntity.fromJson(userData);
+        final responseData = result['data'];
+        final user = UserEntity.fromJson(responseData);
+        
+        // Create user data with normalized role
+        final userData = user.toJson();
+        userData['role'] = user.normalizedRole; // Use normalized role
         
         // Save user data and token
         await storage.write(key: 'auth_token', value: user.token);
-        await storage.write(key: 'user_data', value: jsonEncode(user.toJson()));
+        await storage.write(key: 'user_data', value: jsonEncode(userData));
         
         return {
           'success': true,
