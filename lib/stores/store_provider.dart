@@ -13,8 +13,8 @@ class StoreProvider extends InheritedWidget {
     required Widget child,
   }) : 
     authStore = AuthStore(),
-    loginStore = LoginStore(AuthStore()),
-    budgetStore = BudgetStore(AuthStore()),
+    loginStore = LoginStore(authStore), // Fixed: Uses the same authStore instance
+    budgetStore = BudgetStore(authStore), // Fixed: Uses the same authStore instance
     super(key: key, child: child);
 
   static StoreProvider of(BuildContext context) {
