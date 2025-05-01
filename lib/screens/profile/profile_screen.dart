@@ -109,6 +109,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             title: const Text('Perfil'),
             backgroundColor: Colors.white,
             elevation: 0,
+            automaticallyImplyLeading: false, // Disable back button
             // X in the top right corner to close
             actions: [
               IconButton(
@@ -148,10 +149,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: 16),
                   
-                  // CNPJ (example)
-                  const Text(
-                    '24.915.891/0001-74',
-                    style: TextStyle(
+                  // CNPJ from user data if available
+                  Text(
+                    user.id.isNotEmpty ? user.id : '24.915.891/0001-74',
+                    style: const TextStyle(
                       fontSize: 16,
                       color: Colors.grey,
                     ),
