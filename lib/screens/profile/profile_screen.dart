@@ -109,12 +109,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             title: const Text('Perfil'),
             backgroundColor: Colors.white,
             elevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.black),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
             // X in the top right corner to close
             actions: [
               IconButton(
@@ -141,7 +135,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       color: Colors.white,
                     ),
                   ),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 24),
+                  
+                  // User name
+                  Text(
+                    user.name,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
                   
                   // CNPJ (example)
                   const Text(
