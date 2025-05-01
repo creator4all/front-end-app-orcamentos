@@ -107,10 +107,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return Scaffold(
           appBar: AppBar(
             title: const Text('Perfil'),
+            backgroundColor: Colors.white,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.black),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
             // X in the top right corner to close
             actions: [
               IconButton(
-                icon: const Icon(Icons.close),
+                icon: const Icon(Icons.close, color: Colors.black),
                 onPressed: () {
                   Navigator.of(context).pop();
                 },
@@ -133,29 +141,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       color: Colors.white,
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  
-                  // User name
-                  Text(
-                    user.name,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  
-                  // Email
-                  Text(
-                    user.email,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 40),
                   
                   // CNPJ (example)
                   const Text(
@@ -244,7 +230,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -257,7 +243,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     width: double.infinity,
                     margin: const EdgeInsets.only(top: 16),
                     child: OutlinedButton.icon(
-                      icon: const Icon(Icons.delete, color: Colors.red),
+                      icon: const Icon(Icons.delete_forever, color: Colors.red),
                       label: const Text(
                         'Deletar conta',
                         style: TextStyle(
@@ -271,10 +257,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       },
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: Colors.red),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
+                        backgroundColor: Colors.white,
                       ),
                     ),
                   ),
@@ -297,24 +284,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
       width: double.infinity,
       child: OutlinedButton.icon(
         icon: Icon(icon, color: Colors.black),
-        label: Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            text,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
-            ),
+        label: Text(
+          text,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
           ),
         ),
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
           ),
-          alignment: Alignment.centerLeft,
+          backgroundColor: Colors.white,
+          side: BorderSide(color: Colors.grey.shade300),
         ),
       ),
     );
