@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'screens/login_screen.dart';
-import 'screens/home_screen.dart';
+import 'screens/budget_list_screen.dart';
 import 'screens/cnpj_search_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'services/partner_service.dart';
@@ -30,10 +30,10 @@ class MyApp extends StatelessWidget {
         child: MaterialApp(
           title: 'Multimídia Parceiro B2B',
           theme: AppTheme.lightTheme,
-          home: authStore.isAuthenticated ? const HomeScreen() : const LoginScreen(),
+          home: authStore.isAuthenticated ? const BudgetListScreen() : const LoginScreen(),
           routes: {
             '/login': (ctx) => const LoginScreen(),
-            '/home': (ctx) => const HomeScreen(),
+            '/budget_list': (ctx) => const BudgetListScreen(),
             '/cnpj-search': (ctx) => const CNPJSearchScreen(),
             '/profile': (ctx) => const ProfileScreen(),
           },

@@ -1,6 +1,7 @@
 import "package:flutter/material.dart";
 import "package:flutter_mobx/flutter_mobx.dart";
 import "package:multimidiaapp/widgets/CustomAppBar.dart";
+import "package:multimidiaapp/screens/profile/profile_screen.dart";
 
 import "../stores/store_provider.dart";
 import "../theme/app_theme.dart";
@@ -45,15 +46,35 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
     final authStore = StoreProvider.of(context).authStore;
 
     return Scaffold(
-      appBar: const CustomAppBar(
+      appBar: CustomAppBar(
         isBackButtonVisible: false,
         title: "Orçamentos",
         actions: [
-          CircleAvatar(
-            backgroundColor: Colors.blue,
-            child: Icon(
-              Icons.person,
-              color: Colors.white,
+          GestureDetector(
+            onTap: () {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (context) => Container(
+                  height: MediaQuery.of(context).size.height * 0.9,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
+                    ),
+                  ),
+                  child: const ProfileScreen(),
+                ),
+              );
+            },
+            child: const CircleAvatar(
+              backgroundColor: Colors.blue,
+              child: Icon(
+                Icons.person,
+                color: Colors.white,
+              ),
             ),
           ),
         ],
