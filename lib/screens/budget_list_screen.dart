@@ -45,31 +45,30 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
     final budgetStore = StoreProvider.of(context).budgetStore;
     final authStore = StoreProvider.of(context).authStore;
 
-    return SafeArea(
-      child: Scaffold(
-        appBar: CustomAppBar(
-          isBackButtonVisible: false,
-          title: "Orçamentos",
-          actions: [
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ProfileScreen(),
-                  ),
-                );
-              },
-              child: const CircleAvatar(
-                backgroundColor: Colors.blue,
-                child: Icon(
-                  Icons.person,
-                  color: Colors.white,
+    return Scaffold(
+      appBar: CustomAppBar(
+        isBackButtonVisible: false,
+        title: "Orçamentos",
+        actions: [
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ProfileScreen(),
                 ),
+              );
+            },
+            child: const CircleAvatar(
+              backgroundColor: Colors.blue,
+              child: Icon(
+                Icons.person,
+                color: Colors.white,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
+      ),
         body: Column(
         children: [
           // Filters section
