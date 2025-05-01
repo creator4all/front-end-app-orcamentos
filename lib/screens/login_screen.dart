@@ -52,8 +52,8 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (success && mounted) {
-        // Navigate to home screen or dashboard
-        Navigator.pushReplacementNamed(context, '/home');
+        // Navigate to budget list screen
+        Navigator.pushReplacementNamed(context, '/budget_list');
       }
     }
   }
