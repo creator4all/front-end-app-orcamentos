@@ -1,47 +1,66 @@
 import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-import '../constants/api_constants.dart';
+import '../../../../config/api_config.dart';
 import '../errors/failures.dart';
 
 class DioClient {
   late final Dio _dio;
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
 
   DioClient() {
     _dio = Dio(
       BaseOptions(
-        baseUrl: ApiConstants.baseUrl,
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 10),
+        baseUrl: ApiConfig.baseUrl,
+        connectTimeout:
+            const Duration(seconds: 30), // Aumentado de 10 para 30 segundos
+        receiveTimeout:
+            const Duration(seconds: 30), // Aumentado de 10 para 30 segundos
+        sendTimeout: const Duration(seconds: 30), // Adicionado sendTimeout
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'User-Agent':
+              'App-Orcamentos-V1', // User-Agent específico para evitar OTP
         },
       ),
     );
 
+    _dio.interceptors.add(_authInterceptor());
     _dio.interceptors.add(_loggingInterceptor());
     _dio.interceptors.add(_errorInterceptor());
   }
 
   Dio get dio => _dio;
 
+  InterceptorsWrapper _authInterceptor() {
+    return InterceptorsWrapper(
+      onRequest: (options, handler) async {
+        try {
+          // Adicionar token de autenticação se disponível
+          final token = await _secureStorage.read(key: 'auth_token');
+          if (token != null && token.isNotEmpty) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
+        } catch (e) {
+          // Log error but continue without authentication
+          // In production, you might want to report this to telemetry
+          // For now, we silently continue without setting auth header
+        }
+        handler.next(options);
+      },
+    );
+  }
+
   InterceptorsWrapper _loggingInterceptor() {
     return InterceptorsWrapper(
       onRequest: (options, handler) {
-        print('REQUEST[${options.method}] => PATH: ${options.path}');
-        print('DATA: ${options.data}');
         handler.next(options);
       },
       onResponse: (response, handler) {
-        print(
-            'RESPONSE[${response.statusCode}] => PATH: ${response.requestOptions.path}');
-        print('DATA: ${response.data}');
         handler.next(response);
       },
       onError: (error, handler) {
-        print(
-            'ERROR[${error.response?.statusCode}] => PATH: ${error.requestOptions.path}');
-        print('MESSAGE: ${error.message}');
         handler.next(error);
       },
     );
@@ -50,8 +69,7 @@ class DioClient {
   InterceptorsWrapper _errorInterceptor() {
     return InterceptorsWrapper(
       onError: (error, handler) {
-        final failure = _handleDioError(error);
-        // You can handle global errors here
+        _handleDioError(error);
         handler.next(error);
       },
     );
@@ -68,9 +86,10 @@ class DioClient {
       case DioExceptionType.cancel:
         return const ServerFailure('Requisição cancelada');
       case DioExceptionType.connectionError:
-        return const ServerFailure('Erro de conexão');
+        return ServerFailure(
+            'Erro de conexão. Verifique se a API está rodando em ${ApiConfig.baseUrl}');
       default:
-        return const ServerFailure('Erro desconhecido');
+        return ServerFailure('Erro desconhecido: ${error.message}');
     }
   }
 }
