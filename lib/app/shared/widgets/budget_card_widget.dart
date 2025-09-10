@@ -44,7 +44,7 @@ class BudgetCardWidget extends StatelessWidget {
         width: double.infinity,
         height: 90.h,
         padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-        margin: EdgeInsets.symmetric(vertical: 4.h, horizontal: 16.w),
+        margin: EdgeInsets.symmetric(vertical: 4.h, horizontal: 0.w),
         decoration: BoxDecoration(
           color: const Color(0xFFF9F9F9),
           border: Border.all(
