@@ -11,4 +11,6 @@ abstract class AuthDatasource {
   Future<UserDto?> getCurrentUser();
 
   Future<bool> isLoggedIn();
+
+  Future<String?> getToken();
 }
