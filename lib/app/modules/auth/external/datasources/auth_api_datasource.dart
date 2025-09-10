@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -19,50 +21,101 @@ class AuthApiDatasource implements AuthDatasource {
     required String email,
     required String password,
   }) async {
-    final response = await dio.post(
-      ApiConfig.loginEndpoint,
-      options: Options(
-        headers: ApiConfig.headers,
-      ),
-      data: {
-        'usr_email': email,
-        'usr_password': password,
-      },
-    );
+    try {
+      final response = await dio.post(
+        ApiConfig.loginEndpoint,
+        options: Options(
+          headers: ApiConfig.headers,
+        ),
+        data: {
+          'usr_email': email,
+          'usr_password': password,
+        },
+      );
 
-    if (response.statusCode == 200) {
-      final data = response.data;
+      if (response.statusCode == 200) {
+        final data = response.data;
 
-      // Verificar se a resposta tem a estrutura esperada
-      if (data['dados'] == null) {
-        throw Exception('Resposta da API inválida');
-      }
+        // Verificar se a resposta tem a estrutura esperada
+        if (data is! Map<String, dynamic>) {
+          throw Exception(
+              'Resposta da API inválida: esperado Map<String, dynamic>, recebido ${data.runtimeType}');
+        }
 
-      final dadosResponse = data['dados'];
+        if (!data.containsKey('dados')) {
+          throw Exception(
+              'Resposta da API inválida: chave "dados" não encontrada. Chaves disponíveis: ${data.keys.toList()}');
+        }
 
-      // Save token
-      if (dadosResponse['token'] != null) {
-        await secureStorage.write(
-          key: 'auth_token',
-          value: dadosResponse['token'],
+        final dadosValue = data['dados'];
+        if (dadosValue is! Map<String, dynamic>) {
+          throw Exception(
+              'Resposta da API inválida: "dados" deve ser Map<String, dynamic>, recebido ${dadosValue.runtimeType}');
+        }
+
+        final dadosResponse = dadosValue;
+
+        // Save token
+        if (dadosResponse['token'] != null) {
+          await secureStorage.write(
+            key: 'auth_token',
+            value: dadosResponse['token'],
+          );
+        }
+
+        // Como a API não retorna dados do usuário, vamos criar um usuário básico
+        final userDto = UserDto(
+          id: '1', // ID fictício, idealmente viria da API
+          name: 'Usuário Logado',
+          email: email,
         );
+
+        await secureStorage.write(
+          key: 'user_data',
+          value: jsonEncode(userDto.toJson()),
+        );
+
+        return userDto;
+      } else {
+        throw Exception('Login failed: ${response.statusMessage}');
       }
-
-      // Como a API não retorna dados do usuário, vamos criar um usuário básico
-      final userDto = UserDto(
-        id: '1', // ID fictício, idealmente viria da API
-        name: 'Usuário Logado',
-        email: email,
-      );
-
-      await secureStorage.write(
-        key: 'user_data',
-        value: userDto.toJson().toString(),
-      );
-
-      return userDto;
-    } else {
-      throw Exception('Login failed: ${response.statusMessage}');
+    } on DioException catch (e) {
+      // Handle Dio-specific errors with user-friendly messages
+      if (e.response != null) {
+        final statusCode = e.response!.statusCode;
+        switch (statusCode) {
+          case 401:
+            throw Exception(
+                'Credenciais inválidas. Verifique seu email e senha.');
+          case 403:
+            throw Exception('Acesso negado. Conta pode estar desativada.');
+          case 404:
+            throw Exception(
+                'Serviço não encontrado. Tente novamente mais tarde.');
+          case 500:
+            throw Exception(
+                'Erro interno do servidor. Tente novamente mais tarde.');
+          default:
+            throw Exception(
+                'Erro no servidor (código $statusCode). Tente novamente.');
+        }
+      } else {
+        // Network or other connection errors
+        switch (e.type) {
+          case DioExceptionType.connectionTimeout:
+          case DioExceptionType.sendTimeout:
+          case DioExceptionType.receiveTimeout:
+            throw Exception(
+                'Timeout de conexão. Verifique sua internet e tente novamente.');
+          case DioExceptionType.connectionError:
+            throw Exception('Erro de conexão. Verifique sua internet.');
+          default:
+            throw Exception('Erro de rede. Tente novamente mais tarde.');
+        }
+      }
+    } catch (e) {
+      // Handle any other unexpected errors
+      throw Exception('Erro inesperado durante o login. Tente novamente.');
     }
   }
 
@@ -75,13 +128,19 @@ class AuthApiDatasource implements AuthDatasource {
 
   @override
   Future<UserDto?> getCurrentUser() async {
-    final userData = await secureStorage.read(key: 'user_data');
-    if (userData != null) {
-      // In a real implementation, you'd parse the JSON properly
-      // For now, return null if no user data
+    try {
+      final userData = await secureStorage.read(key: 'user_data');
+      if (userData == null || userData.isEmpty) {
+        return null;
+      }
+
+      final decodedMap = jsonDecode(userData) as Map<String, dynamic>;
+      return UserDto.fromJson(decodedMap);
+    } catch (e) {
+      // Clear invalid storage data if JSON parsing fails
+      await secureStorage.delete(key: 'user_data');
       return null;
     }
-    return null;
   }
 
   @override
