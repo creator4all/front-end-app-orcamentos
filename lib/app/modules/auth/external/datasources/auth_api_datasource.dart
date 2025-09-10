@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../../../../shared/core/constants/api_constants.dart';
+
+import '../../../../../config/api_config.dart';
 import '../../infra/datasources/auth_datasource.dart';
 import '../../infra/dtos/user_dto.dart';
 
@@ -19,47 +20,62 @@ class AuthApiDatasource implements AuthDatasource {
     required String password,
   }) async {
     final response = await dio.post(
-      ApiConstants.loginEndpoint,
+      ApiConfig.loginEndpoint,
+      options: Options(
+        headers: ApiConfig.headers,
+      ),
       data: {
-        'email': email,
-        'password': password,
+        'usr_email': email,
+        'usr_password': password,
       },
     );
 
     if (response.statusCode == 200) {
       final data = response.data;
 
+      // Verificar se a resposta tem a estrutura esperada
+      if (data['dados'] == null) {
+        throw Exception('Resposta da API inválida');
+      }
+
+      final dadosResponse = data['dados'];
+
       // Save token
-      if (data['token'] != null) {
+      if (dadosResponse['token'] != null) {
         await secureStorage.write(
-          key: ApiConstants.tokenKey,
-          value: data['token'],
+          key: 'auth_token',
+          value: dadosResponse['token'],
         );
       }
 
-      // Save user data
-      final userDto = UserDto.fromJson(data['user']);
+      // Como a API não retorna dados do usuário, vamos criar um usuário básico
+      final userDto = UserDto(
+        id: '1', // ID fictício, idealmente viria da API
+        name: 'Usuário Logado',
+        email: email,
+      );
+
       await secureStorage.write(
-        key: ApiConstants.userKey,
+        key: 'user_data',
         value: userDto.toJson().toString(),
       );
 
       return userDto;
     } else {
-      throw Exception('Login failed');
+      throw Exception('Login failed: ${response.statusMessage}');
     }
   }
 
   @override
   Future<void> logout() async {
-    await secureStorage.delete(key: ApiConstants.tokenKey);
-    await secureStorage.delete(key: ApiConstants.userKey);
-    await secureStorage.delete(key: ApiConstants.refreshTokenKey);
+    await secureStorage.delete(key: 'auth_token');
+    await secureStorage.delete(key: 'user_data');
+    await secureStorage.delete(key: 'refresh_token');
   }
 
   @override
   Future<UserDto?> getCurrentUser() async {
-    final userData = await secureStorage.read(key: ApiConstants.userKey);
+    final userData = await secureStorage.read(key: 'user_data');
     if (userData != null) {
       // In a real implementation, you'd parse the JSON properly
       // For now, return null if no user data
@@ -70,7 +86,13 @@ class AuthApiDatasource implements AuthDatasource {
 
   @override
   Future<bool> isLoggedIn() async {
-    final token = await secureStorage.read(key: ApiConstants.tokenKey);
+    final token = await secureStorage.read(key: 'auth_token');
     return token != null && token.isNotEmpty;
+  }
+
+  @override
+  Future<String?> getToken() async {
+    final token = await secureStorage.read(key: 'auth_token');
+    return token;
   }
 }
