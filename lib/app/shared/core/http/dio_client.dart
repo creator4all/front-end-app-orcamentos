@@ -36,10 +36,16 @@ class DioClient {
   InterceptorsWrapper _authInterceptor() {
     return InterceptorsWrapper(
       onRequest: (options, handler) async {
-        // Adicionar token de autenticação se disponível
-        final token = await _secureStorage.read(key: 'auth_token');
-        if (token != null && token.isNotEmpty) {
-          options.headers['Authorization'] = 'Bearer $token';
+        try {
+          // Adicionar token de autenticação se disponível
+          final token = await _secureStorage.read(key: 'auth_token');
+          if (token != null && token.isNotEmpty) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
+        } catch (e) {
+          // Log error but continue without authentication
+          // In production, you might want to report this to telemetry
+          // For now, we silently continue without setting auth header
         }
         handler.next(options);
       },
@@ -49,20 +55,12 @@ class DioClient {
   InterceptorsWrapper _loggingInterceptor() {
     return InterceptorsWrapper(
       onRequest: (options, handler) {
-        print('REQUEST[${options.method}] => PATH: ${options.path}');
-        print('DATA: ${options.data}');
         handler.next(options);
       },
       onResponse: (response, handler) {
-        print(
-            'RESPONSE[${response.statusCode}] => PATH: ${response.requestOptions.path}');
-        print('DATA: ${response.data}');
         handler.next(response);
       },
       onError: (error, handler) {
-        print(
-            'ERROR[${error.response?.statusCode}] => PATH: ${error.requestOptions.path}');
-        print('MESSAGE: ${error.message}');
         handler.next(error);
       },
     );
@@ -78,10 +76,6 @@ class DioClient {
   }
 
   ServerFailure _handleDioError(DioException error) {
-    print('DIO ERROR TYPE: ${error.type}');
-    print('DIO ERROR MESSAGE: ${error.message}');
-    print('DIO ERROR RESPONSE: ${error.response?.data}');
-
     switch (error.type) {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:

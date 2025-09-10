@@ -59,9 +59,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Inicializar ScreenUtil
-    ScreenUtil.init(context);
-
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(

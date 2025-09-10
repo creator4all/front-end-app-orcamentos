@@ -369,7 +369,7 @@ class _LoginPageState extends State<LoginPage> {
   void _handleLogin() async {
     if (_formKey.currentState?.validate() ?? false) {
       await controller.login(
-        _emailController.text,
+        _emailController.text.trim(),
         _passwordController.text,
       );
       // O controller já navega automaticamente se o login for bem-sucedido
