@@ -1,32 +1,33 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
+
 import '../config/api_config.dart';
-import '../entities/user_entity.dart';
 
 class AuthService {
+  final Dio _dio;
+
+  AuthService({Dio? dio}) : _dio = dio ?? Dio();
+
   // Authenticate user with API
   Future<Map<String, dynamic>> signIn(String email, String password) async {
     try {
-      final response = await http.post(
-        Uri.parse(ApiConfig.signInEndpoint),
-        headers: ApiConfig.headers,
-        body: jsonEncode({
+      final response = await _dio.post(
+        ApiConfig.signInEndpoint,
+        data: {
           'email': email,
           'password': password,
-        }),
-      ).timeout(ApiConfig.requestTimeout);
+        },
+        options: Options(headers: ApiConfig.headers),
+      );
 
-      final responseData = jsonDecode(response.body);
-      
       if (response.statusCode == 200) {
         return {
           'success': true,
-          'data': responseData,
+          'data': response.data,
         };
       } else {
         return {
           'success': false,
-          'error': responseData['message'] ?? 'Falha na autenticação',
+          'error': response.data?['message'] ?? 'Falha na autenticação',
         };
       }
     } catch (e) {
@@ -40,25 +41,23 @@ class AuthService {
   // Reset password
   Future<Map<String, dynamic>> resetPassword(String email) async {
     try {
-      final response = await http.post(
-        Uri.parse(ApiConfig.resetPasswordEndpoint),
-        headers: ApiConfig.headers,
-        body: jsonEncode({
+      final response = await _dio.post(
+        ApiConfig.resetPasswordEndpoint,
+        data: {
           'email': email,
-        }),
-      ).timeout(ApiConfig.requestTimeout);
+        },
+        options: Options(headers: ApiConfig.headers),
+      );
 
-      final responseData = jsonDecode(response.body);
-      
       if (response.statusCode == 200) {
         return {
           'success': true,
-          'data': responseData,
+          'data': response.data,
         };
       } else {
         return {
           'success': false,
-          'error': responseData['message'] ?? 'Falha ao resetar senha',
+          'error': response.data?['message'] ?? 'Falha ao resetar senha',
         };
       }
     } catch (e) {

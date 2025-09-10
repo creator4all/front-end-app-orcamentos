@@ -1,16 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'screens/login_screen.dart';
-import 'screens/budget_list_screen.dart';
-import 'screens/cnpj_search_screen.dart';
-import 'screens/profile/profile_screen.dart';
-import 'services/partner_service.dart';
-import 'stores/auth_store.dart';
-import 'stores/store_provider.dart';
+import 'package:flutter_modular/flutter_modular.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'app_module.dart';
 import 'theme/app_theme.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(ModularApp(module: AppModule(), child: const MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -18,27 +13,19 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Create stores
-    final authStore = AuthStore();
-    
-    return MultiProvider(
-      providers: [
-        // Keep PartnerService with Provider for now
-        ChangeNotifierProvider(create: (ctx) => PartnerService()),
-      ],
-      child: StoreProvider(
-        child: MaterialApp(
-          title: 'Multimídia Parceiro B2B',
+    return ScreenUtilInit(
+      designSize: const Size(360, 690),
+      minTextAdapt: true,
+      splitScreenMode: true,
+      builder: (context, child) {
+        return MaterialApp.router(
+          title: 'Multimídia App - Orçamentos',
           theme: AppTheme.lightTheme,
-          home: authStore.isAuthenticated ? const BudgetListScreen() : const LoginScreen(),
-          routes: {
-            '/login': (ctx) => const LoginScreen(),
-            '/budget_list': (ctx) => const BudgetListScreen(),
-            '/cnpj-search': (ctx) => const CNPJSearchScreen(),
-            '/profile': (ctx) => const ProfileScreen(),
-          },
-        ),
-      ),
+          routeInformationParser: Modular.routeInformationParser,
+          routerDelegate: Modular.routerDelegate,
+          debugShowCheckedModeBanner: false,
+        );
+      },
     );
   }
 }

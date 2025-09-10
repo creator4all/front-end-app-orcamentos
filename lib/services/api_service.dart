@@ -1,20 +1,25 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
 import '../config/api_config.dart';
 
 class ApiService {
+  final Dio _dio;
+
+  ApiService({Dio? dio}) : _dio = dio ?? Dio();
+
   // Generic GET request
   Future<Map<String, dynamic>> get(String endpoint, {String? token}) async {
     try {
-      final headers = token != null 
-          ? ApiConfig.headersWithToken(token)
-          : ApiConfig.headers;
-          
-      final response = await http.get(
-        Uri.parse(endpoint),
-        headers: headers,
-      ).timeout(ApiConfig.requestTimeout);
-      
+      final options = Options(
+        headers: token != null
+            ? ApiConfig.headersWithToken(token)
+            : ApiConfig.headers,
+      );
+
+      final response = await _dio.get(
+        endpoint,
+        options: options,
+      );
+
       return _processResponse(response);
     } catch (e) {
       return {
@@ -23,20 +28,23 @@ class ApiService {
       };
     }
   }
-  
+
   // Generic POST request
-  Future<Map<String, dynamic>> post(String endpoint, Map<String, dynamic> data, {String? token}) async {
+  Future<Map<String, dynamic>> post(String endpoint, Map<String, dynamic> data,
+      {String? token}) async {
     try {
-      final headers = token != null 
-          ? ApiConfig.headersWithToken(token)
-          : ApiConfig.headers;
-          
-      final response = await http.post(
-        Uri.parse(endpoint),
-        headers: headers,
-        body: jsonEncode(data),
-      ).timeout(ApiConfig.requestTimeout);
-      
+      final options = Options(
+        headers: token != null
+            ? ApiConfig.headersWithToken(token)
+            : ApiConfig.headers,
+      );
+
+      final response = await _dio.post(
+        endpoint,
+        data: data,
+        options: options,
+      );
+
       return _processResponse(response);
     } catch (e) {
       return {
@@ -45,20 +53,23 @@ class ApiService {
       };
     }
   }
-  
+
   // Generic PUT request
-  Future<Map<String, dynamic>> put(String endpoint, Map<String, dynamic> data, {String? token}) async {
+  Future<Map<String, dynamic>> put(String endpoint, Map<String, dynamic> data,
+      {String? token}) async {
     try {
-      final headers = token != null 
-          ? ApiConfig.headersWithToken(token)
-          : ApiConfig.headers;
-          
-      final response = await http.put(
-        Uri.parse(endpoint),
-        headers: headers,
-        body: jsonEncode(data),
-      ).timeout(ApiConfig.requestTimeout);
-      
+      final options = Options(
+        headers: token != null
+            ? ApiConfig.headersWithToken(token)
+            : ApiConfig.headers,
+      );
+
+      final response = await _dio.put(
+        endpoint,
+        data: data,
+        options: options,
+      );
+
       return _processResponse(response);
     } catch (e) {
       return {
@@ -67,19 +78,21 @@ class ApiService {
       };
     }
   }
-  
+
   // Generic DELETE request
   Future<Map<String, dynamic>> delete(String endpoint, {String? token}) async {
     try {
-      final headers = token != null 
-          ? ApiConfig.headersWithToken(token)
-          : ApiConfig.headers;
-          
-      final response = await http.delete(
-        Uri.parse(endpoint),
-        headers: headers,
-      ).timeout(ApiConfig.requestTimeout);
-      
+      final options = Options(
+        headers: token != null
+            ? ApiConfig.headersWithToken(token)
+            : ApiConfig.headers,
+      );
+
+      final response = await _dio.delete(
+        endpoint,
+        options: options,
+      );
+
       return _processResponse(response);
     } catch (e) {
       return {
@@ -88,21 +101,21 @@ class ApiService {
       };
     }
   }
-  
-  // Process HTTP response
-  Map<String, dynamic> _processResponse(http.Response response) {
+
+  // Process Dio response
+  Map<String, dynamic> _processResponse(Response response) {
     try {
-      final responseData = jsonDecode(response.body);
-      
-      if (response.statusCode >= 200 && response.statusCode < 300) {
+      if (response.statusCode != null &&
+          response.statusCode! >= 200 &&
+          response.statusCode! < 300) {
         return {
           'success': true,
-          'data': responseData,
+          'data': response.data,
         };
       } else {
         return {
           'success': false,
-          'error': responseData['message'] ?? 'Erro na requisição',
+          'error': response.data?['message'] ?? 'Erro na requisição',
           'statusCode': response.statusCode,
         };
       }

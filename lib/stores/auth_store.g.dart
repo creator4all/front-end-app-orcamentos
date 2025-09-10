@@ -89,6 +89,15 @@ mixin _$AuthStore on _AuthStore, Store {
     return _$logoutAsyncAction.run(() => super.logout());
   }
 
+  late final _$deleteAccountAsyncAction =
+      AsyncAction('_AuthStore.deleteAccount', context: context);
+
+  @override
+  Future<bool> deleteAccount(String confirmation) {
+    return _$deleteAccountAsyncAction
+        .run(() => super.deleteAccount(confirmation));
+  }
+
   late final _$_AuthStoreActionController =
       ActionController(name: '_AuthStore', context: context);
 
