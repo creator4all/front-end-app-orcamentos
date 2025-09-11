@@ -2,5 +2,9 @@
 export 'budget_card_widget.dart';
 // Export do BudgetFilterWidget
 export 'budget_filter_widget.dart';
+// Export da CustomTopBar
+export 'custom_top_bar.dart';
 export 'days_remaining_widget.dart';
+// Export do ProfileModal
+export 'profile_modal.dart';
 export 'status_tag_widget.dart';

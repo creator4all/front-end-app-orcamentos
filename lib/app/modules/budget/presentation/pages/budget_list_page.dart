@@ -11,6 +11,8 @@ class BudgetListPage extends StatefulWidget {
 }
 
 class _BudgetListPageState extends State<BudgetListPage> {
+  String _selectedFilter = '';
+
   void _handleSearchChanged(String query) {
     // Aqui você pode implementar a lógica de filtragem
     debugPrint('Search query: $query');
@@ -19,18 +21,30 @@ class _BudgetListPageState extends State<BudgetListPage> {
   void _handleFiltersChanged(List<String> filters) {
     // Aqui você pode implementar a lógica de filtragem
     debugPrint('Selected filters: $filters');
+
+    // Atualiza o filtro selecionado para controlar o texto "Realizados/Arquivados"
+    setState(() {
+      _selectedFilter = filters.contains('archived') ? 'archived' : '';
+    });
   }
 
   void _handleReset() {
     // Aqui você pode implementar a lógica de reset
     debugPrint('Filters reset');
+    setState(() {
+      _selectedFilter = '';
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Orçamentos'),
+      appBar: const CustomTopBar(
+        title: 'Orçamentos',
+        showBackButton: false,
+        userName: 'Pedro Penha',
+        userEmail: 'pedro.penha.martins@gmail.com',
+        userDocument: '03.848.869/0001-89',
       ),
       body: Column(
         children: [
@@ -39,6 +53,45 @@ class _BudgetListPageState extends State<BudgetListPage> {
             onSearchChanged: _handleSearchChanged,
             onFiltersChanged: _handleFiltersChanged,
             onReset: _handleReset,
+          ),
+
+          // Seção Realizados/Arquivados
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  _selectedFilter == 'archived' ? 'Arquivados' : 'Realizados',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18.sp,
+                    color: const Color(0xFF484848),
+                  ),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    // Navigate to create budget screen
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF117BBD),
+                    foregroundColor: const Color(0xFFFFFFFF),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+                  ),
+                  icon: Icon(
+                    Icons.add,
+                    size: 16.sp,
+                    color: const Color(0xFFFFFFFF),
+                  ),
+                  label: const Text('Novo Orç.'),
+                ),
+              ],
+            ),
           ),
 
           // Lista de orçamentos

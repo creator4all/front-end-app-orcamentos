@@ -1,11 +1,10 @@
-import "package:flutter/material.dart";
-import "package:flutter_mobx/flutter_mobx.dart";
-import "package:multimidiaapp/widgets/CustomAppBar.dart";
-import "package:multimidiaapp/screens/profile/profile_screen.dart";
+import 'package:flutter/material.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:multimidiaapp/screens/profile/profile_screen.dart';
+import 'package:multimidiaapp/widgets/CustomAppBar.dart';
 
-import "../stores/store_provider.dart";
-import "../theme/app_theme.dart";
-import "../widgets/index.dart";
+import '../stores/store_provider.dart';
+import '../widgets/index.dart';
 
 class BudgetListScreen extends StatefulWidget {
   const BudgetListScreen({super.key});
@@ -17,13 +16,13 @@ class BudgetListScreen extends StatefulWidget {
 class _BudgetListScreenState extends State<BudgetListScreen> {
   final TextEditingController _searchController = TextEditingController();
   final List<String> _filterOptions = [
-    "Aprovados",
-    "Não aprovados",
-    "Expirados",
-    "Pendentes",
-    "Arquivados",
+    'Aprovados',
+    'Não aprovados',
+    'Expirados',
+    'Pendentes',
+    'Arquivados',
   ];
-  String _selectedFilter = "";
+  String _selectedFilter = '';
 
   @override
   void initState() {
@@ -43,12 +42,11 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
   @override
   Widget build(BuildContext context) {
     final budgetStore = StoreProvider.of(context).budgetStore;
-    final authStore = StoreProvider.of(context).authStore;
 
     return Scaffold(
       appBar: CustomAppBar(
         isBackButtonVisible: false,
-        title: "Orçamentos",
+        title: 'Orçamentos',
         actions: [
           GestureDetector(
             onTap: () {
@@ -69,7 +67,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
           ),
         ],
       ),
-        body: Column(
+      body: Column(
         children: [
           // Filters section
           Container(
@@ -94,21 +92,21 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
-                      "Filtros",
+                      'Filtros',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                       ),
                     ),
                     TextButtonLink(
-                      text: "Resetar",
+                      text: 'Resetar',
                       onPressed: () {
                         setState(() {
-                          _selectedFilter = "";
+                          _selectedFilter = '';
                           _searchController.clear();
                         });
-                        budgetStore.setSelectedFilter("todos");
-                        budgetStore.setSearchQuery("");
+                        budgetStore.setSelectedFilter('todos');
+                        budgetStore.setSearchQuery('');
                       },
                     ),
                   ],
@@ -119,7 +117,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                 TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
-                    hintText: "Busca por código ou cidade",
+                    hintText: 'Busca por código ou cidade',
                     prefixIcon: const Icon(Icons.search, color: Colors.grey),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -148,10 +146,10 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                           isSelected: isSelected,
                           onTap: () {
                             setState(() {
-                              _selectedFilter = isSelected ? "" : filter;
+                              _selectedFilter = isSelected ? '' : filter;
                             });
                             final storeFilter =
-                                isSelected ? "todos" : filter.toLowerCase();
+                                isSelected ? 'todos' : filter.toLowerCase();
                             budgetStore.setSelectedFilter(storeFilter);
                           },
                         ),
@@ -163,33 +161,39 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
             ),
           ),
 
-          // Realizados section
+          // Realizados/Arquivados section
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  "Realizados",
-                  style: TextStyle(
+                Text(
+                  _selectedFilter == 'Arquivados' ? 'Arquivados' : 'Realizados',
+                  style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 18,
+                    color: Color(0xFF484848),
                   ),
                 ),
-                ElevatedButton(
+                ElevatedButton.icon(
                   onPressed: () {
                     // Navigate to create budget screen
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryColor,
-                    foregroundColor: Colors.white,
+                    backgroundColor: const Color(0xFF117BBD),
+                    foregroundColor: const Color(0xFFFFFFFF),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                     padding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 12),
                   ),
-                  child: const Text("Novo"),
+                  icon: const Icon(
+                    Icons.add,
+                    size: 16,
+                    color: Color(0xFFFFFFFF),
+                  ),
+                  label: const Text('Novo orçamento'),
                 ),
               ],
             ),
@@ -207,7 +211,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                 if (budgetStore.error != null) {
                   return Center(
                     child: Text(
-                      "Erro ao carregar orçamentos: ${budgetStore.error}",
+                      'Erro ao carregar orçamentos: ${budgetStore.error}',
                       style: const TextStyle(color: Colors.red),
                     ),
                   );
@@ -223,7 +227,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                         Icon(Icons.search_off, size: 48, color: Colors.grey),
                         SizedBox(height: 16),
                         Text(
-                          "Nenhum orçamento encontrado",
+                          'Nenhum orçamento encontrado',
                           style: TextStyle(color: Colors.grey),
                         ),
                       ],
@@ -237,13 +241,13 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
                   itemBuilder: (context, index) {
                     final budget = budgets[index];
                     return BudgetCard(
-                      city: budget["city"],
-                      state: budget["state"],
-                      code: budget["code"],
-                      date: budget["date"],
-                      daysRemaining: budget["daysRemaining"],
-                      value: budget["value"],
-                      status: budget["status"],
+                      city: budget['city'],
+                      state: budget['state'],
+                      code: budget['code'],
+                      date: budget['date'],
+                      daysRemaining: budget['daysRemaining'],
+                      value: budget['value'],
+                      status: budget['status'],
                       onTap: () {
                         // Navigate to budget details
                       },
