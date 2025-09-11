@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../shared/widgets/widgets.dart';
@@ -72,7 +73,7 @@ class _BudgetListPageState extends State<BudgetListPage> {
                 ),
                 ElevatedButton.icon(
                   onPressed: () {
-                    // Navigate to create budget screen
+                    Modular.to.pushNamed('/budget/new');
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF117BBD),
