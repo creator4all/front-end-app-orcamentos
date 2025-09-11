@@ -79,39 +79,41 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
                 ],
               ),
 
-              // Right side - User profile circle
-              GestureDetector(
-                onTap: () {
-                  if (userName != null &&
-                      userEmail != null &&
-                      userDocument != null) {
-                    _showProfileModal(context);
-                  } else if (onProfileTap != null) {
-                    onProfileTap!();
-                  }
-                },
-                child: Container(
-                  width: 30.w,
-                  height: 30.w,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: const Color(0xFF117BBD),
-                    image: userImageUrl != null
-                        ? DecorationImage(
-                            image: NetworkImage(userImageUrl!),
-                            fit: BoxFit.cover,
+              // Right side - User profile circle (só aparece quando não tem botão de voltar)
+              if (!showBackButton) ...[
+                GestureDetector(
+                  onTap: () {
+                    if (userName != null &&
+                        userEmail != null &&
+                        userDocument != null) {
+                      _showProfileModal(context);
+                    } else if (onProfileTap != null) {
+                      onProfileTap!();
+                    }
+                  },
+                  child: Container(
+                    width: 30.w,
+                    height: 30.w,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFF117BBD),
+                      image: userImageUrl != null
+                          ? DecorationImage(
+                              image: NetworkImage(userImageUrl!),
+                              fit: BoxFit.cover,
+                            )
+                          : null,
+                    ),
+                    child: userImageUrl == null
+                        ? Icon(
+                            Icons.person,
+                            color: Colors.white,
+                            size: 20.sp,
                           )
                         : null,
                   ),
-                  child: userImageUrl == null
-                      ? Icon(
-                          Icons.person,
-                          color: Colors.white,
-                          size: 20.sp,
-                        )
-                      : null,
                 ),
-              ),
+              ],
             ],
           ),
         ),
