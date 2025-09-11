@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 
 import '../../../../shared/widgets/custom_top_bar.dart';
 
@@ -363,7 +364,12 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                   height: 35.h,
                   child: ElevatedButton(
                     onPressed: () {
-                      // TODO: Implementar navegação para próximo passo
+                      // Navegar para tela de configurações com o nome da cidade
+                      String cityName =
+                          _selectedCity ?? 'Cidade não selecionada';
+                      Modular.to.pushNamed('/budget/config', arguments: {
+                        'cityName': cityName,
+                      });
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF117BBD),
