@@ -13,13 +13,15 @@ class ProfilePage extends StatelessWidget {
         title: 'Perfil',
         showBackButton: true, // Exemplo de uso com botão de voltar
       ),
-      body: Padding(
+      body: SafeArea(
+        child: Padding(
         padding: EdgeInsets.all(16.w),
         child: const Center(
           child: Text(
             'Perfil do Usuário\n(Em implementação)',
             textAlign: TextAlign.center,
           ),
+        ),
         ),
       ),
     );

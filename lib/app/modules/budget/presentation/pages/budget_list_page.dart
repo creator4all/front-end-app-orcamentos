@@ -47,7 +47,8 @@ class _BudgetListPageState extends State<BudgetListPage> {
         userEmail: 'pedro.penha.martins@gmail.com',
         userDocument: '03.848.869/0001-89',
       ),
-      body: Column(
+      body: SafeArea(
+        child: Column(
         children: [
           // Componente de filtros
           BudgetFilterWidget(
@@ -165,6 +166,7 @@ class _BudgetListPageState extends State<BudgetListPage> {
             ),
           ),
         ],
+        ),
       ),
     );
   }

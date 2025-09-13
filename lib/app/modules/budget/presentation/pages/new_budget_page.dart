@@ -89,7 +89,8 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
         title: 'Novo orçamento',
         showBackButton: true,
       ),
-      body: Column(
+      body: SafeArea(
+        child: Column(
         children: [
           // Conteúdo principal
           Expanded(
@@ -424,6 +425,7 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
             ),
           ),
         ],
+        ),
       ),
     );
   }
