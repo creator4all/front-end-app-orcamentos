@@ -67,7 +67,8 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
           ),
         ],
       ),
-      body: Column(
+      body: SafeArea(
+        child: Column(
         children: [
           // Filters section
           Container(
@@ -258,6 +259,7 @@ class _BudgetListScreenState extends State<BudgetListScreen> {
             ),
           ),
         ],
+        ),
       ),
     );
   }
