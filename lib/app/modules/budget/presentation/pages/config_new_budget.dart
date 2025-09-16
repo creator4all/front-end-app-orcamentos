@@ -11,6 +11,7 @@ import '../../../../shared/widgets/product_info_modal.dart';
 import '../../../../shared/widgets/school_census.dart';
 import '../../../../shared/widgets/technology_item.dart';
 import '../../../../shared/widgets/technology_products_modal.dart';
+import 'school_census.dart';
 
 class ConfigNewBudgetPage extends StatefulWidget {
   const ConfigNewBudgetPage({super.key});
@@ -450,11 +451,24 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                 selectedProductsCount: 0,
               ),
               const SizedBox(height: 12),
-              const SchoolCensus(
-                leadingIcon: Icon(Icons.school, color: Colors.black54),
+              SchoolCensus(
+                leadingIcon: const Icon(Icons.school, color: Colors.black54),
                 title: 'Censo Escolar',
                 info1: '7 turmas',
                 info2: '2000 alunos',
+                onActionTap: () {
+                  print('DEBUG: School Census tapped, navigating to SchoolCensusPage');
+                  try {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const SchoolCensusPage(),
+                      ),
+                    );
+                    print('DEBUG: Navigation successful');
+                  } catch (e) {
+                    print('DEBUG: Navigation failed with error: $e');
+                  }
+                },
               ),
               const SizedBox(height: 12),
               ProductCategory(
