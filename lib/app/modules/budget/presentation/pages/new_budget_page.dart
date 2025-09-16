@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 
 import '../../../../shared/widgets/custom_top_bar.dart';
+import 'multi_city_school_census.dart';
 
 class NewBudgetPage extends StatefulWidget {
   const NewBudgetPage({super.key});
@@ -406,7 +407,11 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                 Center(
                   child: GestureDetector(
                     onTap: () {
-                      // TODO: Implementar orçamento multi-cidades
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const MultiCitySchoolCensusPage(),
+                        ),
+                      );
                     },
                     child: Text(
                       'Orçamento multi-cidades',

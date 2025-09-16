@@ -35,91 +35,97 @@ class SchoolCensus extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    return CardBase(
-      padding: EdgeInsets.only(left: 12.w, top: 12.h, right: 0, bottom: 0),
-      children: [
-        SizedBox(
-          height: 68.h, // Increased height to prevent overflow
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // First column: leading icon (~20%)
-              Expanded(
-                flex: 2,
-                child: Padding(
-                  padding: EdgeInsets.only(right: 12.w, bottom: 12.h),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: leadingIcon,
+    return GestureDetector(
+      onTap: () {
+        print('DEBUG: School Census card tapped');
+        onActionTap?.call();
+      },
+      child: CardBase(
+        padding: EdgeInsets.only(left: 12.w, top: 12.h, right: 0, bottom: 0),
+        children: [
+          SizedBox(
+            height: 68.h, // Increased height to prevent overflow
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // First column: leading icon (~20%)
+                Expanded(
+                  flex: 2,
+                  child: Padding(
+                    padding: EdgeInsets.only(right: 12.w, bottom: 12.h),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: leadingIcon,
+                    ),
                   ),
                 ),
-              ),
 
-              // Second column: main content (~60-66%) stacked vertically
-              Expanded(
-                flex: 7,
-                child: Padding(
-                  padding: EdgeInsets.only(right: 12.w, bottom: 12.h),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Title (required)
-                      Flexible(
-                        child: Text(
-                          title,
-                          style: textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                      ),
-                      // Info 1 (optional)
-                      if ((info1 ?? '').isNotEmpty) ...[
-                        SizedBox(height: 1.h),
+                // Second column: main content (~60-66%) stacked vertically
+                Expanded(
+                  flex: 7,
+                  child: Padding(
+                    padding: EdgeInsets.only(right: 12.w, bottom: 12.h),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Title (required)
                         Flexible(
                           child: Text(
-                            info1!,
-                            style: textTheme.bodySmall,
+                            title,
+                            style: textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
                             overflow: TextOverflow.ellipsis,
                             maxLines: 1,
                           ),
                         ),
-                      ],
-                      // Info 2 (optional)
-                      if ((info2 ?? '').isNotEmpty) ...[
-                        SizedBox(height: 0.5.h),
-                        Flexible(
-                          child: Text(
-                            info2!,
-                            style: textTheme.bodySmall,
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
+                        // Info 1 (optional)
+                        if ((info1 ?? '').isNotEmpty) ...[
+                          SizedBox(height: 1.h),
+                          Flexible(
+                            child: Text(
+                              info1!,
+                              style: textTheme.bodySmall,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
                           ),
-                        ),
+                        ],
+                        // Info 2 (optional)
+                        if ((info2 ?? '').isNotEmpty) ...[
+                          SizedBox(height: 0.5.h),
+                          Flexible(
+                            child: Text(
+                              info2!,
+                              style: textTheme.bodySmall,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
-              ),
 
-              // Third column: action container (~20%)
-              Expanded(
-                flex: 2,
-                child: Container(
-                  height: 68.h,
-                  alignment: Alignment.bottomRight,
-                  child: ActionButton(
-                    onTap: onActionTap,
+                // Third column: action container (~20%)
+                Expanded(
+                  flex: 2,
+                  child: Container(
+                    height: 68.h,
+                    alignment: Alignment.bottomRight,
+                    child: ActionButton(
+                      onTap: null, // Remove the onTap since the whole card is now tappable
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
