@@ -3,6 +3,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'presentation/pages/budget_list_page.dart';
 import 'presentation/pages/config_new_budget.dart';
 import 'presentation/pages/new_budget_page.dart';
+import 'presentation/pages/school_census.dart';
 
 class BudgetModule extends Module {
   @override
@@ -16,5 +17,7 @@ class BudgetModule extends Module {
         ChildRoute('/new', child: (context, args) => const NewBudgetPage()),
         ChildRoute('/config',
             child: (context, args) => const ConfigNewBudgetPage()),
+        ChildRoute('/census',
+            child: (context, args) => const SchoolCensusPage()),
       ];
 }
