@@ -3,7 +3,7 @@ class ApiConfig {
   // Para dispositivo físico use: 'http://192.168.3.2:8080'
   // Para iOS Simulator use: 'http://localhost:8080'
   static const String _localBaseUrl =
-      'http://192.168.3.2:8080'; // IP para dispositivo físico
+      'http://192.168.5.9:8080'; // IP para dispositivo físico
   static const String _testBaseUrl =
       'https://test-api.multimidiaeducacional.com.br';
   static const String _productionBaseUrl =
@@ -37,7 +37,7 @@ class ApiConfig {
   static String get cidadesEndpoint => '$baseUrl/api/cidades';
   static String get gruposCensoEndpoint => '$baseUrl/api/grupos-censo';
   static String censoPorCidadeEndpoint(int cidadeId) =>
-      '$baseUrl/api/censo/$cidadeId';
+      '$baseUrl/api/cidades/$cidadeId';
 
   // Request timeout duration
   static const Duration requestTimeout = Duration(seconds: 30);

@@ -1,5 +1,3 @@
-import 'package:flutter_modular/flutter_modular.dart';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -7,6 +5,7 @@ import '../../../../shared/widgets/budget_summary_card.dart';
 import '../../../../shared/widgets/custom_top_bar.dart';
 import '../../../../shared/widgets/product_category.dart';
 import '../../../../shared/widgets/school_census.dart';
+import 'package:multimidiaapp/entities/censo_entity.dart';
 
 class ConfigNewBudgetPage extends StatefulWidget {
   const ConfigNewBudgetPage({super.key});
@@ -16,6 +15,9 @@ class ConfigNewBudgetPage extends StatefulWidget {
 }
 
 class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
+  // Cache for the censo data to persist between screen navigations
+  CensoData? _cachedCensoData;
+  
   bool isLivrosSelected = true;
   bool isPortalSelected = false;
   bool isGamificacaoSelected = false;
@@ -58,22 +60,38 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                 selectedProductsCount: 0,
               ),
               const SizedBox(height: 12),
-              Builder(
-                builder: (context) {
+              // Use a StatefulBuilder to be able to update this widget when census data changes
+              StatefulBuilder(
+                builder: (context, setBuilderState) {
+                  // Get census data from arguments or state
                   final args = ModalRoute.of(context)?.settings.arguments
                       as Map<String, dynamic>?;
-                  final censo = args != null ? args['censo'] : null;
-                  final turmas = censo?.groups.length;
-                  final totalAlunos = censo?.totalStudents;
+                  // Use the cached censo or get it from arguments
+                  final censo = _cachedCensoData ?? (args != null ? args['censo'] as CensoData? : null);
                   return SchoolCensus(
                     leadingIcon:
                         const Icon(Icons.school, color: Colors.black54),
                     title: 'Censo Escolar',
-                    info1: turmas != null ? '$turmas grupos' : '—',
-                    info2: totalAlunos != null ? '$totalAlunos alunos' : '—',
-                    onActionTap: () {
-                      Modular.to.pushNamed('/budget/census',
-                          arguments: {'censo': censo});
+                    info1: censo != null ? 'estudantes: ${censo.cidadeData?.totalEstudantes ?? 0}' : '—',
+                    info2: censo != null ? 'turmas: ${censo.cidadeData?.quantidadeTurmas ?? 0}' : '—',
+                    onActionTap: () async {
+                      // Use Navigator.push instead of Modular.to.pushNamed to get the result back
+                      final result = await Navigator.pushNamed(
+                        context,
+                        '/budget/census',
+                        arguments: {'censo': censo}
+                      );
+                      
+                      // If we got updated data back, update both the local state and the cached data
+                      if (result is Map<String, dynamic> && result.containsKey('updatedCenso')) {
+                        final updatedCenso = result['updatedCenso'] as CensoData;
+                        // Update the cached census data
+                        setState(() {
+                          _cachedCensoData = updatedCenso;
+                        });
+                        // Update the StatefulBuilder state to refresh the UI
+                        setBuilderState(() {});
+                      }
                     },
                   );
                 },

@@ -10,7 +10,7 @@ class GeoService {
   Future<List<EstadoEntity>> listarEstados() async {
     final res = await _api.get(ApiConfig.estadosEndpoint);
     if (res['success'] == true) {
-      final data = (res['data'] as List);
+      final data = (res['data']['dados'] as List);
       return data
           .map((e) => EstadoEntity.fromJson(e as Map<String, dynamic>))
           .toList();
@@ -21,10 +21,10 @@ class GeoService {
   Future<List<CidadeEntity>> listarCidades({int? estadoId}) async {
     final endpoint = estadoId == null
         ? ApiConfig.cidadesEndpoint
-        : '${ApiConfig.cidadesEndpoint}?estado_id=$estadoId';
+        : '${ApiConfig.cidadesEndpoint}/estado/$estadoId';
     final res = await _api.get(endpoint);
     if (res['success'] == true) {
-      final data = (res['data'] as List);
+      final data = (res['data']['dados'] as List);
       final list = data
           .map((e) => CidadeEntity.fromJson(e as Map<String, dynamic>))
           .toList();

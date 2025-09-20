@@ -19,6 +19,15 @@ abstract class _CensoStore with Store {
   @observable
   CensoData? censo;
 
+  @computed
+  int get totalEstudantes => censo?.cidadeData?.totalEstudantes ?? 0;
+
+  @computed
+  int get quantidadeTurmas => censo?.cidadeData?.quantidadeTurmas ?? 0;
+
+  @computed
+  List<CidadeIndice> get indicesEtapa => censo?.cidadeData?.indicesEtapa ?? [];
+
   @action
   Future<void> carregarGruposCenso() async {
     try {
