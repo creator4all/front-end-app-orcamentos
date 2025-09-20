@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../../../../entities/censo_entity.dart';
+import 'package:multimidiaapp/entities/censo_entity.dart';
 
 import '../../../../shared/widgets/custom_top_bar.dart';
 

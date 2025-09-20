@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../stores/store_provider.dart';
 
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:multimidiaapp/stores/store_provider.dart';
 
 import '../../../../shared/widgets/custom_top_bar.dart';
 import 'multi_city_school_census.dart';
@@ -16,69 +17,12 @@ class NewBudgetPage extends StatefulWidget {
 
 class _NewBudgetPageState extends State<NewBudgetPage> {
   String? _selectedPartner;
-  String? _selectedState;
-  String? _selectedCity;
   final TextEditingController _responsibleController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   late dynamic _geo;
   late dynamic _censo;
 
   final TextEditingController _validityDateController = TextEditingController();
-
-  // Lista de estados
-  final List<String> _states = [
-    'Acre',
-    'Alagoas',
-    'Amapá',
-    'Amazonas',
-    'Bahia',
-    'Ceará',
-    'Distrito Federal',
-    'Espírito Santo',
-    'Goiás',
-    'Maranhão',
-    'Mato Grosso',
-    'Mato Grosso do Sul',
-    'Minas Gerais',
-    'Pará',
-    'Paraíba',
-    'Paraná',
-    'Pernambuco',
-    'Piauí',
-    'Rio de Janeiro',
-    'Rio Grande do Norte',
-    'Rio Grande do Sul',
-    'Rondônia',
-    'Roraima',
-    'Santa Catarina',
-    'São Paulo',
-    'Sergipe',
-    'Tocantins'
-  ];
-
-  // Mapa de cidades por estado (exemplo simplificado)
-  final Map<String, List<String>> _citiesByState = {
-    'São Paulo': [
-      'São Paulo',
-      'Campinas',
-      'Santos',
-      'Ribeirão Preto',
-      'Sorocaba'
-    ],
-    'Rio de Janeiro': [
-      'Rio de Janeiro',
-      'Niterói',
-      'Campos dos Goytacazes',
-      'Nova Iguaçu'
-    ],
-    'Minas Gerais': [
-      'Belo Horizonte',
-      'Uberlândia',
-      'Contagem',
-      'Juiz de Fora'
-    ],
-    // Adicione mais estados conforme necessário
-  };
 
   @override
   void dispose() {

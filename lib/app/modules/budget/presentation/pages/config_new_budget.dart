@@ -81,6 +81,27 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                 selectedProductsCount: 0,
               ),
               const SizedBox(height: 12),
+              Builder(
+                builder: (context) {
+                  final args = ModalRoute.of(context)?.settings.arguments
+                      as Map<String, dynamic>?;
+                  final censo = args != null ? args['censo'] : null;
+                  final turmas = censo?.groups.length;
+                  final totalAlunos = censo?.totalStudents;
+                  return SchoolCensus(
+                    leadingIcon:
+                        const Icon(Icons.school, color: Colors.black54),
+                    title: 'Censo Escolar',
+                    info1: turmas != null ? '$turmas grupos' : '—',
+                    info2: totalAlunos != null ? '$totalAlunos alunos' : '—',
+                    onActionTap: () {
+                      Modular.to.pushNamed('/budget/census',
+                          arguments: {'censo': censo});
+                    },
+                  );
+                },
+              ),
+              const SizedBox(height: 12),
               ProductCategory(
                 categoryIcon:
                     const Icon(Icons.menu_book, color: Colors.black54),
