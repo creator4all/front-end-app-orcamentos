@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:multimidiaapp/entities/censo_entity.dart';
 
 import '../../../../shared/widgets/custom_top_bar.dart';
 
@@ -12,54 +13,26 @@ class SchoolCensusPage extends StatefulWidget {
 
 class _SchoolCensusPageState extends State<SchoolCensusPage> {
   bool _isEditMode = false;
-
-  // Mock data for school census
-  final Map<String, dynamic> _censusData = {
-    'totalStudents': 2000,
-    'censusYear': '2024',
-    'groups': [
-      {
-        'name': 'Pré Escola',
-        'items': [
-          {'name': 'Berçário', 'value': 200},
-          {'name': 'Infantil I', 'value': 150},
-          {'name': 'Infantil II', 'value': 180},
-        ]
-      },
-      {
-        'name': 'Ensino Fundamental I',
-        'items': [
-          {'name': '1º Ano', 'value': 250},
-          {'name': '2º Ano', 'value': 240},
-          {'name': '3º Ano', 'value': 260},
-          {'name': '4º Ano', 'value': 270},
-          {'name': '5º Ano', 'value': 280},
-        ]
-      },
-      {
-        'name': 'Ensino Fundamental II',
-        'items': [
-          {'name': '6º Ano', 'value': 220},
-          {'name': '7º Ano', 'value': 230},
-          {'name': '8º Ano', 'value': 240},
-          {'name': '9º Ano', 'value': 250},
-        ]
-      },
-    ]
-  };
+  CensoData? _censo;
 
   // Controllers for text fields in edit mode
   final Map<String, TextEditingController> _controllers = {};
 
   @override
-  void initState() {
-    super.initState();
-    // Initialize controllers for edit mode
-    for (var group in _censusData['groups']) {
-      for (var item in group['items']) {
-        final key = '${group['name']}_${item['name']}';
-        _controllers[key] = TextEditingController(text: item['value'].toString());
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    if (args != null && args['censo'] is CensoData) {
+      _censo = args['censo'] as CensoData;
+      for (final group in _censo?.groups ?? const <CensoGroup>[]) {
+        for (final item in group.items) {
+          final key = '${group.name}_${item.name}';
+          _controllers.putIfAbsent(
+              key, () => TextEditingController(text: item.value.toString()));
+        }
       }
+      setState(() {});
     }
   }
 
@@ -98,7 +71,9 @@ class _SchoolCensusPageState extends State<SchoolCensusPage> {
               height: 32.h,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16.r),
-                color: _isEditMode ? const Color(0xFF117BBD) : const Color(0xFFE0E0E0),
+                color: _isEditMode
+                    ? const Color(0xFF117BBD)
+                    : const Color(0xFFE0E0E0),
                 boxShadow: _isEditMode
                     ? [
                         BoxShadow(
@@ -193,7 +168,7 @@ class _SchoolCensusPageState extends State<SchoolCensusPage> {
           ),
           SizedBox(height: 4.h),
           Text(
-            _censusData['totalStudents'].toString(),
+            (_censo?.totalStudents ?? 0).toString(),
             style: TextStyle(
               fontSize: 16.sp,
               fontWeight: FontWeight.bold,
@@ -210,8 +185,16 @@ class _SchoolCensusPageState extends State<SchoolCensusPage> {
             ),
           ),
           SizedBox(height: 4.h),
+          if (_censo == null)
+            Text(
+              'Dados do censo indisponíveis',
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: Colors.grey[600],
+              ),
+            ),
           Text(
-            _censusData['censusYear'],
+            _censo?.censusYear ?? '',
             style: TextStyle(
               fontSize: 16.sp,
               fontWeight: FontWeight.bold,
@@ -223,7 +206,7 @@ class _SchoolCensusPageState extends State<SchoolCensusPage> {
     );
   }
 
-  Widget _buildGroupSection(Map<String, dynamic> group) {
+  Widget _buildGroupSection(CensoGroup group) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: Column(
@@ -231,7 +214,7 @@ class _SchoolCensusPageState extends State<SchoolCensusPage> {
         children: [
           SizedBox(height: 24.h),
           Text(
-            group['name'],
+            group.name,
             style: TextStyle(
               fontSize: 15.sp,
               fontWeight: FontWeight.w600,
@@ -239,8 +222,8 @@ class _SchoolCensusPageState extends State<SchoolCensusPage> {
             ),
           ),
           SizedBox(height: 12.h),
-          ...group['items'].map<Widget>((item) {
-            final key = '${group['name']}_${item['name']}';
+          ...group.items.map<Widget>((item) {
+            final key = '${group.name}_${item.name}';
             return Padding(
               padding: EdgeInsets.only(bottom: 8.h),
               child: Row(
@@ -248,7 +231,7 @@ class _SchoolCensusPageState extends State<SchoolCensusPage> {
                   Expanded(
                     flex: 3,
                     child: Text(
-                      item['name'],
+                      item.name,
                       style: TextStyle(
                         fontSize: 14.sp,
                         fontWeight: FontWeight.w500,
@@ -271,15 +254,18 @@ class _SchoolCensusPageState extends State<SchoolCensusPage> {
                               ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(4.r),
-                                borderSide: BorderSide(color: Colors.grey[300]!),
+                                borderSide:
+                                    BorderSide(color: Colors.grey[300]!),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(4.r),
-                                borderSide: BorderSide(color: Colors.grey[300]!),
+                                borderSide:
+                                    BorderSide(color: Colors.grey[300]!),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(4.r),
-                                borderSide: const BorderSide(color: Color(0xFF117BBD)),
+                                borderSide:
+                                    const BorderSide(color: Color(0xFF117BBD)),
                               ),
                             ),
                             style: TextStyle(
@@ -289,7 +275,7 @@ class _SchoolCensusPageState extends State<SchoolCensusPage> {
                             ),
                           )
                         : Text(
-                            item['value'].toString(),
+                            item.value.toString(),
                             textAlign: TextAlign.right,
                             style: TextStyle(
                               fontSize: 14.sp,
@@ -369,7 +355,8 @@ class _SchoolCensusPageState extends State<SchoolCensusPage> {
                     _buildEditModeToggle(),
                     const SizedBox(height: 8),
                     _buildCensusInfo(),
-                    ..._censusData['groups'].map<Widget>((group) => _buildGroupSection(group)),
+                    ...((_censo?.groups ?? <CensoGroup>[]))
+                        .map<Widget>((group) => _buildGroupSection(group)),
                   ],
                 ),
               ),
