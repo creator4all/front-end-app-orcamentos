@@ -33,6 +33,11 @@ class ApiConfig {
   static String get signUpEndpoint => '$baseUrl/api/signup';
   static String get resetPasswordEndpoint => '$baseUrl/api/reset-password';
   static String get userProfileEndpoint => '$baseUrl/api/user/profile';
+  static String get estadosEndpoint => '$baseUrl/api/estados';
+  static String get cidadesEndpoint => '$baseUrl/api/cidades';
+  static String get gruposCensoEndpoint => '$baseUrl/api/grupos-censo';
+  static String censoPorCidadeEndpoint(int cidadeId) =>
+      '$baseUrl/api/censo/$cidadeId';
 
   // Request timeout duration
   static const Duration requestTimeout = Duration(seconds: 30);
