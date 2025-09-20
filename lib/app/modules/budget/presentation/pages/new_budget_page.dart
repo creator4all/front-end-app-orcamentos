@@ -144,12 +144,8 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                                   ))
                               .toList(),
                           onChanged: (value) async {
-                            final estado = _geo.estados.firstWhere(
-                              (e) => e.nome == value,
-                              orElse: () => _geo.estados.isNotEmpty
-                                  ? _geo.estados.first
-                                  : null as dynamic,
-                            );
+                            final matches = _geo.estados.where((e) => e.nome == value);
+                            final estado = matches.isNotEmpty ? matches.first : null;
                             if (estado != null) {
                               await _geo.selecionarEstado(estado);
                               if (mounted) setState(() {});
@@ -188,12 +184,8 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                                     ))
                                 .toList(),
                             onChanged: (value) {
-                              final cidade = _geo.cidades.firstWhere(
-                                (c) => c.nome == value,
-                                orElse: () => _geo.cidades.isNotEmpty
-                                    ? _geo.cidades.first
-                                    : null as dynamic,
-                              );
+                              final matches = _geo.cidades.where((c) => c.nome == value);
+                              final cidade = matches.isNotEmpty ? matches.first : null;
                               _geo.selecionarCidade(cidade);
                               if (mounted) setState(() {});
                             },
