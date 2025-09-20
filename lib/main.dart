@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:multimidiaapp/stores/store_provider.dart';
 import 'app_module.dart';
 import 'theme/app_theme.dart';
 
 void main() {
-  runApp(ModularApp(module: AppModule(), child: const MyApp()));
+  runApp(
+    StoreProvider(
+      child: ModularApp(module: AppModule(), child: const MyApp()),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
