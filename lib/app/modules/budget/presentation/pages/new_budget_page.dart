@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../../../../stores/store_provider.dart';
-
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:multimidiaapp/stores/store_provider.dart';
 
