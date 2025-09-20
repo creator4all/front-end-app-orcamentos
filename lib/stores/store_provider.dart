@@ -2,39 +2,45 @@ import "package:flutter/material.dart";
 import "auth_store.dart";
 import "login_store.dart";
 import "budget_store.dart";
+import "geo_store.dart";
+import "censo_store.dart";
+import "../services/geo_service.dart";
+import "../services/censo_service.dart";
 
 class StoreProvider extends InheritedWidget {
   final AuthStore authStore;
   final LoginStore loginStore;
   final BudgetStore budgetStore;
+  final GeoStore geoStore;
+  final CensoStore censoStore;
 
-  // Private constructor that takes pre-initialized stores
   StoreProvider._({
     Key? key,
     required this.authStore,
     required this.loginStore,
     required this.budgetStore,
+    required this.geoStore,
+    required this.censoStore,
     required Widget child,
   }) : super(key: key, child: child);
-  
-  // Factory constructor that properly initializes all stores
+
   factory StoreProvider({
     Key? key,
     required Widget child,
   }) {
-    // Create a single shared AuthStore instance
     final authStore = AuthStore();
-    
-    // Create other stores using the shared AuthStore
     final loginStore = LoginStore(authStore);
     final budgetStore = BudgetStore(authStore);
-    
-    // Return a new StoreProvider with all stores properly initialized
+    final geoStore = GeoStore(GeoService());
+    final censoStore = CensoStore(CensoService());
+
     return StoreProvider._(
       key: key,
       authStore: authStore,
       loginStore: loginStore,
       budgetStore: budgetStore,
+      geoStore: geoStore,
+      censoStore: censoStore,
       child: child,
     );
   }
