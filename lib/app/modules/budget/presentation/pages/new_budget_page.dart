@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:multimidiaapp/stores/store_provider.dart';
 
 import '../../../../shared/widgets/custom_top_bar.dart';
@@ -128,29 +129,31 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                         borderRadius: BorderRadius.circular(8.r),
                       ),
                       child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: _geo.estadoSelecionado?.nome,
-                          hint: Text(
-                            'Estado',
-                            style: TextStyle(
-                              fontSize: 16.sp,
-                              color: Colors.grey[500],
+                        child: Observer(
+                          builder: (_) => DropdownButton<String>(
+                            value: _geo.estadoSelecionado?.nome,
+                            hint: Text(
+                              'Estado',
+                              style: TextStyle(
+                                fontSize: 16.sp,
+                                color: Colors.grey[500],
+                              ),
                             ),
+                            items: _geo.estados
+                                .map<DropdownMenuItem<String>>((e) => DropdownMenuItem<String>(
+                                      value: e.nome,
+                                      child: Text(e.nome),
+                                    ))
+                                .toList(),
+                            onChanged: (value) async {
+                              final matches = _geo.estados.where((e) => e.nome == value);
+                              final estado = matches.isNotEmpty ? matches.first : null;
+                              if (estado != null) {
+                                await _geo.selecionarEstado(estado);
+                                if (mounted) setState(() {});
+                              }
+                            },
                           ),
-                          items: _geo.estados
-                              .map((e) => DropdownMenuItem<String>(
-                                    value: e.nome,
-                                    child: Text(e.nome),
-                                  ))
-                              .toList(),
-                          onChanged: (value) async {
-                            final matches = _geo.estados.where((e) => e.nome == value);
-                            final estado = matches.isNotEmpty ? matches.first : null;
-                            if (estado != null) {
-                              await _geo.selecionarEstado(estado);
-                              if (mounted) setState(() {});
-                            }
-                          },
                         ),
                       ),
                     ),
@@ -159,36 +162,38 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
 
                     // Cidade (só aparece quando estado selecionado)
                     if (_geo.estadoSelecionado != null) ...[
-                      Container(
-                        width: double.infinity,
-                        height: 35.h,
-                        padding: EdgeInsets.symmetric(horizontal: 16.w),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey[300]!),
-                          borderRadius: BorderRadius.circular(8.r),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: _geo.cidadeSelecionada?.nome,
-                            hint: Text(
-                              'Cidade',
-                              style: TextStyle(
-                                fontSize: 16.sp,
-                                color: Colors.grey[500],
+                      Observer(
+                        builder: (_) => Container(
+                          width: double.infinity,
+                          height: 35.h,
+                          padding: EdgeInsets.symmetric(horizontal: 16.w),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey[300]!),
+                            borderRadius: BorderRadius.circular(8.r),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _geo.cidadeSelecionada?.nome,
+                              hint: Text(
+                                'Cidade',
+                                style: TextStyle(
+                                  fontSize: 16.sp,
+                                  color: Colors.grey[500],
+                                ),
                               ),
+                              items: _geo.cidades
+                                  .map<DropdownMenuItem<String>>((c) => DropdownMenuItem<String>(
+                                        value: c.nome,
+                                        child: Text(c.nome),
+                                      ))
+                                  .toList(),
+                              onChanged: (value) {
+                                final matches = _geo.cidades.where((c) => c.nome == value);
+                                final cidade = matches.isNotEmpty ? matches.first : null;
+                                _geo.selecionarCidade(cidade);
+                                if (mounted) setState(() {});
+                              },
                             ),
-                            items: _geo.cidades
-                                .map((c) => DropdownMenuItem<String>(
-                                      value: c.nome,
-                                      child: Text(c.nome),
-                                    ))
-                                .toList(),
-                            onChanged: (value) {
-                              final matches = _geo.cidades.where((c) => c.nome == value);
-                              final cidade = matches.isNotEmpty ? matches.first : null;
-                              _geo.selecionarCidade(cidade);
-                              if (mounted) setState(() {});
-                            },
                           ),
                         ),
                       ),
