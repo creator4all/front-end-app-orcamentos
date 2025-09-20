@@ -47,29 +47,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
       appBar: const CustomTopBar(
         title: 'Novo orçamento',
         showBackButton: true,
-        // Args usage to be wired: final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
-        Builder(
-          builder: (context) {
-            final args = ModalRoute.of(context)?.settings.arguments
-                as Map<String, dynamic>?;
-            final censo = args != null ? args['censo'] : null;
-            final turmas = censo != null && censo.groups is List
-                ? (censo.groups as List).length
-                : null;
-            final totalAlunos = censo != null ? censo.totalStudents : null;
-            return SchoolCensus(
-              leadingIcon: const Icon(Icons.school, color: Colors.black54),
-              title: 'Censo Escolar',
-              info1: turmas != null ? '$turmas grupos' : '—',
-              info2: totalAlunos != null ? '$totalAlunos alunos' : '—',
-              onTap: () {
-                Modular.to
-                    .pushNamed('/budget/census', arguments: {'censo': censo});
-              },
-            );
-          },
-        ),
-        const SizedBox(height: 12),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
