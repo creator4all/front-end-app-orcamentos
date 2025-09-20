@@ -12,6 +12,7 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
   final String? userEmail;
   final String? userDocument;
   final VoidCallback? onProfileTap;
+  final Widget? actionButton;
 
   const CustomTopBar({
     super.key,
@@ -23,6 +24,7 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
     this.userEmail,
     this.userDocument,
     this.onProfileTap,
+    this.actionButton,
   });
 
   @override
@@ -79,8 +81,10 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
                 ],
               ),
 
-              // Right side - User profile circle (só aparece quando não tem botão de voltar)
-              if (!showBackButton) ...[
+              // Right side - Action button or User profile circle
+              if (actionButton != null) ...[
+                actionButton!,
+              ] else if (!showBackButton) ...[
                 GestureDetector(
                   onTap: () {
                     if (userName != null &&
