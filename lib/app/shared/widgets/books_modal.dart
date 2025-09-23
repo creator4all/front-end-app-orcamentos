@@ -91,13 +91,16 @@ class BooksModal {
                 final unitValue = p.valor != null
                     ? 'R\$ ${p.valor!.toStringAsFixed(2)}'
                     : '—';
+                final selected = Modular.get<ProductStore>().isSelected(p.id);
                 return TechnologyItem(
                   itemName: p.nome,
                   text1: p.indicacao ?? '',
                   text2: p.tipo ?? '',
                   text3: unitValue,
-                  isSelected: false,
-                  onCheckboxChanged: (_) {},
+                  isSelected: selected,
+                  onCheckboxChanged: (v) {
+                    Modular.get<ProductStore>().setSelected(p.id, v ?? false);
+                  },
                   onActionTap: () {
                     ProductInfoModal.show(
                       context: context,
