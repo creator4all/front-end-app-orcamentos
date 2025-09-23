@@ -448,32 +448,21 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
 
                     final prodStore = Modular.get<ProductStore>();
                     final allProducts = prodStore.produtos;
-                    final selections = allProducts.map((p) {
-                      final sel = prodStore.isSelected(p.id);
-                      return {
-                        'produto_id': p.id,
-                        'selected': sel,
-                        if (p.valor != null) 'price': p.valor,
-                      };
-                    }).toList();
+                    final productSelections = allProducts.map((p) => ProductSelectionDto(
+                      produtoId: p.id,
+                      selected: prodStore.isSelected(p.id),
+                      price: p.valor,
+                    )).toList();
 
                     final service = Modular.get<BudgetService>();
                     try {
-                      final payload = {
-                        'orc_dias_validade': dias,
-                        'orc_usuario_id': usuarioId,
-                        'cidades': [cidadeId],
-                        'orc_cidade_id': cidadeId,
-                        'orc_total': prodStore.total,
-                        'products': selections,
-                      };
                       await service.criar(BudgetCreateDto(
                         diasValidade: dias,
                         usuarioId: usuarioId,
                         cidades: [cidadeId],
                         cidadePrincipalId: cidadeId,
                         total: prodStore.total,
-                        products: [],
+                        products: productSelections,
                       ));
                       if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
