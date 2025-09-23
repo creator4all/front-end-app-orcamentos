@@ -12,6 +12,8 @@ import '../../../../shared/widgets/books_modal.dart';
 import '../../../../shared/widgets/technology_products_modal.dart';
 import '../../presentation/stores/category_store.dart';
 import '../../presentation/stores/subcategory_store.dart';
+import '../../domain/models/category.dart';
+
 
 class ConfigNewBudgetPage extends StatefulWidget {
   const ConfigNewBudgetPage({super.key});
@@ -43,15 +45,16 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    Modular.get<CategoryStore>().fetchCategorias();
+  }
+
+  @override
   void dispose() {
     _dataOrcamentoController.dispose();
     _validadeOrcamentoController.dispose();
     super.dispose();
-    @override
-    void didChangeDependencies() {
-      super.didChangeDependencies();
-      Modular.get<CategoryStore>().fetchCategorias();
-    }
   }
 
   @override
@@ -120,81 +123,123 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                       style: const TextStyle(color: Colors.red),
                     );
                   }
+
+                  final livrosCat = catStore.categorias.firstWhere(
+                    (c) => c.nome.toLowerCase().trim() == 'livros',
+                    orElse: () => CategoryDto(id: -1, nome: 'Livros'),
+                  );
+                  final outras = catStore.categorias
+                      .where((c) => c.nome.toLowerCase().trim() != 'livros')
+                      .toList();
+
                   return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ...catStore.categorias.map((cat) {
-                        final isBooks =
-                            cat.nome.toLowerCase().trim() == 'livros';
+                      if (livrosCat.id != -1)
+                        Padding(
+                          padding: EdgeInsets.only(bottom: 12.h),
+                          child: ProductCategory(
+                            categoryIcon:
+                                const Icon(Icons.menu_book, color: Colors.black54),
+                            title: 'Livros',
+                            value: '—',
+                            selectedCount: 0,
+                            totalCount: 0,
+                            isSelected: isLivrosSelected,
+                            onCheckboxChanged: (bool? value) {
+                              setState(() {
+                                isLivrosSelected = value ?? false;
+                              });
+                            },
+                            onActionTap: () async {
+                              await BooksModal.show(
+                                context: context,
+                                categoriaId: livrosCat.id,
+                              );
+                            },
+                          ),
+                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Tecnologias',
+                                style: TextStyle(
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF117BBD),
+                                ),
+                              ),
+                              Text(
+                                '—',
+                                style: TextStyle(
+                                  fontSize: 15.sp,
+                                  color: const Color(0xFF000000),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      ...outras.map((cat) {
                         return Padding(
                           padding: EdgeInsets.only(bottom: 12.h),
                           child: ProductCategory(
-                            categoryIcon: Icon(
-                              isBooks ? Icons.menu_book : Icons.widgets,
-                              color: Colors.black54,
-                            ),
+                            categoryIcon:
+                                const Icon(Icons.widgets, color: Colors.black54),
                             title: cat.nome,
                             value: '—',
                             selectedCount: 0,
                             totalCount: 0,
-                            isSelected:
-                                isBooks ? isLivrosSelected : isPortalSelected,
+                            isSelected: isPortalSelected,
                             onCheckboxChanged: (bool? value) {
                               setState(() {
-                                if (isBooks) {
-                                  isLivrosSelected = value ?? false;
-                                } else {
-                                  isPortalSelected = value ?? false;
-                                }
+                                isPortalSelected = value ?? false;
                               });
                             },
                             onActionTap: () async {
-                              if (isBooks) {
-                                await BooksModal.show(
-                                  context: context,
-                                  categoriaId: cat.id,
+                              final subStore = Modular.get<SubcategoryStore>();
+                              await subStore.fetchSubcategorias(cat.id);
+                              if (subStore.error != null ||
+                                  subStore.subcategorias.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(subStore.error ??
+                                        'Sem subcategorias para ${cat.nome}'),
+                                  ),
                                 );
-                              } else {
-                                final subStore =
-                                    Modular.get<SubcategoryStore>();
-                                await subStore.fetchSubcategorias(cat.id);
-                                if (subStore.error != null ||
-                                    subStore.subcategorias.isEmpty) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(subStore.error ??
-                                          'Sem subcategorias para ${cat.nome}'),
-                                    ),
+                                return;
+                              }
+                              final chosen =
+                                  await showDialog<({int id, String nome})>(
+                                context: context,
+                                builder: (ctx) {
+                                  return SimpleDialog(
+                                    title: const Text('Selecione subcategoria'),
+                                    children: subStore.subcategorias
+                                        .map((s) => SimpleDialogOption(
+                                              onPressed: () {
+                                                Navigator.pop(
+                                                  ctx,
+                                                  (id: s.id, nome: s.nome),
+                                                );
+                                              },
+                                              child: Text(s.nome),
+                                            ))
+                                        .toList(),
                                   );
-                                  return;
-                                }
-                                final chosen =
-                                    await showDialog<({int id, String nome})>(
+                                },
+                              );
+                              if (chosen != null) {
+                                await TechnologyProductsModal.show(
                                   context: context,
-                                  builder: (ctx) {
-                                    return SimpleDialog(
-                                      title:
-                                          const Text('Selecione subcategoria'),
-                                      children: subStore.subcategorias
-                                          .map((s) => SimpleDialogOption(
-                                                onPressed: () {
-                                                  Navigator.pop(
-                                                    ctx,
-                                                    (id: s.id, nome: s.nome),
-                                                  );
-                                                },
-                                                child: Text(s.nome),
-                                              ))
-                                          .toList(),
-                                    );
-                                  },
+                                  subcategoriaId: chosen.id,
+                                  title: chosen.nome,
                                 );
-                                if (chosen != null) {
-                                  await TechnologyProductsModal.show(
-                                    context: context,
-                                    subcategoriaId: chosen.id,
-                                    title: chosen.nome,
-                                  );
-                                }
                               }
                             },
                           ),
