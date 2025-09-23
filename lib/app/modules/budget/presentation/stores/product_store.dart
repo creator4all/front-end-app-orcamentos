@@ -22,6 +22,17 @@ abstract class _ProductStore with Store {
   @observable
   int? lastSubcategoriaId;
 
+  @observable
+  ObservableSet<int> selectedIds = ObservableSet<int>();
+
+  @computed
+  double get total => produtos
+      .where((p) => selectedIds.contains(p.id))
+      .fold(0.0, (sum, p) => sum + (p.valor ?? 0.0));
+
+  @computed
+  int get selectedCount => selectedIds.length;
+
   @action
   Future<void> fetchProdutos(int subcategoriaId) async {
     isLoading = true;
@@ -35,4 +46,15 @@ abstract class _ProductStore with Store {
       isLoading = false;
     }
   }
+
+  @action
+  void setSelected(int productId, bool selected) {
+    if (selected) {
+      selectedIds.add(productId);
+    } else {
+      selectedIds.remove(productId);
+    }
+  }
+
+  bool isSelected(int productId) => selectedIds.contains(productId);
 }

@@ -41,13 +41,16 @@ class TechnologyProductsModal {
                 final unitValue = p.valor != null
                     ? 'R\$ ${p.valor!.toStringAsFixed(2)}'
                     : '—';
+                final selected = prodStore.isSelected(p.id);
                 return TechnologyItem(
                   itemName: p.nome,
                   text1: unitValue,
                   text2: p.tipo ?? '',
                   text3: p.codigo ?? '',
-                  isSelected: false,
-                  onCheckboxChanged: (_) {},
+                  isSelected: selected,
+                  onCheckboxChanged: (v) {
+                    prodStore.setSelected(p.id, v ?? false);
+                  },
                   onActionTap: () {
                     ProductInfoModal.show(
                       context: context,
