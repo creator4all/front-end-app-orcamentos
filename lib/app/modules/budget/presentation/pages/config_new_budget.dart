@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_modular/flutter_modular.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../shared/widgets/budget_summary_card.dart';
@@ -6,6 +8,10 @@ import '../../../../shared/widgets/custom_top_bar.dart';
 import '../../../../shared/widgets/product_category.dart';
 import '../../../../shared/widgets/school_census.dart';
 import 'package:multimidiaapp/entities/censo_entity.dart';
+import '../../../../shared/widgets/books_modal.dart';
+import '../../../../shared/widgets/technology_products_modal.dart';
+import '../../presentation/stores/category_store.dart';
+import '../../presentation/stores/subcategory_store.dart';
 
 class ConfigNewBudgetPage extends StatefulWidget {
   const ConfigNewBudgetPage({super.key});
@@ -17,7 +23,7 @@ class ConfigNewBudgetPage extends StatefulWidget {
 class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
   // Cache for the censo data to persist between screen navigations
   CensoData? _cachedCensoData;
-  
+
   bool isLivrosSelected = true;
   bool isPortalSelected = false;
   bool isGamificacaoSelected = false;
@@ -41,6 +47,11 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     _dataOrcamentoController.dispose();
     _validadeOrcamentoController.dispose();
     super.dispose();
+    @override
+    void didChangeDependencies() {
+      super.didChangeDependencies();
+      Modular.get<CategoryStore>().fetchCategorias();
+    }
   }
 
   @override
@@ -63,33 +74,33 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
               // Use a StatefulBuilder to be able to update this widget when census data changes
               StatefulBuilder(
                 builder: (context, setBuilderState) {
-                  // Get census data from arguments or state
                   final args = ModalRoute.of(context)?.settings.arguments
                       as Map<String, dynamic>?;
-                  // Use the cached censo or get it from arguments
-                  final censo = _cachedCensoData ?? (args != null ? args['censo'] as CensoData? : null);
+                  final censo = _cachedCensoData ??
+                      (args != null ? args['censo'] as CensoData? : null);
                   return SchoolCensus(
                     leadingIcon:
                         const Icon(Icons.school, color: Colors.black54),
                     title: 'Censo Escolar',
-                    info1: censo != null ? 'estudantes: ${censo.cidadeData?.totalEstudantes ?? 0}' : '—',
-                    info2: censo != null ? 'turmas: ${censo.cidadeData?.quantidadeTurmas ?? 0}' : '—',
+                    info1: censo != null
+                        ? 'estudantes: ${censo.cidadeData?.totalEstudantes ?? 0}'
+                        : '—',
+                    info2: censo != null
+                        ? 'turmas: ${censo.cidadeData?.quantidadeTurmas ?? 0}'
+                        : '—',
                     onActionTap: () async {
-                      // Use Navigator.push instead of Modular.to.pushNamed to get the result back
                       final result = await Navigator.pushNamed(
                         context,
                         '/budget/census',
-                        arguments: {'censo': censo}
+                        arguments: {'censo': censo},
                       );
-                      
-                      // If we got updated data back, update both the local state and the cached data
-                      if (result is Map<String, dynamic> && result.containsKey('updatedCenso')) {
-                        final updatedCenso = result['updatedCenso'] as CensoData;
-                        // Update the cached census data
+                      if (result is Map<String, dynamic> &&
+                          result.containsKey('updatedCenso')) {
+                        final updatedCenso =
+                            result['updatedCenso'] as CensoData;
                         setState(() {
                           _cachedCensoData = updatedCenso;
                         });
-                        // Update the StatefulBuilder state to refresh the UI
                         setBuilderState(() {});
                       }
                     },
@@ -97,113 +108,104 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                 },
               ),
               const SizedBox(height: 12),
-              ProductCategory(
-                categoryIcon:
-                    const Icon(Icons.menu_book, color: Colors.black54),
-                title: 'Livros',
-                value: 'R\$500.000,00',
-                selectedCount: 47,
-                totalCount: 48,
-                isSelected: isLivrosSelected,
-                onCheckboxChanged: (bool? value) {
-                  setState(() {
-                    isLivrosSelected = value ?? false;
-                  });
-                },
-              ),
-              const SizedBox(height: 16),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              Observer(
+                builder: (_) {
+                  final catStore = Modular.get<CategoryStore>();
+                  if (catStore.isLoading) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (catStore.error != null) {
+                    return Text(
+                      'Erro ao carregar categorias: ${catStore.error}',
+                      style: const TextStyle(color: Colors.red),
+                    );
+                  }
+                  return Column(
                     children: [
-                      Text(
-                        'Tecnologias',
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF117BBD),
-                        ),
-                      ),
-                      Text(
-                        'R\$ 33.642.456,80',
-                        style: TextStyle(
-                          fontSize: 15.sp,
-                          color: const Color(0xFF000000),
-                        ),
-                      ),
+                      ...catStore.categorias.map((cat) {
+                        final isBooks =
+                            cat.nome.toLowerCase().trim() == 'livros';
+                        return Padding(
+                          padding: EdgeInsets.only(bottom: 12.h),
+                          child: ProductCategory(
+                            categoryIcon: Icon(
+                              isBooks ? Icons.menu_book : Icons.widgets,
+                              color: Colors.black54,
+                            ),
+                            title: cat.nome,
+                            value: '—',
+                            selectedCount: 0,
+                            totalCount: 0,
+                            isSelected:
+                                isBooks ? isLivrosSelected : isPortalSelected,
+                            onCheckboxChanged: (bool? value) {
+                              setState(() {
+                                if (isBooks) {
+                                  isLivrosSelected = value ?? false;
+                                } else {
+                                  isPortalSelected = value ?? false;
+                                }
+                              });
+                            },
+                            onActionTap: () async {
+                              if (isBooks) {
+                                await BooksModal.show(
+                                  context: context,
+                                  categoriaId: cat.id,
+                                );
+                              } else {
+                                final subStore =
+                                    Modular.get<SubcategoryStore>();
+                                await subStore.fetchSubcategorias(cat.id);
+                                if (subStore.error != null ||
+                                    subStore.subcategorias.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(subStore.error ??
+                                          'Sem subcategorias para ${cat.nome}'),
+                                    ),
+                                  );
+                                  return;
+                                }
+                                final chosen =
+                                    await showDialog<({int id, String nome})>(
+                                  context: context,
+                                  builder: (ctx) {
+                                    return SimpleDialog(
+                                      title:
+                                          const Text('Selecione subcategoria'),
+                                      children: subStore.subcategorias
+                                          .map((s) => SimpleDialogOption(
+                                                onPressed: () {
+                                                  Navigator.pop(
+                                                    ctx,
+                                                    (id: s.id, nome: s.nome),
+                                                  );
+                                                },
+                                                child: Text(s.nome),
+                                              ))
+                                          .toList(),
+                                    );
+                                  },
+                                );
+                                if (chosen != null) {
+                                  await TechnologyProductsModal.show(
+                                    context: context,
+                                    subcategoriaId: chosen.id,
+                                    title: chosen.nome,
+                                  );
+                                }
+                              }
+                            },
+                          ),
+                        );
+                      }),
+                      const SizedBox(height: 12),
                     ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // Portal/Aplicativos
-              ProductCategory(
-                categoryIcon: const Icon(Icons.web, color: Colors.black54),
-                title: 'Portal/Aplicativos',
-                value: 'R\$150.000,00',
-                selectedCount: 5,
-                totalCount: 10,
-                isSelected: isPortalSelected,
-                onCheckboxChanged: (bool? value) {
-                  setState(() {
-                    isPortalSelected = value ?? false;
-                  });
+                  );
                 },
               ),
               const SizedBox(height: 12),
-
-              // Gamificação
-              ProductCategory(
-                categoryIcon: const Icon(Icons.games, color: Colors.black54),
-                title: 'Gamificação',
-                value: 'R\$75.000,00',
-                selectedCount: 12,
-                totalCount: 15,
-                isSelected: isGamificacaoSelected,
-                onCheckboxChanged: (bool? value) {
-                  setState(() {
-                    isGamificacaoSelected = value ?? false;
-                  });
-                },
-              ),
-              const SizedBox(height: 12),
-
-              // Avaliação Diagnóstica
-              ProductCategory(
-                categoryIcon:
-                    const Icon(Icons.assessment, color: Colors.black54),
-                title: 'Avaliação Diagnóstica',
-                value: 'R\$200.000,00',
-                selectedCount: 8,
-                totalCount: 12,
-                isSelected: isAvaliacaoSelected,
-                onCheckboxChanged: (bool? value) {
-                  setState(() {
-                    isAvaliacaoSelected = value ?? false;
-                  });
-                },
-              ),
-              const SizedBox(height: 12),
-
-              // Serviços
-              ProductCategory(
-                categoryIcon: const Icon(Icons.build, color: Colors.black54),
-                title: 'Serviços',
-                value: 'R\$300.000,00',
-                selectedCount: 20,
-                totalCount: 25,
-                isSelected: isServicosSelected,
-                onCheckboxChanged: (bool? value) {
-                  setState(() {
-                    isServicosSelected = value ?? false;
-                  });
-                },
-              ),
-              const SizedBox(height: 24),
 
               // Data do orçamento
               Row(
