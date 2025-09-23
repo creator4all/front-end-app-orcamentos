@@ -40,8 +40,9 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
   @override
   void initState() {
     super.initState();
-    // Define a data atual para o campo "Data do orçamento"
     _dataOrcamentoController.text = DateTime.now().toString().split(' ')[0];
+    final defaultValid = DateTime.now().add(const Duration(days: 60));
+    _validadeOrcamentoController.text = defaultValid.toString().split(' ')[0];
   }
 
   @override
