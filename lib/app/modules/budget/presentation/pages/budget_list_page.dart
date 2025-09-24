@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../shared/widgets/widgets.dart';
+import '../stores/budget_list_store.dart';
 
 class BudgetListPage extends StatefulWidget {
   const BudgetListPage({super.key});
@@ -12,6 +14,14 @@ class BudgetListPage extends StatefulWidget {
 }
 
 class _BudgetListPageState extends State<BudgetListPage> {
+  late final BudgetListStore _store;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _store = Modular.get<BudgetListStore>();
+    _store.fetch();
+  }
   String _selectedFilter = '';
 
   void _handleSearchChanged(String query) {
@@ -98,25 +108,53 @@ class _BudgetListPageState extends State<BudgetListPage> {
 
           // Lista de orçamentos
           Expanded(
-            child: ListView(
-              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 10.h),
-              children: [
-                // Exemplo para Administrador
-                BudgetCardWidget(
-                  title: 'Barra Velha - SC',
-                  partner: 'XPTO',
-                  seller: 'Pedro Penha',
-                  budgetCode: 'D-4202107-119',
-                  dueDate: DateTime(2024, 3, 15),
-                  totalValue: 45282630.80,
-                  daysRemaining: 10,
-                  status: BudgetStatus.pending,
-                  userRole: UserRole.admin,
-                  onTap: () {
-                    // Navegar para detalhes do orçamento
+            child: Observer(
+              builder: (_) {
+                if (_store.isLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (_store.error != null) {
+                  return Center(child: Text('Erro: ${_store.error}'));
+                }
+                if (_store.items.isEmpty) {
+                  return const Center(child: Text('Nenhum orçamento encontrado'));
+                }
+                return ListView.builder(
+                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 10.h),
+                  itemCount: _store.items.length,
+                  itemBuilder: (context, index) {
+                    final b = _store.items[index];
+                    final now = DateTime.now();
+                    final due = b.dataValidade;
+                    final daysRemaining = due != null ? due.difference(DateTime(now.year, now.month, now.day)).inDays : 0;
+                    BudgetStatus status;
+                    switch (b.status) {
+                      case 'aprovado':
+                        status = BudgetStatus.approved;
+                        break;
+                      case 'arquivado':
+                        status = BudgetStatus.notApproved;
+                        break;
+                      case 'expirado':
+                        status = BudgetStatus.expired;
+                        break;
+                      default:
+                        status = BudgetStatus.pending;
+                    }
+                    return BudgetCardWidget(
+                      title: b.nome ?? 'Orçamento',
+                      budgetCode: 'D-${b.id}',
+                      dueDate: due ?? now,
+                      totalValue: b.total,
+                      daysRemaining: daysRemaining,
+                      status: status,
+                      userRole: UserRole.admin,
+                      onTap: () {},
+                    );
                   },
-                ),
-
+                );
+              },
+            ),
                 // Exemplo para Gestor
                 BudgetCardWidget(
                   title: 'Projeto Centro Comercial',
