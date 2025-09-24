@@ -6,7 +6,7 @@ class ProductService {
   ProductService(this._api);
 
   Future<List<ProductDto>> listarPorSubcategoria(int subcategoriaId) async {
-    final res = await _api.get('/api/produtos?subcategoria_id=$subcategoriaId');
+    final res = await _api.get('/api/produtos/subcategoria/$subcategoriaId');
     final data = res is Map<String, dynamic>
         ? (res['data'] ?? res['dados'] ?? res)
         : res;
