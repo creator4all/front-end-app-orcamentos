@@ -40,8 +40,9 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
   @override
   void initState() {
     super.initState();
-    // Define a data atual para o campo "Data do orçamento"
     _dataOrcamentoController.text = DateTime.now().toString().split(' ')[0];
+    final defaultValid = DateTime.now().add(const Duration(days: 60));
+    _validadeOrcamentoController.text = defaultValid.toString().split(' ')[0];
   }
 
   @override
@@ -69,10 +70,13 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
           padding: EdgeInsets.all(16.w),
           child: Column(
             children: [
-              const BudgetSummaryCard(
-                budgetValue: 0.0,
-                selectedProductsCount: 0,
-              ),
+              Observer(builder: (_) {
+                final prodStore = Modular.get<ProductStore>();
+                return BudgetSummaryCard(
+                  budgetValue: prodStore.total,
+                  selectedProductsCount: prodStore.selectedCount,
+                );
+              }),
               const SizedBox(height: 12),
               // Use a StatefulBuilder to be able to update this widget when census data changes
               StatefulBuilder(
@@ -398,14 +402,82 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                 width: double.infinity,
                 height: 40.h,
                 child: ElevatedButton(
-                  onPressed: () {
-                    // TODO: Implementar lógica de salvar orçamento
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Orçamento salvo com sucesso!'),
-                        backgroundColor: Color(0xFF56B34A),
-                      ),
-                    );
+                  onPressed: () async {
+                    final validadeStr = _validadeOrcamentoController.text;
+                    if (validadeStr.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Selecione a validade do orçamento')),
+                      );
+                      return;
+                    }
+                    final hoje = DateTime.now();
+                    final hojeDate = DateTime(hoje.year, hoje.month, hoje.day);
+                    final parts = validadeStr.split('-');
+                    DateTime? validade;
+                    if (parts.length == 3) {
+                      final y = int.tryParse(parts[0]);
+                      final m = int.tryParse(parts[1]);
+                      final d = int.tryParse(parts[2]);
+                      if (y != null && m != null && d != null) {
+                        validade = DateTime(y, m, d);
+                      }
+                    }
+                    if (validade == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Data de validade inválida')),
+                      );
+                      return;
+                    }
+                    final dias = validade.difference(hojeDate).inDays;
+                    if (dias < 1 || dias > 365) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Validade deve estar entre 1 e 365 dias')),
+                      );
+                      return;
+                    }
+
+                    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+                    final cidadeId = args?['cidadeId'] as int? ?? args?['cidade_id'] as int? ?? 0;
+                    final usuarioId = args?['usuarioId'] as int? ?? args?['usuario_id'] as int? ?? 0;
+                    if (cidadeId <= 0 || usuarioId <= 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Dados de cidade/usuário ausentes')),
+                      );
+                      return;
+                    }
+
+                    final prodStore = Modular.get<ProductStore>();
+                    final allProducts = prodStore.produtos;
+                    final productSelections = allProducts.map((p) => ProductSelectionDto(
+                      produtoId: p.id,
+                      selected: prodStore.isSelected(p.id),
+                      price: p.valor,
+                    )).toList();
+
+                    final service = Modular.get<BudgetService>();
+                    try {
+                      await service.criar(BudgetCreateDto(
+                        diasValidade: dias,
+                        usuarioId: usuarioId,
+                        cidades: [cidadeId],
+                        cidadePrincipalId: cidadeId,
+                        total: prodStore.total,
+                        products: productSelections,
+                      ));
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Orçamento salvo com sucesso!'),
+                          backgroundColor: Color(0xFF56B34A),
+                        ),
+                      );
+                      Modular.to.pop();
+                    } catch (e) {
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Erro ao salvar: $e')),
+                      );
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF56B34A),
