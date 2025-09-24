@@ -40,9 +40,8 @@ class BooksModal {
               ...subStore.subcategorias.map((sub) {
                 return BookItem(
                   title: sub.nome,
-                  text1: '',
-                  text2: '',
-                  text3: '',
+                  value: '',
+                  quantity: '—',
                   isSelected: false,
                   onCheckboxChanged: (_) {},
                   onTap: () => showBookProducts(
