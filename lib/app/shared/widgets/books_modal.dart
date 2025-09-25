@@ -38,17 +38,25 @@ class BooksModal {
             mainAxisSize: MainAxisSize.min,
             children: [
               ...subStore.subcategorias.map((sub) {
-                return BookItem(
-                  title: sub.nome,
-                  value: '',
-                  quantity: '—',
-                  isSelected: false,
-                  onCheckboxChanged: (_) {},
-                  onTap: () => showBookProducts(
-                    context: context,
-                    subcategoriaId: sub.id,
-                    subcategoriaNome: sub.nome,
-                  ),
+                return Observer(
+                  builder: (_) {
+                    final prodStore = Modular.get<ProductStore>();
+                    final selectedCount = prodStore.getSelectedCountForSubcategory(sub.id);
+                    final totalCount = prodStore.getTotalCountForSubcategory(sub.id);
+                    
+                    return BookItem(
+                      title: sub.nome,
+                      value: '$selectedCount/$totalCount',
+                      quantity: '—',
+                      isSelected: false, // Subcategorias na modal não têm seleção própria
+                      onCheckboxChanged: (_) {},
+                      onTap: () => showBookProducts(
+                        context: context,
+                        subcategoriaId: sub.id,
+                        subcategoriaNome: sub.nome,
+                      ),
+                    );
+                  },
                 );
               }),
             ],
