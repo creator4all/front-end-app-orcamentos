@@ -57,4 +57,33 @@ abstract class _ProductStore with Store {
   }
 
   bool isSelected(int productId) => selectedIds.contains(productId);
+
+  @action
+  void unselectAllForSubcategory(int subcategoriaId) {
+    final subcategoryProducts = produtos.where((p) => p.subcategoriaId == subcategoriaId).toList();
+    for (final product in subcategoryProducts) {
+      selectedIds.remove(product.id);
+    }
+  }
+
+  @action
+  void unselectAll() {
+    selectedIds.clear();
+  }
+
+  int getSelectedCountForSubcategory(int subcategoriaId) {
+    return produtos
+        .where((p) => p.subcategoriaId == subcategoriaId && selectedIds.contains(p.id))
+        .length;
+  }
+
+  int getTotalCountForSubcategory(int subcategoriaId) {
+    return produtos.where((p) => p.subcategoriaId == subcategoriaId).length;
+  }
+
+  double getTotalValueForSubcategory(int subcategoriaId) {
+    return produtos
+        .where((p) => p.subcategoriaId == subcategoriaId && selectedIds.contains(p.id))
+        .fold(0.0, (sum, p) => sum + (p.valor ?? 0.0));
+  }
 }

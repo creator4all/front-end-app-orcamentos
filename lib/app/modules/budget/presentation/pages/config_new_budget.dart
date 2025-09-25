@@ -12,7 +12,11 @@ import '../../../../shared/widgets/books_modal.dart';
 import '../../../../shared/widgets/technology_products_modal.dart';
 import '../../presentation/stores/category_store.dart';
 import '../../presentation/stores/subcategory_store.dart';
+import '../../presentation/stores/product_store.dart';
 import '../../domain/models/category.dart';
+import '../../domain/models/product_selection.dart';
+import '../../domain/models/budget_create.dart';
+import '../../external/services/budget_service.dart';
 
 
 class ConfigNewBudgetPage extends StatefulWidget {
@@ -31,6 +35,9 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
   bool isGamificacaoSelected = false;
   bool isAvaliacaoSelected = false;
   bool isServicosSelected = false;
+
+  // Estado para controlar subcategorias selecionadas (id -> selecionado)
+  final Map<int, bool> _selectedSubcategories = {};
 
   final TextEditingController _dataOrcamentoController =
       TextEditingController();
@@ -118,6 +125,8 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
               Observer(
                 builder: (_) {
                   final catStore = Modular.get<CategoryStore>();
+                  final subStore = Modular.get<SubcategoryStore>();
+                  
                   if (catStore.isLoading) {
                     return const Center(child: CircularProgressIndicator());
                   }
@@ -142,111 +151,118 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                       if (livrosCat.id != -1)
                         Padding(
                           padding: EdgeInsets.only(bottom: 12.h),
-                          child: ProductCategory(
-                            categoryIcon:
-                                const Icon(Icons.menu_book, color: Colors.black54),
-                            title: 'Livros',
-                            value: '—',
-                            selectedCount: 0,
-                            totalCount: 0,
-                            isSelected: isLivrosSelected,
-                            onCheckboxChanged: (bool? value) {
-                              setState(() {
-                                isLivrosSelected = value ?? false;
-                              });
-                            },
-                            onActionTap: () async {
-                              await BooksModal.show(
-                                context: context,
-                                categoriaId: livrosCat.id,
+                          child: Observer(
+                            builder: (_) {
+                              final selectedSubcategoriesCount = _selectedSubcategories.values.where((selected) => selected).length;
+                              final totalSubcategories = _selectedSubcategories.length;
+                              final prodStore = Modular.get<ProductStore>();
+                              final totalValue = prodStore.total;
+                              
+                              return ProductCategory(
+                                categoryIcon:
+                                    const Icon(Icons.menu_book, color: Colors.black54),
+                                title: 'Livros',
+                                value: 'R\$ ${totalValue.toStringAsFixed(2)}',
+                                selectedCount: selectedSubcategoriesCount,
+                                totalCount: totalSubcategories,
+                                isSelected: isLivrosSelected,
+                                onCheckboxChanged: (bool? value) {
+                                  setState(() {
+                                    isLivrosSelected = value ?? false;
+                                    // Quando marcar livros, desmarcar todas as subcategorias
+                                    if (value == true) {
+                                      _selectedSubcategories.clear();
+                                      prodStore.unselectAll(); // Desmarcar todos os produtos
+                                    }
+                                  });
+                                },
+                                onActionTap: () async {
+                                  await BooksModal.show(
+                                    context: context,
+                                    categoriaId: livrosCat.id,
+                                  );
+                                },
                               );
                             },
                           ),
                         ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Tecnologias',
-                                style: TextStyle(
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF117BBD),
-                                ),
-                              ),
-                              Text(
-                                '—',
-                                style: TextStyle(
-                                  fontSize: 15.sp,
-                                  color: const Color(0xFF000000),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                      Text(
+                        'Tecnologias',
+                        style: TextStyle(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF117BBD),
+                        ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 12),
+                      // Para cada categoria que não é livros, buscar e mostrar suas subcategorias
                       ...outras.map((cat) {
-                        return Padding(
-                          padding: EdgeInsets.only(bottom: 12.h),
-                          child: ProductCategory(
-                            categoryIcon:
-                                const Icon(Icons.widgets, color: Colors.black54),
-                            title: cat.nome,
-                            value: '—',
-                            selectedCount: 0,
-                            totalCount: 0,
-                            isSelected: isPortalSelected,
-                            onCheckboxChanged: (bool? value) {
-                              setState(() {
-                                isPortalSelected = value ?? false;
-                              });
-                            },
-                            onActionTap: () async {
-                              final subStore = Modular.get<SubcategoryStore>();
-                              await subStore.fetchSubcategorias(cat.id);
-                              if (subStore.error != null ||
-                                  subStore.subcategorias.isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(subStore.error ??
-                                        'Sem subcategorias para ${cat.nome}'),
-                                  ),
-                                );
-                                return;
+                        return Observer(
+                          builder: (_) {
+                            // Buscar subcategorias desta categoria
+                            if (subStore.lastCategoriaId != cat.id && !subStore.isLoading) {
+                              subStore.fetchSubcategorias(cat.id);
+                            }
+                            
+                            if (subStore.isLoading) {
+                              return const Center(child: CircularProgressIndicator());
+                            }
+                            
+                            // Inicializar estado das subcategorias se ainda não foi feito
+                            if (!_selectedSubcategories.containsKey(subStore.subcategorias.firstOrNull?.id ?? -1)) {
+                              for (final sub in subStore.subcategorias) {
+                                if (!_selectedSubcategories.containsKey(sub.id)) {
+                                  _selectedSubcategories[sub.id] = false;
+                                }
                               }
-                              final chosen =
-                                  await showDialog<({int id, String nome})>(
-                                context: context,
-                                builder: (ctx) {
-                                  return SimpleDialog(
-                                    title: const Text('Selecione subcategoria'),
-                                    children: subStore.subcategorias
-                                        .map((s) => SimpleDialogOption(
-                                              onPressed: () {
-                                                Navigator.pop(
-                                                  ctx,
-                                                  (id: s.id, nome: s.nome),
-                                                );
-                                              },
-                                              child: Text(s.nome),
-                                            ))
-                                        .toList(),
+                            }
+                            
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Mostrar cada subcategoria como um ProductCategory
+                                ...subStore.subcategorias.map((sub) {
+                                  return Padding(
+                                    padding: EdgeInsets.only(bottom: 8.h),
+                                    child: Observer(
+                                      builder: (_) {
+                                        final prodStore = Modular.get<ProductStore>();
+                                        final selectedCount = prodStore.getSelectedCountForSubcategory(sub.id);
+                                        final totalCount = prodStore.getTotalCountForSubcategory(sub.id);
+                                        final totalValue = prodStore.getTotalValueForSubcategory(sub.id);
+                                        
+                                        return ProductCategory(
+                                          categoryIcon: const Icon(Icons.widgets, color: Colors.black54),
+                                          title: sub.nome,
+                                          value: 'R\$ ${totalValue.toStringAsFixed(2)}',
+                                          selectedCount: selectedCount,
+                                          totalCount: totalCount,
+                                          isSelected: _selectedSubcategories[sub.id] ?? false,
+                                          onCheckboxChanged: (bool? value) {
+                                            setState(() {
+                                              final isCurrentlySelected = _selectedSubcategories[sub.id] ?? false;
+                                              _selectedSubcategories[sub.id] = !isCurrentlySelected;
+                                              // Quando marcar a subcategoria, desmarcar todos os produtos dela
+                                              if (!isCurrentlySelected) {
+                                                prodStore.unselectAllForSubcategory(sub.id);
+                                              }
+                                            });
+                                          },
+                                          onActionTap: () async {
+                                            await TechnologyProductsModal.show(
+                                              context: context,
+                                              subcategoriaId: sub.id,
+                                              title: sub.nome,
+                                            );
+                                          },
+                                        );
+                                      },
+                                    ),
                                   );
-                                },
-                              );
-                              if (chosen != null) {
-                                await TechnologyProductsModal.show(
-                                  context: context,
-                                  subcategoriaId: chosen.id,
-                                  title: chosen.nome,
-                                );
-                              }
-                            },
-                          ),
+                                }),
+                              ],
+                            );
+                          },
                         );
                       }),
                       const SizedBox(height: 12),

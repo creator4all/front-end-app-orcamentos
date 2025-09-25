@@ -1,6 +1,6 @@
 import 'package:multimidiaapp/services/api_service.dart';
-import '../../budget/domain/models/budget_summary.dart';
-import '../../budget/domain/models/budget_create.dart';
+import '../../domain/models/budget_summary.dart';
+import '../../domain/models/budget_create.dart';
 
 class BudgetService {
   final ApiService _api;
