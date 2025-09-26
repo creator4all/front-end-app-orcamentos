@@ -17,6 +17,7 @@ class TechnologyProductsModal {
     final prodStore = Modular.get<ProductStore>();
     if (prodStore.lastSubcategoriaId != subcategoriaId &&
         !prodStore.isLoading) {
+      // Make sure we're fetching products with the correct subcategory ID
       prodStore.fetchProdutos(subcategoriaId);
     }
 
@@ -37,7 +38,10 @@ class TechnologyProductsModal {
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ...prodStore.produtos.map((p) {
+              // Filter products to ensure we only show products from the current subcategory
+              ...prodStore.produtos
+                  .where((p) => p.subcategoriaId == subcategoriaId)
+                  .map((p) {
                 final unitValue = p.valor != null
                     ? 'R\$ ${p.valor!.toStringAsFixed(2)}'
                     : '—';

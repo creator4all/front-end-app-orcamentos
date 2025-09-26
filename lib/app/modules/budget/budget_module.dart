@@ -5,7 +5,9 @@ import 'package:flutter_modular/flutter_modular.dart';
 
 import 'presentation/stores/category_store.dart';
 import 'presentation/stores/subcategory_store.dart';
+import 'presentation/stores/books_subcategory_store.dart';
 import 'presentation/stores/product_store.dart';
+import 'presentation/stores/card_selection_store.dart';
 import 'external/services/category_service.dart';
 import 'external/services/subcategory_service.dart';
 import 'external/services/product_service.dart';
@@ -28,7 +30,9 @@ class BudgetModule extends Module {
 
         Bind.lazySingleton((i) => CategoryStore(i.get())),
         Bind.lazySingleton((i) => SubcategoryStore(i.get())),
+        Bind.lazySingleton((i) => BooksSubcategoryStore(i.get())),
         Bind.lazySingleton((i) => ProductStore(i.get())),
+        Bind.lazySingleton((i) => CardSelectionStore()),
       ];
 
   @override

@@ -19,7 +19,15 @@ class ProductService {
       list = [];
     }
     return list
-        .map((e) => ProductDto.fromJson(Map<String, dynamic>.from(e as Map)))
+        .map((e) {
+          // Ensure each product has the correct subcategory ID
+          final Map<String, dynamic> productMap = Map<String, dynamic>.from(e as Map);
+          // Add or update the subcategory ID if not present
+          if (!productMap.containsKey('pro_subcategoria_id')) {
+            productMap['pro_subcategoria_id'] = subcategoriaId;
+          }
+          return ProductDto.fromJson(productMap);
+        })
         .toList();
   }
 }

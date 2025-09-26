@@ -12,7 +12,9 @@ import '../../../../shared/widgets/books_modal.dart';
 import '../../../../shared/widgets/technology_products_modal.dart';
 import '../../presentation/stores/category_store.dart';
 import '../../presentation/stores/subcategory_store.dart';
+import '../../presentation/stores/books_subcategory_store.dart';
 import '../../presentation/stores/product_store.dart';
+import '../../presentation/stores/card_selection_store.dart';
 import '../../domain/models/category.dart';
 import '../../domain/models/product_selection.dart';
 import '../../domain/models/budget_create.dart';
@@ -30,14 +32,15 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
   // Cache for the censo data to persist between screen navigations
   CensoData? _cachedCensoData;
 
-  bool isLivrosSelected = true;
-  bool isPortalSelected = false;
-  bool isGamificacaoSelected = false;
-  bool isAvaliacaoSelected = false;
-  bool isServicosSelected = false;
-
-  // Estado para controlar subcategorias selecionadas (id -> selecionado)
-  final Map<int, bool> _selectedSubcategories = {};
+  // Usar a CardSelectionStore para gerenciar seleções
+  late CardSelectionStore cardStore;
+  
+  // Propriedades de conveniência para facilitar o acesso ao estado
+  bool get isLivrosSelected => cardStore.mainCardsSelection['livros'] ?? false;
+  bool get isPortalSelected => cardStore.mainCardsSelection['portal'] ?? false;
+  bool get isGamificacaoSelected => cardStore.mainCardsSelection['gamificacao'] ?? false;
+  bool get isAvaliacaoSelected => cardStore.mainCardsSelection['avaliacao'] ?? false;
+  bool get isServicosSelected => cardStore.mainCardsSelection['servicos'] ?? false;
 
   final TextEditingController _dataOrcamentoController =
       TextEditingController();
@@ -55,7 +58,15 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    // Carregar categorias
     Modular.get<CategoryStore>().fetchCategorias();
+    
+    // Inicializar as stores separadas
+    Modular.get<BooksSubcategoryStore>();
+    Modular.get<SubcategoryStore>();
+    
+    // Inicializar a store de seleção de cards
+    cardStore = Modular.get<CardSelectionStore>();
   }
 
   @override
@@ -64,6 +75,8 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     _validadeOrcamentoController.dispose();
     super.dispose();
   }
+
+  // Não precisamos mais desta função, pois agora usamos cardStore.selectedCardsCount
 
   @override
   Widget build(BuildContext context) {
@@ -77,11 +90,14 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
           padding: EdgeInsets.all(16.w),
           child: Column(
             children: [
+              // Usar Observer para atualizar automaticamente quando a store mudar
               Observer(builder: (_) {
                 final prodStore = Modular.get<ProductStore>();
+                final cardSelectionStore = Modular.get<CardSelectionStore>();
+                
                 return BudgetSummaryCard(
                   budgetValue: prodStore.total,
-                  selectedProductsCount: prodStore.selectedCount,
+                  selectedProductsCount: cardSelectionStore.selectedCardsCount,
                 );
               }),
               const SizedBox(height: 12),
@@ -125,7 +141,7 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
               Observer(
                 builder: (_) {
                   final catStore = Modular.get<CategoryStore>();
-                  final subStore = Modular.get<SubcategoryStore>();
+                  // Não carregamos o subStore aqui, cada seção terá sua própria store
                   
                   if (catStore.isLoading) {
                     return const Center(child: CircularProgressIndicator());
@@ -141,9 +157,10 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                     (c) => c.nome.toLowerCase().trim() == 'livros',
                     orElse: () => CategoryDto(id: -1, nome: 'Livros'),
                   );
-                  final outras = catStore.categorias
-                      .where((c) => c.nome.toLowerCase().trim() != 'livros')
-                      .toList();
+                  final tecnologiasCat = catStore.categorias.firstWhere(
+                    (c) => c.nome.toLowerCase().trim() == 'tecnologias',
+                    orElse: () => CategoryDto(id: -1, nome: 'Tecnologias'),
+                  );
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -153,8 +170,8 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                           padding: EdgeInsets.only(bottom: 12.h),
                           child: Observer(
                             builder: (_) {
-                              final selectedSubcategoriesCount = _selectedSubcategories.values.where((selected) => selected).length;
-                              final totalSubcategories = _selectedSubcategories.length;
+                              final selectedSubcategoriesCount = cardStore.subcategoriesSelection.values.where((selected) => selected).length;
+                              final totalSubcategories = cardStore.subcategoriesSelection.length;
                               final prodStore = Modular.get<ProductStore>();
                               final totalValue = prodStore.total;
                               
@@ -167,16 +184,17 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                                 totalCount: totalSubcategories,
                                 isSelected: isLivrosSelected,
                                 onCheckboxChanged: (bool? value) {
-                                  setState(() {
-                                    isLivrosSelected = value ?? false;
-                                    // Quando marcar livros, desmarcar todas as subcategorias
-                                    if (value == true) {
-                                      _selectedSubcategories.clear();
-                                      prodStore.unselectAll(); // Desmarcar todos os produtos
-                                    }
-                                  });
+                                  // Atualizar a store
+                                  cardStore.setMainCardSelected('livros', value ?? false);
+                                  
+                                  // Quando marcar livros, desmarcar todas as subcategorias
+                                  if (value == true) {
+                                    cardStore.clearSubcategorySelections();
+                                    prodStore.unselectAll(); // Desmarcar todos os produtos
+                                  }
                                 },
                                 onActionTap: () async {
+                                  // Usar BooksModal para categoria de livros, que mostra subcategorias
                                   await BooksModal.show(
                                     context: context,
                                     categoriaId: livrosCat.id,
@@ -196,75 +214,74 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                       ),
                       const SizedBox(height: 12),
                       // Para cada categoria que não é livros, buscar e mostrar suas subcategorias
-                      ...outras.map((cat) {
-                        return Observer(
-                          builder: (_) {
-                            // Buscar subcategorias desta categoria
-                            if (subStore.lastCategoriaId != cat.id && !subStore.isLoading) {
-                              subStore.fetchSubcategorias(cat.id);
+                      // Seção de Tecnologias
+                      Observer(
+                        builder: (_) {
+                          // Usar SubcategoryStore apenas para Tecnologias
+                          final subStore = Modular.get<SubcategoryStore>();
+                          
+                          // Carregar subcategorias de tecnologias
+                          if (tecnologiasCat.id > 0 && subStore.lastCategoriaId != tecnologiasCat.id && !subStore.isLoading) {
+                            subStore.fetchSubcategorias(tecnologiasCat.id);
+                          }
+                          
+                          if (subStore.isLoading) {
+                            return const Center(child: CircularProgressIndicator());
+                          }
+                          
+                          // Inicializar estado das subcategorias se ainda não foi feito
+                          for (final sub in subStore.subcategorias) {
+                            if (!cardStore.subcategoriesSelection.containsKey(sub.id)) {
+                              cardStore.setSubcategorySelected(sub.id, false);
                             }
-                            
-                            if (subStore.isLoading) {
-                              return const Center(child: CircularProgressIndicator());
-                            }
-                            
-                            // Inicializar estado das subcategorias se ainda não foi feito
-                            if (!_selectedSubcategories.containsKey(subStore.subcategorias.firstOrNull?.id ?? -1)) {
-                              for (final sub in subStore.subcategorias) {
-                                if (!_selectedSubcategories.containsKey(sub.id)) {
-                                  _selectedSubcategories[sub.id] = false;
-                                }
-                              }
-                            }
-                            
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Mostrar cada subcategoria como um ProductCategory
-                                ...subStore.subcategorias.map((sub) {
-                                  return Padding(
-                                    padding: EdgeInsets.only(bottom: 8.h),
-                                    child: Observer(
-                                      builder: (_) {
-                                        final prodStore = Modular.get<ProductStore>();
-                                        final selectedCount = prodStore.getSelectedCountForSubcategory(sub.id);
-                                        final totalCount = prodStore.getTotalCountForSubcategory(sub.id);
-                                        final totalValue = prodStore.getTotalValueForSubcategory(sub.id);
-                                        
-                                        return ProductCategory(
-                                          categoryIcon: const Icon(Icons.widgets, color: Colors.black54),
-                                          title: sub.nome,
-                                          value: 'R\$ ${totalValue.toStringAsFixed(2)}',
-                                          selectedCount: selectedCount,
-                                          totalCount: totalCount,
-                                          isSelected: _selectedSubcategories[sub.id] ?? false,
-                                          onCheckboxChanged: (bool? value) {
-                                            setState(() {
-                                              final isCurrentlySelected = _selectedSubcategories[sub.id] ?? false;
-                                              _selectedSubcategories[sub.id] = !isCurrentlySelected;
-                                              // Quando marcar a subcategoria, desmarcar todos os produtos dela
-                                              if (!isCurrentlySelected) {
-                                                prodStore.unselectAllForSubcategory(sub.id);
-                                              }
-                                            });
-                                          },
-                                          onActionTap: () async {
-                                            await TechnologyProductsModal.show(
-                                              context: context,
-                                              subcategoriaId: sub.id,
-                                              title: sub.nome,
-                                            );
-                                          },
-                                        );
-                                      },
-                                    ),
-                                  );
-                                }),
-                              ],
-                            );
-                          },
-                        );
-                      }),
+                          }
+                          
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Mostrar cada subcategoria como um ProductCategory
+                              ...subStore.subcategorias.map((sub) {
+                                return Padding(
+                                  padding: EdgeInsets.only(bottom: 8.h),
+                                  child: Observer(
+                                    builder: (_) {
+                                      final prodStore = Modular.get<ProductStore>();
+                                      final selectedCount = prodStore.getSelectedCountForSubcategory(sub.id);
+                                      final totalCount = prodStore.getTotalCountForSubcategory(sub.id);
+                                      final totalValue = prodStore.getTotalValueForSubcategory(sub.id);
+                                      
+                                      return ProductCategory(
+                                        categoryIcon: const Icon(Icons.widgets, color: Colors.black54),
+                                        title: sub.nome,
+                                        value: 'R\$ ${totalValue.toStringAsFixed(2)}',
+                                        selectedCount: selectedCount,
+                                        totalCount: totalCount,
+                                        isSelected: cardStore.subcategoriesSelection[sub.id] ?? false,
+                                        onCheckboxChanged: (bool? value) {
+                                          final isCurrentlySelected = cardStore.subcategoriesSelection[sub.id] ?? false;
+                                          cardStore.setSubcategorySelected(sub.id, !isCurrentlySelected);
+                                          
+                                          // Quando marcar a subcategoria, desmarcar todos os produtos dela
+                                          if (!isCurrentlySelected) {
+                                            prodStore.unselectAllForSubcategory(sub.id);
+                                          }
+                                        },
+                                        onActionTap: () async {
+                                          await TechnologyProductsModal.show(
+                                            context: context,
+                                            subcategoriaId: sub.id,
+                                            title: sub.nome,
+                                          );
+                                        },
+                                      );
+                                    },
+                                  ),
+                                );
+                              }).toList(),
+                            ],
+                          );
+                        },
+                      ),
                       const SizedBox(height: 12),
                     ],
                   );
