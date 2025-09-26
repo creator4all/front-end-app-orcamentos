@@ -3,7 +3,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../modules/budget/presentation/stores/subcategory_store.dart';
+import '../../modules/budget/presentation/stores/books_subcategory_store.dart';
 import '../../modules/budget/presentation/stores/product_store.dart';
 import 'book_item.dart';
 import 'custom_modal.dart';
@@ -15,7 +15,7 @@ class BooksModal {
     required BuildContext context,
     required int categoriaId,
   }) {
-    final subStore = Modular.get<SubcategoryStore>();
+    final subStore = Modular.get<BooksSubcategoryStore>();
     if (subStore.lastCategoriaId != categoriaId && !subStore.isLoading) {
       subStore.fetchSubcategorias(categoriaId);
     }
@@ -59,6 +59,41 @@ class BooksModal {
                   },
                 );
               }),
+              SizedBox(height: 20.h),
+              SizedBox(
+                width: double.infinity,
+                height: 40.h,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Livros salvos com sucesso!'),
+                        backgroundColor: Color(0xFF56B34A),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF56B34A),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                  ),
+                  icon: Icon(
+                    Icons.save,
+                    size: 18.sp,
+                    color: Colors.white,
+                  ),
+                  label: Text(
+                    'Salvar',
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
             ],
           );
         },

@@ -24,12 +24,19 @@ class ProductDto {
     final double? valor = rawValor is num
         ? rawValor.toDouble()
         : double.tryParse('${rawValor ?? ''}');
+        
+    // Handle subcategory ID with more flexibility
+    final subcategoriaId = json['pro_subcategoria_id'] ?? 
+                          json['subcategoriaId'] ?? 
+                          json['subcategoria_id'] ?? 
+                          json['sub_id'];
+                          
     return ProductDto(
       id: (json['id'] ?? json['pro_produtosId']) as int,
       nome: (json['nome'] ?? json['pro_solucao'] ?? json['titulo']) as String,
       valor: valor,
       codigo: json['codigo']?.toString() ?? json['pro_codigo']?.toString(),
-      subcategoriaId: json['pro_subcategoria_id'] as int?,
+      subcategoriaId: subcategoriaId is int ? subcategoriaId : int.tryParse(subcategoriaId?.toString() ?? '') ?? 0,
       tipo: json['tipo']?.toString() ??
           json['pro_tipo']?.toString() ??
           json['pro_tipo_produto']?.toString(),

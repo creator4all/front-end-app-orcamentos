@@ -126,6 +126,28 @@ mixin _$ProductStore on _ProductStore, Store {
   }
 
   @override
+  void unselectAllForSubcategory(int subcategoriaId) {
+    final _$actionInfo = _$_ProductStoreActionController.startAction(
+        name: '_ProductStore.unselectAllForSubcategory');
+    try {
+      return super.unselectAllForSubcategory(subcategoriaId);
+    } finally {
+      _$_ProductStoreActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void unselectAll() {
+    final _$actionInfo = _$_ProductStoreActionController.startAction(
+        name: '_ProductStore.unselectAll');
+    try {
+      return super.unselectAll();
+    } finally {
+      _$_ProductStoreActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
   String toString() {
     return '''
 produtos: ${produtos},
