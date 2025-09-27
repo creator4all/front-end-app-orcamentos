@@ -15,8 +15,8 @@ abstract class _CardSelectionStore with Store {
 
   // Inicializar com valores padrão
   _CardSelectionStore() {
-    // Inicializar cards principais
-    mainCardsSelection['livros'] = true; // Livros começa selecionado por padrão
+    // Inicializar cards principais - todos começam não selecionados
+    mainCardsSelection['livros'] = false; // Alterado para não selecionar por padrão
     mainCardsSelection['portal'] = false;
     mainCardsSelection['gamificacao'] = false;
     mainCardsSelection['avaliacao'] = false;

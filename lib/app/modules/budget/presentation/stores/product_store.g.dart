@@ -148,6 +148,17 @@ mixin _$ProductStore on _ProductStore, Store {
   }
 
   @override
+  void selectAllForSubcategory(int subcategoriaId, bool selected) {
+    final _$actionInfo = _$_ProductStoreActionController.startAction(
+        name: '_ProductStore.selectAllForSubcategory');
+    try {
+      return super.selectAllForSubcategory(subcategoriaId, selected);
+    } finally {
+      _$_ProductStoreActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
   String toString() {
     return '''
 produtos: ${produtos},

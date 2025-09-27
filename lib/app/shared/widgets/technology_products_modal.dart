@@ -4,6 +4,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../modules/budget/presentation/stores/product_store.dart';
+import '../../modules/budget/presentation/stores/card_selection_store.dart';
 import 'custom_modal.dart';
 import 'product_info_modal.dart';
 import 'technology_item.dart';
@@ -35,9 +36,33 @@ class TechnologyProductsModal {
               style: const TextStyle(color: Colors.red),
             );
           }
+          // Filtrar produtos apenas desta subcategoria
+          final subcategoryProducts = prodStore.produtos
+              .where((p) => p.subcategoriaId == subcategoriaId)
+              .toList();
+          
+          // Verificar se todos os produtos estão selecionados
+          final allSelected = subcategoryProducts.isNotEmpty && 
+              subcategoryProducts.every((p) => prodStore.isSelected(p.id));
+          
+          // Verificar se alguns produtos estão selecionados (para tristate)
+          final someSelected = subcategoryProducts.any((p) => prodStore.isSelected(p.id));
+          
+          // Obter o CardSelectionStore para atualizar a seleção da subcategoria
+          final cardStore = Modular.get<CardSelectionStore>();
+          
+          // Atualizar a seleção da subcategoria com base nos produtos selecionados
+          if (allSelected) {
+            cardStore.setSubcategorySelected(subcategoriaId, true);
+          } else if (!someSelected) {
+            cardStore.setSubcategorySelected(subcategoriaId, false);
+          }
+          
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Espaço apenas para manter layout consistente
+              SizedBox(height: 5.h),
               // Filter products to ensure we only show products from the current subcategory
               ...prodStore.produtos
                   .where((p) => p.subcategoriaId == subcategoriaId)
@@ -53,7 +78,23 @@ class TechnologyProductsModal {
                   text3: p.codigo ?? '',
                   isSelected: selected,
                   onCheckboxChanged: (v) {
+                    // Atualizar a seleção do produto
                     prodStore.setSelected(p.id, v ?? false);
+                    
+                    // Verificar se todos os produtos estão selecionados após a mudança
+                    final allProductsSelected = subcategoryProducts
+                        .every((prod) => prod.id == p.id ? (v ?? false) : prodStore.isSelected(prod.id));
+                    
+                    // Verificar se nenhum produto está selecionado após a mudança
+                    final noProductsSelected = subcategoryProducts
+                        .every((prod) => prod.id == p.id ? !(v ?? false) : !prodStore.isSelected(prod.id));
+                    
+                    // Atualizar a seleção da subcategoria com base nos produtos
+                    if (allProductsSelected) {
+                      cardStore.setSubcategorySelected(subcategoriaId, true);
+                    } else if (noProductsSelected) {
+                      cardStore.setSubcategorySelected(subcategoriaId, false);
+                    }
                   },
                   onActionTap: () {
                     ProductInfoModal.show(
