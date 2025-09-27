@@ -75,6 +75,44 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     _validadeOrcamentoController.dispose();
     super.dispose();
   }
+  
+  // Método para processar a seleção de subcategorias e produtos de livros
+  void _processLivrosSelection(BooksSubcategoryStore booksSubStore, ProductStore prodStore, bool selected) {
+    // Para cada subcategoria de livros
+    for (final sub in booksSubStore.subcategorias) {
+      // Marcar/desmarcar a subcategoria
+      cardStore.setSubcategorySelected(sub.id, selected);
+      
+      // Função para processar a seleção de produtos com isolamento
+      void _selectProductsForSubcategory(int subcategoriaId) {
+        // Obter os IDs de todos os produtos desta subcategoria específica
+        final subcategoryProducts = prodStore.produtos
+            .where((p) => p.subcategoriaId == subcategoriaId)
+            .toList();
+        
+        // Aplicar a seleção apenas aos produtos desta subcategoria
+        for (final product in subcategoryProducts) {
+          if (selected) {
+            prodStore.selectedIds.add(product.id);
+          } else {
+            prodStore.selectedIds.remove(product.id);
+          }
+        }
+      }
+      
+      // Carregar e marcar/desmarcar todos os produtos da subcategoria
+      if (prodStore.lastSubcategoriaId != sub.id) {
+        // Se os produtos não estão carregados, carregar primeiro
+        prodStore.fetchProdutos(sub.id).then((_) {
+          // Depois de carregar, processar com isolamento
+          _selectProductsForSubcategory(sub.id);
+        });
+      } else {
+        // Já temos os produtos carregados, processar com isolamento
+        _selectProductsForSubcategory(sub.id);
+      }
+    }
+  }
 
   // Não precisamos mais desta função, pois agora usamos cardStore.selectedCardsCount
 
@@ -187,10 +225,19 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                                   // Atualizar a store
                                   cardStore.setMainCardSelected('livros', value ?? false);
                                   
-                                  // Quando marcar livros, desmarcar todas as subcategorias
-                                  if (value == true) {
-                                    cardStore.clearSubcategorySelections();
-                                    prodStore.unselectAll(); // Desmarcar todos os produtos
+                                  // Obter as stores necessárias
+                                  final booksSubStore = Modular.get<BooksSubcategoryStore>();
+                                  final prodStore = Modular.get<ProductStore>();
+                                  
+                                  // Se não temos subcategorias carregadas, carregar primeiro
+                                  if (booksSubStore.subcategorias.isEmpty && !booksSubStore.isLoading) {
+                                    booksSubStore.fetchSubcategorias(livrosCat.id).then((_) {
+                                      // Depois de carregar as subcategorias, marcar/desmarcar todas
+                                      _processLivrosSelection(booksSubStore, prodStore, value ?? false);
+                                    });
+                                  } else {
+                                    // Já temos subcategorias carregadas, marcar/desmarcar todas
+                                    _processLivrosSelection(booksSubStore, prodStore, value ?? false);
                                   }
                                 },
                                 onActionTap: () async {
@@ -258,12 +305,42 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                                         totalCount: totalCount,
                                         isSelected: cardStore.subcategoriesSelection[sub.id] ?? false,
                                         onCheckboxChanged: (bool? value) {
+                                          // Determinar o novo valor de seleção (inverso do atual)
                                           final isCurrentlySelected = cardStore.subcategoriesSelection[sub.id] ?? false;
-                                          cardStore.setSubcategorySelected(sub.id, !isCurrentlySelected);
+                                          final newSelection = !isCurrentlySelected;
                                           
-                                          // Quando marcar a subcategoria, desmarcar todos os produtos dela
-                                          if (!isCurrentlySelected) {
-                                            prodStore.unselectAllForSubcategory(sub.id);
+                                          // Atualizar a seleção da subcategoria na store
+                                          cardStore.setSubcategorySelected(sub.id, newSelection);
+                                          
+                                          // Função para processar a seleção de produtos com isolamento
+                                          void _selectProductsForSubcategory(int subcategoriaId) {
+                                            // Obter os IDs de todos os produtos desta subcategoria específica
+                                            final subcategoryProducts = prodStore.produtos
+                                                .where((p) => p.subcategoriaId == subcategoriaId)
+                                                .toList();
+                                            
+                                            print('Produtos da subcategoria $subcategoriaId: ${subcategoryProducts.length}');
+                                            
+                                            // Aplicar a seleção apenas aos produtos desta subcategoria
+                                            for (final product in subcategoryProducts) {
+                                              if (newSelection) {
+                                                prodStore.selectedIds.add(product.id);
+                                              } else {
+                                                prodStore.selectedIds.remove(product.id);
+                                              }
+                                            }
+                                          }
+                                          
+                                          // Verificar se os produtos já estão carregados
+                                          if (prodStore.lastSubcategoriaId != sub.id) {
+                                            // Se os produtos não estão carregados, carregar primeiro
+                                            prodStore.fetchProdutos(sub.id).then((_) {
+                                              // Depois de carregar, processar com isolamento
+                                              _selectProductsForSubcategory(sub.id);
+                                            });
+                                          } else {
+                                            // Já temos os produtos carregados, processar com isolamento
+                                            _selectProductsForSubcategory(sub.id);
                                           }
                                         },
                                         onActionTap: () async {

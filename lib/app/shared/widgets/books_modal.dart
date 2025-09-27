@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../modules/budget/presentation/stores/books_subcategory_store.dart';
 import '../../modules/budget/presentation/stores/product_store.dart';
+import '../../modules/budget/presentation/stores/card_selection_store.dart';
 import 'book_item.dart';
 import 'custom_modal.dart';
 import 'product_info_modal.dart';
@@ -44,12 +45,49 @@ class BooksModal {
                     final selectedCount = prodStore.getSelectedCountForSubcategory(sub.id);
                     final totalCount = prodStore.getTotalCountForSubcategory(sub.id);
                     
+                    final cardStore = Modular.get<CardSelectionStore>();
+                    final isSubcategorySelected = cardStore.subcategoriesSelection[sub.id] ?? false;
+                    
                     return BookItem(
                       title: sub.nome,
                       value: '$selectedCount/$totalCount',
                       quantity: '—',
-                      isSelected: false, // Subcategorias na modal não têm seleção própria
-                      onCheckboxChanged: (_) {},
+                      isSelected: isSubcategorySelected,
+                      onCheckboxChanged: (value) {
+                        // Marcar/desmarcar a subcategoria
+                        cardStore.setSubcategorySelected(sub.id, value ?? false);
+                        
+                        // Função para processar a seleção de produtos com isolamento
+                        void _selectProductsForSubcategory(int subcategoriaId) {
+                          // Obter os IDs de todos os produtos desta subcategoria específica
+                          final subcategoryProducts = prodStore.produtos
+                              .where((p) => p.subcategoriaId == subcategoriaId)
+                              .toList();
+                          
+                          print('Livros - Produtos da subcategoria $subcategoriaId: ${subcategoryProducts.length}');
+                          
+                          // Aplicar a seleção apenas aos produtos desta subcategoria
+                          for (final product in subcategoryProducts) {
+                            if (value ?? false) {
+                              prodStore.selectedIds.add(product.id);
+                            } else {
+                              prodStore.selectedIds.remove(product.id);
+                            }
+                          }
+                        }
+                        
+                        // Marcar/desmarcar todos os produtos da subcategoria
+                        if (prodStore.lastSubcategoriaId != sub.id) {
+                          // Se os produtos não estão carregados, carregar primeiro
+                          prodStore.fetchProdutos(sub.id).then((_) {
+                            // Depois de carregar, processar com isolamento
+                            _selectProductsForSubcategory(sub.id);
+                          });
+                        } else {
+                          // Já temos os produtos carregados, processar com isolamento
+                          _selectProductsForSubcategory(sub.id);
+                        }
+                      },
                       onTap: () => showBookProducts(
                         context: context,
                         subcategoriaId: sub.id,
