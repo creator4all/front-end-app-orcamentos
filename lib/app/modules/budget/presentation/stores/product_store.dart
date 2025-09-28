@@ -14,6 +14,14 @@ abstract class _ProductStore with Store {
   List<ProductDto> produtos = [];
 
   @observable
+  ObservableMap<int, List<ProductDto>> produtosPorSubcategoria =
+      ObservableMap<int, List<ProductDto>>();
+
+  @observable
+  ObservableMap<int, ProductDto> produtosPorId =
+      ObservableMap<int, ProductDto>();
+
+  @observable
   bool isLoading = false;
 
   @observable
@@ -26,9 +34,18 @@ abstract class _ProductStore with Store {
   ObservableSet<int> selectedIds = ObservableSet<int>();
 
   @computed
-  double get total => produtos
-      .where((p) => selectedIds.contains(p.id))
-      .fold(0.0, (sum, p) => sum + (p.valor ?? 0.0));
+  double get total {
+    double acumulado = 0.0;
+    for (final productId in selectedIds) {
+      final produto = produtosPorId[productId];
+      acumulado += produto?.valor ?? 0.0;
+    }
+    return acumulado;
+  }
+
+  @computed
+  List<ProductDto> get allProducts =>
+      produtosPorId.values.toList(growable: false);
 
   @computed
   int get selectedCount => selectedIds.length;
@@ -39,15 +56,34 @@ abstract class _ProductStore with Store {
     error = null;
     lastSubcategoriaId = subcategoriaId;
     try {
-      produtos = await _service.listarPorSubcategoria(subcategoriaId);
+      final fetched = await _service.listarPorSubcategoria(subcategoriaId);
+      produtos = List<ProductDto>.from(fetched);
       print('Carregados ${produtos.length} produtos para subcategoria $subcategoriaId');
-      
-      // Verificar se todos os produtos têm subcategoriaId definido corretamente
-      final produtosSemSubcat = produtos.where((p) => p.subcategoriaId != subcategoriaId).toList();
-      if (produtosSemSubcat.isNotEmpty) {
-        print('ALERTA: ${produtosSemSubcat.length} produtos com subcategoriaId incorreto após carregamento');
+
+      // Limpar cache antigo desta subcategoria antes de adicionar os novos produtos
+      final existentes = produtosPorSubcategoria[subcategoriaId];
+      if (existentes != null) {
+        for (final antigo in existentes) {
+          produtosPorId.remove(antigo.id);
+        }
       }
-      
+
+      produtosPorSubcategoria[subcategoriaId] =
+          List<ProductDto>.from(produtos);
+
+      for (final produto in produtos) {
+        produtosPorId[produto.id] = produto;
+      }
+
+      // Verificar se todos os produtos têm subcategoriaId definido corretamente
+      final produtosSemSubcat = produtos
+          .where((p) => p.subcategoriaId != subcategoriaId)
+          .toList();
+      if (produtosSemSubcat.isNotEmpty) {
+        print(
+            'ALERTA: ${produtosSemSubcat.length} produtos com subcategoriaId incorreto após carregamento');
+      }
+
       // Executar diagnóstico após carregamento (em modo debug)
       checkInvalidProducts();
     } catch (e) {
@@ -59,29 +95,26 @@ abstract class _ProductStore with Store {
 
   @action
   void setSelected(int productId, bool selected) {
-    // Verificar se o produto existe na lista atual
-    final produtosList = produtos.where((p) => p.id == productId).toList();
-    
-    if (produtosList.isEmpty) {
+    final produto = produtosPorId[productId];
+
+    if (produto == null) {
       print('Tentativa de selecionar produto inexistente: $productId');
       return;
     }
-    
-    final produto = produtosList.first;
-    
-    // Verificar se o produto tem subcategoriaId válido
+
     if (produto.subcategoriaId == null) {
       print('Tentativa de selecionar produto com subcategoriaId nulo: $productId');
       return;
     }
-    
-    // Aplicar a seleção
+
     if (selected) {
       selectedIds.add(productId);
-      print('Selecionado produto $productId da subcategoria ${produto.subcategoriaId}');
+      print(
+          'Selecionado produto $productId da subcategoria ${produto.subcategoriaId}');
     } else {
       selectedIds.remove(productId);
-      print('Desmarcado produto $productId da subcategoria ${produto.subcategoriaId}');
+      print(
+          'Desmarcado produto $productId da subcategoria ${produto.subcategoriaId}');
     }
   }
 
@@ -89,14 +122,12 @@ abstract class _ProductStore with Store {
 
   @action
   void unselectAllForSubcategory(int subcategoriaId) {
-    // Filtrar produtos válidos para esta subcategoria
-    final subcategoryProducts = produtos
-        .where((p) => p.subcategoriaId != null && p.subcategoriaId == subcategoriaId)
-        .toList();
-    
-    print('Desmarcando ${subcategoryProducts.length} produtos da subcategoria $subcategoriaId');
-    
-    // Remover seleção de todos os produtos válidos desta subcategoria
+    final subcategoryProducts =
+        produtosPorSubcategoria[subcategoriaId] ?? const <ProductDto>[];
+
+    print(
+        'Desmarcando ${subcategoryProducts.length} produtos da subcategoria $subcategoriaId');
+
     for (final product in subcategoryProducts) {
       selectedIds.remove(product.id);
     }
@@ -115,111 +146,114 @@ abstract class _ProductStore with Store {
 
   @action
   void selectAllForSubcategory(int subcategoriaId, bool selected) {
-    // Verificar se os produtos da subcategoria já estão carregados
-    if (lastSubcategoriaId != subcategoriaId) {
-      print('Produtos da subcategoria $subcategoriaId não estão carregados');
-      return; // Não fazemos nada se os produtos não estiverem carregados
-    }
-    
-    print('Executando selectAllForSubcategory para subcategoria $subcategoriaId, selected=$selected');
-    
-    // Filtrar produtos válidos para esta subcategoria (com subcategoriaId não nulo e correto)
-    final validProducts = produtos
-        .where((p) => _isValidProductForSubcategory(p, subcategoriaId))
-        .toList();
-    
-    print('Produtos válidos para subcategoria $subcategoriaId: ${validProducts.length}');
-    
+    final validProducts = produtosPorSubcategoria[subcategoriaId] ??
+        const <ProductDto>[];
+
+    print(
+        'Executando selectAllForSubcategory para subcategoria $subcategoriaId, selected=$selected');
+
     if (validProducts.isEmpty) {
       print('Nenhum produto válido encontrado para subcategoria $subcategoriaId');
-      return; // Não fazemos nada se não houver produtos válidos
+      return;
     }
-    
-    // Obter os IDs dos produtos válidos
+
     final validProductIds = validProducts
+        .where((p) => _isValidProductForSubcategory(p, subcategoriaId))
         .map((p) => p.id)
-        .toSet(); // Usamos Set para garantir unicidade
-    
-    // Aplicar a seleção apenas aos produtos válidos desta subcategoria
+        .toSet();
+
     if (selected) {
-      // Adicionar apenas os produtos válidos desta subcategoria
       selectedIds.addAll(validProductIds);
-      print('Adicionados ${validProductIds.length} produtos da subcategoria $subcategoriaId');
+      print(
+          'Adicionados ${validProductIds.length} produtos da subcategoria $subcategoriaId');
     } else {
-      // Remover apenas os produtos válidos desta subcategoria
       selectedIds.removeAll(validProductIds);
-      print('Removidos ${validProductIds.length} produtos da subcategoria $subcategoriaId');
+      print(
+          'Removidos ${validProductIds.length} produtos da subcategoria $subcategoriaId');
     }
-    
-    // Verificar se houve algum vazamento para outras subcategorias
-    for (final p in produtos) {
-      if (p.subcategoriaId != null && 
-          p.subcategoriaId != subcategoriaId && 
-          selectedIds.contains(p.id)) {
-        print('ALERTA: Produto ${p.id} da subcategoria ${p.subcategoriaId} está selecionado após manipular subcategoria $subcategoriaId');
+
+    for (final entry in produtosPorSubcategoria.entries) {
+      final subId = entry.key;
+      if (subId == subcategoriaId) {
+        continue;
+      }
+      for (final produto in entry.value) {
+        if (selectedIds.contains(produto.id)) {
+          print(
+              'ALERTA: Produto ${produto.id} da subcategoria ${produto.subcategoriaId} está selecionado após manipular subcategoria $subcategoriaId');
+        }
       }
     }
   }
 
   int getSelectedCountForSubcategory(int subcategoriaId) {
-    // Contar apenas produtos válidos para esta subcategoria
-    final count = produtos
-        .where((p) => 
-            p.subcategoriaId != null && 
-            p.subcategoriaId == subcategoriaId && 
-            selectedIds.contains(p.id))
+    final lista = produtosPorSubcategoria[subcategoriaId] ?? const <ProductDto>[];
+    final count = lista
+        .where((p) => p.subcategoriaId != null && selectedIds.contains(p.id))
         .length;
-    
+
     print('getSelectedCountForSubcategory($subcategoriaId) = $count');
     return count;
   }
 
   int getTotalCountForSubcategory(int subcategoriaId) {
-    // Contar apenas produtos válidos para esta subcategoria
-    final count = produtos
+    final lista = produtosPorSubcategoria[subcategoriaId] ?? const <ProductDto>[];
+    final count = lista
         .where((p) => p.subcategoriaId != null && p.subcategoriaId == subcategoriaId)
         .length;
-    
+
     print('getTotalCountForSubcategory($subcategoriaId) = $count');
     return count;
   }
 
   double getTotalValueForSubcategory(int subcategoriaId) {
-    // Calcular o valor total apenas de produtos válidos para esta subcategoria
-    final value = produtos
-        .where((p) => 
-            p.subcategoriaId != null && 
-            p.subcategoriaId == subcategoriaId && 
-            selectedIds.contains(p.id))
+    final lista = produtosPorSubcategoria[subcategoriaId] ?? const <ProductDto>[];
+    final value = lista
+        .where((p) => p.subcategoriaId != null && selectedIds.contains(p.id))
         .fold(0.0, (sum, p) => sum + (p.valor ?? 0.0));
-    
+
     print('getTotalValueForSubcategory($subcategoriaId) = $value');
     return value;
   }
-  
+
   // Método para diagnóstico - verificar se há produtos com subcategoriaId inválido
   void checkInvalidProducts() {
     print('\n--- DIAGNÓSTICO DE PRODUTOS ---');
-    print('Total de produtos carregados: ${produtos.length}');
-    
-    // Verificar produtos sem subcategoriaId
-    final produtosSemSubcategoria = produtos.where((p) => p.subcategoriaId == null).toList();
+    print('Subcategorias em cache: ${produtosPorSubcategoria.length}');
+
+    final todosProdutos = produtosPorId.values.toList(growable: false);
+    print('Total de produtos carregados: ${todosProdutos.length}');
+
+    final produtosSemSubcategoria =
+        todosProdutos.where((p) => p.subcategoriaId == null).toList();
     print('Produtos sem subcategoriaId: ${produtosSemSubcategoria.length}');
     for (final p in produtosSemSubcategoria) {
       print('- ID: ${p.id}, Nome: ${p.nome}');
     }
-    
-    // Verificar produtos selecionados
+
     print('\nProdutos selecionados: ${selectedIds.length}');
     for (final id in selectedIds) {
-      final produtosEncontrados = produtos.where((p) => p.id == id).toList();
-      if (produtosEncontrados.isNotEmpty) {
-        final produto = produtosEncontrados.first;
-        print('- ID: ${produto.id}, Nome: ${produto.nome}, Subcategoria: ${produto.subcategoriaId}');
+      final produto = produtosPorId[id];
+      if (produto != null) {
+        print(
+            '- ID: ${produto.id}, Nome: ${produto.nome}, Subcategoria: ${produto.subcategoriaId}');
       } else {
         print('- ID: $id (produto não encontrado na lista de produtos)');
       }
     }
     print('--- FIM DO DIAGNÓSTICO ---\n');
+  }
+
+  List<ProductDto> getProdutosPorSubcategoria(int subcategoriaId) {
+    return produtosPorSubcategoria[subcategoriaId] ?? const <ProductDto>[];
+  }
+
+  ProductDto? getProductById(int productId) => produtosPorId[productId];
+
+  List<ProductDto> getSelectedProducts() {
+    return selectedIds
+        .map((id) => produtosPorId[id])
+        .whereType<ProductDto>()
+        .toList(growable: false);
   }
 }

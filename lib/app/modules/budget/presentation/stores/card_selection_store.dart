@@ -13,6 +13,9 @@ abstract class _CardSelectionStore with Store {
   @observable
   ObservableMap<int, bool> subcategoriesSelection = ObservableMap<int, bool>();
 
+  // Mapa para rastrear quais subcategorias pertencem a quais cards principais
+  Map<int, String> subcategoryToMainCard = {};
+
   // Inicializar com valores padrão
   _CardSelectionStore() {
     // Inicializar cards principais - todos começam não selecionados
@@ -35,13 +38,19 @@ abstract class _CardSelectionStore with Store {
     subcategoriesSelection[subcategoryId] = selected;
   }
 
+  // Método para registrar que uma subcategoria pertence a um card principal
+  @action
+  void registerSubcategoryToMainCard(int subcategoryId, String mainCardName) {
+    subcategoryToMainCard[subcategoryId] = mainCardName;
+  }
+
   // Método para limpar todas as seleções de subcategorias
   @action
   void clearSubcategorySelections() {
     subcategoriesSelection.clear();
   }
 
-  // Computar o total de cards selecionados
+  // Computar o total de cards selecionados (incluindo subcategorias)
   @computed
   int get selectedCardsCount {
     int count = 0;
@@ -54,6 +63,33 @@ abstract class _CardSelectionStore with Store {
     // Contar subcategorias selecionadas
     subcategoriesSelection.forEach((key, selected) {
       if (selected) count++;
+    });
+    
+    return count;
+  }
+
+  // Computar apenas os checkboxes visíveis na tela principal
+  @computed
+  int get visibleCheckboxesCount {
+    int count = 0;
+    
+    // Contar cards principais selecionados (Livros = 1 checkbox, independente das subcategorias)
+    mainCardsSelection.forEach((key, selected) {
+      if (selected) count++;
+    });
+    
+    // Para subcategorias, contar apenas as que não pertencem a um card principal selecionado
+    subcategoriesSelection.forEach((subcategoryId, selected) {
+      if (selected) {
+        // Verificar se esta subcategoria pertence a um card principal
+        String? mainCard = subcategoryToMainCard[subcategoryId];
+        
+        // Se não pertence a nenhum card principal OU o card principal não está selecionado
+        if (mainCard == null || mainCardsSelection[mainCard] != true) {
+          count++;
+        }
+        // Se pertence a um card principal selecionado, não contar (já foi contado no card principal)
+      }
     });
     
     return count;

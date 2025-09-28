@@ -36,10 +36,8 @@ class TechnologyProductsModal {
               style: const TextStyle(color: Colors.red),
             );
           }
-          // Filtrar produtos apenas desta subcategoria
-          final subcategoryProducts = prodStore.produtos
-              .where((p) => p.subcategoriaId == subcategoriaId)
-              .toList();
+          // Obter produtos apenas desta subcategoria usando o cache
+          final subcategoryProducts = prodStore.getProdutosPorSubcategoria(subcategoriaId);
           
           // Verificar se todos os produtos estão selecionados
           final allSelected = subcategoryProducts.isNotEmpty && 
@@ -63,10 +61,8 @@ class TechnologyProductsModal {
             children: [
               // Espaço apenas para manter layout consistente
               SizedBox(height: 5.h),
-              // Filter products to ensure we only show products from the current subcategory
-              ...prodStore.produtos
-                  .where((p) => p.subcategoriaId == subcategoriaId)
-                  .map((p) {
+              // Mostrar produtos apenas desta subcategoria usando o cache
+              ...subcategoryProducts.map((p) {
                 final unitValue = p.valor != null
                     ? 'R\$ ${p.valor!.toStringAsFixed(2)}'
                     : '—';

@@ -12,6 +12,7 @@ import 'external/services/category_service.dart';
 import 'external/services/subcategory_service.dart';
 import 'external/services/product_service.dart';
 import 'package:multimidiaapp/services/api_service.dart';
+import '../../shared/core/http/dio_client.dart';
 
 import 'presentation/pages/budget_list_page.dart';
 import 'presentation/pages/config_new_budget.dart';
@@ -21,7 +22,8 @@ import 'presentation/pages/school_census.dart';
 class BudgetModule extends Module {
   @override
   List<Bind> get binds => [
-        Bind.lazySingleton((i) => ApiService(dio: i.get())),
+        Bind.lazySingleton((i) => DioClient()),
+        Bind.lazySingleton((i) => ApiService(dio: i.get<DioClient>().dio)),
         Bind.lazySingleton((i) => CategoryService(i.get())),
         Bind.lazySingleton((i) => SubcategoryService(i.get())),
         Bind.lazySingleton((i) => ProductService(i.get())),
