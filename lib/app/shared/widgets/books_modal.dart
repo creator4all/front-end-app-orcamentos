@@ -57,36 +57,8 @@ class BooksModal {
                         // Marcar/desmarcar a subcategoria
                         cardStore.setSubcategorySelected(sub.id, value ?? false);
                         
-                        // Função para processar a seleção de produtos com isolamento
-                        void _selectProductsForSubcategory(int subcategoriaId) {
-                          // Obter os IDs de todos os produtos desta subcategoria específica
-                          final subcategoryProducts = prodStore.produtos
-                              .where((p) => p.subcategoriaId == subcategoriaId)
-                              .toList();
-                          
-                          print('Livros - Produtos da subcategoria $subcategoriaId: ${subcategoryProducts.length}');
-                          
-                          // Aplicar a seleção apenas aos produtos desta subcategoria
-                          for (final product in subcategoryProducts) {
-                            if (value ?? false) {
-                              prodStore.selectedIds.add(product.id);
-                            } else {
-                              prodStore.selectedIds.remove(product.id);
-                            }
-                          }
-                        }
-                        
-                        // Marcar/desmarcar todos os produtos da subcategoria
-                        if (prodStore.lastSubcategoriaId != sub.id) {
-                          // Se os produtos não estão carregados, carregar primeiro
-                          prodStore.fetchProdutos(sub.id).then((_) {
-                            // Depois de carregar, processar com isolamento
-                            _selectProductsForSubcategory(sub.id);
-                          });
-                        } else {
-                          // Já temos os produtos carregados, processar com isolamento
-                          _selectProductsForSubcategory(sub.id);
-                        }
+                        // Usar o novo método da ProductStore que garante isolamento por subcategoria
+                        prodStore.selectAllForSubcategory(sub.id, value ?? false);
                       },
                       onTap: () => showBookProducts(
                         context: context,
@@ -167,7 +139,7 @@ class BooksModal {
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ...prodStore.produtos.map((p) {
+              ...prodStore.getProdutosPorSubcategoria(subcategoriaId).map((p) {
                 final unitValue = p.valor != null
                     ? 'R\$ ${p.valor!.toStringAsFixed(2)}'
                     : '—';

@@ -15,6 +15,13 @@ mixin _$ProductStore on _ProductStore, Store {
   double get total => (_$totalComputed ??=
           Computed<double>(() => super.total, name: '_ProductStore.total'))
       .value;
+  Computed<List<ProductDto>>? _$allProductsComputed;
+
+  @override
+  List<ProductDto> get allProducts => (_$allProductsComputed ??=
+          Computed<List<ProductDto>>(() => super.allProducts,
+              name: '_ProductStore.allProducts'))
+      .value;
   Computed<int>? _$selectedCountComputed;
 
   @override
@@ -36,6 +43,39 @@ mixin _$ProductStore on _ProductStore, Store {
   set produtos(List<ProductDto> value) {
     _$produtosAtom.reportWrite(value, super.produtos, () {
       super.produtos = value;
+    });
+  }
+
+  late final _$produtosPorSubcategoriaAtom =
+      Atom(name: '_ProductStore.produtosPorSubcategoria', context: context);
+
+  @override
+  ObservableMap<int, List<ProductDto>> get produtosPorSubcategoria {
+    _$produtosPorSubcategoriaAtom.reportRead();
+    return super.produtosPorSubcategoria;
+  }
+
+  @override
+  set produtosPorSubcategoria(ObservableMap<int, List<ProductDto>> value) {
+    _$produtosPorSubcategoriaAtom
+        .reportWrite(value, super.produtosPorSubcategoria, () {
+      super.produtosPorSubcategoria = value;
+    });
+  }
+
+  late final _$produtosPorIdAtom =
+      Atom(name: '_ProductStore.produtosPorId', context: context);
+
+  @override
+  ObservableMap<int, ProductDto> get produtosPorId {
+    _$produtosPorIdAtom.reportRead();
+    return super.produtosPorId;
+  }
+
+  @override
+  set produtosPorId(ObservableMap<int, ProductDto> value) {
+    _$produtosPorIdAtom.reportWrite(value, super.produtosPorId, () {
+      super.produtosPorId = value;
     });
   }
 
@@ -162,11 +202,14 @@ mixin _$ProductStore on _ProductStore, Store {
   String toString() {
     return '''
 produtos: ${produtos},
+produtosPorSubcategoria: ${produtosPorSubcategoria},
+produtosPorId: ${produtosPorId},
 isLoading: ${isLoading},
 error: ${error},
 lastSubcategoriaId: ${lastSubcategoriaId},
 selectedIds: ${selectedIds},
 total: ${total},
+allProducts: ${allProducts},
 selectedCount: ${selectedCount}
     ''';
   }

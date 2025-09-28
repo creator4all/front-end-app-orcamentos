@@ -16,6 +16,13 @@ mixin _$CardSelectionStore on _CardSelectionStore, Store {
           () => super.selectedCardsCount,
           name: '_CardSelectionStore.selectedCardsCount'))
       .value;
+  Computed<int>? _$visibleCheckboxesCountComputed;
+
+  @override
+  int get visibleCheckboxesCount => (_$visibleCheckboxesCountComputed ??=
+          Computed<int>(() => super.visibleCheckboxesCount,
+              name: '_CardSelectionStore.visibleCheckboxesCount'))
+      .value;
 
   late final _$mainCardsSelectionAtom =
       Atom(name: '_CardSelectionStore.mainCardsSelection', context: context);
@@ -76,6 +83,17 @@ mixin _$CardSelectionStore on _CardSelectionStore, Store {
   }
 
   @override
+  void registerSubcategoryToMainCard(int subcategoryId, String mainCardName) {
+    final _$actionInfo = _$_CardSelectionStoreActionController.startAction(
+        name: '_CardSelectionStore.registerSubcategoryToMainCard');
+    try {
+      return super.registerSubcategoryToMainCard(subcategoryId, mainCardName);
+    } finally {
+      _$_CardSelectionStoreActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
   void clearSubcategorySelections() {
     final _$actionInfo = _$_CardSelectionStoreActionController.startAction(
         name: '_CardSelectionStore.clearSubcategorySelections');
@@ -91,7 +109,8 @@ mixin _$CardSelectionStore on _CardSelectionStore, Store {
     return '''
 mainCardsSelection: ${mainCardsSelection},
 subcategoriesSelection: ${subcategoriesSelection},
-selectedCardsCount: ${selectedCardsCount}
+selectedCardsCount: ${selectedCardsCount},
+visibleCheckboxesCount: ${visibleCheckboxesCount}
     ''';
   }
 }

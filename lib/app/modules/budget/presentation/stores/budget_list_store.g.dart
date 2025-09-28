@@ -65,6 +65,14 @@ mixin _$BudgetListStore on _BudgetListStore, Store {
     return _$fetchAsyncAction.run(() => super.fetch(status: status));
   }
 
+  late final _$refreshAsyncAction =
+      AsyncAction('_BudgetListStore.refresh', context: context);
+
+  @override
+  Future<void> refresh() {
+    return _$refreshAsyncAction.run(() => super.refresh());
+  }
+
   @override
   String toString() {
     return '''

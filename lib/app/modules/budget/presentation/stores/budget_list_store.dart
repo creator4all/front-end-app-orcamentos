@@ -24,11 +24,22 @@ abstract class _BudgetListStore with Store {
     isLoading = true;
     error = null;
     try {
+      print('🔄 Carregando orçamentos da API...');
       items = await _service.listar(status: status);
+      print('✅ Orçamentos carregados: ${items.length}');
+      for (final item in items) {
+        print('   - ID: ${item.id}, Nome: ${item.nome}, Status: ${item.status}, Total: R\$ ${item.total}');
+      }
     } catch (e) {
+      print('❌ Erro ao carregar orçamentos: $e');
       error = e.toString();
     } finally {
       isLoading = false;
     }
+  }
+
+  @action
+  Future<void> refresh() async {
+    await fetch();
   }
 }

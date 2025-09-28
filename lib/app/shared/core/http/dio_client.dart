@@ -41,11 +41,14 @@ class DioClient {
           final token = await _secureStorage.read(key: 'auth_token');
           if (token != null && token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
+            print('🔐 Token adicionado ao header Authorization');
+            print('🔐 URL da requisição: ${options.baseUrl}${options.path}');
+            print('🔐 Headers enviados: ${options.headers}');
+          } else {
+            print('❌ Nenhum token encontrado para adicionar ao header');
           }
         } catch (e) {
-          // Log error but continue without authentication
-          // In production, you might want to report this to telemetry
-          // For now, we silently continue without setting auth header
+          print('❌ Erro ao adicionar token ao header: $e');
         }
         handler.next(options);
       },
