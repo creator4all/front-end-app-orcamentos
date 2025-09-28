@@ -5,7 +5,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../../shared/widgets/widgets.dart';
+import '../../../../shared/widgets/rename_budget_modal.dart';
 import '../stores/budget_list_store.dart';
+import '../../external/services/budget_service.dart';
 
 class BudgetListPage extends StatefulWidget {
   const BudgetListPage({super.key});
@@ -63,6 +65,32 @@ class _BudgetListPageState extends State<BudgetListPage> {
     setState(() {
       _selectedFilter = '';
     });
+  }
+
+  Future<void> _handleRenameBudget(int budgetId, String currentName) async {
+    try {
+      await RenameBudgetModal.show(
+        context: context,
+        currentName: currentName,
+        onRename: (String newName) async {
+          // Chamar o serviço para renomear o orçamento
+          final service = Modular.get<BudgetService>();
+          await service.renomear(budgetId, newName);
+          
+          // Atualizar a lista
+          _store.refresh();
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao renomear orçamento: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -191,26 +219,37 @@ class _BudgetListPageState extends State<BudgetListPage> {
                           daysRemaining = difference > 0 ? difference : 0;
                         }
 
-                        return BudgetCardWidget(
-                          title: b.nome ?? 'Orçamento #${b.id}',
-                          partner:
-                              null, // TODO: Implementar quando tiver dados do parceiro
-                          seller:
-                              null, // TODO: Implementar quando tiver dados do vendedor
-                          budgetCode: 'ORC-${b.id.toString().padLeft(4, '0')}',
-                          dueDate: b.dataValidade ??
-                              DateTime.now()
-                                  .add(Duration(days: b.diasValidade)),
-                          totalValue: b.total,
-                          daysRemaining: daysRemaining,
-                          status: status,
-                          isArchived: b.status.toLowerCase() == 'arquivado',
-                          userRole: UserRole
-                              .admin, // TODO: Implementar baseado no usuário logado
-                          onTap: () {
-                            // TODO: Navegar para detalhes do orçamento
-                            print('Orçamento ${b.id} clicado');
+                        return GestureDetector(
+                          onLongPress: () {
+                            _handleRenameBudget(
+                              b.id,
+                              b.nome ?? 'Orçamento #${b.id}',
+                            );
                           },
+                          child: BudgetCardWidget(
+                            title: b.nome ?? 'Orçamento #${b.id}',
+                            partner:
+                                null, // TODO: Implementar quando tiver dados do parceiro
+                            seller:
+                                null, // TODO: Implementar quando tiver dados do vendedor
+                            budgetCode: 'ORC-${b.id.toString().padLeft(4, '0')}',
+                            dueDate: b.dataValidade ??
+                                DateTime.now()
+                                    .add(Duration(days: b.diasValidade)),
+                            totalValue: b.total,
+                            daysRemaining: daysRemaining,
+                            status: status,
+                            isArchived: b.status.toLowerCase() == 'arquivado',
+                            userRole: UserRole
+                                .admin, // TODO: Implementar baseado no usuário logado
+                            onTap: () {
+                              // Navigate to edit budget page
+                              Modular.to.pushNamed(
+                                '/budget/edit',
+                                arguments: {'budget': b},
+                              );
+                            },
+                          ),
                         );
                       },
                     ),
