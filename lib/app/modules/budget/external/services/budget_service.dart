@@ -40,4 +40,33 @@ class BudgetService {
         : res;
     return Map<String, dynamic>.from(data as Map);
   }
+
+  Future<Map<String, dynamic>> atualizar(int budgetId, Map<String, dynamic> updateData) async {
+    print('🔄 Atualizando orçamento ID: $budgetId');
+    print('📋 Dados de atualização: $updateData');
+    
+    final res = await _api.put('/api/orcamentos/$budgetId', updateData);
+    final data = res is Map<String, dynamic>
+        ? (res['dados'] ?? res['data'] ?? res)
+        : res;
+    
+    print('✅ Orçamento atualizado com sucesso');
+    return Map<String, dynamic>.from(data as Map);
+  }
+
+  Future<Map<String, dynamic>> renomear(int budgetId, String novoNome) async {
+    print('✏️ Renomeando orçamento ID: $budgetId para: $novoNome');
+    
+    final updateData = {
+      'nome': novoNome,
+    };
+    
+    final res = await _api.put('/api/orcamentos/$budgetId', updateData);
+    final data = res is Map<String, dynamic>
+        ? (res['dados'] ?? res['data'] ?? res)
+        : res;
+    
+    print('✅ Orçamento renomeado com sucesso');
+    return Map<String, dynamic>.from(data as Map);
+  }
 }

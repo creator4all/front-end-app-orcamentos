@@ -18,6 +18,7 @@ import 'presentation/pages/budget_list_page.dart';
 import 'presentation/pages/config_new_budget.dart';
 import 'presentation/pages/new_budget_page.dart';
 import 'presentation/pages/school_census.dart';
+import 'presentation/pages/edit_budget_page.dart';
 
 class BudgetModule extends Module {
   @override
@@ -45,5 +46,9 @@ class BudgetModule extends Module {
             child: (context, args) => const ConfigNewBudgetPage()),
         ChildRoute('/census',
             child: (context, args) => const SchoolCensusPage()),
+        ChildRoute('/edit', child: (context, args) {
+          final budget = args.data['budget'];
+          return EditBudgetPage(budget: budget);
+        }),
       ];
 }
