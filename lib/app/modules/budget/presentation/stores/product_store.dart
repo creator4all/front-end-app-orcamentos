@@ -256,4 +256,37 @@ abstract class _ProductStore with Store {
         .whereType<ProductDto>()
         .toList(growable: false);
   }
+
+  @action
+  void addProductFromApi(Map<String, dynamic> produtoData) {
+    // Criar ProductDto a partir dos dados da API
+    final produto = ProductDto(
+      id: produtoData['id'] as int,
+      codigo: produtoData['codigo'] as String?,
+      nome: produtoData['solucao'] as String? ?? '',
+      tipo: produtoData['tipo'] as String?,
+      valor: (produtoData['valor'] as num?)?.toDouble(),
+      indicacao: produtoData['indicacao'] as String?,
+      subcategoriaId: produtoData['subcategoria_id'] as int?,
+    );
+
+    // Adicionar ao mapa de produtos por ID
+    produtosPorId[produto.id] = produto;
+
+    // Adicionar ao mapa de produtos por subcategoria
+    if (produto.subcategoriaId != null) {
+      final subcatId = produto.subcategoriaId!;
+      if (!produtosPorSubcategoria.containsKey(subcatId)) {
+        produtosPorSubcategoria[subcatId] = [];
+      }
+      
+      // Verificar se o produto já existe na lista da subcategoria
+      final lista = produtosPorSubcategoria[subcatId]!;
+      if (!lista.any((p) => p.id == produto.id)) {
+        lista.add(produto);
+      }
+    }
+
+    print('Produto ${produto.id} adicionado da API: ${produto.nome}');
+  }
 }

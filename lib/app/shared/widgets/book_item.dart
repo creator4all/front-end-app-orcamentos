@@ -47,11 +47,13 @@ class BookItem extends StatelessWidget {
           padding: EdgeInsets.all(12.w),
           child: Row(
             children: [
-              // First column: Checkbox
-              SizedBox(
-                width: 20.w,
-                height: 20.h,
-                child: Checkbox(
+              // First column: Checkbox (centralizado verticalmente)
+              Align(
+                alignment: Alignment.center,
+                child: SizedBox(
+                  width: 20.w,
+                  height: 20.h,
+                  child: Checkbox(
                   value: isSelected,
                   onChanged: onCheckboxChanged,
                   activeColor: const Color(0xFF2830F2),
@@ -75,12 +77,13 @@ class BookItem extends StatelessWidget {
                         BorderRadius.circular(5), // 5px rounded borders
                   ),
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
                 ),
               ),
 
               SizedBox(width: 12.w),
 
-              // Second column: Title and value
+              // Second column: Title and value (ocupa espaço restante)
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -92,7 +95,7 @@ class BookItem extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 14.sp,
                         color: const Color(0xFF000000),
-                        fontWeight: FontWeight.w500, // Medium
+                        fontWeight: FontWeight.bold, // Bold
                       ),
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
@@ -100,13 +103,13 @@ class BookItem extends StatelessWidget {
 
                     SizedBox(height: 4.h),
 
-                    // Value
+                    // Value (R$)
                     Text(
                       value,
                       style: TextStyle(
                         fontSize: 12.sp,
                         color: const Color(0xFF484848),
-                        fontWeight: FontWeight.normal, // Regular
+                        fontWeight: FontWeight.w500, // Medium
                       ),
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
@@ -115,31 +118,32 @@ class BookItem extends StatelessWidget {
                 ),
               ),
 
-              SizedBox(width: 12.w),
-
-              // Third column: Quantity and arrow
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Quantity text
-                  Text(
-                    quantity,
-                    style: TextStyle(
-                      fontSize: 13.sp,
-                      color: const Color(0xFF000000),
-                      fontWeight: FontWeight.w500, // Medium
+              // Third column: Quantity and arrow (alinhado à direita com padding 10)
+              Padding(
+                padding: EdgeInsets.only(left: 10.w, right: 10.w),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Quantity text
+                    Text(
+                      quantity,
+                      style: TextStyle(
+                        fontSize: 13.sp,
+                        color: const Color(0xFF000000),
+                        fontWeight: FontWeight.w500, // Medium
+                      ),
                     ),
-                  ),
 
-                  SizedBox(width: 8.w),
+                    SizedBox(width: 8.w),
 
-                  // Arrow icon
-                  Icon(
-                    Icons.arrow_forward_ios,
-                    size: 16.sp, // Aproximadamente 20x20
-                    color: const Color(0xFF000000),
-                  ),
-                ],
+                    // Arrow icon
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      size: 16.sp,
+                      color: const Color(0xFF000000),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

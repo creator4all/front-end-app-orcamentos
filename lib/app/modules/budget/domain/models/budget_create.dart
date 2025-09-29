@@ -20,6 +20,12 @@ class BudgetCreateDto {
   });
 
   Map<String, dynamic> toMap() {
+    // Extrair apenas IDs dos produtos SELECIONADOS
+    final produtosSelecionados = products
+        .where((p) => p.selected)
+        .map((p) => p.produtoId)
+        .toList();
+
     return {
       'orc_dias_validade': diasValidade,
       'orc_usuario_id': usuarioId,
@@ -27,7 +33,7 @@ class BudgetCreateDto {
       'orc_cidade_id': cidadePrincipalId,
       'orc_total': total,
       if (nome != null && nome!.isNotEmpty) 'orc_nome': nome,
-      'products': products.map((e) => e.toMap()).toList(),
+      'produtos_selecionados': produtosSelecionados,  // NOVO: Apenas IDs
     };
   }
 }

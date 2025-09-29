@@ -658,7 +658,7 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                         ),
                       );
                       // Redirecionar para a tela principal de orçamentos
-                      Modular.to.pushNamedAndRemoveUntil('/budget/list', (route) => false);
+                      Modular.to.pushNamedAndRemoveUntil('/budget/', (route) => false);
                     } catch (e) {
                       print('❌ Erro ao criar orçamento: $e');
                       if (!mounted) return;

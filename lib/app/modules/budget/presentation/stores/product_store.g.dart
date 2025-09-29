@@ -199,6 +199,17 @@ mixin _$ProductStore on _ProductStore, Store {
   }
 
   @override
+  void addProductFromApi(Map<String, dynamic> produtoData) {
+    final _$actionInfo = _$_ProductStoreActionController.startAction(
+        name: '_ProductStore.addProductFromApi');
+    try {
+      return super.addProductFromApi(produtoData);
+    } finally {
+      _$_ProductStoreActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
   String toString() {
     return '''
 produtos: ${produtos},
