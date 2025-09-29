@@ -17,9 +17,8 @@ import '../../presentation/stores/subcategory_store.dart';
 import '../../presentation/stores/books_subcategory_store.dart';
 import '../../presentation/stores/product_store.dart';
 import '../../presentation/stores/card_selection_store.dart';
+import '../../presentation/stores/budget_edit_store.dart';
 import '../../domain/models/category.dart';
-import '../../domain/models/product_selection.dart';
-import '../../domain/models/budget_create.dart';
 import '../../domain/models/budget_summary.dart';
 import '../../external/services/budget_service.dart';
 
@@ -164,56 +163,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
       print('📋 Orçamento ID: ${widget.budget.id}');
       print('📋 Status atual: ${widget.budget.status}');
       
-      // 1. Load categories first
-      final categoryStore = Modular.get<CategoryStore>();
-      await categoryStore.fetchCategorias();
-      print('✅ Categorias carregadas: ${categoryStore.categorias.length}');
-      
-      // 2. Find Books and Technologies categories
-      final livrosCategory = categoryStore.categorias.firstWhere(
-        (cat) => cat.nome.toLowerCase().contains('livro'),
-        orElse: () => CategoryDto(id: -1, nome: ''),
-      );
-      
-      final tecnologiasCategory = categoryStore.categorias.firstWhere(
-        (cat) => cat.nome.toLowerCase().contains('tecnologia'),
-        orElse: () => CategoryDto(id: -1, nome: ''),
-      );
-      
-      print('📚 Categoria Livros: ${livrosCategory.nome} (ID: ${livrosCategory.id})');
-      print('💻 Categoria Tecnologias: ${tecnologiasCategory.nome} (ID: ${tecnologiasCategory.id})');
-      
-      // 3. Load Books subcategories
-      if (livrosCategory.id != -1) {
-        final booksSubStore = Modular.get<BooksSubcategoryStore>();
-        await booksSubStore.fetchSubcategorias(livrosCategory.id);
-        print('✅ Subcategorias de Livros carregadas: ${booksSubStore.subcategorias.length}');
-        
-        // 4. Load products for all Books subcategories
-        final prodStore = Modular.get<ProductStore>();
-        for (final sub in booksSubStore.subcategorias) {
-          await prodStore.fetchProdutos(sub.id);
-          print('✅ Produtos da subcategoria "${sub.nome}" carregados');
-        }
-      }
-      
-      // 5. Load Technologies subcategories
-      if (tecnologiasCategory.id != -1) {
-        final techSubStore = Modular.get<SubcategoryStore>();
-        await techSubStore.fetchSubcategorias(tecnologiasCategory.id);
-        print('✅ Subcategorias de Tecnologias carregadas: ${techSubStore.subcategorias.length}');
-        
-        // 6. Load products for all Technologies subcategories
-        final prodStore = Modular.get<ProductStore>();
-        for (final sub in techSubStore.subcategorias) {
-          await prodStore.fetchProdutos(sub.id);
-          print('✅ Produtos da subcategoria "${sub.nome}" carregados');
-        }
-      }
-      
-      // 7. Load existing budget products and selections
-      // TODO: This will need to be implemented when we have the budget details API
-      // For now, we'll initialize with empty selections
+      // Carregar orçamento completo da API (já vem com categorias/subcategorias/produtos organizados)
       await _loadExistingBudgetSelections();
       
       print('🎉 Todos os dados iniciais carregados com sucesso para edição!');
@@ -241,28 +191,22 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     try {
       print('🔄 Carregando seleções existentes do orçamento...');
       
-      // TODO: When we have the budget details API, we'll load the actual selections
-      // For now, we'll initialize the stores with empty selections
+      // Usar a BudgetEditStore para carregar os dados
+      final budgetEditStore = Modular.get<BudgetEditStore>();
+      await budgetEditStore.loadBudgetDetails(widget.budget.id);
       
-      // Reset all selections in the card store
-      // Note: We'll reset selections manually since clearAllSelections may not exist
-      cardStore.setMainCardSelected('livros', false);
-      cardStore.setMainCardSelected('portal', false);
-      cardStore.setMainCardSelected('gamificacao', false);
-      cardStore.setMainCardSelected('avaliacao', false);
-      cardStore.setMainCardSelected('servicos', false);
-      
-      // Initialize subcategories selection state
-      final techSubStore = Modular.get<SubcategoryStore>();
-      for (final sub in techSubStore.subcategorias) {
-        if (!cardStore.subcategoriesSelection.containsKey(sub.id)) {
-          cardStore.setSubcategorySelected(sub.id, false);
-        }
+      // Atualizar censo data local se disponível
+      if (budgetEditStore.censoData != null) {
+        setState(() {
+          _cachedCensoData = budgetEditStore.censoData;
+        });
+        print('✅ Dados do censo carregados e atualizados na UI');
       }
       
-      print('✅ Seleções do orçamento inicializadas');
+      print('✅ Seleções do orçamento carregadas com sucesso');
     } catch (e) {
       print('❌ Erro ao carregar seleções do orçamento: $e');
+      print('Stack trace: ${StackTrace.current}');
     }
   }
 
@@ -360,18 +304,19 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
   }
 
   Widget _buildSchoolCensus() {
-    // Use a StatefulBuilder to be able to update this widget when census data changes
-    return StatefulBuilder(
-      builder: (context, setBuilderState) {
-        final args = ModalRoute.of(context)?.settings.arguments
-            as Map<String, dynamic>?;
-        final censo = _cachedCensoData ??
-            (args != null ? args['censo'] as CensoData? : null);
+    // Usar Observer para reagir às mudanças na BudgetEditStore
+    return Observer(
+      builder: (_) {
+        final budgetEditStore = Modular.get<BudgetEditStore>();
+        
+        // Priorizar dados da store, depois cache local
+        final censo = budgetEditStore.censoData ?? _cachedCensoData;
+        
         return SchoolCensus(
           leadingIcon: const Icon(Icons.school, color: Colors.black54),
           title: 'Censo Escolar',
           info1: censo != null
-              ? 'estudantes: ${censo.cidadeData?.totalEstudantes ?? 0}'
+              ? 'estudantes: ${censo.totalStudents}'
               : '—',
           info2: censo != null
               ? 'turmas: ${censo.cidadeData?.quantidadeTurmas ?? 0}'
@@ -388,7 +333,8 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
               setState(() {
                 _cachedCensoData = updatedCenso;
               });
-              setBuilderState(() {});
+              // Atualizar também na store
+              budgetEditStore.censoData = updatedCenso;
             }
           },
         );
@@ -397,6 +343,164 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
   }
 
   Widget _buildProductCategories() {
+    return Observer(
+      builder: (_) {
+        final budgetEditStore = Modular.get<BudgetEditStore>();
+        final prodStore = Modular.get<ProductStore>();
+        
+        print('🔍 _buildProductCategories chamado');
+        print('🔍 budgetData é null? ${budgetEditStore.budgetData == null}');
+        print('🔍 budgetData keys: ${budgetEditStore.budgetData?.keys.toList()}');
+        
+        // Verificar se ainda está carregando
+        if (budgetEditStore.isLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        
+        // Verificar se há erro
+        if (budgetEditStore.error != null) {
+          return Center(
+            child: Text('Erro: ${budgetEditStore.error}'),
+          );
+        }
+        
+        // Usar dados das categorias que vieram da API do orçamento
+        final categorias = budgetEditStore.budgetData?['categorias'] as List? ?? [];
+        
+        print('🔍 Número de categorias: ${categorias.length}');
+        if (categorias.isNotEmpty) {
+          print('🔍 Primeira categoria: ${categorias[0]}');
+        }
+        
+        if (categorias.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Nenhuma categoria encontrada'),
+                const SizedBox(height: 8),
+                Text('budgetData: ${budgetEditStore.budgetData?.toString()}'),
+              ],
+            ),
+          );
+        }
+
+        // Separar categorias
+        Map<String, dynamic>? livrosCategoria;
+        Map<String, dynamic>? tecnologiasCategoria;
+        
+        for (final categoria in categorias) {
+          final categoriaNome = categoria['nome'] as String;
+          if (categoriaNome.toLowerCase().contains('livro')) {
+            livrosCategoria = categoria;
+          } else if (categoriaNome.toLowerCase().contains('tecnologia')) {
+            tecnologiasCategoria = categoria;
+          }
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Seção Livros (agrupada)
+            if (livrosCategoria != null) ...[
+              Observer(
+                builder: (_) {
+                  final subcategorias = livrosCategoria!['subcategorias'] as List? ?? [];
+                  
+                  // Calcular totais
+                  int totalProdutos = 0;
+                  int produtosSelecionados = 0;
+                  double valorTotal = 0.0;
+                  
+                  for (final sub in subcategorias) {
+                    final subId = sub['id'] as int;
+                    totalProdutos += prodStore.getTotalCountForSubcategory(subId);
+                    produtosSelecionados += prodStore.getSelectedCountForSubcategory(subId);
+                    valorTotal += prodStore.getTotalValueForSubcategory(subId);
+                  }
+                  
+                  return ProductCategory(
+                    categoryIcon: const Icon(Icons.menu_book, color: Colors.black54),
+                    title: 'Livros',
+                    value: 'R\$ ${valorTotal.toStringAsFixed(2)}',
+                    selectedCount: produtosSelecionados,
+                    totalCount: totalProdutos,
+                    isSelected: produtosSelecionados > 0, // Marcar se tem produtos selecionados
+                    onCheckboxChanged: (value) {
+                      // Marcar/desmarcar todos os produtos de livros
+                      for (final sub in subcategorias) {
+                        final subId = sub['id'] as int;
+                        prodStore.selectAllForSubcategory(subId, value ?? false);
+                      }
+                    },
+                    onActionTap: () async {
+                      await BooksModal.show(
+                        context: context,
+                        categoriaId: livrosCategoria!['id'] as int,
+                      );
+                    },
+                  );
+                },
+              ),
+              SizedBox(height: 12.h),
+            ],
+            
+            // Label Tecnologias
+            if (tecnologiasCategoria != null) ...[
+              Text(
+                'Tecnologias',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF117BBD),
+                ),
+              ),
+              SizedBox(height: 12.h),
+              
+              // Subcategorias de Tecnologias
+              ...((tecnologiasCategoria['subcategorias'] as List?) ?? []).map((sub) {
+                final subId = sub['id'] as int;
+                final subNome = sub['nome'] as String;
+                
+                return Padding(
+                  padding: EdgeInsets.only(bottom: 8.h),
+                  child: Observer(
+                    builder: (_) {
+                      final selectedCount = prodStore.getSelectedCountForSubcategory(subId);
+                      final totalCount = prodStore.getTotalCountForSubcategory(subId);
+                      final totalValue = prodStore.getTotalValueForSubcategory(subId);
+                      
+                      return ProductCategory(
+                        categoryIcon: const Icon(Icons.widgets, color: Colors.black54),
+                        title: subNome,
+                        value: 'R\$ ${totalValue.toStringAsFixed(2)}',
+                        selectedCount: selectedCount,
+                        totalCount: totalCount,
+                        isSelected: selectedCount > 0, // Marcar se tem produtos selecionados
+                        onCheckboxChanged: (value) {
+                          // Marcar/desmarcar todos os produtos desta subcategoria
+                          prodStore.selectAllForSubcategory(subId, value ?? false);
+                        },
+                        onActionTap: () async {
+                          await TechnologyProductsModal.show(
+                            context: context,
+                            subcategoriaId: subId,
+                            title: subNome,
+                          );
+                        },
+                      );
+                    },
+                  ),
+                );
+              }).toList(),
+            ],
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildProductCategoriesOLD() {
     return Observer(
       builder: (_) {
         final catStore = Modular.get<CategoryStore>();
@@ -878,23 +982,20 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
         return;
       }
 
-      // Collect product selections
+      // Collect product selections - APENAS IDs dos produtos selecionados
       final prodStore = Modular.get<ProductStore>();
       final allProducts = prodStore.allProducts;
-      final productSelections = allProducts.map((p) => ProductSelectionDto(
-        produtoId: p.id,
-        selected: prodStore.isSelected(p.id),
-        price: p.valor,
-      )).toList();
+      final produtosSelecionados = allProducts
+          .where((p) => prodStore.isSelected(p.id))
+          .map((p) => p.id)
+          .toList();
 
       // Prepare update data
       final updateData = {
-        'id': widget.budget.id,
-        'diasValidade': dias,
-        'status': _selectedStatus,
-        'arquivado': _isArchived,
-        'total': prodStore.total,
-        'products': productSelections.map((p) => p.toMap()).toList(),
+        'orc_dias_validade': dias,
+        'orc_status': _selectedStatus,
+        'orc_total': prodStore.total,
+        'produtos_selecionados': produtosSelecionados,  // NOVO: Apenas IDs
       };
 
       print('📋 Dados de atualização do orçamento:');
@@ -903,7 +1004,8 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
       print('   Status: $_selectedStatus');
       print('   Arquivado: $_isArchived');
       print('   Total: ${prodStore.total}');
-      print('   Produtos selecionados: ${productSelections.length}');
+      print('   Produtos selecionados: ${produtosSelecionados.length}');
+      print('   IDs produtos: $produtosSelecionados');
 
       // Call update service
       final service = Modular.get<BudgetService>();
@@ -919,7 +1021,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
       );
 
       // Navigate back to budget list
-      Modular.to.pushNamedAndRemoveUntil('/budget/list', (route) => false);
+      Modular.to.pushNamedAndRemoveUntil('/budget/', (route) => false);
 
     } catch (e) {
       print('❌ Erro ao salvar alterações: $e');

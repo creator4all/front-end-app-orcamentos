@@ -1,5 +1,6 @@
 import 'external/services/budget_service.dart';
 import 'presentation/stores/budget_list_store.dart';
+import 'presentation/stores/budget_edit_store.dart';
 
 import 'package:flutter_modular/flutter_modular.dart';
 
@@ -30,6 +31,7 @@ class BudgetModule extends Module {
         Bind.lazySingleton((i) => ProductService(i.get())),
         Bind.lazySingleton((i) => BudgetService(i.get<ApiService>())),
         Bind.lazySingleton((i) => BudgetListStore(i.get<BudgetService>())),
+        Bind.lazySingleton((i) => BudgetEditStore(i.get<BudgetService>(), i.get<ProductStore>())),
 
         Bind.lazySingleton((i) => CategoryStore(i.get())),
         Bind.lazySingleton((i) => SubcategoryStore(i.get())),

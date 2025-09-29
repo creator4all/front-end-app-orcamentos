@@ -44,14 +44,15 @@ class BooksModal {
                     final prodStore = Modular.get<ProductStore>();
                     final selectedCount = prodStore.getSelectedCountForSubcategory(sub.id);
                     final totalCount = prodStore.getTotalCountForSubcategory(sub.id);
+                    final totalValue = prodStore.getTotalValueForSubcategory(sub.id);
                     
                     final cardStore = Modular.get<CardSelectionStore>();
-                    final isSubcategorySelected = cardStore.subcategoriesSelection[sub.id] ?? false;
+                    final isSubcategorySelected = selectedCount > 0;
                     
                     return BookItem(
                       title: sub.nome,
-                      value: '$selectedCount/$totalCount',
-                      quantity: '—',
+                      value: 'R\$ ${totalValue.toStringAsFixed(2)}',
+                      quantity: '$selectedCount/$totalCount',
                       isSelected: isSubcategorySelected,
                       onCheckboxChanged: (value) {
                         // Marcar/desmarcar a subcategoria

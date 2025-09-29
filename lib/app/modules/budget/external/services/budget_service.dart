@@ -54,6 +54,19 @@ class BudgetService {
     return Map<String, dynamic>.from(data as Map);
   }
 
+  Future<Map<String, dynamic>> buscarPorId(int budgetId) async {
+    print('🔍 Buscando orçamento ID: $budgetId');
+    
+    final res = await _api.get('/api/orcamentos/$budgetId');
+    final data = res is Map<String, dynamic>
+        ? (res['dados'] ?? res['data'] ?? res)
+        : res;
+    
+    print('✅ Orçamento carregado com sucesso');
+    print('📋 Dados do orçamento: $data');
+    return Map<String, dynamic>.from(data as Map);
+  }
+
   Future<Map<String, dynamic>> renomear(int budgetId, String novoNome) async {
     print('✏️ Renomeando orçamento ID: $budgetId para: $novoNome');
     
