@@ -18,6 +18,15 @@ abstract class _BudgetListStore with Store {
 
   @observable
   List<BudgetSummaryDto> items = [];
+  
+  @observable
+  List<BudgetSummaryDto> allItems = []; // Lista completa sem filtros
+  
+  @observable
+  String searchQuery = '';
+  
+  @observable
+  ObservableSet<String> selectedFilters = ObservableSet<String>.of(['pendente']); // Pendente ativo por padrão
 
   @action
   Future<void> fetch({String? status}) async {
@@ -25,11 +34,14 @@ abstract class _BudgetListStore with Store {
     error = null;
     try {
       print('🔄 Carregando orçamentos da API...');
-      items = await _service.listar(status: status);
-      print('✅ Orçamentos carregados: ${items.length}');
-      for (final item in items) {
+      allItems = await _service.listar(status: status);
+      print('✅ Orçamentos carregados: ${allItems.length}');
+      for (final item in allItems) {
         print('   - ID: ${item.id}, Nome: ${item.nome}, Status: ${item.status}, Total: R\$ ${item.total}');
       }
+      
+      // Aplicar filtros após carregar
+      applyFilters();
     } catch (e) {
       print('❌ Erro ao carregar orçamentos: $e');
       error = e.toString();
@@ -41,5 +53,77 @@ abstract class _BudgetListStore with Store {
   @action
   Future<void> refresh() async {
     await fetch();
+  }
+  
+  @action
+  void setSearchQuery(String query) {
+    searchQuery = query;
+    applyFilters();
+  }
+  
+  @action
+  void toggleFilter(String filter) {
+    if (selectedFilters.contains(filter)) {
+      selectedFilters.remove(filter);
+    } else {
+      selectedFilters.add(filter);
+    }
+    applyFilters();
+  }
+  
+  @action
+  void resetFilters() {
+    searchQuery = '';
+    selectedFilters.clear();
+    selectedFilters.add('pendente'); // Voltar para pendente por padrão
+    applyFilters();
+  }
+  
+  @action
+  void applyFilters() {
+    // Se nenhum filtro estiver selecionado, mostrar lista vazia
+    if (selectedFilters.isEmpty) {
+      items = [];
+      print('🔍 Nenhum filtro selecionado - lista vazia');
+      return;
+    }
+    
+    List<BudgetSummaryDto> filtered = List.from(allItems);
+    
+    // Filtrar por status primeiro (obrigatório)
+    filtered = filtered.where((item) {
+      final status = item.status.toLowerCase();
+      
+      // Mapear filtros para status da API
+      return selectedFilters.any((filter) {
+        switch (filter) {
+          case 'pendente':
+            return status == 'pendente' || status == 'rascunho';
+          case 'expirado':
+            return status == 'expirado';
+          case 'nao_aprovado':
+            return status == 'reprovado' || status == 'não aprovado';
+          case 'aprovado':
+            return status == 'aprovado';
+          case 'arquivado':
+            return status == 'arquivado';
+          default:
+            return false;
+        }
+      });
+    }).toList();
+    
+    // Depois filtrar por texto de busca (se houver)
+    if (searchQuery.isNotEmpty) {
+      filtered = filtered.where((item) {
+        final nome = item.nome?.toLowerCase() ?? '';
+        final query = searchQuery.toLowerCase();
+        return nome.contains(query);
+      }).toList();
+    }
+    
+    items = filtered;
+    print('🔍 Filtros aplicados: ${items.length} de ${allItems.length} orçamentos');
+    print('🔍 Filtros ativos: ${selectedFilters.toList()}');
   }
 }
