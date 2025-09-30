@@ -10,25 +10,22 @@ import '../../../../shared/widgets/school_census.dart';
 import 'package:multimidiaapp/entities/censo_entity.dart';
 import '../../../../shared/widgets/books_modal.dart';
 import '../../../../shared/widgets/technology_products_modal.dart';
-import '../../presentation/stores/category_store.dart';
-import '../../presentation/stores/subcategory_store.dart';
-import '../../presentation/stores/books_subcategory_store.dart';
 import '../../presentation/stores/product_store.dart';
 import '../../presentation/stores/card_selection_store.dart';
-import '../../domain/models/category.dart';
-import '../../domain/models/product_selection.dart';
-import '../../domain/models/budget_create.dart';
+import '../../presentation/stores/budget_edit_store.dart';
 import '../../external/services/budget_service.dart';
 
 
 class ConfigNewBudgetPage extends StatefulWidget {
-  const ConfigNewBudgetPage({super.key});
+  final int budgetId;
+  
+  const ConfigNewBudgetPage({super.key, required this.budgetId});
 
   @override
   State<ConfigNewBudgetPage> createState() => _ConfigNewBudgetPageState();
 }
 
-class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
+class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> with WidgetsBindingObserver {
   // Cache for the censo data to persist between screen navigations
   CensoData? _cachedCensoData;
 
@@ -47,13 +44,43 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
       TextEditingController();
 
   bool _isLoadingInitialData = true;
+  String _budgetStatus = 'rascunho'; // Armazenar status do orçamento
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _dataOrcamentoController.text = DateTime.now().toString().split(' ')[0];
     final defaultValid = DateTime.now().add(const Duration(days: 60));
     _validadeOrcamentoController.text = defaultValid.toString().split(' ')[0];
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _dataOrcamentoController.dispose();
+    _validadeOrcamentoController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Excluir rascunho se app for minimizado/fechado
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
+      _deleteRascunhoIfNeeded();
+    }
+  }
+
+  Future<void> _deleteRascunhoIfNeeded() async {
+    if (_budgetStatus == 'rascunho') {
+      try {
+        final budgetService = Modular.get<BudgetService>();
+        await budgetService.excluir(widget.budgetId);
+        print('🗑️ Rascunho ${widget.budgetId} excluído automaticamente');
+      } catch (e) {
+        print('⚠️ Erro ao excluir rascunho: $e');
+      }
+    }
   }
 
   @override
@@ -61,68 +88,81 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     super.didChangeDependencies();
     // Inicializar a store de seleção de cards
     cardStore = Modular.get<CardSelectionStore>();
-    
-    // Carregar todos os dados necessários
-    _loadAllInitialData();
+    // Carregar orçamento rascunho e dados necessários
+    _loadBudgetAndInitialData();
   }
 
-  // Método para carregar todos os dados necessários ao abrir a tela
-  Future<void> _loadAllInitialData() async {
+  // Método para carregar orçamento rascunho e todos os dados necessários
+  Future<void> _loadBudgetAndInitialData() async {
     setState(() {
       _isLoadingInitialData = true;
     });
     
     try {
-      print('🔄 Iniciando carregamento de dados...');
+      print('🔄 Iniciando carregamento do orçamento rascunho ID: ${widget.budgetId}');
       
-      // 1. Carregar categorias primeiro
-      final categoryStore = Modular.get<CategoryStore>();
-      await categoryStore.fetchCategorias();
-      print('✅ Categorias carregadas: ${categoryStore.categorias.length}');
+      // 1. Carregar orçamento rascunho usando BudgetEditStore
+      final budgetEditStore = Modular.get<BudgetEditStore>();
+      await budgetEditStore.loadBudgetDetails(widget.budgetId);
       
-      // 2. Encontrar categoria de Livros e Tecnologias
-      final livrosCategory = categoryStore.categorias.firstWhere(
-        (cat) => cat.nome.toLowerCase().contains('livro'),
-        orElse: () => CategoryDto(id: -1, nome: ''),
-      );
+      // Atualizar status local
+      _budgetStatus = budgetEditStore.budgetData?['status'] as String? ?? 'rascunho';
+      print('📊 Status do orçamento: $_budgetStatus');
       
-      final tecnologiasCategory = categoryStore.categorias.firstWhere(
-        (cat) => cat.nome.toLowerCase().contains('tecnologia'),
-        orElse: () => CategoryDto(id: -1, nome: ''),
-      );
-      
-      print('📚 Categoria Livros: ${livrosCategory.nome} (ID: ${livrosCategory.id})');
-      print('💻 Categoria Tecnologias: ${tecnologiasCategory.nome} (ID: ${tecnologiasCategory.id})');
-      
-      // 3. Carregar subcategorias de Livros
-      if (livrosCategory.id != -1) {
-        final booksSubStore = Modular.get<BooksSubcategoryStore>();
-        await booksSubStore.fetchSubcategorias(livrosCategory.id);
-        print('✅ Subcategorias de Livros carregadas: ${booksSubStore.subcategorias.length}');
-        
-        // 4. Carregar produtos de todas as subcategorias de Livros
-        final prodStore = Modular.get<ProductStore>();
-        for (final sub in booksSubStore.subcategorias) {
-          await prodStore.fetchProdutos(sub.id);
-          print('✅ Produtos da subcategoria "${sub.nome}" carregados');
-        }
+      // Atualizar censo data local se disponível
+      if (budgetEditStore.censoData != null) {
+        setState(() {
+          _cachedCensoData = budgetEditStore.censoData;
+        });
+        print('✅ Dados do censo carregados e atualizados na UI');
+        print('   Total de estudantes: ${budgetEditStore.censoData?.totalStudents}');
       }
       
-      // 5. Carregar subcategorias de Tecnologias
-      if (tecnologiasCategory.id != -1) {
-        final techSubStore = Modular.get<SubcategoryStore>();
-        await techSubStore.fetchSubcategorias(tecnologiasCategory.id);
-        print('✅ Subcategorias de Tecnologias carregadas: ${techSubStore.subcategorias.length}');
-        
-        // Subcategorias de tecnologias NÃO são registradas como pertencentes a um card principal
-        // (cada uma é um checkbox individual na tela)
-        
-        // 6. Carregar produtos de todas as subcategorias de Tecnologias
+      // Se for um orçamento rascunho (novo), marcar todos os produtos como selecionados por padrão
+      if (_budgetStatus == 'rascunho') {
         final prodStore = Modular.get<ProductStore>();
-        for (final sub in techSubStore.subcategorias) {
-          await prodStore.fetchProdutos(sub.id);
-          print('✅ Produtos da subcategoria "${sub.nome}" carregados');
+        final categorias = budgetEditStore.budgetData?['categorias'] as List? ?? [];
+        
+        print('📦 Marcando todos os produtos como selecionados (orçamento rascunho)...');
+        int totalProdutos = 0;
+        int totalCheckboxes = 0;
+        
+        for (final categoria in categorias) {
+          final categoriaNome = categoria['nome'] as String;
+          final subcategorias = categoria['subcategorias'] as List? ?? [];
+          
+          // Se é categoria de Livros, marcar o card principal
+          if (categoriaNome.toLowerCase().contains('livro')) {
+            cardStore.setMainCardSelected('livros', true);
+            totalCheckboxes++; // +1 checkbox visível (Livros)
+            print('✅ Card "Livros" marcado');
+          }
+          
+          // Para cada subcategoria
+          for (final subcategoria in subcategorias) {
+            final subcategoriaId = subcategoria['id'] as int;
+            final produtos = subcategoria['produtos'] as List? ?? [];
+            
+            // Se não é categoria de Livros, marcar a subcategoria individualmente
+            if (!categoriaNome.toLowerCase().contains('livro')) {
+              cardStore.setSubcategorySelected(subcategoriaId, true);
+              totalCheckboxes++; // +1 checkbox visível (subcategoria de Tecnologias)
+              print('✅ Subcategoria "${subcategoria['nome']}" marcada');
+            }
+            
+            // Marcar todos os produtos da subcategoria
+            for (final produto in produtos) {
+              final produtoId = produto['id'] as int?;
+              if (produtoId != null) {
+                prodStore.setSelected(produtoId, true);
+                totalProdutos++;
+              }
+            }
+          }
         }
+        
+        print('✅ $totalProdutos produtos marcados como selecionados');
+        print('✅ $totalCheckboxes checkboxes visíveis marcados na tela');
       }
       
       print('🎉 Todos os dados iniciais carregados com sucesso!');
@@ -138,41 +178,25 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
   }
 
   @override
-  void dispose() {
-    _dataOrcamentoController.dispose();
-    _validadeOrcamentoController.dispose();
-    super.dispose();
-  }
-  
-  // Método para processar a seleção de subcategorias e produtos de livros
-  Future<void> _processLivrosSelection(BooksSubcategoryStore booksSubStore, ProductStore prodStore, bool selected) async {
-    // Para cada subcategoria de livros
-    for (final sub in booksSubStore.subcategorias) {
-      // Registrar que esta subcategoria pertence ao card "livros"
-      cardStore.registerSubcategoryToMainCard(sub.id, 'livros');
-      
-      // Marcar/desmarcar a subcategoria (necessário para funcionalidade)
-      cardStore.setSubcategorySelected(sub.id, selected);
-      
-      // Carregar produtos da subcategoria se necessário
-      if (!prodStore.produtosPorSubcategoria.containsKey(sub.id)) {
-        await prodStore.fetchProdutos(sub.id);
-      }
-      
-      // Usar o novo método da ProductStore que garante isolamento por subcategoria
-      prodStore.selectAllForSubcategory(sub.id, selected);
-    }
-  }
-
-  // Não precisamos mais desta função, pois agora usamos cardStore.selectedCardsCount
-
-  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: const CustomTopBar(
-        title: 'Novo orçamento',
-        showBackButton: true,
-      ),
+    return WillPopScope(
+      onWillPop: () async {
+        // Excluir rascunho ao voltar
+        await _deleteRascunhoIfNeeded();
+        return true;
+      },
+      child: Scaffold(
+        appBar: CustomTopBar(
+          title: 'Novo orçamento',
+          showBackButton: true,
+          onBackPressed: () async {
+            // Excluir rascunho ao clicar no botão voltar
+            await _deleteRascunhoIfNeeded();
+            if (mounted) {
+              Navigator.of(context).pop();
+            }
+          },
+        ),
       body: SafeArea(
         child: _isLoadingInitialData
             ? const Center(
@@ -203,19 +227,19 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                 );
               }),
               const SizedBox(height: 12),
-              // Use a StatefulBuilder to be able to update this widget when census data changes
-              StatefulBuilder(
-                builder: (context, setBuilderState) {
-                  final args = ModalRoute.of(context)?.settings.arguments
-                      as Map<String, dynamic>?;
-                  final censo = _cachedCensoData ??
-                      (args != null ? args['censo'] as CensoData? : null);
+              // Usar Observer para reagir às mudanças na BudgetEditStore
+              Observer(
+                builder: (_) {
+                  final budgetEditStore = Modular.get<BudgetEditStore>();
+                  
+                  // Priorizar dados da store, depois cache local
+                  final censo = budgetEditStore.censoData ?? _cachedCensoData;
+                  
                   return SchoolCensus(
-                    leadingIcon:
-                        const Icon(Icons.school, color: Colors.black54),
+                    leadingIcon: const Icon(Icons.school, color: Colors.black54),
                     title: 'Censo Escolar',
                     info1: censo != null
-                        ? 'estudantes: ${censo.cidadeData?.totalEstudantes ?? 0}'
+                        ? 'estudantes: ${censo.totalStudents}'
                         : '—',
                     info2: censo != null
                         ? 'turmas: ${censo.cidadeData?.quantidadeTurmas ?? 0}'
@@ -228,12 +252,12 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                       );
                       if (result is Map<String, dynamic> &&
                           result.containsKey('updatedCenso')) {
-                        final updatedCenso =
-                            result['updatedCenso'] as CensoData;
+                        final updatedCenso = result['updatedCenso'] as CensoData;
                         setState(() {
                           _cachedCensoData = updatedCenso;
                         });
-                        setBuilderState(() {});
+                        // Atualizar também na store
+                        budgetEditStore.censoData = updatedCenso;
                       }
                     },
                   );
@@ -242,169 +266,145 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
               const SizedBox(height: 12),
               Observer(
                 builder: (_) {
-                  final catStore = Modular.get<CategoryStore>();
-                  // Não carregamos o subStore aqui, cada seção terá sua própria store
+                  final budgetEditStore = Modular.get<BudgetEditStore>();
+                  final prodStore = Modular.get<ProductStore>();
                   
-                  if (catStore.isLoading) {
+                  // Verificar se ainda está carregando
+                  if (budgetEditStore.isLoading) {
                     return const Center(child: CircularProgressIndicator());
                   }
-                  if (catStore.error != null) {
-                    return Text(
-                      'Erro ao carregar categorias: ${catStore.error}',
-                      style: const TextStyle(color: Colors.red),
+                  
+                  // Verificar se há erro
+                  if (budgetEditStore.error != null) {
+                    return Center(
+                      child: Text('Erro: ${budgetEditStore.error}'),
+                    );
+                  }
+                  
+                  // Usar dados das categorias que vieram da API do orçamento
+                  final categorias = budgetEditStore.budgetData?['categorias'] as List? ?? [];
+                  
+                  if (categorias.isEmpty) {
+                    return const Center(
+                      child: Text('Nenhuma categoria encontrada'),
                     );
                   }
 
-                  final livrosCat = catStore.categorias.firstWhere(
-                    (c) => c.nome.toLowerCase().trim() == 'livros',
-                    orElse: () => CategoryDto(id: -1, nome: 'Livros'),
-                  );
-                  final tecnologiasCat = catStore.categorias.firstWhere(
-                    (c) => c.nome.toLowerCase().trim() == 'tecnologias',
-                    orElse: () => CategoryDto(id: -1, nome: 'Tecnologias'),
-                  );
+                  // Separar categorias
+                  Map<String, dynamic>? livrosCategoria;
+                  Map<String, dynamic>? tecnologiasCategoria;
+                  
+                  for (final categoria in categorias) {
+                    final categoriaNome = categoria['nome'] as String;
+                    if (categoriaNome.toLowerCase().contains('livro')) {
+                      livrosCategoria = categoria;
+                    } else if (categoriaNome.toLowerCase().contains('tecnologia')) {
+                      tecnologiasCategoria = categoria;
+                    }
+                  }
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (livrosCat.id != -1)
-                        Padding(
-                          padding: EdgeInsets.only(bottom: 12.h),
-                          child: Observer(
-                            builder: (_) {
-                              final prodStore = Modular.get<ProductStore>();
-                              final booksSubStore = Modular.get<BooksSubcategoryStore>();
-                              
-                              // Calcular contagem real de produtos de livros
-                              int selectedProductsCount = 0;
-                              int totalProductsCount = 0;
-                              double totalValue = 0.0;
-                              
-                              for (final sub in booksSubStore.subcategorias) {
-                                selectedProductsCount += prodStore.getSelectedCountForSubcategory(sub.id);
-                                totalProductsCount += prodStore.getTotalCountForSubcategory(sub.id);
-                                totalValue += prodStore.getTotalValueForSubcategory(sub.id);
-                              }
-                              
-                              return ProductCategory(
-                                categoryIcon:
-                                    const Icon(Icons.menu_book, color: Colors.black54),
-                                title: 'Livros',
-                                value: 'R\$ ${totalValue.toStringAsFixed(2)}',
-                                selectedCount: selectedProductsCount,
-                                totalCount: totalProductsCount,
-                                isSelected: isLivrosSelected,
-                                onCheckboxChanged: (bool? value) {
-                                  // Atualizar a store
-                                  cardStore.setMainCardSelected('livros', value ?? false);
-                                  
-                                  // Obter as stores necessárias
-                                  final booksSubStore = Modular.get<BooksSubcategoryStore>();
-                                  final prodStore = Modular.get<ProductStore>();
-                                  
-                                  // Se não temos subcategorias carregadas, carregar primeiro
-                                  if (booksSubStore.subcategorias.isEmpty && !booksSubStore.isLoading) {
-                                    booksSubStore.fetchSubcategorias(livrosCat.id).then((_) async {
-                                      // Depois de carregar as subcategorias, marcar/desmarcar todas
-                                      await _processLivrosSelection(booksSubStore, prodStore, value ?? false);
-                                    });
-                                  } else {
-                                    // Já temos subcategorias carregadas, marcar/desmarcar todas
-                                    _processLivrosSelection(booksSubStore, prodStore, value ?? false);
-                                  }
-                                },
-                                onActionTap: () async {
-                                  // Usar BooksModal para categoria de livros, que mostra subcategorias
-                                  await BooksModal.show(
-                                    context: context,
-                                    categoriaId: livrosCat.id,
-                                  );
-                                },
-                              );
-                            },
+                      // Seção Livros (agrupada)
+                      if (livrosCategoria != null) ...[
+                        Observer(
+                          builder: (_) {
+                            // Acessar selectedIds para forçar reação do Observer
+                            final _ = prodStore.selectedIds.length;
+                            
+                            final subcategorias = livrosCategoria!['subcategorias'] as List? ?? [];
+                            
+                            // Calcular totais
+                            int totalProdutos = 0;
+                            int produtosSelecionados = 0;
+                            double valorTotal = 0.0;
+                            
+                            for (final sub in subcategorias) {
+                              final subId = sub['id'] as int;
+                              totalProdutos += prodStore.getTotalCountForSubcategory(subId);
+                              produtosSelecionados += prodStore.getSelectedCountForSubcategory(subId);
+                              valorTotal += prodStore.getTotalValueForSubcategory(subId);
+                            }
+                            
+                            return ProductCategory(
+                              categoryIcon: const Icon(Icons.menu_book, color: Colors.black54),
+                              title: 'Livros',
+                              value: 'R\$ ${valorTotal.toStringAsFixed(2)}',
+                              selectedCount: produtosSelecionados,
+                              totalCount: totalProdutos,
+                              isSelected: produtosSelecionados > 0,
+                              onCheckboxChanged: (value) {
+                                // Marcar/desmarcar todos os produtos de livros
+                                for (final sub in subcategorias) {
+                                  final subId = sub['id'] as int;
+                                  prodStore.selectAllForSubcategory(subId, value ?? false);
+                                }
+                              },
+                              onActionTap: () async {
+                                await BooksModal.show(
+                                  context: context,
+                                  categoriaId: livrosCategoria!['id'] as int,
+                                );
+                              },
+                            );
+                          },
+                        ),
+                        SizedBox(height: 12.h),
+                      ],
+                      
+                      // Label Tecnologias
+                      if (tecnologiasCategoria != null) ...[
+                        Text(
+                          'Tecnologias',
+                          style: TextStyle(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF117BBD),
                           ),
                         ),
-                      Text(
-                        'Tecnologias',
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF117BBD),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      // Para cada categoria que não é livros, buscar e mostrar suas subcategorias
-                      // Seção de Tecnologias
-                      Observer(
-                        builder: (_) {
-                          // Usar SubcategoryStore apenas para Tecnologias
-                          final subStore = Modular.get<SubcategoryStore>();
+                        SizedBox(height: 12.h),
+                        
+                        // Subcategorias de Tecnologias
+                        ...((tecnologiasCategoria['subcategorias'] as List?) ?? []).map((sub) {
+                          final subId = sub['id'] as int;
+                          final subNome = sub['nome'] as String;
                           
-                          // Carregar subcategorias de tecnologias
-                          if (tecnologiasCat.id > 0 && subStore.lastCategoriaId != tecnologiasCat.id && !subStore.isLoading) {
-                            subStore.fetchSubcategorias(tecnologiasCat.id);
-                          }
-                          
-                          if (subStore.isLoading) {
-                            return const Center(child: CircularProgressIndicator());
-                          }
-                          
-                          // Inicializar estado das subcategorias se ainda não foi feito
-                          for (final sub in subStore.subcategorias) {
-                            if (!cardStore.subcategoriesSelection.containsKey(sub.id)) {
-                              cardStore.setSubcategorySelected(sub.id, false);
-                            }
-                          }
-                          
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Mostrar cada subcategoria como um ProductCategory
-                              ...subStore.subcategorias.map((sub) {
-                                return Padding(
-                                  padding: EdgeInsets.only(bottom: 8.h),
-                                  child: Observer(
-                                    builder: (_) {
-                                      final prodStore = Modular.get<ProductStore>();
-                                      final selectedCount = prodStore.getSelectedCountForSubcategory(sub.id);
-                                      final totalCount = prodStore.getTotalCountForSubcategory(sub.id);
-                                      final totalValue = prodStore.getTotalValueForSubcategory(sub.id);
-                                      
-                                      return ProductCategory(
-                                        categoryIcon: const Icon(Icons.widgets, color: Colors.black54),
-                                        title: sub.nome,
-                                        value: 'R\$ ${totalValue.toStringAsFixed(2)}',
-                                        selectedCount: selectedCount,
-                                        totalCount: totalCount,
-                                        isSelected: cardStore.subcategoriesSelection[sub.id] ?? false,
-                                        onCheckboxChanged: (bool? value) {
-                                          // Determinar o novo valor de seleção (inverso do atual)
-                                          final isCurrentlySelected = cardStore.subcategoriesSelection[sub.id] ?? false;
-                                          final newSelection = !isCurrentlySelected;
-                                          
-                                          // Atualizar a seleção da subcategoria na store
-                                          cardStore.setSubcategorySelected(sub.id, newSelection);
-                                          
-                                          // Usar o novo método da ProductStore que garante isolamento por subcategoria
-                                          prodStore.selectAllForSubcategory(sub.id, newSelection);
-                                        },
-                                        onActionTap: () async {
-                                          await TechnologyProductsModal.show(
-                                            context: context,
-                                            subcategoriaId: sub.id,
-                                            title: sub.nome,
-                                          );
-                                        },
-                                      );
-                                    },
-                                  ),
+                          return Padding(
+                            padding: EdgeInsets.only(bottom: 8.h),
+                            child: Observer(
+                              builder: (_) {
+                                // Acessar selectedIds para forçar reação do Observer
+                                final _ = prodStore.selectedIds.length;
+                                
+                                final selectedCount = prodStore.getSelectedCountForSubcategory(subId);
+                                final totalCount = prodStore.getTotalCountForSubcategory(subId);
+                                final totalValue = prodStore.getTotalValueForSubcategory(subId);
+                                
+                                return ProductCategory(
+                                  categoryIcon: const Icon(Icons.widgets, color: Colors.black54),
+                                  title: subNome,
+                                  value: 'R\$ ${totalValue.toStringAsFixed(2)}',
+                                  selectedCount: selectedCount,
+                                  totalCount: totalCount,
+                                  isSelected: selectedCount > 0,
+                                  onCheckboxChanged: (value) {
+                                    // Marcar/desmarcar todos os produtos desta subcategoria
+                                    prodStore.selectAllForSubcategory(subId, value ?? false);
+                                  },
+                                  onActionTap: () async {
+                                    await TechnologyProductsModal.show(
+                                      context: context,
+                                      subcategoriaId: subId,
+                                      title: subNome,
+                                    );
+                                  },
                                 );
-                              }).toList(),
-                            ],
+                              },
+                            ),
                           );
-                        },
-                      ),
-                      const SizedBox(height: 12),
+                        }).toList(),
+                      ],
                     ],
                   );
                 },
@@ -591,65 +591,37 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                       return;
                     }
 
-                    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-                    
-                    // Extrair dados da cidade e estado enviados da tela anterior
-                    final cidade = args?['cidade'];
-                    final estado = args?['estado'];
-                    
-                    if (cidade == null || estado == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Dados de cidade/estado ausentes')),
-                      );
-                      return;
-                    }
-                    
-                    // Extrair IDs dos objetos
-                    final cidadeId = cidade.id as int? ?? 0;
-                    final usuarioId = 1; // TODO: Implementar usuário logado
-                    
-                    print('🏙️ Cidade: ${cidade.nome} (ID: $cidadeId)');
-                    print('🏛️ Estado: ${estado.nome}');
-                    print('👤 Usuario ID: $usuarioId');
-                    
-                    if (cidadeId <= 0) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('ID da cidade inválido')),
-                      );
-                      return;
-                    }
-
                     final prodStore = Modular.get<ProductStore>();
-                    final allProducts = prodStore.allProducts;
-                    final productSelections = allProducts.map((p) => ProductSelectionDto(
-                      produtoId: p.id,
-                      selected: prodStore.isSelected(p.id),
-                      price: p.valor,
-                    )).toList();
-
                     final service = Modular.get<BudgetService>();
                     
-                    // Log dos dados que serão enviados
-                    final budgetData = BudgetCreateDto(
-                      diasValidade: dias,
-                      usuarioId: usuarioId,
-                      cidades: [cidadeId],
-                      cidadePrincipalId: cidadeId,
-                      total: prodStore.total,
-                      products: productSelections,
-                    );
-                    
-                    print('📋 Dados do orçamento a serem enviados:');
-                    print('   Dias validade: $dias');
-                    print('   Usuario ID: $usuarioId');
-                    print('   Cidade ID: $cidadeId');
+                    print('📋 Salvando orçamento ID: ${widget.budgetId}');
                     print('   Total: ${prodStore.total}');
-                    print('   Produtos selecionados: ${productSelections.length}');
-                    print('   JSON completo: ${budgetData.toMap()}');
+                    print('   Produtos selecionados: ${prodStore.selectedIds.length}');
+                    print('   Dias de validade: $dias');
                     
                     try {
-                      final result = await service.criar(budgetData);
-                      print('✅ Orçamento criado com sucesso: $result');
+                      // Coletar IDs dos produtos selecionados
+                      final produtosSelecionados = prodStore.selectedIds.toList();
+                      
+                      // Atualizar orçamento com status "pendente", total e produtos selecionados
+                      await service.atualizar(widget.budgetId, {
+                        'orc_status': 'pendente',
+                        'orc_total': prodStore.total,
+                        'orc_dias_validade': dias,
+                        'produtos': produtosSelecionados.map((id) => {
+                          'produto_id': id,
+                          'selecionado': true,
+                        }).toList(),
+                      });
+                      
+                      // Marcar como não-rascunho para não excluir
+                      _budgetStatus = 'pendente';
+                      
+                      print('✅ Orçamento ${widget.budgetId} salvo com sucesso');
+                      print('   Status: pendente');
+                      print('   Total: R\$ ${prodStore.total}');
+                      print('   Produtos: ${produtosSelecionados.length}');
+                      
                       if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -657,10 +629,11 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                           backgroundColor: Color(0xFF56B34A),
                         ),
                       );
+                      
                       // Redirecionar para a tela principal de orçamentos
                       Modular.to.pushNamedAndRemoveUntil('/budget/', (route) => false);
                     } catch (e) {
-                      print('❌ Erro ao criar orçamento: $e');
+                      print('❌ Erro ao salvar orçamento: $e');
                       if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('Erro ao salvar: $e')),
@@ -687,6 +660,7 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                   ],
                 ),
               ),
+        ),
       ),
     );
   }

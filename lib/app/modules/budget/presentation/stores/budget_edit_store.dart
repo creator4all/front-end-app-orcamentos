@@ -97,10 +97,14 @@ abstract class _BudgetEditStore with Store {
               final produtoComSubcategoria = Map<String, dynamic>.from(produto);
               produtoComSubcategoria['subcategoria_id'] = subcategoriaId;
               
+              print('   🔍 Produto $produtoId - indicadores_etapa: ${produtoComSubcategoria['indicadores_etapa']}');
+              
               // Adicionar produto na ProductStore se não existir
               if (!_productStore.produtosPorId.containsKey(produtoId)) {
                 _productStore.addProductFromApi(produtoComSubcategoria);
                 print('   ✅ Produto $produtoId adicionado na subcategoria $subcategoriaId');
+              } else {
+                print('   ⚠️ Produto $produtoId já existe, NÃO foi adicionado novamente');
               }
               
               // Marcar/desmarcar produto

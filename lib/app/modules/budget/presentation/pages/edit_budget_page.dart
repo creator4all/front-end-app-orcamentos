@@ -405,6 +405,9 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
             if (livrosCategoria != null) ...[
               Observer(
                 builder: (_) {
+                  // Acessar selectedIds para forçar reação do Observer
+                  final _ = prodStore.selectedIds.length;
+                  
                   final subcategorias = livrosCategoria!['subcategorias'] as List? ?? [];
                   
                   // Calcular totais
@@ -466,6 +469,9 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                   padding: EdgeInsets.only(bottom: 8.h),
                   child: Observer(
                     builder: (_) {
+                      // Acessar selectedIds para forçar reação do Observer
+                      final _ = prodStore.selectedIds.length;
+                      
                       final selectedCount = prodStore.getSelectedCountForSubcategory(subId);
                       final totalCount = prodStore.getTotalCountForSubcategory(subId);
                       final totalValue = prodStore.getTotalValueForSubcategory(subId);

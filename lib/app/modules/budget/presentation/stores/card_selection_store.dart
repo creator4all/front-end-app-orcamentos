@@ -73,22 +73,16 @@ abstract class _CardSelectionStore with Store {
   int get visibleCheckboxesCount {
     int count = 0;
     
-    // Contar cards principais selecionados (Livros = 1 checkbox, independente das subcategorias)
+    // Contar cards principais selecionados (Livros = 1 checkbox na tela)
     mainCardsSelection.forEach((key, selected) {
       if (selected) count++;
     });
     
-    // Para subcategorias, contar apenas as que não pertencem a um card principal selecionado
+    // Contar TODAS as subcategorias selecionadas (cada subcategoria = 1 checkbox na tela)
+    // Exemplo: "Portal / Aplicativos" é uma subcategoria de Tecnologias e aparece como 1 checkbox
     subcategoriesSelection.forEach((subcategoryId, selected) {
       if (selected) {
-        // Verificar se esta subcategoria pertence a um card principal
-        String? mainCard = subcategoryToMainCard[subcategoryId];
-        
-        // Se não pertence a nenhum card principal OU o card principal não está selecionado
-        if (mainCard == null || mainCardsSelection[mainCard] != true) {
-          count++;
-        }
-        // Se pertence a um card principal selecionado, não contar (já foi contado no card principal)
+        count++;
       }
     });
     

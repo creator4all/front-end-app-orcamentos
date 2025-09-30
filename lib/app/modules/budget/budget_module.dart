@@ -44,8 +44,11 @@ class BudgetModule extends Module {
   List<ModularRoute> get routes => [
         ChildRoute('/', child: (context, args) => const BudgetListPage()),
         ChildRoute('/new', child: (context, args) => const NewBudgetPage()),
-        ChildRoute('/config',
-            child: (context, args) => const ConfigNewBudgetPage()),
+        ChildRoute('/config/:budgetId',
+            child: (context, args) {
+          final budgetId = int.parse(args.params['budgetId']);
+          return ConfigNewBudgetPage(budgetId: budgetId);
+        }),
         ChildRoute('/census',
             child: (context, args) => const SchoolCensusPage()),
         ChildRoute('/edit', child: (context, args) {

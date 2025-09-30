@@ -6,6 +6,8 @@ import 'package:multimidiaapp/stores/store_provider.dart';
 
 import '../../../../shared/widgets/custom_top_bar.dart';
 import 'multi_city_school_census.dart';
+import '../../external/services/budget_service.dart';
+import '../../domain/models/budget_create.dart';
 
 class NewBudgetPage extends StatefulWidget {
   const NewBudgetPage({super.key});
@@ -341,16 +343,59 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                           );
                           return;
                         }
+                        
+                        // Carregar censo
                         await _censo
                             .carregarCensoPorCidade(_geo.cidadeSelecionada!.id)
                             .catchError((_) async {
                           await _censo.carregarGruposCenso();
                         });
-                        Modular.to.pushNamed('/budget/config', arguments: {
-                          'estado': _geo.estadoSelecionado,
-                          'cidade': _geo.cidadeSelecionada,
-                          'censo': _censo.censo,
-                        });
+                        
+                        // Criar orçamento como rascunho
+                        try {
+                          final budgetService = Modular.get<BudgetService>();
+                          
+                          // Criar DTO com dados mínimos
+                          final dto = BudgetCreateDto(
+                            nome: _geo.cidadeSelecionada!.nome,
+                            diasValidade: 60,
+                            cidades: [_geo.cidadeSelecionada!.id],
+                            cidadePrincipalId: _geo.cidadeSelecionada!.id,
+                            total: 0.0, // Será calculado depois
+                            usuarioId: 1, // TODO: pegar do auth
+                            products: [], // Sem produtos inicialmente
+                          );
+                          
+                          // Criar com status rascunho
+                          final orcamento = await budgetService.criar(dto, status: 'rascunho');
+                          
+                          print('📦 Resposta completa: $orcamento');
+                          print('📦 Keys disponíveis: ${orcamento.keys.toList()}');
+                          
+                          // Extrair ID do orçamento (pode vir como 'id' ou 'orc_orcamentoId')
+                          final budgetId = orcamento['id'] ?? orcamento['orc_orcamentoId'];
+                          
+                          print('✅ Orçamento rascunho criado: $budgetId');
+                          print('✅ Tipo do budgetId: ${budgetId.runtimeType}');
+                          
+                          if (budgetId == null) {
+                            throw Exception('ID do orçamento não encontrado na resposta');
+                          }
+                          
+                          print('🚀 Navegando para: /budget/config/$budgetId');
+                          
+                          // Navegar para config passando o budgetId
+                          await Modular.to.pushNamed('/budget/config/$budgetId');
+                          
+                          print('✅ Navegação concluída');
+                        } catch (e) {
+                          print('❌ Erro ao criar orçamento rascunho: $e');
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Erro ao criar orçamento: $e')),
+                            );
+                          }
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF117BBD),

@@ -7,6 +7,7 @@ class ProductDto {
   final String? tipo;
   final String? isbn;
   final String? indicacao;
+  final List<dynamic>? indicadoresEtapa; // Indicadores do produto
 
   ProductDto({
     required this.id,
@@ -17,6 +18,7 @@ class ProductDto {
     this.tipo,
     this.isbn,
     this.indicacao,
+    this.indicadoresEtapa,
   });
 
   factory ProductDto.fromJson(Map<String, dynamic> json) {
@@ -43,6 +45,7 @@ class ProductDto {
       isbn: json['isbn']?.toString() ?? json['pro_isbn']?.toString(),
       indicacao:
           json['indicacao']?.toString() ?? json['pro_indicacao']?.toString(),
+      indicadoresEtapa: json['indicadores_etapa'] as List<dynamic>?,
     );
   }
 }

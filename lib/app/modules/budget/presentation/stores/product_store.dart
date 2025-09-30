@@ -259,6 +259,10 @@ abstract class _ProductStore with Store {
 
   @action
   void addProductFromApi(Map<String, dynamic> produtoData) {
+    print('📦 addProductFromApi chamado para produto: ${produtoData['id']}');
+    print('📦 produtoData keys: ${produtoData.keys.toList()}');
+    print('📦 indicadores_etapa: ${produtoData['indicadores_etapa']}');
+    
     // Criar ProductDto a partir dos dados da API
     final produto = ProductDto(
       id: produtoData['id'] as int,
@@ -268,7 +272,10 @@ abstract class _ProductStore with Store {
       valor: (produtoData['valor'] as num?)?.toDouble(),
       indicacao: produtoData['indicacao'] as String?,
       subcategoriaId: produtoData['subcategoria_id'] as int?,
+      indicadoresEtapa: produtoData['indicadores_etapa'] as List<dynamic>?,
     );
+    
+    print('📦 Produto criado com ${produto.indicadoresEtapa?.length ?? 0} indicadores');
 
     // Adicionar ao mapa de produtos por ID
     produtosPorId[produto.id] = produto;
