@@ -42,29 +42,29 @@ class _BudgetListPageState extends State<BudgetListPage> {
     _store.fetch();
   }
 
-  String _selectedFilter = '';
-
   void _handleSearchChanged(String query) {
-    // Aqui você pode implementar a lógica de filtragem
-    debugPrint('Search query: $query');
+    _store.setSearchQuery(query);
   }
 
   void _handleFiltersChanged(List<String> filters) {
-    // Aqui você pode implementar a lógica de filtragem
-    debugPrint('Selected filters: $filters');
-
-    // Atualiza o filtro selecionado para controlar o texto "Realizados/Arquivados"
-    setState(() {
-      _selectedFilter = filters.contains('archived') ? 'archived' : '';
-    });
+    // Sincronizar filtros da UI com a store
+    // Remover filtros que não estão mais na lista
+    for (final filter in _store.selectedFilters.toList()) {
+      if (!filters.contains(filter)) {
+        _store.toggleFilter(filter);
+      }
+    }
+    
+    // Adicionar novos filtros
+    for (final filter in filters) {
+      if (!_store.selectedFilters.contains(filter)) {
+        _store.toggleFilter(filter);
+      }
+    }
   }
 
   void _handleReset() {
-    // Aqui você pode implementar a lógica de reset
-    debugPrint('Filters reset');
-    setState(() {
-      _selectedFilter = '';
-    });
+    _store.resetFilters();
   }
 
   Future<void> _handleRenameBudget(int budgetId, String currentName) async {
@@ -116,39 +116,41 @@ class _BudgetListPageState extends State<BudgetListPage> {
             // Seção Realizados/Arquivados
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(
-                    _selectedFilter == 'archived' ? 'Arquivados' : 'Realizados',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18.sp,
-                      color: const Color(0xFF484848),
-                    ),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      Modular.to.pushNamed('/budget/new');
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF117BBD),
-                      foregroundColor: const Color(0xFFFFFFFF),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8.r),
+              child: Observer(
+                builder: (_) => Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      _store.selectedFilters.contains('arquivado') ? 'Arquivados' : 'Realizados',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18.sp,
+                        color: const Color(0xFF484848),
                       ),
-                      padding: EdgeInsets.symmetric(
-                          horizontal: 16.w, vertical: 10.h),
                     ),
-                    icon: Icon(
-                      Icons.add,
-                      size: 16.sp,
-                      color: const Color(0xFFFFFFFF),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Modular.to.pushNamed('/budget/new');
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF117BBD),
+                        foregroundColor: const Color(0xFFFFFFFF),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 16.w, vertical: 10.h),
+                      ),
+                      icon: Icon(
+                        Icons.add,
+                        size: 16.sp,
+                        color: const Color(0xFFFFFFFF),
+                      ),
+                      label: const Text('Novo Orç.'),
                     ),
-                    label: const Text('Novo Orç.'),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
 

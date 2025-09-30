@@ -20,15 +20,15 @@ class BudgetFilterWidget extends StatefulWidget {
 class _BudgetFilterWidgetState extends State<BudgetFilterWidget> {
   final TextEditingController _searchController = TextEditingController();
   final List<String> _selectedFilters = [
-    'pending'
+    'pendente'
   ]; // Pendentes marcado por padrão
 
   final List<Map<String, String>> _filterOptions = [
-    {'key': 'approved', 'label': 'Aprovados'},
-    {'key': 'not_approved', 'label': 'Não aprovados'},
-    {'key': 'expired', 'label': 'Expirados'},
-    {'key': 'pending', 'label': 'Pendentes'},
-    {'key': 'archived', 'label': 'Arquivados'},
+    {'key': 'aprovado', 'label': 'Aprovados'},
+    {'key': 'nao_aprovado', 'label': 'Não aprovados'},
+    {'key': 'expirado', 'label': 'Expirados'},
+    {'key': 'pendente', 'label': 'Pendentes'},
+    {'key': 'arquivado', 'label': 'Arquivados'},
   ];
 
   @override
@@ -60,7 +60,7 @@ class _BudgetFilterWidgetState extends State<BudgetFilterWidget> {
   void _resetFilters() {
     setState(() {
       _selectedFilters.clear();
-      _selectedFilters.add('pending'); // Volta ao padrão com "Pendentes"
+      _selectedFilters.add('pendente'); // Volta ao padrão com "Pendentes"
       _searchController.clear();
     });
     widget.onFiltersChanged?.call(_selectedFilters);
