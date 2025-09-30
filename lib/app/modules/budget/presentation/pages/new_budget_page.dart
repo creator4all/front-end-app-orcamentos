@@ -355,7 +355,9 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                         try {
                           final budgetService = Modular.get<BudgetService>();
                           
-                          // Criar DTO com dados mínimos
+                          print('📦 Criando orçamento sem produtos (backend marcará todos como selecionados)');
+                          
+                          // Criar DTO sem produtos - backend marcará TODOS como selecionados
                           final dto = BudgetCreateDto(
                             nome: _geo.cidadeSelecionada!.nome,
                             diasValidade: 60,
@@ -363,7 +365,7 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                             cidadePrincipalId: _geo.cidadeSelecionada!.id,
                             total: 0.0, // Será calculado depois
                             usuarioId: 1, // TODO: pegar do auth
-                            products: [], // Sem produtos inicialmente
+                            products: [], // Backend marcará todos como selecionados
                           );
                           
                           // Criar com status rascunho

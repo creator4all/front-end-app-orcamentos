@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'profile_modal.dart';
@@ -139,7 +140,7 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
           onClose: () => Navigator.of(context).pop(),
           onEditProfile: () {
             Navigator.of(context).pop();
-            // TODO: Implementar navegação para editar perfil
+            Modular.to.pushNamed('/profile/');
           },
           onConfigureProducts: () {
             Navigator.of(context).pop();

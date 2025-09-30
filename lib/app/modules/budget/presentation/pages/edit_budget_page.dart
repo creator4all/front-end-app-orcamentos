@@ -287,7 +287,10 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
   }
 
   void _handleShareTap() {
-    ExportPdfModal.show(context: context);
+    ExportPdfModal.show(
+      context: context,
+      orcamentoId: widget.budget.id,
+    );
   }
 
   Widget _buildBudgetSummary() {
