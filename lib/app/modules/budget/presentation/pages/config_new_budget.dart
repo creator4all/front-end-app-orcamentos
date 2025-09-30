@@ -600,18 +600,25 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> with WidgetsB
                     print('   Dias de validade: $dias');
                     
                     try {
-                      // Coletar IDs dos produtos selecionados
-                      final produtosSelecionados = prodStore.selectedIds.toList();
+                      // Coletar TODOS os produtos com seus estados de seleção
+                      final todosProdutos = prodStore.produtosPorId.values.map((produto) {
+                        final selecionado = prodStore.selectedIds.contains(produto.id);
+                        return {
+                          'produto_id': produto.id,
+                          'selecionado': selecionado,
+                        };
+                      }).toList();
                       
-                      // Atualizar orçamento com status "pendente", total e produtos selecionados
+                      print('📤 Enviando ${todosProdutos.length} produtos para o backend');
+                      print('📤 Produtos selecionados: ${prodStore.selectedIds.length}');
+                      print('📤 Produtos não selecionados: ${todosProdutos.length - prodStore.selectedIds.length}');
+                      
+                      // Atualizar orçamento com status "pendente", total e TODOS os produtos
                       await service.atualizar(widget.budgetId, {
                         'orc_status': 'pendente',
                         'orc_total': prodStore.total,
                         'orc_dias_validade': dias,
-                        'produtos': produtosSelecionados.map((id) => {
-                          'produto_id': id,
-                          'selecionado': true,
-                        }).toList(),
+                        'produtos': todosProdutos, // TODOS os produtos, não apenas os selecionados
                       });
                       
                       // Marcar como não-rascunho para não excluir
@@ -620,7 +627,8 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> with WidgetsB
                       print('✅ Orçamento ${widget.budgetId} salvo com sucesso');
                       print('   Status: pendente');
                       print('   Total: R\$ ${prodStore.total}');
-                      print('   Produtos: ${produtosSelecionados.length}');
+                      print('   Produtos enviados: ${todosProdutos.length}');
+                      print('   Produtos selecionados: ${prodStore.selectedIds.length}');
                       
                       if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
