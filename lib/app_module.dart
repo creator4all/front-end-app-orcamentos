@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'app/modules/auth/auth_module.dart';
 import 'app/modules/budget/budget_module.dart';
 import 'app/modules/profile/profile_module.dart';
+import 'app/modules/partner/partner_module.dart';
 import 'app/shared/core/http/dio_client.dart';
 
 class AppModule extends Module {
@@ -22,6 +23,9 @@ class AppModule extends Module {
 
         // Profile Module
         ModuleRoute('/profile', module: ProfileModule()),
+
+        // Partner Module
+        ModuleRoute('/partner', module: PartnerModule()),
 
         // Redirect to auth by default
         RedirectRoute('/', to: '/auth/login'),

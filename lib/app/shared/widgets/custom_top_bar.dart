@@ -142,6 +142,10 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
             Navigator.of(context).pop();
             Modular.to.pushNamed('/profile/');
           },
+          onEditCompany: () {
+            Navigator.of(context).pop();
+            Modular.to.pushNamed('/partner/edit');
+          },
           onConfigureProducts: () {
             Navigator.of(context).pop();
             // TODO: Implementar navegação para configurar produtos
