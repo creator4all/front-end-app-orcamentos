@@ -8,6 +8,7 @@ class ProfileModal extends StatefulWidget {
   final String? userImageUrl;
   final VoidCallback onClose;
   final VoidCallback? onEditProfile;
+  final VoidCallback? onEditCompany;
   final VoidCallback? onConfigureProducts;
   final VoidCallback? onPartnerProspecting;
   final VoidCallback? onAdministrativeManagement;
@@ -24,6 +25,7 @@ class ProfileModal extends StatefulWidget {
     this.userImageUrl,
     required this.onClose,
     this.onEditProfile,
+    this.onEditCompany,
     this.onConfigureProducts,
     this.onPartnerProspecting,
     this.onAdministrativeManagement,
@@ -211,6 +213,14 @@ class _ProfileModalState extends State<ProfileModal>
                                     title: 'Editar perfil',
                                     onTap: widget.onEditProfile,
                                   ),
+                                  if (widget.onEditCompany != null) ...[
+                                    SizedBox(height: 12.h),
+                                    _ProfileMenuItem(
+                                      icon: Icons.business,
+                                      title: 'Editar empresa',
+                                      onTap: widget.onEditCompany,
+                                    ),
+                                  ],
                                   SizedBox(height: 12.h),
                                   _ProfileMenuItem(
                                     icon: Icons.inventory,
