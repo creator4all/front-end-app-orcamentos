@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../../shared/widgets/widgets.dart';
+import '../../../../shared/widgets/rename_budget_modal.dart';
+import '../stores/budget_list_store.dart';
+import '../../external/services/budget_service.dart';
 
 class BudgetListPage extends StatefulWidget {
   const BudgetListPage({super.key});
@@ -12,6 +17,31 @@ class BudgetListPage extends StatefulWidget {
 }
 
 class _BudgetListPageState extends State<BudgetListPage> {
+  late final BudgetListStore _store;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _store = Modular.get<BudgetListStore>();
+    _checkAuthAndFetch();
+  }
+
+  Future<void> _checkAuthAndFetch() async {
+    // Verificar se há token de autenticação
+    try {
+      final storage = FlutterSecureStorage();
+      final token = await storage.read(key: 'auth_token');
+      print('🔐 Token encontrado: ${token != null ? 'SIM' : 'NÃO'}');
+      if (token != null) {
+        print('🔐 Token (primeiros 20 chars): ${token.substring(0, token.length > 20 ? 20 : token.length)}...');
+      }
+    } catch (e) {
+      print('❌ Erro ao verificar token: $e');
+    }
+    
+    _store.fetch();
+  }
+
   String _selectedFilter = '';
 
   void _handleSearchChanged(String query) {
@@ -37,6 +67,32 @@ class _BudgetListPageState extends State<BudgetListPage> {
     });
   }
 
+  Future<void> _handleRenameBudget(int budgetId, String currentName) async {
+    try {
+      await RenameBudgetModal.show(
+        context: context,
+        currentName: currentName,
+        onRename: (String newName) async {
+          // Chamar o serviço para renomear o orçamento
+          final service = Modular.get<BudgetService>();
+          await service.renomear(budgetId, newName);
+          
+          // Atualizar a lista
+          _store.refresh();
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao renomear orçamento: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -49,123 +105,159 @@ class _BudgetListPageState extends State<BudgetListPage> {
       ),
       body: SafeArea(
         child: Column(
-        children: [
-          // Componente de filtros
-          BudgetFilterWidget(
-            onSearchChanged: _handleSearchChanged,
-            onFiltersChanged: _handleFiltersChanged,
-            onReset: _handleReset,
-          ),
+          children: [
+            // Componente de filtros
+            BudgetFilterWidget(
+              onSearchChanged: _handleSearchChanged,
+              onFiltersChanged: _handleFiltersChanged,
+              onReset: _handleReset,
+            ),
 
-          // Seção Realizados/Arquivados
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(
-                  _selectedFilter == 'archived' ? 'Arquivados' : 'Realizados',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18.sp,
-                    color: const Color(0xFF484848),
-                  ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    Modular.to.pushNamed('/budget/new');
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF117BBD),
-                    foregroundColor: const Color(0xFFFFFFFF),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8.r),
+            // Seção Realizados/Arquivados
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    _selectedFilter == 'archived' ? 'Arquivados' : 'Realizados',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18.sp,
+                      color: const Color(0xFF484848),
                     ),
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
                   ),
-                  icon: Icon(
-                    Icons.add,
-                    size: 16.sp,
-                    color: const Color(0xFFFFFFFF),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Modular.to.pushNamed('/budget/new');
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF117BBD),
+                      foregroundColor: const Color(0xFFFFFFFF),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 16.w, vertical: 10.h),
+                    ),
+                    icon: Icon(
+                      Icons.add,
+                      size: 16.sp,
+                      color: const Color(0xFFFFFFFF),
+                    ),
+                    label: const Text('Novo Orç.'),
                   ),
-                  label: const Text('Novo Orç.'),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
 
-          // Lista de orçamentos
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 10.h),
-              children: [
-                // Exemplo para Administrador
-                BudgetCardWidget(
-                  title: 'Barra Velha - SC',
-                  partner: 'XPTO',
-                  seller: 'Pedro Penha',
-                  budgetCode: 'D-4202107-119',
-                  dueDate: DateTime(2024, 3, 15),
-                  totalValue: 45282630.80,
-                  daysRemaining: 10,
-                  status: BudgetStatus.pending,
-                  userRole: UserRole.admin,
-                  onTap: () {
-                    // Navegar para detalhes do orçamento
-                  },
-                ),
+            Expanded(
+              child: Observer(
+                builder: (_) {
+                  if (_store.isLoading && _store.items.isEmpty) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (_store.error != null && _store.items.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text('Erro: ${_store.error}'),
+                          SizedBox(height: 16.h),
+                          ElevatedButton(
+                            onPressed: () => _store.refresh(),
+                            child: const Text('Tentar novamente'),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  if (_store.items.isEmpty) {
+                    return RefreshIndicator(
+                      onRefresh: () => _store.refresh(),
+                      child: ListView(
+                        children: [
+                          SizedBox(height: 200.h),
+                          const Center(
+                              child: Text('Nenhum orçamento encontrado')),
+                        ],
+                      ),
+                    );
+                  }
+                  return RefreshIndicator(
+                    onRefresh: () => _store.refresh(),
+                    child: ListView.builder(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 10.w, vertical: 10.h),
+                      itemCount: _store.items.length,
+                      itemBuilder: (context, index) {
+                        final b = _store.items[index];
 
-                // Exemplo para Gestor
-                BudgetCardWidget(
-                  title: 'Projeto Centro Comercial',
-                  seller: 'Ana Silva',
-                  budgetCode: 'D-4202107-120',
-                  dueDate: DateTime(2024, 4, 20),
-                  totalValue: 125000.50,
-                  daysRemaining: 5,
-                  status: BudgetStatus.approved,
-                  userRole: UserRole.manager,
-                  onTap: () {
-                    // Navegar para detalhes do orçamento
-                  },
-                ),
+                        // Mapear status da API para enum
+                        BudgetStatus status;
+                        switch (b.status.toLowerCase()) {
+                          case 'aprovado':
+                            status = BudgetStatus.approved;
+                            break;
+                          case 'reprovado':
+                            status = BudgetStatus.notApproved;
+                            break;
+                          case 'expirado':
+                            status = BudgetStatus.expired;
+                            break;
+                          default:
+                            status = BudgetStatus.pending;
+                        }
 
-                // Exemplo para Vendedor
-                BudgetCardWidget(
-                  title: 'Residencial Premium',
-                  budgetCode: 'D-4202107-121',
-                  dueDate: DateTime(2024, 2, 10),
-                  totalValue: 85000.00,
-                  daysRemaining: -5,
-                  status: BudgetStatus.expired,
-                  userRole: UserRole.seller,
-                  onTap: () {
-                    // Navegar para detalhes do orçamento
-                  },
-                ),
+                        // Calcular dias restantes
+                        int daysRemaining = 0;
+                        if (b.dataValidade != null) {
+                          final now = DateTime.now();
+                          final difference =
+                              b.dataValidade!.difference(now).inDays;
+                          daysRemaining = difference > 0 ? difference : 0;
+                        }
 
-                // Exemplo com orçamento arquivado
-                BudgetCardWidget(
-                  title: 'Shopping Center Norte',
-                  partner: 'ABC Construtora',
-                  seller: 'Carlos Santos',
-                  budgetCode: 'D-4202107-122',
-                  dueDate: DateTime(2024, 1, 15),
-                  totalValue: 250000.75,
-                  daysRemaining: 0,
-                  status: BudgetStatus.notApproved,
-                  isArchived: true,
-                  userRole: UserRole.admin,
-                  onTap: () {
-                    // Navegar para detalhes do orçamento
-                  },
-                ),
-              ],
+                        return GestureDetector(
+                          onLongPress: () {
+                            _handleRenameBudget(
+                              b.id,
+                              b.nome ?? 'Orçamento #${b.id}',
+                            );
+                          },
+                          child: BudgetCardWidget(
+                            title: b.nome ?? 'Orçamento #${b.id}',
+                            partner:
+                                null, // TODO: Implementar quando tiver dados do parceiro
+                            seller:
+                                null, // TODO: Implementar quando tiver dados do vendedor
+                            budgetCode: 'ORC-${b.id.toString().padLeft(4, '0')}',
+                            dueDate: b.dataValidade ??
+                                DateTime.now()
+                                    .add(Duration(days: b.diasValidade)),
+                            totalValue: b.total,
+                            daysRemaining: daysRemaining,
+                            status: status,
+                            isArchived: b.status.toLowerCase() == 'arquivado',
+                            userRole: UserRole
+                                .admin, // TODO: Implementar baseado no usuário logado
+                            onTap: () {
+                              // Navigate to edit budget page
+                              Modular.to.pushNamed(
+                                '/budget/edit',
+                                arguments: {'budget': b},
+                              );
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
         ),
       ),
     );
