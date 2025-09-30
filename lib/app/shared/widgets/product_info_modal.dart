@@ -317,9 +317,11 @@ class CheckboxGroup {
 class CheckboxItem {
   final String label;
   bool isSelected;
+  final dynamic data; // Campo para armazenar dados adicionais (ex: indicadores)
 
   CheckboxItem({
     required this.label,
     this.isSelected = false,
+    this.data,
   });
 }

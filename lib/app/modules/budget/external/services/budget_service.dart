@@ -33,12 +33,37 @@ class BudgetService {
         .toList();
   }
 
-  Future<Map<String, dynamic>> criar(BudgetCreateDto dto) async {
-    final res = await _api.post('/api/orcamentos/', dto.toMap());
-    final data = res is Map<String, dynamic>
-        ? (res['dados'] ?? res['data'] ?? res)
-        : res;
-    return Map<String, dynamic>.from(data as Map);
+  Future<Map<String, dynamic>> criar(BudgetCreateDto dto, {String? status}) async {
+    final dados = dto.toMap();
+    
+    // Adicionar status se fornecido
+    if (status != null) {
+      dados['orc_status'] = status;
+    }
+    
+    final res = await _api.post('/api/orcamentos/', dados);
+    
+    print('🔍 Resposta bruta da API: $res');
+    
+    // Extrair dados corretamente - estrutura: {success, data: {dados: {...}}}
+    Map<String, dynamic> data;
+    if (res is Map<String, dynamic>) {
+      // Primeiro nível: data
+      final dataLevel1 = res['data'] as Map<String, dynamic>?;
+      if (dataLevel1 != null) {
+        // Segundo nível: dados
+        data = dataLevel1['dados'] as Map<String, dynamic>? ?? dataLevel1;
+      } else {
+        // Fallback: tentar 'dados' direto
+        data = res['dados'] as Map<String, dynamic>? ?? res;
+      }
+    } else {
+      data = res as Map<String, dynamic>;
+    }
+    
+    print('🔍 Dados extraídos finais: $data');
+    print('🔍 ID encontrado: ${data['id']}');
+    return data;
   }
 
   Future<Map<String, dynamic>> atualizar(int budgetId, Map<String, dynamic> updateData) async {
@@ -81,5 +106,29 @@ class BudgetService {
     
     print('✅ Orçamento renomeado com sucesso');
     return Map<String, dynamic>.from(data as Map);
+  }
+
+  /// Salva indicadores de um produto em um orçamento
+  Future<void> salvarIndicadoresProduto(
+    int orcamentoId,
+    int produtoId,
+    List<Map<String, dynamic>> indicadores,
+  ) async {
+    print('💾 Salvando indicadores do produto $produtoId no orçamento $orcamentoId');
+    print('📋 Indicadores: $indicadores');
+    
+    await _api.post(
+      '/api/orcamentos/$orcamentoId/produtos/$produtoId/indicadores',
+      {'indicadores': indicadores},
+    );
+    
+    print('✅ Indicadores salvos com sucesso');
+  }
+
+  /// Excluir orçamento
+  Future<void> excluir(int budgetId) async {
+    print('🗑️ Excluindo orçamento ID: $budgetId');
+    await _api.delete('/api/orcamentos/$budgetId');
+    print('✅ Orçamento excluído com sucesso');
   }
 }

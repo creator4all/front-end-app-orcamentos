@@ -6,6 +6,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../modules/budget/presentation/stores/books_subcategory_store.dart';
 import '../../modules/budget/presentation/stores/product_store.dart';
 import '../../modules/budget/presentation/stores/card_selection_store.dart';
+import '../../modules/budget/presentation/stores/budget_edit_store.dart';
+import '../../modules/budget/external/services/budget_service.dart';
 import 'book_item.dart';
 import 'custom_modal.dart';
 import 'product_info_modal.dart';
@@ -112,15 +114,124 @@ class BooksModal {
     );
   }
 
+  static void _showProductInfo(
+    BuildContext context,
+    dynamic produto,
+    String subcategoriaNome,
+    String unitValue,
+  ) {
+    print('🔍 _showProductInfo chamado para produto: ${produto.id}');
+    print('🔍 Produto: ${produto.nome}');
+    print('🔍 indicadoresEtapa: ${produto.indicadoresEtapa}');
+    
+    // Processar indicadores_etapa do produto
+    final indicadoresEtapa = produto.indicadoresEtapa ?? [];
+    
+    print('🔍 Total de indicadores: ${indicadoresEtapa.length}');
+    
+    // Agrupar indicadores por grupo_nome
+    final Map<String, List<Map<String, dynamic>>> indicadoresPorGrupo = {};
+    
+    for (final ind in indicadoresEtapa) {
+      final grupoNome = ind['grupo_nome'] as String? ?? 'Sem Grupo';
+      if (!indicadoresPorGrupo.containsKey(grupoNome)) {
+        indicadoresPorGrupo[grupoNome] = [];
+      }
+      indicadoresPorGrupo[grupoNome]!.add(ind);
+    }
+    
+    // Converter para CheckboxGroups
+    final checkboxGroups = indicadoresPorGrupo.entries.map((entry) {
+      return CheckboxGroup(
+        title: entry.key,
+        items: entry.value.map((ind) {
+          return CheckboxItem(
+            label: ind['indicador_nome'] as String? ?? '',
+            isSelected: ind['selecionado'] as bool? ?? false,
+            data: ind, // Guardar dados completos para salvar depois
+          );
+        }).toList(),
+      );
+    }).toList();
+    
+    ProductInfoModal.show(
+      context: context,
+      productInfo: {
+        'Categoria': 'Livros',
+        'Subcategoria': subcategoriaNome,
+        'Tipo': produto.tipo ?? '—',
+        'Código': produto.codigo ?? '—',
+        'ISBN': produto.isbn ?? '—',
+        'Valor Total': unitValue,
+      },
+      checkboxGroups: checkboxGroups,
+      unitValue: unitValue,
+      onSave: () async {
+        // Coletar indicadores modificados
+        final indicadoresParaSalvar = <Map<String, dynamic>>[];
+        
+        for (final group in checkboxGroups) {
+          for (final item in group.items) {
+            final indData = item.data as Map<String, dynamic>;
+            indicadoresParaSalvar.add({
+              'produto_indicador_id': indData['produto_indicador_id'],
+              'selecionado': item.isSelected,
+            });
+          }
+        }
+        
+        // Buscar orçamento ID e salvar
+        final budgetEditStore = Modular.get<BudgetEditStore>();
+        final orcamentoId = budgetEditStore.budgetData?['id'] as int?;
+        
+        if (orcamentoId != null) {
+          try {
+            final budgetService = Modular.get<BudgetService>();
+            await budgetService.salvarIndicadoresProduto(
+              orcamentoId,
+              produto.id,
+              indicadoresParaSalvar,
+            );
+            
+            if (context.mounted) {
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('$subcategoriaNome - Indicadores salvos com sucesso!'),
+                  backgroundColor: const Color(0xFF56B34A),
+                ),
+              );
+            }
+          } catch (e) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Erro ao salvar indicadores: $e'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          }
+        }
+      },
+    );
+  }
+
   static Future<T?> showBookProducts<T>({
     required BuildContext context,
     required int subcategoriaId,
     required String subcategoriaNome,
   }) {
     final prodStore = Modular.get<ProductStore>();
-    if (prodStore.lastSubcategoriaId != subcategoriaId &&
-        !prodStore.isLoading) {
+    
+    // Não buscar produtos novamente se já existem na subcategoria
+    // (evita sobrescrever dados do orçamento que incluem indicadores)
+    final produtosExistentes = prodStore.getProdutosPorSubcategoria(subcategoriaId);
+    if (produtosExistentes.isEmpty && prodStore.lastSubcategoriaId != subcategoriaId && !prodStore.isLoading) {
+      print('🔄 Buscando produtos da subcategoria $subcategoriaId...');
       prodStore.fetchProdutos(subcategoriaId);
+    } else {
+      print('✅ Usando produtos já carregados da subcategoria $subcategoriaId (${produtosExistentes.length} produtos)');
     }
 
     return CustomModal.show<T>(
@@ -155,29 +266,7 @@ class BooksModal {
                     Modular.get<ProductStore>().setSelected(p.id, v ?? false);
                   },
                   onActionTap: () {
-                    ProductInfoModal.show(
-                      context: context,
-                      productInfo: {
-                        'Categoria': 'Livros',
-                        'Subcategoria': subcategoriaNome,
-                        'Tipo': p.tipo ?? '—',
-                        'Código': p.codigo ?? '—',
-                        'ISBN': p.isbn ?? '—',
-                        'Valor Total': unitValue,
-                      },
-                      checkboxGroups: const [],
-                      unitValue: unitValue,
-                      onSave: () {
-                        Navigator.of(context).pop();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                                '$subcategoriaNome - Produtos salvos com sucesso!'),
-                            backgroundColor: const Color(0xFF56B34A),
-                          ),
-                        );
-                      },
-                    );
+                    _showProductInfo(context, p, subcategoriaNome, unitValue);
                   },
                 );
               }),
