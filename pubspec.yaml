@@ -33,6 +33,8 @@ dependencies:
   skeletonizer: ^0.6.0
   copy_with_extension: ^5.0.0
   flutter_svg: ^2.0.9
+  intl: ^0.18.0
+  image_picker: ^1.0.4
 
 dev_dependencies:
   flutter_test:

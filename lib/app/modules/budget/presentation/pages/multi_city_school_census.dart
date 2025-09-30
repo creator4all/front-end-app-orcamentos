@@ -4,7 +4,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../shared/widgets/custom_top_bar.dart';
 import '../../../../shared/widgets/city_badge_widget.dart';
 import '../../../../shared/widgets/city_selection_modal.dart';
-import '../../../../modules/budget/presentation/pages/config_new_budget.dart';
 
 class MultiCitySchoolCensusPage extends StatefulWidget {
   const MultiCitySchoolCensusPage({super.key});
@@ -226,12 +225,20 @@ class _MultiCitySchoolCensusPageState extends State<MultiCitySchoolCensusPage> {
           onPressed: () {
             // TODO: Implement save logic
 
-            // Navigate to config_new_budget.dart
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (context) => const ConfigNewBudgetPage(),
+            // TODO: Implementar fluxo de múltiplas cidades com rascunho
+            // Temporariamente desabilitado - usar fluxo principal (new_budget_page)
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Fluxo de múltiplas cidades em desenvolvimento. Use o fluxo principal.'),
               ),
             );
+            
+            // Navigate to config_new_budget.dart
+            // Navigator.of(context).pushReplacement(
+            //   MaterialPageRoute(
+            //     builder: (context) => const ConfigNewBudgetPage(budgetId: ???),
+            //   ),
+            // );
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF56B34A),
