@@ -131,4 +131,52 @@ class BudgetService {
     await _api.delete('/api/orcamentos/$budgetId');
     print('✅ Orçamento excluído com sucesso');
   }
+
+  /// Gera PDF do orçamento
+  Future<Map<String, dynamic>> gerarPdf({
+    required int orcamentoId,
+    required String nomeVendedor,
+    required String cargo,
+    required String telefone,
+    String? url,
+    String? logoBase64,
+  }) async {
+    print('📄 Gerando PDF do orçamento ID: $orcamentoId');
+    
+    final dados = {
+      'nome_vendedor': nomeVendedor,
+      'cargo': cargo,
+      'telefone': telefone,
+    };
+
+    if (url != null && url.isNotEmpty) {
+      dados['url'] = url;
+    }
+
+    if (logoBase64 != null && logoBase64.isNotEmpty) {
+      dados['logo'] = logoBase64;
+    }
+
+    final res = await _api.post('/api/orcamentos/$orcamentoId/pdf', dados);
+    
+    print('🔍 [BudgetService] Resposta bruta: $res');
+    print('🔍 [BudgetService] Tipo da resposta: ${res.runtimeType}');
+    
+    if (res is! Map<String, dynamic>) {
+      throw Exception('Resposta da API não é um Map: ${res.runtimeType}');
+    }
+    
+    // Extrair dados conforme estrutura da API
+    final data = res['dados'] ?? res['data'] ?? res;
+    
+    print('🔍 [BudgetService] Dados extraídos: $data');
+    print('🔍 [BudgetService] Tipo dos dados: ${data.runtimeType}');
+    
+    if (data is! Map) {
+      throw Exception('Dados extraídos não são um Map: ${data.runtimeType}');
+    }
+    
+    print('✅ PDF gerado com sucesso');
+    return Map<String, dynamic>.from(data as Map);
+  }
 }

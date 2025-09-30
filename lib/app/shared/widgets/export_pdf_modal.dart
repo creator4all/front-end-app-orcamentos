@@ -1,21 +1,33 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'custom_modal.dart';
+import '../../modules/budget/external/services/budget_service.dart';
+import '../../../stores/auth_store.dart';
 
 /// Modal para exportar PDF com informações do vendedor e logo personalizada
 class ExportPdfModal extends StatefulWidget {
-  const ExportPdfModal({super.key});
+  final int orcamentoId;
+  
+  const ExportPdfModal({
+    super.key,
+    required this.orcamentoId,
+  });
 
   /// Método estático para mostrar o modal
   static Future<T?> show<T>({
     required BuildContext context,
+    required int orcamentoId,
   }) {
     return CustomModal.show<T>(
       context: context,
       title: 'Exportar PDF',
-      content: const _ExportPdfContent(),
+      content: _ExportPdfContent(orcamentoId: orcamentoId),
     );
   }
 
@@ -26,12 +38,14 @@ class ExportPdfModal extends StatefulWidget {
 class _ExportPdfModalState extends State<ExportPdfModal> {
   @override
   Widget build(BuildContext context) {
-    return const _ExportPdfContent();
+    return _ExportPdfContent(orcamentoId: widget.orcamentoId);
   }
 }
 
 class _ExportPdfContent extends StatefulWidget {
-  const _ExportPdfContent();
+  final int orcamentoId;
+  
+  const _ExportPdfContent({required this.orcamentoId});
 
   @override
   State<_ExportPdfContent> createState() => _ExportPdfContentState();
@@ -47,6 +61,39 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
   // Variáveis para gerenciar a logo
   File? _logoImage;
   final ImagePicker _picker = ImagePicker();
+  
+  // Estado de loading
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _preencherDadosUsuario();
+  }
+
+  void _preencherDadosUsuario() {
+    try {
+      final authStore = Modular.get<AuthStore>();
+      final user = authStore.user;
+      
+      if (user != null) {
+        // Preencher nome
+        _nomeVendedorController.text = user.name;
+        
+        // Preencher cargo baseado no role
+        _cargoController.text = user.normalizedRole;
+        
+        // URL padrão (pode ser configurada)
+        _urlController.text = 'www.multimidiaeducacional.com.br';
+        
+        print('✅ Dados do usuário preenchidos automaticamente');
+        print('   Nome: ${user.name}');
+        print('   Cargo: ${user.normalizedRole}');
+      }
+    } catch (e) {
+      print('⚠️ Erro ao carregar dados do usuário: $e');
+    }
+  }
 
   @override
   void dispose() {
@@ -274,21 +321,31 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
       width: double.infinity,
       height: 48.h,
       child: ElevatedButton(
-        onPressed: _handleSharePdf,
+        onPressed: _isLoading ? null : _handleSharePdf,
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF56B34A),
+          disabledBackgroundColor: Colors.grey,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8.r),
           ),
         ),
-        child: Text(
-          'Compartilhar PDF',
-          style: TextStyle(
-            fontSize: 16.sp,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
+        child: _isLoading
+            ? SizedBox(
+                width: 24.w,
+                height: 24.h,
+                child: const CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              )
+            : Text(
+                'Compartilhar PDF',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
       ),
     );
   }
@@ -346,7 +403,7 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
     }
   }
 
-  void _handleSharePdf() {
+  Future<void> _handleSharePdf() async {
     // Validar campos obrigatórios
     if (_nomeVendedorController.text.trim().isEmpty) {
       _showErrorMessage('Nome do vendedor é obrigatório');
@@ -363,16 +420,130 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
       return;
     }
 
-    // TODO: Implementar a lógica de geração e compartilhamento do PDF
-    // Por enquanto, apenas mostrar uma mensagem de sucesso
-    Navigator.of(context).pop();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('PDF gerado e compartilhado com sucesso!'),
-        backgroundColor: Color(0xFF56B34A),
-        duration: Duration(seconds: 3),
-      ),
-    );
+    print('🚀 [Modal] Iniciando geração de PDF...');
+    
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      print('🔧 [Modal] Buscando BudgetService...');
+      // Buscar BudgetService via Modular
+      final budgetService = Modular.get<BudgetService>();
+      print('✅ [Modal] BudgetService obtido');
+
+      // Converter logo para base64 se existir
+      String? logoBase64;
+      if (_logoImage != null) {
+        print('📸 [Modal] Convertendo logo para base64...');
+        final bytes = await _logoImage!.readAsBytes();
+        logoBase64 = base64Encode(bytes);
+        print('✅ [Modal] Logo convertida');
+      }
+
+      print('📡 [Modal] Chamando API para gerar PDF...');
+      // Chamar API para gerar PDF
+      final result = await budgetService.gerarPdf(
+        orcamentoId: widget.orcamentoId,
+        nomeVendedor: _nomeVendedorController.text.trim(),
+        cargo: _cargoController.text.trim(),
+        telefone: _telefoneController.text.trim(),
+        url: _urlController.text.trim().isNotEmpty ? _urlController.text.trim() : null,
+        logoBase64: logoBase64,
+      );
+
+      print('✅ [Modal] API retornou dados');
+      print('🔍 [Modal] Resposta da API: $result');
+      print('🔍 [Modal] Tipo do result: ${result.runtimeType}');
+      print('🔍 [Modal] Keys do result: ${result.keys.toList()}');
+
+      // Extrair dados do envelope da API
+      // A resposta vem como: {sucesso: true, dados: {pdf: "...", nome_arquivo: "..."}, statusCodeHttp: 200}
+      final dados = result['dados'] as Map<String, dynamic>?;
+      
+      if (dados == null) {
+        print('❌ [Modal] Campo dados é null!');
+        throw Exception('Resposta da API não contém dados');
+      }
+
+      print('🔍 [Modal] Dados extraídos, keys: ${dados.keys.toList()}');
+
+      // Extrair PDF em base64 com tratamento de erro
+      print('🔍 [Modal] Verificando campo pdf...');
+      if (dados['pdf'] == null) {
+        print('❌ [Modal] Campo pdf é null!');
+        throw Exception('PDF não foi gerado pela API');
+      }
+      
+      print('✅ [Modal] Campo pdf existe, extraindo...');
+      final pdfBase64 = dados['pdf'] as String;
+      final nomeArquivo = dados['nome_arquivo'] as String? ?? 'orcamento.pdf';
+      print('✅ [Modal] PDF extraído: ${pdfBase64.substring(0, 50)}...');
+
+      print('📄 [Modal] PDF recebido, tamanho: ${pdfBase64.length} caracteres');
+
+      // Decodificar e salvar PDF
+      print('🔄 [Modal] Decodificando PDF...');
+      final pdfBytes = base64Decode(pdfBase64);
+      print('✅ [Modal] PDF decodificado, tamanho: ${pdfBytes.length} bytes');
+      
+      print('📁 [Modal] Obtendo diretório temporário...');
+      final tempDir = await getTemporaryDirectory();
+      print('✅ [Modal] Diretório temporário: ${tempDir.path}');
+      
+      final file = File('${tempDir.path}/$nomeArquivo');
+      print('💾 [Modal] Salvando arquivo em: ${file.path}');
+      await file.writeAsBytes(pdfBytes);
+      print('✅ [Modal] Arquivo salvo');
+      
+      final fileExists = await file.exists();
+      print('📄 [Modal] Arquivo existe: $fileExists');
+      
+      if (!fileExists) {
+        throw Exception('Arquivo não foi salvo corretamente');
+      }
+
+      // Compartilhar PDF usando o share nativo (ANTES de fechar a modal)
+      print('📤 [Modal] Iniciando compartilhamento...');
+      print('📤 [Modal] Arquivo: ${file.path}');
+      
+      final shareResult = await Share.shareXFiles(
+        [XFile(file.path)],
+        text: 'Orçamento - ${_nomeVendedorController.text.trim()}',
+        subject: 'Orçamento - ${_nomeVendedorController.text.trim()}',
+      );
+      
+      print('✅ [Modal] Compartilhamento concluído');
+      print('📤 [Modal] Status: ${shareResult.status}');
+
+      // Fechar modal DEPOIS do compartilhamento
+      print('🚪 [Modal] Fechando modal...');
+      if (mounted) {
+        Navigator.of(context).pop();
+        print('✅ [Modal] Modal fechada');
+        
+        // Mostrar mensagem de sucesso
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('PDF gerado e compartilhado com sucesso!'),
+            backgroundColor: Color(0xFF56B34A),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e, stackTrace) {
+      // Mostrar erro
+      print('❌ [Modal] ERRO: $e');
+      print('❌ [Modal] Stack trace: $stackTrace');
+      
+      setState(() {
+        _isLoading = false;
+      });
+      
+      if (mounted) {
+        _showErrorMessage('Erro ao gerar PDF: $e');
+      }
+    }
   }
 
   void _showErrorMessage(String message) {

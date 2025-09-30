@@ -57,6 +57,54 @@ mixin _$BudgetListStore on _BudgetListStore, Store {
     });
   }
 
+  late final _$allItemsAtom =
+      Atom(name: '_BudgetListStore.allItems', context: context);
+
+  @override
+  List<BudgetSummaryDto> get allItems {
+    _$allItemsAtom.reportRead();
+    return super.allItems;
+  }
+
+  @override
+  set allItems(List<BudgetSummaryDto> value) {
+    _$allItemsAtom.reportWrite(value, super.allItems, () {
+      super.allItems = value;
+    });
+  }
+
+  late final _$searchQueryAtom =
+      Atom(name: '_BudgetListStore.searchQuery', context: context);
+
+  @override
+  String get searchQuery {
+    _$searchQueryAtom.reportRead();
+    return super.searchQuery;
+  }
+
+  @override
+  set searchQuery(String value) {
+    _$searchQueryAtom.reportWrite(value, super.searchQuery, () {
+      super.searchQuery = value;
+    });
+  }
+
+  late final _$selectedFiltersAtom =
+      Atom(name: '_BudgetListStore.selectedFilters', context: context);
+
+  @override
+  ObservableSet<String> get selectedFilters {
+    _$selectedFiltersAtom.reportRead();
+    return super.selectedFilters;
+  }
+
+  @override
+  set selectedFilters(ObservableSet<String> value) {
+    _$selectedFiltersAtom.reportWrite(value, super.selectedFilters, () {
+      super.selectedFilters = value;
+    });
+  }
+
   late final _$fetchAsyncAction =
       AsyncAction('_BudgetListStore.fetch', context: context);
 
@@ -73,12 +121,62 @@ mixin _$BudgetListStore on _BudgetListStore, Store {
     return _$refreshAsyncAction.run(() => super.refresh());
   }
 
+  late final _$_BudgetListStoreActionController =
+      ActionController(name: '_BudgetListStore', context: context);
+
+  @override
+  void setSearchQuery(String query) {
+    final _$actionInfo = _$_BudgetListStoreActionController.startAction(
+        name: '_BudgetListStore.setSearchQuery');
+    try {
+      return super.setSearchQuery(query);
+    } finally {
+      _$_BudgetListStoreActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void toggleFilter(String filter) {
+    final _$actionInfo = _$_BudgetListStoreActionController.startAction(
+        name: '_BudgetListStore.toggleFilter');
+    try {
+      return super.toggleFilter(filter);
+    } finally {
+      _$_BudgetListStoreActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void resetFilters() {
+    final _$actionInfo = _$_BudgetListStoreActionController.startAction(
+        name: '_BudgetListStore.resetFilters');
+    try {
+      return super.resetFilters();
+    } finally {
+      _$_BudgetListStoreActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void applyFilters() {
+    final _$actionInfo = _$_BudgetListStoreActionController.startAction(
+        name: '_BudgetListStore.applyFilters');
+    try {
+      return super.applyFilters();
+    } finally {
+      _$_BudgetListStoreActionController.endAction(_$actionInfo);
+    }
+  }
+
   @override
   String toString() {
     return '''
 isLoading: ${isLoading},
 error: ${error},
-items: ${items}
+items: ${items},
+allItems: ${allItems},
+searchQuery: ${searchQuery},
+selectedFilters: ${selectedFilters}
     ''';
   }
 }
