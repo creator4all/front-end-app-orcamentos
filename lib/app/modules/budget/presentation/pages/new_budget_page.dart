@@ -8,6 +8,8 @@ import '../../../../shared/widgets/custom_top_bar.dart';
 import 'multi_city_school_census.dart';
 import '../../external/services/budget_service.dart';
 import '../../domain/models/budget_create.dart';
+import '../../../partner/external/services/partner_service.dart';
+import '../../../partner/domain/models/partner_profile.dart';
 
 class NewBudgetPage extends StatefulWidget {
   const NewBudgetPage({super.key});
@@ -17,11 +19,14 @@ class NewBudgetPage extends StatefulWidget {
 }
 
 class _NewBudgetPageState extends State<NewBudgetPage> {
-  String? _selectedPartner;
+  int? _selectedPartnerId;
+  List<PartnerProfile> _partners = [];
+  bool _isLoadingPartners = false;
   final TextEditingController _responsibleController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   late dynamic _geo;
   late dynamic _censo;
+  late dynamic _auth;
 
   final TextEditingController _validityDateController = TextEditingController();
 
@@ -39,10 +44,43 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
     final provider = StoreProvider.of(context);
     _geo = provider.geoStore;
     _censo = provider.censoStore;
+    _auth = provider.authStore;
     if (_geo.estados.isEmpty && !_geo.isLoadingEstados) {
       _geo.carregarEstados().whenComplete(() {
         if (mounted) setState(() {});
       });
+    }
+    
+    // Carregar lista de parceiros (apenas para admins)
+    _carregarParceiros();
+  }
+
+  Future<void> _carregarParceiros() async {
+    if (_isLoadingPartners || _partners.isNotEmpty) return;
+    
+    setState(() {
+      _isLoadingPartners = true;
+    });
+    
+    try {
+      final partnerService = Modular.get<PartnerService>();
+      final parceiros = await partnerService.listarTodos();
+      
+      if (mounted) {
+        setState(() {
+          _partners = parceiros;
+          _isLoadingPartners = false;
+        });
+      }
+      
+      print('✅ ${parceiros.length} parceiros carregados');
+    } catch (e) {
+      print('⚠️ Erro ao carregar parceiros (provavelmente não é admin): $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingPartners = false;
+        });
+      }
     }
   }
 
@@ -84,29 +122,46 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                         borderRadius: BorderRadius.circular(8.r),
                       ),
                       child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: _selectedPartner,
-                          hint: Text(
-                            'Parceiro',
-                            style: TextStyle(
-                              fontSize: 16.sp,
-                              color: Colors.grey[500],
-                            ),
-                          ),
-                          items: const [
-                            DropdownMenuItem(
-                                value: 'Parceiro 1', child: Text('Parceiro 1')),
-                            DropdownMenuItem(
-                                value: 'Parceiro 2', child: Text('Parceiro 2')),
-                            DropdownMenuItem(
-                                value: 'Parceiro 3', child: Text('Parceiro 3')),
-                          ],
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedPartner = value;
-                            });
-                          },
-                        ),
+                        child: _isLoadingPartners
+                            ? Center(
+                                child: SizedBox(
+                                  width: 20.w,
+                                  height: 20.h,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: const Color(0xFF117BBD),
+                                  ),
+                                ),
+                              )
+                            : DropdownButton<int>(
+                                value: _selectedPartnerId,
+                                hint: Text(
+                                  _partners.isEmpty
+                                      ? 'Nenhum parceiro disponível'
+                                      : 'Selecione um parceiro',
+                                  style: TextStyle(
+                                    fontSize: 16.sp,
+                                    color: Colors.grey[500],
+                                  ),
+                                ),
+                                items: _partners
+                                    .map((partner) => DropdownMenuItem<int>(
+                                          value: partner.id,
+                                          child: Text(
+                                            partner.tradeName,
+                                            style: TextStyle(fontSize: 16.sp),
+                                          ),
+                                        ))
+                                    .toList(),
+                                onChanged: _partners.isEmpty
+                                    ? null
+                                    : (value) {
+                                        setState(() {
+                                          _selectedPartnerId = value;
+                                        });
+                                        print('🎯 Parceiro selecionado: $value');
+                                      },
+                              ),
                       ),
                     ),
 
@@ -355,7 +410,11 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                         try {
                           final budgetService = Modular.get<BudgetService>();
                           
+                          // Pegar usuário autenticado
+                          final userId = _auth.user?.id != null ? int.tryParse(_auth.user!.id) ?? 1 : 1;
+                          
                           print('📦 Criando orçamento sem produtos (backend marcará todos como selecionados)');
+                          print('👤 Usuário autenticado: ${_auth.user?.name} (ID: $userId)');
                           
                           // Criar DTO sem produtos - backend marcará TODOS como selecionados
                           final dto = BudgetCreateDto(
@@ -364,8 +423,9 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                             cidades: [_geo.cidadeSelecionada!.id],
                             cidadePrincipalId: _geo.cidadeSelecionada!.id,
                             total: 0.0, // Será calculado depois
-                            usuarioId: 1, // TODO: pegar do auth
+                            usuarioId: userId,
                             products: [], // Backend marcará todos como selecionados
+                            partnerDestinoId: _selectedPartnerId, // Parceiro destino (se admin)
                           );
                           
                           // Criar com status rascunho

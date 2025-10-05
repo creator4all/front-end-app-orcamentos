@@ -12,6 +12,40 @@ class PartnerService {
 
   PartnerService(this._api, this._storage);
 
+  /// Listar todos os parceiros (apenas para administradores)
+  Future<List<PartnerProfile>> listarTodos() async {
+    print('🏢 Buscando lista de todos os parceiros...');
+    
+    final token = await _storage.read(key: 'auth_token');
+    final res = await _api.get('/api/partners', token: token);
+    print('📡 Resposta da API: $res');
+
+    // Extrair dados da estrutura aninhada
+    dynamic data;
+    
+    if (res['data'] != null && res['data'] is Map) {
+      final innerData = res['data'] as Map<String, dynamic>;
+      data = innerData['dados'] ?? innerData;
+    } else {
+      data = res['dados'] ?? res;
+    }
+
+    print('🔍 Dados extraídos: $data');
+
+    // Se for paginado, extrair o array 'data'
+    if (data is Map && data['data'] != null) {
+      data = data['data'];
+    }
+
+    if (data is! List) {
+      throw Exception('Formato de resposta inválido - esperado lista de parceiros');
+    }
+
+    return (data as List)
+        .map((item) => PartnerProfile.fromMap(item as Map<String, dynamic>))
+        .toList();
+  }
+
   /// Buscar informações da própria empresa
   Future<PartnerProfile> obterParceiro() async {
     print('🏢 Buscando informações da empresa...');

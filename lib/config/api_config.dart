@@ -7,11 +7,11 @@ class ApiConfig {
   static const String _testBaseUrl =
       'https://test-api.multimidiaeducacional.com.br';
   static const String _productionBaseUrl =
-      'https://api.multimidiaeducacional.com.br';
+      'https://parceiro.multimidiaeducacional.com.br';
 
   // Current environment
   static const String _environment =
-      'local'; // Options: 'local', 'test', 'production'
+      'production'; // Options: 'local', 'test', 'production'
 
   // Get base URL based on environment
   static String get baseUrl {
