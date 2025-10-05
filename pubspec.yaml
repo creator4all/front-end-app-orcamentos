@@ -48,6 +48,9 @@ dev_dependencies:
   build_runner: ^2.4.6
   mobx_codegen: ^2.3.0
   copy_with_extension_gen: ^5.0.0
+  
+  # Launcher Icons
+  flutter_launcher_icons: ^0.13.1
 
 flutter:
 
@@ -55,3 +58,20 @@ flutter:
 
   assets:
     - assets/images/
+
+# Configuração do ícone do app
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/app_icon.png"
+  
+  # Configuração para Android - Ícone Adaptativo
+  adaptive_icon_background: "#FFFFFF"  # Fundo branco
+  adaptive_icon_foreground: "assets/images/app_icon.png"
+  
+  # Configurações para manter o ícone centralizado (contain)
+  # O ícone será redimensionado para caber sem cortar, mantendo proporções
+  min_sdk_android: 21  # Android 5.0+
+  
+  # Remove margens para melhor centralização
+  remove_alpha_ios: true
