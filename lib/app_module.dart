@@ -7,12 +7,20 @@ import 'app/modules/drive/drive_module.dart';
 import 'app/modules/partner/partner_module.dart';
 import 'app/modules/profile/profile_module.dart';
 import 'app/shared/core/http/dio_client.dart';
+import 'services/api_service.dart';
+import 'stores/auth_store.dart';
 
 class AppModule extends Module {
   @override
   List<Bind> get binds => [
         // Core HTTP Client
         Bind.singleton<Dio>((i) => DioClient().dio),
+
+        // API Service
+        Bind.singleton<ApiService>((i) => ApiService(dio: i.get<Dio>())),
+
+        // Auth Store (global singleton)
+        Bind.singleton<AuthStore>((i) => AuthStore()),
       ];
 
   @override
