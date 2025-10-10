@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_modular/flutter_modular.dart';
+import 'package:multimidiaapp/stores/store_provider.dart';
+import 'package:multimidiaapp/services/censo_service.dart';
 
 import '../../../../shared/widgets/custom_top_bar.dart';
 import '../../../../shared/widgets/city_badge_widget.dart';
-import '../../../../shared/widgets/city_selection_modal.dart';
+import '../../external/services/budget_service.dart';
+import '../../domain/models/budget_create.dart';
 
 class MultiCitySchoolCensusPage extends StatefulWidget {
   const MultiCitySchoolCensusPage({super.key});
@@ -13,86 +17,27 @@ class MultiCitySchoolCensusPage extends StatefulWidget {
 }
 
 class _MultiCitySchoolCensusPageState extends State<MultiCitySchoolCensusPage> {
-  // Selected cities data
-  List<Map<String, String>> _selectedCities = [
-    {'city': 'São Paulo', 'state': 'SP'},
-    {'city': 'Rio de Janeiro', 'state': 'RJ'},
-  ];
-
-  // Mock data for school census (same structure as original)
-  final Map<String, dynamic> _censusData = {
-    'groups': [
-      {
-        'name': 'Pré Escola',
-        'items': [
-          {'name': 'Berçário', 'value': ''},
-          {'name': 'Infantil I', 'value': ''},
-          {'name': 'Infantil II', 'value': ''},
-        ]
-      },
-      {
-        'name': 'Ensino Fundamental I',
-        'items': [
-          {'name': '1º Ano', 'value': ''},
-          {'name': '2º Ano', 'value': ''},
-          {'name': '3º Ano', 'value': ''},
-          {'name': '4º Ano', 'value': ''},
-          {'name': '5º Ano', 'value': ''},
-        ]
-      },
-      {
-        'name': 'Ensino Fundamental II',
-        'items': [
-          {'name': '6º Ano', 'value': ''},
-          {'name': '7º Ano', 'value': ''},
-          {'name': '8º Ano', 'value': ''},
-          {'name': '9º Ano', 'value': ''},
-        ]
-      },
-    ]
-  };
-
-  // Controllers for text fields
+  // Selected cities with complete data (id, nome, uf)
+  List<Map<String, dynamic>> _selectedCities = [];
+  Map<String, dynamic>? _censusData;
+  bool _isLoadingCensus = false;
+  
   final Map<String, TextEditingController> _controllers = {};
+  final CensoService _censoService = CensoService();
+  late dynamic _geo;
+  late dynamic _auth;
 
   @override
   void initState() {
     super.initState();
-    // Initialize controllers for all items
-    for (var group in _censusData['groups']) {
-      for (var item in group['items']) {
-        final key = '${group['name']}_${item['name']}';
-        _controllers[key] = TextEditingController(text: item['value']);
-      }
-    }
-    // Set initial mock data based on selected cities
-    _updateMockDataForCities();
   }
 
-  void _updateMockDataForCities() {
-    if (_selectedCities.isNotEmpty) {
-      // Mock data based on number of selected cities
-      final cityCount = _selectedCities.length;
-
-      // Update controller values with mock data
-      for (var group in _censusData['groups']) {
-        for (var item in group['items']) {
-          final key = '${group['name']}_${item['name']}';
-          if (_controllers.containsKey(key)) {
-            // Generate mock values based on item type and city count
-            String mockValue = '';
-            if (item['name'].toString().toLowerCase().contains('berçário')) {
-              mockValue = (15 * cityCount).toString();
-            } else if (item['name'].toString().toLowerCase().contains('infantil')) {
-              mockValue = (20 * cityCount).toString();
-            } else if (item['name'].toString().contains('ano')) {
-              mockValue = (30 * cityCount).toString();
-            }
-            _controllers[key]!.text = mockValue;
-          }
-        }
-      }
-    }
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final provider = StoreProvider.of(context);
+    _geo = provider.geoStore;
+    _auth = provider.authStore;
   }
 
   @override
@@ -103,17 +48,89 @@ class _MultiCitySchoolCensusPageState extends State<MultiCitySchoolCensusPage> {
     super.dispose();
   }
 
-  void _showAddCitiesModal() {
-    CitySelectionModal.show(
+  Future<void> _loadCensusData() async {
+    if (_selectedCities.isEmpty) return;
+    
+    setState(() {
+      _isLoadingCensus = true;
+    });
+    
+    try {
+      final cidadeIds = _selectedCities.map((c) => c['id'] as int).toList();
+      
+      print('📊 Carregando censo agregado para cidades: $cidadeIds');
+      
+      final data = await _censoService.buscarCensoAgregado(cidadeIds);
+      
+      setState(() {
+        _censusData = data;
+        _isLoadingCensus = false;
+        _initializeControllers();
+      });
+      
+      print('✅ Censo agregado carregado com sucesso');
+    } catch (e) {
+      print('❌ Erro ao carregar censo agregado: $e');
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao carregar dados: $e')),
+        );
+      }
+      
+      setState(() {
+        _isLoadingCensus = false;
+      });
+    }
+  }
+
+  void _initializeControllers() {
+    // Limpar controllers existentes
+    for (var controller in _controllers.values) {
+      controller.dispose();
+    }
+    _controllers.clear();
+    
+    if (_censusData == null) return;
+    
+    // Criar controllers para cada item
+    final grupos = _censusData!['grupos'] as List?;
+    if (grupos == null) return;
+    
+    for (var grupo in grupos) {
+      final itens = grupo['itens'] as List?;
+      if (itens == null) continue;
+      
+      for (var item in itens) {
+        final key = '${grupo['id']}_${item['id']}';
+        final valorTotal = item['valor_total'] ?? 0;
+        _controllers[key] = TextEditingController(
+          text: valorTotal.toString()
+        );
+      }
+    }
+  }
+
+  void _showAddCitiesModal() async {
+    // Carregar estados se necessário
+    if (_geo.estados.isEmpty && !_geo.isLoadingEstados) {
+      await _geo.carregarEstados();
+    }
+
+    if (!mounted) return;
+
+    await showDialog(
       context: context,
-      initialSelectedCities: _selectedCities,
-      onCitiesSelected: (selectedCities) {
-        print('DEBUG: Cities selected from modal: $selectedCities');
-        setState(() {
-          _selectedCities = selectedCities;
-          _updateMockDataForCities();
-        });
-      },
+      builder: (context) => _CitySelectionDialog(
+        geo: _geo,
+        initialSelectedCities: _selectedCities,
+        onCitiesSelected: (selectedCities) {
+          setState(() {
+            _selectedCities = selectedCities;
+          });
+          _loadCensusData();
+        },
+      ),
     );
   }
 
@@ -127,11 +144,12 @@ class _MultiCitySchoolCensusPageState extends State<MultiCitySchoolCensusPage> {
         runSpacing: 8.h,
         children: _selectedCities.map((cityData) {
           return CityBadgeWidget(
-            city: cityData['city']!,
-            state: cityData['state']!,
+            city: cityData['nome'] ?? cityData['city'] ?? '',
+            state: cityData['uf'] ?? cityData['state'] ?? '',
             onRemove: () {
               setState(() {
                 _selectedCities.remove(cityData);
+                _loadCensusData(); // Recarregar dados após remover cidade
               });
             },
             showIcon: false,
@@ -142,6 +160,8 @@ class _MultiCitySchoolCensusPageState extends State<MultiCitySchoolCensusPage> {
   }
 
   Widget _buildGroupSection(Map<String, dynamic> group) {
+    final itens = group['itens'] as List? ?? [];
+    
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: Column(
@@ -149,7 +169,7 @@ class _MultiCitySchoolCensusPageState extends State<MultiCitySchoolCensusPage> {
         children: [
           SizedBox(height: 24.h),
           Text(
-            group['name'],
+            group['nome'] ?? group['name'] ?? '',
             style: TextStyle(
               fontSize: 15.sp,
               fontWeight: FontWeight.w600,
@@ -157,8 +177,8 @@ class _MultiCitySchoolCensusPageState extends State<MultiCitySchoolCensusPage> {
             ),
           ),
           SizedBox(height: 12.h),
-          ...group['items'].map<Widget>((item) {
-            final key = '${group['name']}_${item['name']}';
+          ...itens.map<Widget>((item) {
+            final key = '${group['id']}_${item['id']}';
             return Padding(
               padding: EdgeInsets.only(bottom: 8.h),
               child: Row(
@@ -166,7 +186,7 @@ class _MultiCitySchoolCensusPageState extends State<MultiCitySchoolCensusPage> {
                   Expanded(
                     flex: 3,
                     child: Text(
-                      item['name'],
+                      item['nome'] ?? item['name'] ?? '',
                       style: TextStyle(
                         fontSize: 14.sp,
                         fontWeight: FontWeight.w500,
@@ -215,49 +235,129 @@ class _MultiCitySchoolCensusPageState extends State<MultiCitySchoolCensusPage> {
     );
   }
 
-  Widget _buildSaveButton() {
+  Future<void> _handleNext() async {
+    if (_selectedCities.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selecione ao menos uma cidade')),
+      );
+      return;
+    }
+    
+    try {
+      final budgetService = Modular.get<BudgetService>();
+      
+      // Extrair IDs das cidades
+      final cidadeIds = _selectedCities.map((c) => c['id'] as int).toList();
+      
+      // Extrair indicadores dos controllers
+      final indicadores = <Map<String, dynamic>>[];
+      
+      if (_censusData != null) {
+        final grupos = _censusData!['grupos'] as List;
+        
+        for (var grupo in grupos) {
+          final itens = grupo['itens'] as List;
+          
+          for (var item in itens) {
+            final key = '${grupo['id']}_${item['id']}';
+            final controller = _controllers[key];
+            
+            if (controller != null && controller.text.isNotEmpty) {
+              final valorDigitado = double.tryParse(controller.text) ?? 0.0;
+              
+              // Adicionar um indicador por cidade (distribuir proporcionalmente)
+              final porCidade = item['por_cidade'] as List;
+              for (var cidadeValor in porCidade) {
+                indicadores.add({
+                  'cidade_id': cidadeValor['cidade_id'],
+                  'ine_indice_etapa_id': item['id'],
+                  'valor': valorDigitado, // Usar valor agregado
+                });
+              }
+            }
+          }
+        }
+      }
+      
+      // Definir nome do orçamento
+      final nomeOrcamento = _selectedCities.length == 1
+          ? '${_selectedCities[0]['nome']} - ${_selectedCities[0]['uf']}'
+          : 'Orçamento ${_selectedCities.length} cidades';
+      
+      print('📦 Criando orçamento multi-cidades: $nomeOrcamento');
+      print('🏙️ Cidades: $cidadeIds');
+      print('📊 Indicadores: ${indicadores.length}');
+      
+      // Pegar usuário autenticado
+      final userId = _auth.user?.id != null ? int.tryParse(_auth.user!.id) ?? 1 : 1;
+      
+      print('👤 Usuário autenticado: ${_auth.user?.name} (ID: $userId)');
+      
+      // Criar DTO
+      final dto = BudgetCreateDto(
+        nome: nomeOrcamento,
+        diasValidade: 60,
+        cidades: cidadeIds,
+        cidadePrincipalId: cidadeIds.isNotEmpty ? cidadeIds.first : null,
+        total: 0.0,
+        usuarioId: userId,
+        products: [],
+        indicadores: indicadores,
+      );
+      
+      // Criar orçamento como rascunho
+      final orcamento = await budgetService.criar(dto, status: 'rascunho');
+      final budgetId = orcamento['id'] ?? orcamento['orc_orcamentoId'];
+      
+      print('✅ Orçamento multi-cidades criado: $budgetId');
+      
+      // Navegar para configuração
+      await Modular.to.pushNamed('/budget/config/$budgetId');
+      
+    } catch (e) {
+      print('❌ Erro ao criar orçamento multi-cidades: $e');
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao criar orçamento: $e')),
+        );
+      }
+    }
+  }
+
+  Widget _buildNextButton() {
     return Padding(
       padding: EdgeInsets.all(16.w),
       child: SizedBox(
         width: double.infinity,
-        height: 40.h,
-        child: ElevatedButton.icon(
-          onPressed: () {
-            // TODO: Implement save logic
-
-            // TODO: Implementar fluxo de múltiplas cidades com rascunho
-            // Temporariamente desabilitado - usar fluxo principal (new_budget_page)
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Fluxo de múltiplas cidades em desenvolvimento. Use o fluxo principal.'),
-              ),
-            );
-            
-            // Navigate to config_new_budget.dart
-            // Navigator.of(context).pushReplacement(
-            //   MaterialPageRoute(
-            //     builder: (context) => const ConfigNewBudgetPage(budgetId: ???),
-            //   ),
-            // );
-          },
+        height: 48.h,
+        child: ElevatedButton(
+          onPressed: _selectedCities.isEmpty ? null : _handleNext,
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF56B34A),
+            backgroundColor: const Color(0xFF117BBD),
+            disabledBackgroundColor: Colors.grey[300],
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8.r),
             ),
           ),
-          icon: Icon(
-            Icons.save,
-            size: 18.sp,
-            color: Colors.white,
-          ),
-          label: Text(
-            'Salvar',
-            style: TextStyle(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Próximo',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w600,
+                  color: _selectedCities.isEmpty ? Colors.grey : Colors.white,
+                ),
+              ),
+              SizedBox(width: 8.w),
+              Icon(
+                Icons.arrow_forward,
+                color: _selectedCities.isEmpty ? Colors.grey : Colors.white,
+                size: 18.sp,
+              ),
+            ],
           ),
         ),
       ),
@@ -317,12 +417,273 @@ class _MultiCitySchoolCensusPageState extends State<MultiCitySchoolCensusPage> {
                       ),
                     ),
                     SizedBox(height: 16.h),
-                    ..._censusData['groups'].map<Widget>((group) => _buildGroupSection(group)),
+                    if (_isLoadingCensus)
+                      Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(32.h),
+                          child: CircularProgressIndicator(
+                            color: const Color(0xFF117BBD),
+                          ),
+                        ),
+                      )
+                    else if (_censusData != null && _censusData!['grupos'] != null)
+                      ...(_censusData!['grupos'] as List).map<Widget>((group) => _buildGroupSection(group))
+                    else if (_selectedCities.isNotEmpty)
+                      Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(32.h),
+                          child: Text(
+                            'Nenhum dado de censo encontrado',
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(32.h),
+                          child: Text(
+                            'Adicione cidades para visualizar os dados do censo',
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              color: Colors.grey[600],
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
             ),
-            _buildSaveButton(),
+            _buildNextButton(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Dialog para seleção de múltiplas cidades usando GeoStore
+class _CitySelectionDialog extends StatefulWidget {
+  final dynamic geo;
+  final List<Map<String, dynamic>> initialSelectedCities;
+  final Function(List<Map<String, dynamic>>) onCitiesSelected;
+
+  const _CitySelectionDialog({
+    required this.geo,
+    required this.initialSelectedCities,
+    required this.onCitiesSelected,
+  });
+
+  @override
+  State<_CitySelectionDialog> createState() => _CitySelectionDialogState();
+}
+
+class _CitySelectionDialogState extends State<_CitySelectionDialog> {
+  late List<Map<String, dynamic>> _tempSelectedCities;
+
+  @override
+  void initState() {
+    super.initState();
+    _tempSelectedCities = List.from(widget.initialSelectedCities);
+  }
+
+  void _addCity(dynamic cidade, String uf) {
+    // Verificar se já está na lista
+    final jaExiste = _tempSelectedCities.any((c) => c['id'] == cidade.id);
+    
+    if (!jaExiste) {
+      setState(() {
+        _tempSelectedCities.add({
+          'id': cidade.id,
+          'nome': cidade.nome,
+          'uf': uf,
+        });
+      });
+    }
+  }
+
+  void _removeCity(int cidadeId) {
+    setState(() {
+      _tempSelectedCities.removeWhere((c) => c['id'] == cidadeId);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: 600.h,
+          maxWidth: 500.w,
+        ),
+        padding: EdgeInsets.all(24.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Título
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Adicionar cidades',
+                  style: TextStyle(
+                    fontSize: 20.sp,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF117BBD),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+            
+            SizedBox(height: 16.h),
+            
+            // Cidades selecionadas
+            if (_tempSelectedCities.isNotEmpty) ...[
+              Text(
+                'Cidades selecionadas:',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              SizedBox(height: 8.h),
+              Wrap(
+                spacing: 8.w,
+                runSpacing: 8.h,
+                children: _tempSelectedCities.map((cityData) {
+                  return Chip(
+                    label: Text('${cityData['nome']} - ${cityData['uf']}'),
+                    onDeleted: () => _removeCity(cityData['id']),
+                    deleteIcon: Icon(Icons.close, size: 16.sp),
+                  );
+                }).toList(),
+              ),
+              SizedBox(height: 16.h),
+            ],
+            
+            Divider(),
+            SizedBox(height: 16.h),
+            
+            // Seleção de estado
+            Text(
+              'Selecione o estado:',
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            SizedBox(height: 8.h),
+            
+            DropdownButtonFormField<dynamic>(
+              value: widget.geo.estadoSelecionado,
+              decoration: InputDecoration(
+                contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+              ),
+              hint: const Text('Selecione um estado'),
+              items: widget.geo.estados.map<DropdownMenuItem>((estado) {
+                return DropdownMenuItem(
+                  value: estado,
+                  child: Text(estado.nome),
+                );
+              }).toList(),
+              onChanged: (estado) async {
+                await widget.geo.selecionarEstado(estado);
+                setState(() {});
+              },
+            ),
+            
+            SizedBox(height: 16.h),
+            
+            // Seleção de cidade
+            if (widget.geo.estadoSelecionado != null) ...[
+              Text(
+                'Selecione a cidade:',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              SizedBox(height: 8.h),
+              
+              widget.geo.isLoadingCidades
+                  ? Center(child: CircularProgressIndicator())
+                  : DropdownButtonFormField<dynamic>(
+                      decoration: InputDecoration(
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                      ),
+                      hint: const Text('Selecione uma cidade'),
+                      items: widget.geo.cidades.map<DropdownMenuItem>((cidade) {
+                        return DropdownMenuItem(
+                          value: cidade,
+                          child: Text(cidade.nome),
+                        );
+                      }).toList(),
+                      onChanged: (cidade) {
+                        if (cidade != null) {
+                          _addCity(cidade, widget.geo.estadoSelecionado.uf);
+                        }
+                      },
+                    ),
+            ],
+            
+            Spacer(),
+            
+            // Botões
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: OutlinedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(vertical: 12.h),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                    ),
+                    child: Text('Cancelar'),
+                  ),
+                ),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      widget.onCitiesSelected(_tempSelectedCities);
+                      Navigator.of(context).pop();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF117BBD),
+                      padding: EdgeInsets.symmetric(vertical: 12.h),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                    ),
+                    child: Text(
+                      'Confirmar',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),

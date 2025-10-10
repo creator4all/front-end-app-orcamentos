@@ -40,6 +40,44 @@ class CensoService {
     }
     throw Exception(res['error'] ?? 'Falha ao carregar censo por cidade');
   }
+
+  /// Busca censo agregado de múltiplas cidades
+  /// Retorna a soma dos valores de cada indicador por cidade
+  Future<Map<String, dynamic>> buscarCensoAgregado(List<int> cidadeIds) async {
+    developer.log('📊 Buscando censo agregado para ${cidadeIds.length} cidades...');
+    
+    // Montar query params: cidades[]=1&cidades[]=2&cidades[]=3
+    final queryParams = cidadeIds.map((id) => 'cidades[]=$id').join('&');
+    final endpoint = '${ApiConfig.baseUrl}/api/censo/agregado?$queryParams';
+    
+    developer.log('🌐 Endpoint: $endpoint');
+    
+    final res = await _api.get(endpoint);
+    
+    developer.log('📡 Resposta censo agregado: $res');
+    
+    if (res['success'] == true) {
+      final data = res['data'];
+      
+      // Extrair dados da estrutura aninhada
+      dynamic dados;
+      if (data is Map && data['dados'] != null) {
+        dados = data['dados'];
+      } else {
+        dados = data;
+      }
+      
+      developer.log('🔍 Dados extraídos: $dados');
+      
+      if (dados is! Map<String, dynamic>) {
+        throw Exception('Formato de resposta inválido');
+      }
+      
+      return dados as Map<String, dynamic>;
+    }
+    
+    throw Exception(res['error'] ?? 'Falha ao carregar censo agregado');
+  }
   
   /// Atualiza os valores dos índices de etapa para uma cidade específica
   /// 
