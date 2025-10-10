@@ -7,7 +7,12 @@ import '../../../../shared/widgets/product_category.dart';
 import '../../../../shared/widgets/school_census.dart';
 
 class ConfigNewBudgetPage extends StatefulWidget {
-  const ConfigNewBudgetPage({super.key});
+  final int budgetId;
+
+  const ConfigNewBudgetPage({
+    super.key,
+    required this.budgetId,
+  });
 
   @override
   State<ConfigNewBudgetPage> createState() => _ConfigNewBudgetPageState();

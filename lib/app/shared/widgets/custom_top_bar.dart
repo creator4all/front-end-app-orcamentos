@@ -164,7 +164,7 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
           },
           onDrive: () {
             Navigator.of(context).pop();
-            // TODO: Implementar navegação para drive
+            Modular.to.pushNamed('/drive/');
           },
           onLogout: () {
             Navigator.of(context).pop();
