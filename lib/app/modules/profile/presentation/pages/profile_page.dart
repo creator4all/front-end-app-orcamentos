@@ -155,6 +155,25 @@ class _ProfilePageState extends State<ProfilePage> {
                 children: [
                   SizedBox(height: 20.h),
                   
+                  // Informações adicionais (read-only) - MOVIDO PARA CIMA
+                  if (_store.profile!.roleName != null)
+                    _buildInfoCard(
+                      'Função',
+                      _store.profile!.roleName!,
+                      Icons.admin_panel_settings_outlined,
+                    ),
+
+                  if (_store.profile!.partnerName != null) ...[
+                    SizedBox(height: 8.h),
+                    _buildInfoCard(
+                      'Parceiro',
+                      _store.profile!.partnerName!,
+                      Icons.business_outlined,
+                    ),
+                  ],
+
+                  SizedBox(height: 24.h),
+                  
                   // Avatar
                   Stack(
                     children: [
@@ -274,25 +293,6 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                     ),
                   ),
-
-                  SizedBox(height: 16.h),
-
-                  // Informações adicionais (read-only)
-                  if (_store.profile!.roleName != null)
-                    _buildInfoCard(
-                      'Função',
-                      _store.profile!.roleName!,
-                      Icons.admin_panel_settings_outlined,
-                    ),
-
-                  if (_store.profile!.partnerName != null) ...[
-                    SizedBox(height: 8.h),
-                    _buildInfoCard(
-                      'Parceiro',
-                      _store.profile!.partnerName!,
-                      Icons.business_outlined,
-                    ),
-                  ],
 
                   SizedBox(height: 32.h),
                 ],

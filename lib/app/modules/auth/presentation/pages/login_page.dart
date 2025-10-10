@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 import '../controllers/auth_controller.dart';
+import '../../../../../config/api_config.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -368,11 +370,254 @@ class _LoginPageState extends State<LoginPage> {
 
   void _handleLogin() async {
     if (_formKey.currentState?.validate() ?? false) {
-      await controller.login(
-        _emailController.text.trim(),
-        _passwordController.text,
-      );
-      // O controller já navega automaticamente se o login for bem-sucedido
+      // Mostrar dialog de informação ANTES de tentar login
+      _showLoginAttemptDialog();
+
+      String? errorDetails;
+      String? stackTraceDetails;
+
+      try {
+        await controller.login(
+          _emailController.text.trim(),
+          _passwordController.text,
+        );
+
+        // Fechar dialog de tentativa
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
+
+        // Verificar se houve sucesso ou erro
+        if (controller.isLoggedIn) {
+          // Login bem-sucedido
+          if (mounted) {
+            _showSuccessDialog();
+          }
+        } else if (controller.errorMessage != null) {
+          // Login falhou - capturar erro do controller
+          errorDetails = controller.errorMessage!;
+          if (mounted) {
+            _showErrorDialog(errorDetails, null);
+          }
+        }
+      } catch (e, stackTrace) {
+        // Fechar dialog de tentativa
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
+        
+        // Capturar qualquer exceção não tratada
+        errorDetails = 'Exceção capturada: ${e.toString()}';
+        stackTraceDetails = stackTrace.toString();
+        if (mounted) {
+          _showErrorDialog(errorDetails, stackTraceDetails);
+        }
+      }
     }
+  }
+
+  void _showLoginAttemptDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            SizedBox(
+              width: 24.w,
+              height: 24.h,
+              child: CircularProgressIndicator(
+                strokeWidth: 3,
+                valueColor: AlwaysStoppedAnimation<Color>(const Color(0xFF1E88E5)),
+              ),
+            ),
+            SizedBox(width: 12.w),
+            const Text('Tentando Login...'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Conectando ao servidor:',
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Container(
+              padding: EdgeInsets.all(8.w),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(6.r),
+                border: Border.all(color: Colors.blue[200]!),
+              ),
+              child: SelectableText(
+                ApiConfig.baseUrl,
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  fontFamily: 'monospace',
+                  color: Colors.blue[900],
+                ),
+              ),
+            ),
+            SizedBox(height: 12.h),
+            Text(
+              'Email: ${_emailController.text.trim()}',
+              style: TextStyle(fontSize: 13.sp, color: Colors.grey[600]),
+            ),
+            SizedBox(height: 4.h),
+            Text(
+              'Endpoint: ${ApiConfig.loginEndpoint}',
+              style: TextStyle(fontSize: 12.sp, color: Colors.grey[500]),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.green[600], size: 28.w),
+            SizedBox(width: 12.w),
+            const Text('Login Bem-Sucedido'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Você foi autenticado com sucesso!',
+              style: TextStyle(fontSize: 16.sp),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              'Email: ${_emailController.text.trim()}',
+              style: TextStyle(fontSize: 14.sp, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              // O controller já navegou automaticamente
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1E88E5),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Continuar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showErrorDialog(String errorMessage, String? stackTrace) {
+    final fullError = StringBuffer();
+    fullError.writeln('=== ERRO DE LOGIN ===');
+    fullError.writeln('');
+    fullError.writeln('URL Base: ${ApiConfig.baseUrl}');
+    fullError.writeln('Endpoint: ${ApiConfig.loginEndpoint}');
+    fullError.writeln('');
+    fullError.writeln('Mensagem:');
+    fullError.writeln(errorMessage);
+    fullError.writeln('');
+    fullError.writeln('Email tentado: ${_emailController.text.trim()}');
+    fullError.writeln('Timestamp: ${DateTime.now().toIso8601String()}');
+    
+    if (stackTrace != null) {
+      fullError.writeln('');
+      fullError.writeln('=== STACK TRACE ===');
+      fullError.writeln(stackTrace);
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.error, color: Colors.red[600], size: 28.w),
+            SizedBox(width: 12.w),
+            const Text('Erro no Login'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Ocorreu um erro ao tentar fazer login:',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              SizedBox(height: 12.h),
+              Container(
+                padding: EdgeInsets.all(12.w),
+                decoration: BoxDecoration(
+                  color: Colors.red[50],
+                  borderRadius: BorderRadius.circular(8.r),
+                  border: Border.all(color: Colors.red[200]!),
+                ),
+                child: SelectableText(
+                  fullError.toString(),
+                  style: TextStyle(
+                    fontSize: 13.sp,
+                    fontFamily: 'monospace',
+                    color: Colors.red[900],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: fullError.toString()));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('Erro copiado para a área de transferência'),
+                  backgroundColor: Colors.green[600],
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            },
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.copy, size: 18),
+                SizedBox(width: 4.w),
+                const Text('Copiar Erro'),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1E88E5),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Fechar'),
+          ),
+        ],
+      ),
+    );
   }
 }
