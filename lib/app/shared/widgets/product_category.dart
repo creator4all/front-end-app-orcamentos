@@ -51,16 +51,20 @@ class ProductCategory extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: isSelected ? const Color(0xFF117BBD) : Colors.grey[300]!, // Animated border color
+          color: isSelected
+              ? const Color(0xFF117BBD)
+              : Colors.grey[300]!, // Animated border color
           width: 1.0,
         ),
-        boxShadow: isSelected ? [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.25),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ] : const [],
+        boxShadow: isSelected
+            ? [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.25),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+            : const [],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -88,19 +92,23 @@ class ProductCategory extends StatelessWidget {
                             onChanged: onCheckboxChanged,
                             activeColor: const Color(0xFF117BBD),
                             checkColor: Colors.white,
-                            fillColor: MaterialStateProperty.resolveWith<Color?>(
-                              (Set<MaterialState> states) {
-                                if (states.contains(MaterialState.selected)) {
+                            fillColor: WidgetStateProperty.resolveWith<Color?>(
+                              (Set<WidgetState> states) {
+                                if (states.contains(WidgetState.selected)) {
                                   return const Color(0xFF117BBD);
                                 }
-                                return Colors.white; // White background when unselected
+                                return Colors
+                                    .white; // White background when unselected
                               },
                             ),
                             side: BorderSide(
-                              color: isSelected ? const Color(0xFF117BBD) : Colors.grey[300]!,
+                              color: isSelected
+                                  ? const Color(0xFF117BBD)
+                                  : Colors.grey[300]!,
                               width: 2.0,
                             ),
-                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
                           ),
                         ),
                         SizedBox(width: 8.w),
