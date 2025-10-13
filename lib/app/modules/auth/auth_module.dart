@@ -1,25 +1,23 @@
-import 'package:flutter_modular/flutter_modular.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_modular/flutter_modular.dart';
+
 import 'domain/repositories/auth_repository.dart';
 import 'domain/usecases/login_usecase.dart';
 import 'domain/usecases/logout_usecase.dart';
-import 'infra/repositories/auth_repository_impl.dart';
-import 'infra/datasources/auth_datasource.dart';
 import 'external/datasources/auth_api_datasource.dart';
+import 'infra/datasources/auth_datasource.dart';
+import 'infra/repositories/auth_repository_impl.dart';
 import 'presentation/controllers/auth_controller.dart';
 import 'presentation/pages/login_page.dart';
 
 class AuthModule extends Module {
   @override
   List<Bind> get binds => [
-        // External
-        Bind.singleton<FlutterSecureStorage>(
-            (i) => const FlutterSecureStorage()),
+        // External (usa FlutterSecureStorage do AppModule)
         Bind.singleton<AuthDatasource>(
           (i) => AuthApiDatasource(
             dio: i.get<Dio>(),
-            secureStorage: i.get<FlutterSecureStorage>(),
+            secureStorage: i.get(), // FlutterSecureStorage do AppModule
           ),
         ),
 
