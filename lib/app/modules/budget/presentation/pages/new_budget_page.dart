@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:flutter_modular/flutter_modular.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:multimidiaapp/stores/store_provider.dart';
 
 import '../../../../shared/widgets/custom_top_bar.dart';
-import 'multi_city_school_census.dart';
-import '../../external/services/budget_service.dart';
-import '../../domain/models/budget_create.dart';
-import '../../../partner/external/services/partner_service.dart';
 import '../../../partner/domain/models/partner_profile.dart';
+import '../../../partner/external/services/partner_service.dart';
+import '../../domain/models/budget_create.dart';
+import '../../external/services/budget_service.dart';
+import 'multi_city_school_census.dart';
 
 class NewBudgetPage extends StatefulWidget {
   const NewBudgetPage({super.key});
@@ -50,32 +50,39 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
         if (mounted) setState(() {});
       });
     }
-    
-    // Carregar lista de parceiros (apenas para admins)
-    _carregarParceiros();
+
+    // Não carregar aqui, pois o usuário ainda não está disponível
+    // Vamos usar Observer no build para reagir quando o usuário for carregado
   }
 
   Future<void> _carregarParceiros() async {
+    // Verifica se o usuário é admin antes de tentar carregar
+    if (_auth?.isAdmin != true) {
+      print(
+          'ℹ️ Usuário não é administrador, pulando carregamento de parceiros');
+      return;
+    }
+
     if (_isLoadingPartners || _partners.isNotEmpty) return;
-    
+
     setState(() {
       _isLoadingPartners = true;
     });
-    
+
     try {
       final partnerService = Modular.get<PartnerService>();
       final parceiros = await partnerService.listarTodos();
-      
+
       if (mounted) {
         setState(() {
           _partners = parceiros;
           _isLoadingPartners = false;
         });
       }
-      
+
       print('✅ ${parceiros.length} parceiros carregados');
     } catch (e) {
-      print('⚠️ Erro ao carregar parceiros (provavelmente não é admin): $e');
+      print('⚠️ Erro ao carregar parceiros: $e');
       if (mounted) {
         setState(() {
           _isLoadingPartners = false;
@@ -103,76 +110,104 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                   children: [
                     SizedBox(height: 10.h),
 
-                    // Gerar orçamento para (opcional)
-                    Text(
-                      'Gerar orçamento para (opcional):',
-                      style: TextStyle(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    SizedBox(height: 10.h),
-                    Container(
-                      width: double.infinity,
-                      height: 35.h,
-                      padding: EdgeInsets.symmetric(horizontal: 16.w),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey[300]!),
-                        borderRadius: BorderRadius.circular(8.r),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: _isLoadingPartners
-                            ? Center(
-                                child: SizedBox(
-                                  width: 20.w,
-                                  height: 20.h,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: const Color(0xFF117BBD),
-                                  ),
-                                ),
-                              )
-                            : DropdownButton<int>(
-                                value: _selectedPartnerId,
-                                hint: Text(
-                                  _partners.isEmpty
-                                      ? 'Nenhum parceiro disponível'
-                                      : 'Selecione um parceiro',
-                                  style: TextStyle(
-                                    fontSize: 16.sp,
-                                    color: Colors.grey[500],
-                                  ),
-                                ),
-                                items: _partners
-                                    .map((partner) => DropdownMenuItem<int>(
-                                          value: partner.id,
-                                          child: Text(
-                                            partner.tradeName,
-                                            style: TextStyle(fontSize: 16.sp),
-                                          ),
-                                        ))
-                                    .toList(),
-                                onChanged: _partners.isEmpty
-                                    ? null
-                                    : (value) {
-                                        setState(() {
-                                          _selectedPartnerId = value;
-                                        });
-                                        print('🎯 Parceiro selecionado: $value');
-                                      },
+                    // Observer para reagir ao carregamento do usuário
+                    Observer(
+                      builder: (_) {
+                        // Quando o usuário for carregado e for admin, carrega os parceiros
+                        if (_auth?.isAdmin == true &&
+                            _partners.isEmpty &&
+                            !_isLoadingPartners) {
+                          // Agendar o carregamento para o próximo frame
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            _carregarParceiros();
+                          });
+                        }
+
+                        // Mostrar campo apenas se for admin
+                        if (_auth?.isAdmin != true) {
+                          return const SizedBox.shrink();
+                        }
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Gerar orçamento para (opcional):',
+                              style: TextStyle(
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.black87,
                               ),
-                      ),
+                            ),
+                            SizedBox(height: 10.h),
+                            Container(
+                              width: double.infinity,
+                              height: 35.h,
+                              padding: EdgeInsets.symmetric(horizontal: 16.w),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey[300]!),
+                                borderRadius: BorderRadius.circular(8.r),
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: _isLoadingPartners
+                                    ? Center(
+                                        child: SizedBox(
+                                          width: 20.w,
+                                          height: 20.h,
+                                          child:
+                                              const CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Color(0xFF117BBD),
+                                          ),
+                                        ),
+                                      )
+                                    : DropdownButton<int>(
+                                        value: _selectedPartnerId,
+                                        hint: Text(
+                                          _partners.isEmpty
+                                              ? 'Nenhum parceiro disponível'
+                                              : 'Selecione um parceiro',
+                                          style: TextStyle(
+                                            fontSize: 16.sp,
+                                            color: Colors.grey[500],
+                                          ),
+                                        ),
+                                        items: _partners
+                                            .map((partner) =>
+                                                DropdownMenuItem<int>(
+                                                  value: partner.id,
+                                                  child: Text(
+                                                    partner.tradeName,
+                                                    style: TextStyle(
+                                                        fontSize: 16.sp),
+                                                  ),
+                                                ))
+                                            .toList(),
+                                        onChanged: _partners.isEmpty
+                                            ? null
+                                            : (value) {
+                                                setState(() {
+                                                  _selectedPartnerId = value;
+                                                });
+                                                print(
+                                                    '🎯 Parceiro selecionado: $value');
+                                              },
+                                      ),
+                              ),
+                            ),
+                            SizedBox(height: 10.h),
+                            // Linha horizontal
+                            Container(
+                              width: double.infinity,
+                              height: 1.h,
+                              color: Colors.grey[300],
+                            ),
+                          ],
+                        );
+                      },
                     ),
 
                     SizedBox(height: 10.h),
-
-                    // Linha horizontal
-                    Container(
-                      width: double.infinity,
-                      height: 1.h,
-                      color: Colors.grey[300],
-                    ),
 
                     SizedBox(height: 10.h),
 
@@ -197,14 +232,17 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                               ),
                             ),
                             items: _geo.estados
-                                .map<DropdownMenuItem<String>>((e) => DropdownMenuItem<String>(
-                                      value: e.nome,
-                                      child: Text(e.nome),
-                                    ))
+                                .map<DropdownMenuItem<String>>(
+                                    (e) => DropdownMenuItem<String>(
+                                          value: e.nome,
+                                          child: Text(e.nome),
+                                        ))
                                 .toList(),
                             onChanged: (value) async {
-                              final matches = _geo.estados.where((e) => e.nome == value);
-                              final estado = matches.isNotEmpty ? matches.first : null;
+                              final matches =
+                                  _geo.estados.where((e) => e.nome == value);
+                              final estado =
+                                  matches.isNotEmpty ? matches.first : null;
                               if (estado != null) {
                                 await _geo.selecionarEstado(estado);
                                 if (mounted) setState(() {});
@@ -239,14 +277,17 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                                 ),
                               ),
                               items: _geo.cidades
-                                  .map<DropdownMenuItem<String>>((c) => DropdownMenuItem<String>(
-                                        value: c.nome,
-                                        child: Text(c.nome),
-                                      ))
+                                  .map<DropdownMenuItem<String>>(
+                                      (c) => DropdownMenuItem<String>(
+                                            value: c.nome,
+                                            child: Text(c.nome),
+                                          ))
                                   .toList(),
                               onChanged: (value) {
-                                final matches = _geo.cidades.where((c) => c.nome == value);
-                                final cidade = matches.isNotEmpty ? matches.first : null;
+                                final matches =
+                                    _geo.cidades.where((c) => c.nome == value);
+                                final cidade =
+                                    matches.isNotEmpty ? matches.first : null;
                                 _geo.selecionarCidade(cidade);
                                 if (mounted) setState(() {});
                               },
@@ -398,24 +439,28 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                           );
                           return;
                         }
-                        
+
                         // Carregar censo
                         await _censo
                             .carregarCensoPorCidade(_geo.cidadeSelecionada!.id)
                             .catchError((_) async {
                           await _censo.carregarGruposCenso();
                         });
-                        
+
                         // Criar orçamento como rascunho
                         try {
                           final budgetService = Modular.get<BudgetService>();
-                          
+
                           // Pegar usuário autenticado
-                          final userId = _auth.user?.id != null ? int.tryParse(_auth.user!.id) ?? 1 : 1;
-                          
-                          print('📦 Criando orçamento sem produtos (backend marcará todos como selecionados)');
-                          print('👤 Usuário autenticado: ${_auth.user?.name} (ID: $userId)');
-                          
+                          final userId = _auth.user?.id != null
+                              ? int.tryParse(_auth.user!.id) ?? 1
+                              : 1;
+
+                          print(
+                              '📦 Criando orçamento sem produtos (backend marcará todos como selecionados)');
+                          print(
+                              '👤 Usuário autenticado: ${_auth.user?.name} (ID: $userId)');
+
                           // Criar DTO sem produtos - backend marcará TODOS como selecionados
                           final dto = BudgetCreateDto(
                             nome: _geo.cidadeSelecionada!.nome,
@@ -425,36 +470,43 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                             total: 0.0, // Será calculado depois
                             usuarioId: userId,
                             products: [], // Backend marcará todos como selecionados
-                            partnerDestinoId: _selectedPartnerId, // Parceiro destino (se admin)
+                            partnerDestinoId:
+                                _selectedPartnerId, // Parceiro destino (se admin)
                           );
-                          
+
                           // Criar com status rascunho
-                          final orcamento = await budgetService.criar(dto, status: 'rascunho');
-                          
+                          final orcamento = await budgetService.criar(dto,
+                              status: 'rascunho');
+
                           print('📦 Resposta completa: $orcamento');
-                          print('📦 Keys disponíveis: ${orcamento.keys.toList()}');
-                          
+                          print(
+                              '📦 Keys disponíveis: ${orcamento.keys.toList()}');
+
                           // Extrair ID do orçamento (pode vir como 'id' ou 'orc_orcamentoId')
-                          final budgetId = orcamento['id'] ?? orcamento['orc_orcamentoId'];
-                          
+                          final budgetId =
+                              orcamento['id'] ?? orcamento['orc_orcamentoId'];
+
                           print('✅ Orçamento rascunho criado: $budgetId');
                           print('✅ Tipo do budgetId: ${budgetId.runtimeType}');
-                          
+
                           if (budgetId == null) {
-                            throw Exception('ID do orçamento não encontrado na resposta');
+                            throw Exception(
+                                'ID do orçamento não encontrado na resposta');
                           }
-                          
+
                           print('🚀 Navegando para: /budget/config/$budgetId');
-                          
+
                           // Navegar para config passando o budgetId
-                          await Modular.to.pushNamed('/budget/config/$budgetId');
-                          
+                          await Modular.to
+                              .pushNamed('/budget/config/$budgetId');
+
                           print('✅ Navegação concluída');
                         } catch (e) {
                           print('❌ Erro ao criar orçamento rascunho: $e');
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Erro ao criar orçamento: $e')),
+                              SnackBar(
+                                  content: Text('Erro ao criar orçamento: $e')),
                             );
                           }
                         }

@@ -1,8 +1,9 @@
-import "package:mobx/mobx.dart";
-import "../entities/user_entity.dart";
+import 'package:mobx/mobx.dart';
+
+import '../entities/user_entity.dart';
 
 // Include generated file
-part "auth_store.g.dart";
+part 'auth_store.g.dart';
 
 // This is the class used by rest of the codebase
 class AuthStore = _AuthStore with _$AuthStore;
@@ -20,15 +21,24 @@ abstract class _AuthStore with Store {
 
   @computed
   bool get isAuthenticated => user != null;
-  
+
   @computed
-  bool get isManager => user?.role == "manager";
-  
+  bool get isManager {
+    final role = user?.role.toLowerCase();
+    return role == 'gerente' || role == 'manager';
+  }
+
   @computed
-  bool get isSeller => user?.role == "seller";
-  
+  bool get isSeller {
+    final role = user?.role.toLowerCase();
+    return role == 'vendedor' || role == 'seller';
+  }
+
   @computed
-  bool get isAdmin => user?.role == "admin";
+  bool get isAdmin {
+    final role = user?.role.toLowerCase();
+    return role == 'administrador' || role == 'admin';
+  }
 
   @action
   void setUser(UserEntity newUser) {
@@ -40,48 +50,49 @@ abstract class _AuthStore with Store {
   void clearUser() {
     user = null;
   }
-  
+
   @action
   void setLoading(bool loading) {
     isLoading = loading;
   }
-  
+
   @action
   void setError(String? errorMessage) {
     error = errorMessage;
   }
-  
+
   @action
   void clearError() {
     error = null;
   }
-  
+
   @action
   Future<void> logout() async {
     // Clear user data
     clearUser();
   }
-  
+
   @action
   Future<bool> deleteAccount(String confirmation) async {
     setLoading(true);
     clearError();
-    
+
     try {
       // Verify confirmation text
       if (confirmation.toLowerCase() != 'confirmar') {
-        setError('Texto de confirmação incorreto. Digite "confirmar" para excluir sua conta.');
+        setError(
+            'Texto de confirmação incorreto. Digite "confirmar" para excluir sua conta.');
         setLoading(false);
         return false;
       }
 
       // Simulate network delay
       await Future.delayed(const Duration(seconds: 1));
-      
+
       // In a real scenario, this would be an API call to delete the account
       // For this simulation, just logout
       await logout();
-      
+
       setLoading(false);
       return true;
     } catch (e) {

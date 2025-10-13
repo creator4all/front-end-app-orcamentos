@@ -1,11 +1,12 @@
-import "package:flutter/material.dart";
-import "auth_store.dart";
-import "login_store.dart";
-import "budget_store.dart";
-import "geo_store.dart";
-import "censo_store.dart";
-import "../services/geo_service.dart";
-import "../services/censo_service.dart";
+import 'package:flutter/material.dart';
+
+import '../services/censo_service.dart';
+import '../services/geo_service.dart';
+import 'auth_store.dart';
+import 'budget_store.dart';
+import 'censo_store.dart';
+import 'geo_store.dart';
+import 'login_store.dart';
 
 class StoreProvider extends InheritedWidget {
   final AuthStore authStore;
@@ -14,15 +15,15 @@ class StoreProvider extends InheritedWidget {
   final GeoStore geoStore;
   final CensoStore censoStore;
 
-  StoreProvider._({
-    Key? key,
+  const StoreProvider._({
+    super.key,
     required this.authStore,
     required this.loginStore,
     required this.budgetStore,
     required this.geoStore,
     required this.censoStore,
-    required Widget child,
-  }) : super(key: key, child: child);
+    required super.child,
+  });
 
   factory StoreProvider({
     Key? key,
@@ -33,6 +34,9 @@ class StoreProvider extends InheritedWidget {
     final budgetStore = BudgetStore(authStore);
     final geoStore = GeoStore(GeoService());
     final censoStore = CensoStore(CensoService());
+
+    // Tentar auto-login quando o provider é criado
+    _tentarAutoLogin(loginStore);
 
     return StoreProvider._(
       key: key,
@@ -45,10 +49,26 @@ class StoreProvider extends InheritedWidget {
     );
   }
 
+  // Método para tentar auto-login ao iniciar o app
+  static void _tentarAutoLogin(LoginStore loginStore) {
+    Future.delayed(Duration.zero, () async {
+      try {
+        final success = await loginStore.tryAutoLogin();
+        if (success) {
+          print('✅ Auto-login realizado com sucesso');
+        } else {
+          print('ℹ️ Nenhuma sessão anterior encontrada');
+        }
+      } catch (e) {
+        print('⚠️ Erro no auto-login: $e');
+      }
+    });
+  }
+
   static StoreProvider of(BuildContext context) {
     final StoreProvider? result =
         context.dependOnInheritedWidgetOfExactType<StoreProvider>();
-    assert(result != null, "No StoreProvider found in context");
+    assert(result != null, 'No StoreProvider found in context');
     return result!;
   }
 
