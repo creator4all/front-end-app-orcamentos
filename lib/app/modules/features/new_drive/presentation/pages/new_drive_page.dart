@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mobx/mobx.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_top_bar.dart';
 
+import '../../../auth/presentation/stores/auth_store.dart';
 import '../../domain/entities/drive_item.dart';
 import '../stores/file_opener_store.dart';
 import '../stores/new_drive_store.dart';
@@ -29,6 +30,7 @@ class NewDrivePage extends StatefulWidget {
 class _NewDrivePageState extends State<NewDrivePage> {
   final NewDriveStore store = Modular.get<NewDriveStore>();
   final FileOpenerStore fileOpenerStore = Modular.get<FileOpenerStore>();
+  final AuthStore authStore = Modular.get<AuthStore>();
   final TextEditingController searchController = TextEditingController();
 
   @override
@@ -57,9 +59,6 @@ class _NewDrivePageState extends State<NewDrivePage> {
 
   @override
   Widget build(BuildContext context) {
-    // TODO: Verificar se usuário é administrador (integrar com AuthStore)
-    const bool isAdmin = true; // Placeholder - substituir por verificação real
-
     return Scaffold(
       backgroundColor: const Color(0xFFF3F4F6),
       appBar: const CustomTopBar(
@@ -105,7 +104,7 @@ class _NewDrivePageState extends State<NewDrivePage> {
                       ),
 
                       // Botão "Meus arquivos" (apenas para admin)
-                      if (isAdmin) ...[
+                      if (authStore.isAdmin) ...[
                         _buildMyFilesButton(),
                         SizedBox(height: 12.h),
                       ],
@@ -248,8 +247,8 @@ class _NewDrivePageState extends State<NewDrivePage> {
   Widget _buildMyFilesButton() {
     return InkWell(
       onTap: () {
-        // TODO: Implementar navegação para meus arquivos
-        debugPrint('Navigate to my files');
+        // Navegar para meus arquivos
+        Modular.to.pushNamed('/drive/my-files');
       },
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
@@ -287,8 +286,8 @@ class _NewDrivePageState extends State<NewDrivePage> {
   Widget _buildSharedFilesButton() {
     return InkWell(
       onTap: () {
-        // TODO: Implementar navegação para todos os arquivos
-        debugPrint('Navigate to all shared files');
+        // Navegar para todos os arquivos compartilhados
+        Modular.to.pushNamed('/drive/shared-files');
       },
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
@@ -384,8 +383,11 @@ class _NewDrivePageState extends State<NewDrivePage> {
                     itemCount: category.itemCount,
                     totalSize: category.totalSize,
                     onTap: () {
-                      // TODO: Implementar navegação para categoria
-                      debugPrint('Navigate to category: ${category.name}');
+                      // Navegar para a página de detalhes da categoria
+                      Modular.to.pushNamed(
+                        '/drive/category',
+                        arguments: category.type,
+                      );
                     },
                   );
                 },

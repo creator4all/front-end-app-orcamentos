@@ -32,6 +32,12 @@ abstract class _NewDriveStoreBase with Store {
   @observable
   String? errorMessage;
 
+  @observable
+  DriveItemType? selectedCategoryType;
+
+  @observable
+  String? viewMode; // 'category', 'my-files', 'all-shared'
+
   // Computed
 
   @computed
@@ -40,6 +46,62 @@ abstract class _NewDriveStoreBase with Store {
     final sorted = allItems.toList()
       ..sort((a, b) => b.lastViewed.compareTo(a.lastViewed));
     return sorted.take(4).toList();
+  }
+
+  @computed
+  List<DriveItem> get selectedCategoryItems {
+    // Retorna itens filtrados pela categoria selecionada
+    if (selectedCategoryType == null) {
+      return [];
+    }
+    return allItems.where((item) => item.type == selectedCategoryType).toList();
+  }
+
+  @computed
+  List<DriveItem> get filteredCategoryItems {
+    // Retorna itens da categoria filtrados por busca
+    var items = selectedCategoryItems;
+
+    if (searchQuery.isEmpty) {
+      return items;
+    }
+
+    final query = searchQuery.toLowerCase();
+    return items
+        .where((item) => item.name.toLowerCase().contains(query))
+        .toList();
+  }
+
+  @computed
+  List<DriveItem> get viewItems {
+    // Retorna itens baseado no modo de visualização
+    switch (viewMode) {
+      case 'category':
+        return selectedCategoryItems;
+      case 'my-files':
+        // Arquivos enviados pelo usuário (todos por enquanto)
+        return allItems;
+      case 'all-shared':
+        // Todos os arquivos compartilhados
+        return allItems;
+      default:
+        return [];
+    }
+  }
+
+  @computed
+  List<DriveItem> get filteredViewItems {
+    // Retorna itens do modo de visualização filtrados por busca
+    var items = viewItems;
+
+    if (searchQuery.isEmpty) {
+      return items;
+    }
+
+    final query = searchQuery.toLowerCase();
+    return items
+        .where((item) => item.name.toLowerCase().contains(query))
+        .toList();
   }
 
   // Actions
@@ -162,6 +224,29 @@ abstract class _NewDriveStoreBase with Store {
   @action
   void clearError() {
     errorMessage = null;
+  }
+
+  @action
+  void selectCategory(DriveItemType type) {
+    selectedCategoryType = type;
+  }
+
+  @action
+  void clearSelectedCategory() {
+    selectedCategoryType = null;
+  }
+
+  @action
+  void setViewMode(String mode) {
+    viewMode = mode;
+    // Limpar busca ao mudar de modo
+    searchQuery = '';
+  }
+
+  @action
+  void clearViewMode() {
+    viewMode = null;
+    searchQuery = '';
   }
 
   // Métodos auxiliares para dados mockados
