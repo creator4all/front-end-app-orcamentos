@@ -3,11 +3,15 @@ import 'package:flutter_modular/flutter_modular.dart';
 
 import 'data/datasources/drive_remote_datasource.dart';
 import 'data/repositories/drive_repository_impl.dart';
+import 'domain/entities/drive_item.dart';
 import 'domain/repositories/drive_repository.dart';
 import 'domain/usecases/download_and_open_file_usecase.dart';
 import 'domain/usecases/get_recent_items_usecase.dart';
 import 'external/drive_remote_datasource_impl.dart';
+import 'presentation/pages/all_shared_files_page.dart';
+import 'presentation/pages/category_details_page.dart';
 import 'presentation/pages/image_viewer_page.dart';
+import 'presentation/pages/my_files_page.dart';
 import 'presentation/pages/new_drive_page.dart';
 import 'presentation/pages/video_player_page.dart';
 import 'presentation/stores/file_opener_store.dart';
@@ -72,8 +76,30 @@ class NewDriveModule extends Module {
           child: (context, args) => ImageViewerPage(item: args.data),
         ),
 
+        // Detalhes de categoria com lista de itens
+        ChildRoute(
+          '/category',
+          child: (context, args) {
+            // Recebe o DriveItemType via arguments
+            final categoryType =
+                args.data as DriveItemType? ?? DriveItemType.document;
+            return CategoryDetailsPage(categoryType: categoryType);
+          },
+        ),
+
+        // Meus arquivos (apenas administrador)
+        ChildRoute(
+          '/my-files',
+          child: (context, args) => const MyFilesPage(),
+        ),
+
+        // Todos os arquivos compartilhados
+        ChildRoute(
+          '/shared-files',
+          child: (context, args) => const AllSharedFilesPage(),
+        ),
+
         // TODO: Adicionar rotas para:
         // - Detalhes de arquivo
-        // - Lista de arquivos por categoria
       ];
 }

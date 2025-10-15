@@ -16,6 +16,36 @@ mixin _$NewDriveStore on _NewDriveStoreBase, Store {
           Computed<List<DriveItem>>(() => super.recentItems,
               name: '_NewDriveStoreBase.recentItems'))
       .value;
+  Computed<List<DriveItem>>? _$selectedCategoryItemsComputed;
+
+  @override
+  List<DriveItem> get selectedCategoryItems =>
+      (_$selectedCategoryItemsComputed ??= Computed<List<DriveItem>>(
+              () => super.selectedCategoryItems,
+              name: '_NewDriveStoreBase.selectedCategoryItems'))
+          .value;
+  Computed<List<DriveItem>>? _$filteredCategoryItemsComputed;
+
+  @override
+  List<DriveItem> get filteredCategoryItems =>
+      (_$filteredCategoryItemsComputed ??= Computed<List<DriveItem>>(
+              () => super.filteredCategoryItems,
+              name: '_NewDriveStoreBase.filteredCategoryItems'))
+          .value;
+  Computed<List<DriveItem>>? _$viewItemsComputed;
+
+  @override
+  List<DriveItem> get viewItems =>
+      (_$viewItemsComputed ??= Computed<List<DriveItem>>(() => super.viewItems,
+              name: '_NewDriveStoreBase.viewItems'))
+          .value;
+  Computed<List<DriveItem>>? _$filteredViewItemsComputed;
+
+  @override
+  List<DriveItem> get filteredViewItems => (_$filteredViewItemsComputed ??=
+          Computed<List<DriveItem>>(() => super.filteredViewItems,
+              name: '_NewDriveStoreBase.filteredViewItems'))
+      .value;
 
   late final _$allItemsAtom =
       Atom(name: '_NewDriveStoreBase.allItems', context: context);
@@ -97,6 +127,39 @@ mixin _$NewDriveStore on _NewDriveStoreBase, Store {
     });
   }
 
+  late final _$selectedCategoryTypeAtom =
+      Atom(name: '_NewDriveStoreBase.selectedCategoryType', context: context);
+
+  @override
+  DriveItemType? get selectedCategoryType {
+    _$selectedCategoryTypeAtom.reportRead();
+    return super.selectedCategoryType;
+  }
+
+  @override
+  set selectedCategoryType(DriveItemType? value) {
+    _$selectedCategoryTypeAtom.reportWrite(value, super.selectedCategoryType,
+        () {
+      super.selectedCategoryType = value;
+    });
+  }
+
+  late final _$viewModeAtom =
+      Atom(name: '_NewDriveStoreBase.viewMode', context: context);
+
+  @override
+  String? get viewMode {
+    _$viewModeAtom.reportRead();
+    return super.viewMode;
+  }
+
+  @override
+  set viewMode(String? value) {
+    _$viewModeAtom.reportWrite(value, super.viewMode, () {
+      super.viewMode = value;
+    });
+  }
+
   late final _$loadRecentItemsAsyncAction =
       AsyncAction('_NewDriveStoreBase.loadRecentItems', context: context);
 
@@ -147,6 +210,50 @@ mixin _$NewDriveStore on _NewDriveStoreBase, Store {
   }
 
   @override
+  void selectCategory(DriveItemType type) {
+    final _$actionInfo = _$_NewDriveStoreBaseActionController.startAction(
+        name: '_NewDriveStoreBase.selectCategory');
+    try {
+      return super.selectCategory(type);
+    } finally {
+      _$_NewDriveStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void clearSelectedCategory() {
+    final _$actionInfo = _$_NewDriveStoreBaseActionController.startAction(
+        name: '_NewDriveStoreBase.clearSelectedCategory');
+    try {
+      return super.clearSelectedCategory();
+    } finally {
+      _$_NewDriveStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void setViewMode(String mode) {
+    final _$actionInfo = _$_NewDriveStoreBaseActionController.startAction(
+        name: '_NewDriveStoreBase.setViewMode');
+    try {
+      return super.setViewMode(mode);
+    } finally {
+      _$_NewDriveStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void clearViewMode() {
+    final _$actionInfo = _$_NewDriveStoreBaseActionController.startAction(
+        name: '_NewDriveStoreBase.clearViewMode');
+    try {
+      return super.clearViewMode();
+    } finally {
+      _$_NewDriveStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
   String toString() {
     return '''
 allItems: ${allItems},
@@ -154,7 +261,13 @@ categories: ${categories},
 searchQuery: ${searchQuery},
 isLoading: ${isLoading},
 errorMessage: ${errorMessage},
-recentItems: ${recentItems}
+selectedCategoryType: ${selectedCategoryType},
+viewMode: ${viewMode},
+recentItems: ${recentItems},
+selectedCategoryItems: ${selectedCategoryItems},
+filteredCategoryItems: ${filteredCategoryItems},
+viewItems: ${viewItems},
+filteredViewItems: ${filteredViewItems}
     ''';
   }
 }
