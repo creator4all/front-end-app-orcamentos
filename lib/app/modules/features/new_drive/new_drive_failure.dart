@@ -29,3 +29,28 @@ class SearchFilesFailure extends NewDriveFailure {
 class ConnectionFailure extends NewDriveFailure {
   const ConnectionFailure(super.message);
 }
+
+/// Falha ao fazer download de arquivo
+class DownloadFileFailure extends NewDriveFailure {
+  const DownloadFileFailure(super.message);
+}
+
+/// Tipo de arquivo não suportado
+class UnsupportedFileTypeFailure extends NewDriveFailure {
+  const UnsupportedFileTypeFailure(super.message);
+}
+
+/// Nenhum app disponível para abrir o arquivo
+class NoAppToOpenFailure extends NewDriveFailure {
+  const NoAppToOpenFailure(super.message);
+}
+
+/// Permissão negada
+class PermissionDeniedFailure extends NewDriveFailure {
+  const PermissionDeniedFailure(super.message);
+}
+
+/// Arquivo não encontrado
+class FileNotFoundFailure extends NewDriveFailure {
+  const FileNotFoundFailure(super.message);
+}

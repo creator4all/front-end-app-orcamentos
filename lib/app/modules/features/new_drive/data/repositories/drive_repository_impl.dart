@@ -78,6 +78,18 @@ class DriveRepositoryImpl implements DriveRepository {
     }
   }
 
+  @override
+  Future<Either<NewDriveFailure, List<int>>> downloadFileBytes(
+    String fileId,
+  ) async {
+    try {
+      final bytes = await remoteDataSource.downloadFileBytes(fileId);
+      return Right(bytes);
+    } catch (e) {
+      return Left(DownloadFileFailure('Erro ao fazer download: $e'));
+    }
+  }
+
   /// Converte DriveItemType para string
   String _typeToString(DriveItemType type) {
     switch (type) {

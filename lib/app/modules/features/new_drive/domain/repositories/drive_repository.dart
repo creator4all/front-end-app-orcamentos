@@ -25,4 +25,8 @@ abstract class DriveRepository {
 
   /// Busca detalhes de um arquivo específico
   Future<Either<NewDriveFailure, DriveItem>> getFileDetails(String fileId);
+
+  /// Faz o download dos bytes de um arquivo
+  /// Retorna os bytes brutos do arquivo para serem salvos localmente
+  Future<Either<NewDriveFailure, List<int>>> downloadFileBytes(String fileId);
 }
