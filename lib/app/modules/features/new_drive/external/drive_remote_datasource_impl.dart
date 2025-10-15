@@ -15,8 +15,15 @@ class DriveRemoteDataSourceImpl implements DriveRemoteDataSource {
   @override
   Future<List<DriveItemModel>> getRecentItems() async {
     try {
-      // Rota: GET /api/files
-      final response = await dio.get('/api/files');
+      // Rota: GET /api/files?filter=shared
+      // ⚠️ IMPORTANTE: Usar filter=shared para buscar APENAS arquivos compartilhados
+      // Não usar filter=own (arquivos próprios) nem filter=all (todos)
+      final response = await dio.get(
+        '/api/files',
+        queryParameters: {
+          'filter': 'shared', // ✅ Apenas arquivos compartilhados COM o usuário
+        },
+      );
 
       if (response.statusCode == 200) {
         // A API retorna {"dados": [...]}
@@ -102,6 +109,29 @@ class DriveRemoteDataSourceImpl implements DriveRemoteDataSource {
       throw Exception('Falha ao carregar detalhes do arquivo');
     } catch (e) {
       throw Exception('Erro na comunicação com servidor: $e');
+    }
+  }
+
+  @override
+  Future<List<int>> downloadFileBytes(String fileId) async {
+    try {
+      // Endpoint real: /api/files/{id}/view
+      final response = await dio.get(
+        '/api/files/$fileId/view',
+        options: Options(
+          responseType: ResponseType.bytes, // ⚠️ IMPORTANTE: recebe bytes
+          receiveTimeout:
+              const Duration(minutes: 5), // Timeout maior para arquivos grandes
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data as List<int>;
+      }
+
+      throw Exception('Falha ao fazer download do arquivo');
+    } catch (e) {
+      throw Exception('Erro ao baixar arquivo: $e');
     }
   }
 }

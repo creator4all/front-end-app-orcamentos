@@ -19,4 +19,8 @@ abstract class DriveRemoteDataSource {
 
   /// Busca detalhes de um arquivo
   Future<DriveItemModel> getFileDetails(String fileId);
+
+  /// Faz o download dos bytes de um arquivo
+  /// Retorna os bytes brutos para serem processados posteriormente
+  Future<List<int>> downloadFileBytes(String fileId);
 }

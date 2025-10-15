@@ -1,3 +1,4 @@
+import '../../../../../../config/api_config.dart';
 import '../../domain/entities/drive_item.dart';
 
 /// DTO (Data Transfer Object) para DriveItem
@@ -68,8 +69,7 @@ class DriveItemModel {
       type: _parseTypeFromMime(type, mimeType),
       size: _formatSize(size),
       lastViewed: DateTime.parse(updatedAt),
-      thumbnailUrl:
-          'https://parceiro.multimidiaeducacional.com.br/api/files/$id/thumbnail',
+      thumbnailUrl: '${ApiConfig.baseUrl}/api/files/$id/thumbnail',
       itemCount:
           hasChildren ? 0 : null, // TODO: Implementar contagem real para pastas
     );

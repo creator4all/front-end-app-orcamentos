@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:mobx/mobx.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_top_bar.dart';
 
 import '../../domain/entities/drive_item.dart';
+import '../stores/file_opener_store.dart';
 import '../stores/new_drive_store.dart';
 import '../widgets/category_card.dart';
 import '../widgets/item_card_doc.dart';
@@ -26,6 +28,7 @@ class NewDrivePage extends StatefulWidget {
 
 class _NewDrivePageState extends State<NewDrivePage> {
   final NewDriveStore store = Modular.get<NewDriveStore>();
+  final FileOpenerStore fileOpenerStore = Modular.get<FileOpenerStore>();
   final TextEditingController searchController = TextEditingController();
 
   @override
@@ -33,6 +36,17 @@ class _NewDrivePageState extends State<NewDrivePage> {
     super.initState();
     // Carregar dados iniciais
     store.initialize();
+
+    // Observar erros da FileOpenerStore e mostrar SnackBar
+    reaction(
+      (_) => fileOpenerStore.errorMessage,
+      (String? errorMessage) {
+        if (errorMessage != null && errorMessage.isNotEmpty) {
+          _showErrorSnackBar(errorMessage);
+          fileOpenerStore.clearError();
+        }
+      },
+    );
   }
 
   @override
@@ -222,10 +236,7 @@ class _NewDrivePageState extends State<NewDrivePage> {
       itemDate: item.getFormattedDate(),
       itemType: item.type,
       thumbnailUrl: item.thumbnailUrl,
-      onTap: () {
-        // TODO: Implementar navegação para detalhes do arquivo
-        debugPrint('Tap on item: ${item.name}');
-      },
+      onTap: () => _handleFileOpen(item),
       onMenuTap: () {
         // TODO: Implementar menu de opções
         debugPrint('Menu tap on item: ${item.name}');
@@ -398,6 +409,100 @@ class _NewDrivePageState extends State<NewDrivePage> {
             color: const Color(0xFF565E6C),
           ),
           textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+
+  /// Manipula a abertura de um arquivo
+  Future<void> _handleFileOpen(DriveItem item) async {
+    // Detectar tipo de arquivo e rotear apropriadamente
+    final fileName = item.name.toLowerCase();
+
+    // 1. Vídeos -> Streaming player
+    if (_isVideo(fileName)) {
+      Modular.to.pushNamed('/drive/video-player', arguments: item);
+      return;
+    }
+
+    // 2. Imagens -> Viewer com zoom
+    if (_isImage(fileName)) {
+      Modular.to.pushNamed('/drive/image-viewer', arguments: item);
+      return;
+    }
+
+    // 3. Documentos/PDFs/outros -> Download + App nativo (comportamento atual)
+    _showLoadingDialog();
+    await fileOpenerStore.openFile(item);
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
+  /// Verifica se é um vídeo
+  bool _isVideo(String fileName) {
+    final extension = fileName.split('.').last;
+    return ['mp4', 'avi', 'mov', 'mkv', 'webm', '3gp', 'flv', 'wmv']
+        .contains(extension);
+  }
+
+  /// Verifica se é uma imagem
+  bool _isImage(String fileName) {
+    final extension = fileName.split('.').last;
+    return ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].contains(extension);
+  }
+
+  /// Exibe modal de loading durante download
+  void _showLoadingDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Observer(
+        builder: (_) => AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(),
+              SizedBox(height: 16.h),
+              Text(
+                'Baixando arquivo...',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF171A1F),
+                ),
+              ),
+              if (fileOpenerStore.downloadProgress > 0) ...[
+                SizedBox(height: 8.h),
+                Text(
+                  '${fileOpenerStore.progressPercentage}%',
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    color: const Color(0xFF565E6C),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Exibe SnackBar com mensagem de erro
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 4),
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: 'OK',
+          textColor: Colors.white,
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          },
         ),
       ),
     );
