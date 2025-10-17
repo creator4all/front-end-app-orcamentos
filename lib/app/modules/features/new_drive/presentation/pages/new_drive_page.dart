@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:mobx/mobx.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_top_bar.dart';
 
+import '../../../auth/presentation/stores/auth_store.dart';
 import '../../domain/entities/drive_item.dart';
+import '../stores/file_opener_store.dart';
 import '../stores/new_drive_store.dart';
 import '../widgets/category_card.dart';
 import '../widgets/item_card_doc.dart';
@@ -26,6 +29,8 @@ class NewDrivePage extends StatefulWidget {
 
 class _NewDrivePageState extends State<NewDrivePage> {
   final NewDriveStore store = Modular.get<NewDriveStore>();
+  final FileOpenerStore fileOpenerStore = Modular.get<FileOpenerStore>();
+  final AuthStore authStore = Modular.get<AuthStore>();
   final TextEditingController searchController = TextEditingController();
 
   @override
@@ -33,6 +38,17 @@ class _NewDrivePageState extends State<NewDrivePage> {
     super.initState();
     // Carregar dados iniciais
     store.initialize();
+
+    // Observar erros da FileOpenerStore e mostrar SnackBar
+    reaction(
+      (_) => fileOpenerStore.errorMessage,
+      (String? errorMessage) {
+        if (errorMessage != null && errorMessage.isNotEmpty) {
+          _showErrorSnackBar(errorMessage);
+          fileOpenerStore.clearError();
+        }
+      },
+    );
   }
 
   @override
@@ -43,9 +59,6 @@ class _NewDrivePageState extends State<NewDrivePage> {
 
   @override
   Widget build(BuildContext context) {
-    // TODO: Verificar se usuário é administrador (integrar com AuthStore)
-    const bool isAdmin = true; // Placeholder - substituir por verificação real
-
     return Scaffold(
       backgroundColor: const Color(0xFFF3F4F6),
       appBar: const CustomTopBar(
@@ -91,7 +104,7 @@ class _NewDrivePageState extends State<NewDrivePage> {
                       ),
 
                       // Botão "Meus arquivos" (apenas para admin)
-                      if (isAdmin) ...[
+                      if (authStore.isAdmin) ...[
                         _buildMyFilesButton(),
                         SizedBox(height: 12.h),
                       ],
@@ -222,10 +235,7 @@ class _NewDrivePageState extends State<NewDrivePage> {
       itemDate: item.getFormattedDate(),
       itemType: item.type,
       thumbnailUrl: item.thumbnailUrl,
-      onTap: () {
-        // TODO: Implementar navegação para detalhes do arquivo
-        debugPrint('Tap on item: ${item.name}');
-      },
+      onTap: () => _handleFileOpen(item),
       onMenuTap: () {
         // TODO: Implementar menu de opções
         debugPrint('Menu tap on item: ${item.name}');
@@ -237,8 +247,8 @@ class _NewDrivePageState extends State<NewDrivePage> {
   Widget _buildMyFilesButton() {
     return InkWell(
       onTap: () {
-        // TODO: Implementar navegação para meus arquivos
-        debugPrint('Navigate to my files');
+        // Navegar para meus arquivos
+        Modular.to.pushNamed('./my-files');
       },
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
@@ -272,12 +282,12 @@ class _NewDrivePageState extends State<NewDrivePage> {
     );
   }
 
-  /// Botão para todos os arquivos compartilhados
+  /// Botão de todos os arquivos compartilhados
   Widget _buildSharedFilesButton() {
     return InkWell(
       onTap: () {
-        // TODO: Implementar navegação para todos os arquivos
-        debugPrint('Navigate to all shared files');
+        // Navegar para todos os arquivos compartilhados
+        Modular.to.pushNamed('./shared-files');
       },
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
@@ -373,8 +383,11 @@ class _NewDrivePageState extends State<NewDrivePage> {
                     itemCount: category.itemCount,
                     totalSize: category.totalSize,
                     onTap: () {
-                      // TODO: Implementar navegação para categoria
-                      debugPrint('Navigate to category: ${category.name}');
+                      // Navegar para a página de detalhes da categoria
+                      Modular.to.pushNamed(
+                        './category',
+                        arguments: category.type,
+                      );
                     },
                   );
                 },
@@ -398,6 +411,96 @@ class _NewDrivePageState extends State<NewDrivePage> {
             color: const Color(0xFF565E6C),
           ),
           textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+
+  /// Manipula a abertura de um arquivo
+  Future<void> _handleFileOpen(DriveItem item) async {
+    // 1. Pastas -> Navegar para pasta
+    if (item.type == DriveItemType.folder) {
+      Modular.to.pushNamed(
+        './folder',
+        arguments: {
+          'folderId': item.id,
+          'folderName': item.name,
+        },
+      );
+      return;
+    }
+
+    // 2. Vídeos -> Streaming player
+    if (item.type == DriveItemType.video) {
+      Modular.to.pushNamed('./video-player', arguments: item);
+      return;
+    }
+
+    // 3. Imagens -> Viewer com zoom
+    if (item.type == DriveItemType.image) {
+      Modular.to.pushNamed('./image-viewer', arguments: item);
+      return;
+    }
+
+    // 4. Documentos/PDFs/outros -> Download + App nativo
+    _showLoadingDialog();
+    await fileOpenerStore.openFile(item);
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
+  /// Exibe modal de loading durante download
+  void _showLoadingDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Observer(
+        builder: (_) => AlertDialog(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(),
+              SizedBox(height: 16.h),
+              Text(
+                'Baixando arquivo...',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF171A1F),
+                ),
+              ),
+              if (fileOpenerStore.downloadProgress > 0) ...[
+                SizedBox(height: 8.h),
+                Text(
+                  '${fileOpenerStore.progressPercentage}%',
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    color: const Color(0xFF565E6C),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Exibe SnackBar com mensagem de erro
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 4),
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: 'OK',
+          textColor: Colors.white,
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          },
         ),
       ),
     );

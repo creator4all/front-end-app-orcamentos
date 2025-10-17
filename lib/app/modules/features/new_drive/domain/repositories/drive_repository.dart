@@ -23,6 +23,17 @@ abstract class DriveRepository {
     DriveItemType type,
   );
 
+  /// Busca arquivos do próprio usuário (apenas admin)
+  Future<Either<NewDriveFailure, List<DriveItem>>> getOwnFiles();
+
   /// Busca detalhes de um arquivo específico
   Future<Either<NewDriveFailure, DriveItem>> getFileDetails(String fileId);
+
+  /// Busca o conteúdo de uma pasta (hierarquia)
+  /// Retorna o item com seus filhos preenchidos
+  Future<Either<NewDriveFailure, DriveItem>> getFolderContents(String folderId);
+
+  /// Faz o download dos bytes de um arquivo
+  /// Retorna os bytes brutos do arquivo para serem salvos localmente
+  Future<Either<NewDriveFailure, List<int>>> downloadFileBytes(String fileId);
 }

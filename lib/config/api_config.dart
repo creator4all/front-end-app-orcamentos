@@ -3,7 +3,9 @@ class ApiConfig {
   // Para dispositivo físico use: 'http://192.168.3.2:8080'
   // Para iOS Simulator use: 'http://localhost:8080'
   static const String _localBaseUrl =
-      'http://192.168.68.53:8080'; // IP para dispositivo físico
+      'http://192.168.68.54:8080'; // IP para dispositivo físico
+  static const String _localBaseUrlCasa = 
+      'http://192.168.3.2:8080';
   static const String _testBaseUrl =
       'https://test-api.multimidiaeducacional.com.br';
   static const String _productionBaseUrl =
@@ -18,6 +20,8 @@ class ApiConfig {
     switch (_environment) {
       case 'local':
         return _localBaseUrl;
+      case 'localCasa': 
+        return _localBaseUrlCasa;
       case 'test':
         return _testBaseUrl;
       case 'production':
