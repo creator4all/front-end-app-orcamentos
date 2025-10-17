@@ -5,7 +5,7 @@ class ApiConfig {
   static const String _localBaseUrl =
       'http://192.168.68.54:8080'; // IP para dispositivo físico
   static const String _localBaseUrlCasa = 
-      'http://192.168.5.2:8080';
+      'http://192.168.3.2:8080';
   static const String _testBaseUrl =
       'https://test-api.multimidiaeducacional.com.br';
   static const String _productionBaseUrl =
@@ -13,13 +13,15 @@ class ApiConfig {
 
   // Current environment
   static const String _environment =
-      'local'; // Options: 'local', 'test', 'production'
+      'production'; // Options: 'local', 'test', 'production'
 
   // Get base URL based on environment
   static String get baseUrl {
     switch (_environment) {
       case 'local':
         return _localBaseUrl;
+      case 'localCasa': 
+        return _localBaseUrlCasa;
       case 'test':
         return _testBaseUrl;
       case 'production':

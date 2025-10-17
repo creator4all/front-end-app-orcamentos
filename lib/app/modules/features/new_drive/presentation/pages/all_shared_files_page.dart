@@ -182,22 +182,31 @@ class _AllSharedFilesPageState extends State<AllSharedFilesPage> {
     );
   }
 
-  /// Abre o arquivo ou vídeo apropriado
+  /// Abre o arquivo, navega para pasta ou video
   void _handleFileOpen(DriveItem item) {
-    if (item.type == DriveItemType.video) {
+    if (item.type == DriveItemType.folder) {
+      // Navegar para a pasta
+      Modular.to.pushNamed(
+        './folder',
+        arguments: {
+          'folderId': item.id,
+          'folderName': item.name,
+        },
+      );
+    } else if (item.type == DriveItemType.video) {
       // Navegar para video player
       Modular.to.pushNamed(
-        '/drive/video-player',
+        './video-player',
         arguments: item,
       );
     } else if (item.type == DriveItemType.image) {
       // Navegar para image viewer
       Modular.to.pushNamed(
-        '/drive/image-viewer',
+        './image-viewer',
         arguments: item,
       );
     } else {
-      // Download e abrir arquivo (documento, pasta, etc)
+      // Download e abrir arquivo (documento, etc)
       fileOpenerStore.openFile(item);
     }
   }

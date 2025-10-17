@@ -6,10 +6,13 @@ import 'data/repositories/drive_repository_impl.dart';
 import 'domain/entities/drive_item.dart';
 import 'domain/repositories/drive_repository.dart';
 import 'domain/usecases/download_and_open_file_usecase.dart';
+import 'domain/usecases/get_folder_contents_usecase.dart';
+import 'domain/usecases/get_own_files_usecase.dart';
 import 'domain/usecases/get_recent_items_usecase.dart';
 import 'external/drive_remote_datasource_impl.dart';
 import 'presentation/pages/all_shared_files_page.dart';
 import 'presentation/pages/category_details_page.dart';
+import 'presentation/pages/folder_contents_page.dart';
 import 'presentation/pages/image_viewer_page.dart';
 import 'presentation/pages/my_files_page.dart';
 import 'presentation/pages/new_drive_page.dart';
@@ -41,6 +44,12 @@ class NewDriveModule extends Module {
         Bind.singleton<GetRecentItemsUseCase>(
           (i) => GetRecentItemsUseCase(i.get<DriveRepository>()),
         ),
+        Bind.singleton<GetOwnFilesUseCase>(
+          (i) => GetOwnFilesUseCase(i.get<DriveRepository>()),
+        ),
+        Bind.singleton<GetFolderContentsUseCase>(
+          (i) => GetFolderContentsUseCase(i.get<DriveRepository>()),
+        ),
         Bind.singleton<DownloadAndOpenFileUsecase>(
           (i) => DownloadAndOpenFileUsecase(i.get<DriveRepository>()),
         ),
@@ -49,6 +58,8 @@ class NewDriveModule extends Module {
         Bind.singleton<NewDriveStore>(
           (i) => NewDriveStore(
             getRecentItemsUseCase: i.get<GetRecentItemsUseCase>(),
+            getOwnFilesUseCase: i.get<GetOwnFilesUseCase>(),
+            getFolderContentsUseCase: i.get<GetFolderContentsUseCase>(),
           ),
         ),
         Bind.singleton<FileOpenerStore>(
@@ -97,6 +108,19 @@ class NewDriveModule extends Module {
         ChildRoute(
           '/shared-files',
           child: (context, args) => const AllSharedFilesPage(),
+        ),
+
+        // Conteúdo de uma pasta
+        ChildRoute(
+          '/folder',
+          child: (context, args) {
+            final folderId = args.data?['folderId'] as String? ?? '';
+            final folderName = args.data?['folderName'] as String?;
+            return FolderContentsPage(
+              folderId: folderId,
+              folderName: folderName,
+            );
+          },
         ),
 
         // TODO: Adicionar rotas para:

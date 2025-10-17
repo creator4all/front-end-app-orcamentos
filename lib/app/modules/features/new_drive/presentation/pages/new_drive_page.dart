@@ -248,7 +248,7 @@ class _NewDrivePageState extends State<NewDrivePage> {
     return InkWell(
       onTap: () {
         // Navegar para meus arquivos
-        Modular.to.pushNamed('/drive/my-files');
+        Modular.to.pushNamed('./my-files');
       },
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
@@ -282,12 +282,12 @@ class _NewDrivePageState extends State<NewDrivePage> {
     );
   }
 
-  /// Botão para todos os arquivos compartilhados
+  /// Botão de todos os arquivos compartilhados
   Widget _buildSharedFilesButton() {
     return InkWell(
       onTap: () {
         // Navegar para todos os arquivos compartilhados
-        Modular.to.pushNamed('/drive/shared-files');
+        Modular.to.pushNamed('./shared-files');
       },
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
@@ -385,7 +385,7 @@ class _NewDrivePageState extends State<NewDrivePage> {
                     onTap: () {
                       // Navegar para a página de detalhes da categoria
                       Modular.to.pushNamed(
-                        '/drive/category',
+                        './category',
                         arguments: category.type,
                       );
                     },
@@ -418,40 +418,36 @@ class _NewDrivePageState extends State<NewDrivePage> {
 
   /// Manipula a abertura de um arquivo
   Future<void> _handleFileOpen(DriveItem item) async {
-    // Detectar tipo de arquivo e rotear apropriadamente
-    final fileName = item.name.toLowerCase();
-
-    // 1. Vídeos -> Streaming player
-    if (_isVideo(fileName)) {
-      Modular.to.pushNamed('/drive/video-player', arguments: item);
+    // 1. Pastas -> Navegar para pasta
+    if (item.type == DriveItemType.folder) {
+      Modular.to.pushNamed(
+        './folder',
+        arguments: {
+          'folderId': item.id,
+          'folderName': item.name,
+        },
+      );
       return;
     }
 
-    // 2. Imagens -> Viewer com zoom
-    if (_isImage(fileName)) {
-      Modular.to.pushNamed('/drive/image-viewer', arguments: item);
+    // 2. Vídeos -> Streaming player
+    if (item.type == DriveItemType.video) {
+      Modular.to.pushNamed('./video-player', arguments: item);
       return;
     }
 
-    // 3. Documentos/PDFs/outros -> Download + App nativo (comportamento atual)
+    // 3. Imagens -> Viewer com zoom
+    if (item.type == DriveItemType.image) {
+      Modular.to.pushNamed('./image-viewer', arguments: item);
+      return;
+    }
+
+    // 4. Documentos/PDFs/outros -> Download + App nativo
     _showLoadingDialog();
     await fileOpenerStore.openFile(item);
     if (mounted) {
       Navigator.of(context).pop();
     }
-  }
-
-  /// Verifica se é um vídeo
-  bool _isVideo(String fileName) {
-    final extension = fileName.split('.').last;
-    return ['mp4', 'avi', 'mov', 'mkv', 'webm', '3gp', 'flv', 'wmv']
-        .contains(extension);
-  }
-
-  /// Verifica se é uma imagem
-  bool _isImage(String fileName) {
-    final extension = fileName.split('.').last;
-    return ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].contains(extension);
   }
 
   /// Exibe modal de loading durante download

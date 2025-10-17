@@ -97,6 +97,32 @@ class DriveRemoteDataSourceImpl implements DriveRemoteDataSource {
   }
 
   @override
+  Future<List<DriveItemModel>> getOwnFiles() async {
+    try {
+      // Rota: GET /api/files?filter=own
+      // ⚠️ IMPORTANTE: Retorna APENAS arquivos enviados pelo próprio usuário
+      final response = await dio.get(
+        '/api/files',
+        queryParameters: {
+          'filter': 'own', // ✅ Apenas arquivos do próprio usuário
+        },
+      );
+
+      if (response.statusCode == 200) {
+        // A API retorna {"dados": [...]}
+        final Map<String, dynamic> responseData =
+            response.data as Map<String, dynamic>;
+        final List<dynamic> data = responseData['dados'] as List<dynamic>;
+        return data.map((json) => DriveItemModel.fromJson(json)).toList();
+      }
+
+      throw Exception('Falha ao carregar arquivos do usuário');
+    } catch (e) {
+      throw Exception('Erro na comunicação com servidor: $e');
+    }
+  }
+
+  @override
   Future<DriveItemModel> getFileDetails(String fileId) async {
     try {
       // TODO: Substituir por endpoint real
@@ -109,6 +135,30 @@ class DriveRemoteDataSourceImpl implements DriveRemoteDataSource {
       throw Exception('Falha ao carregar detalhes do arquivo');
     } catch (e) {
       throw Exception('Erro na comunicação com servidor: $e');
+    }
+  }
+
+  @override
+  Future<DriveItemModel> getItemHierarchy(String itemId) async {
+    try {
+      // Endpoint: GET /api/files/{id}/hierarchy
+      // Retorna o item com suas relações (parent, children, fileData, etc)
+      final response = await dio.get(
+        '/api/files/$itemId/hierarchy',
+      );
+
+      if (response.statusCode == 200) {
+        // A API retorna {"dados": {...}}
+        final Map<String, dynamic> responseData =
+            response.data as Map<String, dynamic>;
+        final Map<String, dynamic> data =
+            responseData['dados'] as Map<String, dynamic>;
+        return DriveItemModel.fromJson(data);
+      }
+
+      throw Exception('Falha ao carregar hierarquia do item');
+    } catch (e) {
+      throw Exception('Erro ao buscar hierarquia: $e');
     }
   }
 
