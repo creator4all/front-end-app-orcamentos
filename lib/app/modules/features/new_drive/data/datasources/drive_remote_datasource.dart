@@ -17,8 +17,15 @@ abstract class DriveRemoteDataSource {
   /// Busca arquivos por categoria
   Future<List<DriveItemModel>> getFilesByCategory(String type);
 
+  /// Busca arquivos do próprio usuário (apenas admin)
+  Future<List<DriveItemModel>> getOwnFiles();
+
   /// Busca detalhes de um arquivo
   Future<DriveItemModel> getFileDetails(String fileId);
+
+  /// Busca a hierarquia de um item (pasta e seu conteúdo)
+  /// Retorna o item com seus filhos (children)
+  Future<DriveItemModel> getItemHierarchy(String itemId);
 
   /// Faz o download dos bytes de um arquivo
   /// Retorna os bytes brutos para serem processados posteriormente

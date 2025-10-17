@@ -14,6 +14,9 @@ class DriveItemModel {
   final String createdAt;
   final String updatedAt;
   final bool hasChildren;
+  final int? parentId;
+  final String? parentName;
+  final List<DriveItemModel>? children;
 
   DriveItemModel({
     required this.id,
@@ -25,23 +28,55 @@ class DriveItemModel {
     required this.createdAt,
     required this.updatedAt,
     required this.hasChildren,
+    this.parentId,
+    this.parentName,
+    this.children,
   });
 
   /// Converte JSON para Model
   factory DriveItemModel.fromJson(Map<String, dynamic> json) {
-    final fileData = json['fileData'] as Map<String, dynamic>?;
+    try {
+      final fileData = json['file_data'] as Map<String, dynamic>?;
+      final parent = json['parent'] as Map<String, dynamic>?;
+      final childrenJson = json['children'] as List<dynamic>?;
 
-    return DriveItemModel(
-      id: json['id'].toString(),
-      name: json['name'] as String,
-      type: json['type'] as String,
-      mimeType: json['mimeType'] as String?,
-      size: json['size'] as int,
-      thumbnailPath: fileData?['thumbnailPath'] as String?,
-      createdAt: json['createdAt'] as String,
-      updatedAt: json['updatedAt'] as String,
-      hasChildren: json['hasChildren'] as bool? ?? false,
-    );
+      // Suporta ambas as convenções de nomes: com prefixo (ite_) e sem (camelCase)
+      final id = (json['ite_itemId'] ?? json['id']).toString();
+      final name = (json['ite_name'] ?? json['name']) as String;
+      final type = (json['ite_type'] ?? json['type']) as String;
+      final mimeType = (json['ite_mimeType'] ?? json['mimeType']) as String?;
+      final size = ((json['ite_size'] ?? json['size']) as int?) ?? 0;
+      final createdAt = (json['created_at'] ?? json['createdAt']) as String;
+      final updatedAt = (json['updated_at'] ?? json['updatedAt']) as String;
+      final parentId = ((json['ite_parentId'] ?? json['parentId']) as int?);
+
+      print(
+          '[DriveItemModel] Parseando item: id=$id, name=$name, type=$type, childrenCount=${childrenJson?.length ?? 0}');
+
+      return DriveItemModel(
+        id: id,
+        name: name,
+        type: type,
+        mimeType: mimeType,
+        size: size, // ✅ Trata null como 0 (para pastas)
+        thumbnailPath: fileData?['thumbnailPath'] as String?,
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+        hasChildren: childrenJson != null && childrenJson.isNotEmpty,
+        parentId: parentId,
+        parentName: parent?['ite_name'] ?? parent?['name'] as String?,
+        children: childrenJson != null
+            ? (childrenJson)
+                .map((child) =>
+                    DriveItemModel.fromJson(child as Map<String, dynamic>))
+                .toList()
+            : null,
+      );
+    } catch (e) {
+      print('[DriveItemModel] ERRO ao parsear: $e');
+      print('[DriveItemModel] JSON: $json');
+      rethrow;
+    }
   }
 
   /// Converte Model para JSON
@@ -55,9 +90,13 @@ class DriveItemModel {
       'createdAt': createdAt,
       'updatedAt': updatedAt,
       'hasChildren': hasChildren,
+      'parentId': parentId,
+      'parentName': parentName,
       'fileData': {
         'thumbnailPath': thumbnailPath,
       },
+      if (children != null)
+        'children': children!.map((c) => c.toJson()).toList(),
     };
   }
 
@@ -72,6 +111,9 @@ class DriveItemModel {
       thumbnailUrl: '${ApiConfig.baseUrl}/api/files/$id/thumbnail',
       itemCount:
           hasChildren ? 0 : null, // TODO: Implementar contagem real para pastas
+      parentId: parentId,
+      parentName: parentName,
+      children: children?.map((child) => child.toEntity()).toList(),
     );
   }
 

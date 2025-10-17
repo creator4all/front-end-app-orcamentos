@@ -9,23 +9,27 @@ import '../stores/file_opener_store.dart';
 import '../stores/new_drive_store.dart';
 import '../widgets/item_card_doc.dart';
 
-/// Página de detalhes de uma categoria
+/// Página para exibir conteúdo de uma pasta
 ///
-/// Exibe todos os itens de uma categoria específica em uma ListView full-width
-/// Permite ao usuário navegar entre itens, abrir e gerenciar arquivos
-class CategoryDetailsPage extends StatefulWidget {
-  final DriveItemType categoryType;
+/// Permite ao usuário:
+/// - Ver todos os arquivos dentro de uma pasta específica
+/// - Navegar com breadcrumb
+/// - Abrir arquivos ou pastas aninhadas
+class FolderContentsPage extends StatefulWidget {
+  final String folderId;
+  final String? folderName;
 
-  const CategoryDetailsPage({
+  const FolderContentsPage({
     super.key,
-    required this.categoryType,
+    required this.folderId,
+    this.folderName,
   });
 
   @override
-  State<CategoryDetailsPage> createState() => _CategoryDetailsPageState();
+  State<FolderContentsPage> createState() => _FolderContentsPageState();
 }
 
-class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
+class _FolderContentsPageState extends State<FolderContentsPage> {
   final NewDriveStore store = Modular.get<NewDriveStore>();
   final FileOpenerStore fileOpenerStore = Modular.get<FileOpenerStore>();
   final TextEditingController searchController = TextEditingController();
@@ -33,14 +37,12 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
   @override
   void initState() {
     super.initState();
-    // Selecionar a categoria
-    store.selectCategory(widget.categoryType);
+    // Carregar conteúdo da pasta
+    store.loadFolderContents(widget.folderId);
   }
 
   @override
   void dispose() {
-    // Limpar seleção ao sair da página
-    store.clearSelectedCategory();
     searchController.dispose();
     super.dispose();
   }
@@ -50,12 +52,22 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF3F4F6),
       appBar: CustomTopBar(
-        title: _getCategoryTitle(widget.categoryType),
+        title: widget.folderName ?? 'Pasta',
         showBackButton: true,
       ),
       body: Observer(
         builder: (_) {
-          final items = store.filteredCategoryItems;
+          if (store.isLoadingFolder) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final folder = store.currentFolder;
+
+          if (folder == null) {
+            return _buildErrorState();
+          }
+
+          final items = folder.children ?? [];
 
           if (items.isEmpty) {
             return _buildEmptyState();
@@ -63,6 +75,9 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
 
           return Column(
             children: [
+              // Breadcrumb (opcional)
+              _buildBreadcrumb(folder),
+
               // Barra de pesquisa
               Padding(
                 padding: EdgeInsets.symmetric(
@@ -72,7 +87,7 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
                 child: _buildSearchField(),
               ),
 
-              // Texto "Arquivos compartilhados com você"
+              // Texto informativo
               Padding(
                 padding: EdgeInsets.only(
                   left: 10.w,
@@ -82,7 +97,7 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'Arquivos compartilhados com você',
+                    'Conteúdo da pasta',
                     style: TextStyle(
                       fontSize: 14.sp,
                       fontWeight: FontWeight.w500,
@@ -108,11 +123,7 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
                           itemDate: item.getFormattedDate(),
                           itemType: item.type,
                           thumbnailUrl: item.thumbnailUrl,
-                          onTap: () => _handleFileOpen(item),
-                          onMenuTap: () {
-                            // TODO: Implementar menu de opções
-                            debugPrint('Menu tap on item: ${item.name}');
-                          },
+                          onTap: () => _handleItemTap(item),
                         ),
                         if (index < items.length - 1) SizedBox(height: 12.h),
                       ],
@@ -127,7 +138,49 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
     );
   }
 
-  /// Campo de pesquisa de arquivos
+  /// Breadcrumb para mostrar caminho dentro de pastas
+  Widget _buildBreadcrumb(DriveItem folder) {
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: 10.w,
+        vertical: 12.h,
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            // Drive
+            Text(
+              'Drive',
+              style: TextStyle(
+                fontSize: 12.sp,
+                color: const Color(0xFF565E6C),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8.w),
+              child: Icon(
+                Icons.chevron_right,
+                size: 16.sp,
+                color: const Color(0xFF565E6C),
+              ),
+            ),
+            // Pasta atual
+            Text(
+              folder.name,
+              style: TextStyle(
+                fontSize: 12.sp,
+                color: const Color(0xFF171A1F),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Campo de busca
   Widget _buildSearchField() {
     return Container(
       constraints: BoxConstraints(maxHeight: 50.h),
@@ -137,7 +190,6 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
       ),
       child: TextField(
         controller: searchController,
-        onChanged: (value) => store.setSearchQuery(value),
         decoration: InputDecoration(
           hintText: 'Buscar arquivo',
           hintStyle: TextStyle(
@@ -163,8 +215,85 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
     );
   }
 
-  /// Abre o arquivo, navega para pasta ou video
-  void _handleFileOpen(DriveItem item) {
+  /// Estado vazio
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.folder_open,
+            size: 64.sp,
+            color: const Color(0xFF9CA3AF),
+          ),
+          SizedBox(height: 16.h),
+          Text(
+            'Pasta vazia',
+            style: TextStyle(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF171A1F),
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            'Nenhum arquivo nesta pasta',
+            style: TextStyle(
+              fontSize: 14.sp,
+              color: const Color(0xFF565E6C),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Estado de erro
+  Widget _buildErrorState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.error_outline,
+            size: 64.sp,
+            color: const Color(0xFFEF4444),
+          ),
+          SizedBox(height: 16.h),
+          Text(
+            'Erro ao carregar pasta',
+            style: TextStyle(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF171A1F),
+            ),
+          ),
+          if (store.errorMessage != null && store.errorMessage!.isNotEmpty) ...[
+            SizedBox(height: 8.h),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24.w),
+              child: Text(
+                store.errorMessage!,
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  color: const Color(0xFF565E6C),
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+          SizedBox(height: 16.h),
+          ElevatedButton(
+            onPressed: () => Modular.to.pop(),
+            child: const Text('Voltar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Trata clique em item
+  void _handleItemTap(DriveItem item) {
     if (item.type == DriveItemType.folder) {
       // Navegar para a pasta
       Modular.to.pushNamed(
@@ -189,45 +318,6 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
     } else {
       // Download e abrir arquivo (documento, etc)
       fileOpenerStore.openFile(item);
-    }
-  }
-
-  /// Widget de estado vazio
-  Widget _buildEmptyState() {
-    final categoryName = _getCategoryTitle(widget.categoryType).toLowerCase();
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.folder_open,
-            size: 64.sp,
-            color: const Color(0xFFDEE1E6),
-          ),
-          SizedBox(height: 16.h),
-          Text(
-            'Nenhum $categoryName encontrado',
-            style: TextStyle(
-              fontSize: 16.sp,
-              color: const Color(0xFF565E6C),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Obtém o título formatado da categoria
-  String _getCategoryTitle(DriveItemType type) {
-    switch (type) {
-      case DriveItemType.document:
-        return 'Documentos';
-      case DriveItemType.image:
-        return 'Imagens';
-      case DriveItemType.video:
-        return 'Vídeos';
-      case DriveItemType.folder:
-        return 'Pastas';
     }
   }
 }

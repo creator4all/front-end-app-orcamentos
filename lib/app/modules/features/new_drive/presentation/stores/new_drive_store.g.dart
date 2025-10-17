@@ -160,12 +160,93 @@ mixin _$NewDriveStore on _NewDriveStoreBase, Store {
     });
   }
 
+  late final _$ownFilesAtom =
+      Atom(name: '_NewDriveStoreBase.ownFiles', context: context);
+
+  @override
+  ObservableList<DriveItem> get ownFiles {
+    _$ownFilesAtom.reportRead();
+    return super.ownFiles;
+  }
+
+  @override
+  set ownFiles(ObservableList<DriveItem> value) {
+    _$ownFilesAtom.reportWrite(value, super.ownFiles, () {
+      super.ownFiles = value;
+    });
+  }
+
+  late final _$isLoadingOwnFilesAtom =
+      Atom(name: '_NewDriveStoreBase.isLoadingOwnFiles', context: context);
+
+  @override
+  bool get isLoadingOwnFiles {
+    _$isLoadingOwnFilesAtom.reportRead();
+    return super.isLoadingOwnFiles;
+  }
+
+  @override
+  set isLoadingOwnFiles(bool value) {
+    _$isLoadingOwnFilesAtom.reportWrite(value, super.isLoadingOwnFiles, () {
+      super.isLoadingOwnFiles = value;
+    });
+  }
+
+  late final _$currentFolderAtom =
+      Atom(name: '_NewDriveStoreBase.currentFolder', context: context);
+
+  @override
+  DriveItem? get currentFolder {
+    _$currentFolderAtom.reportRead();
+    return super.currentFolder;
+  }
+
+  @override
+  set currentFolder(DriveItem? value) {
+    _$currentFolderAtom.reportWrite(value, super.currentFolder, () {
+      super.currentFolder = value;
+    });
+  }
+
+  late final _$isLoadingFolderAtom =
+      Atom(name: '_NewDriveStoreBase.isLoadingFolder', context: context);
+
+  @override
+  bool get isLoadingFolder {
+    _$isLoadingFolderAtom.reportRead();
+    return super.isLoadingFolder;
+  }
+
+  @override
+  set isLoadingFolder(bool value) {
+    _$isLoadingFolderAtom.reportWrite(value, super.isLoadingFolder, () {
+      super.isLoadingFolder = value;
+    });
+  }
+
   late final _$loadRecentItemsAsyncAction =
       AsyncAction('_NewDriveStoreBase.loadRecentItems', context: context);
 
   @override
   Future<void> loadRecentItems() {
     return _$loadRecentItemsAsyncAction.run(() => super.loadRecentItems());
+  }
+
+  late final _$loadOwnFilesAsyncAction =
+      AsyncAction('_NewDriveStoreBase.loadOwnFiles', context: context);
+
+  @override
+  Future<void> loadOwnFiles() {
+    return _$loadOwnFilesAsyncAction.run(() => super.loadOwnFiles());
+  }
+
+  late final _$loadFolderContentsAsyncAction =
+      AsyncAction('_NewDriveStoreBase.loadFolderContents', context: context);
+
+  @override
+  Future<void> loadFolderContents(String folderId) {
+    return _$loadFolderContentsAsyncAction
+        .run(() => super.loadFolderContents(folderId));
   }
 
   late final _$loadCategoriesAsyncAction =
@@ -263,6 +344,10 @@ isLoading: ${isLoading},
 errorMessage: ${errorMessage},
 selectedCategoryType: ${selectedCategoryType},
 viewMode: ${viewMode},
+ownFiles: ${ownFiles},
+isLoadingOwnFiles: ${isLoadingOwnFiles},
+currentFolder: ${currentFolder},
+isLoadingFolder: ${isLoadingFolder},
 recentItems: ${recentItems},
 selectedCategoryItems: ${selectedCategoryItems},
 filteredCategoryItems: ${filteredCategoryItems},
