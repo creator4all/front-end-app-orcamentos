@@ -67,6 +67,17 @@ class DriveRepositoryImpl implements DriveRepository {
   }
 
   @override
+  Future<Either<NewDriveFailure, List<DriveItem>>> getOwnFiles() async {
+    try {
+      final models = await remoteDataSource.getOwnFiles();
+      final entities = models.map((model) => model.toEntity()).toList();
+      return Right(entities);
+    } catch (e) {
+      return Left(LoadRecentItemsFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Either<NewDriveFailure, DriveItem>> getFileDetails(
     String fileId,
   ) async {
@@ -75,6 +86,31 @@ class DriveRepositoryImpl implements DriveRepository {
       return Right(model.toEntity());
     } catch (e) {
       return Left(LoadRecentItemsFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<NewDriveFailure, DriveItem>> getFolderContents(
+    String folderId,
+  ) async {
+    try {
+      final model = await remoteDataSource.getItemHierarchy(folderId);
+      return Right(model.toEntity());
+    } catch (e) {
+      return Left(
+          LoadRecentItemsFailure('Erro ao carregar conteúdo da pasta: $e'));
+    }
+  }
+
+  @override
+  Future<Either<NewDriveFailure, List<int>>> downloadFileBytes(
+    String fileId,
+  ) async {
+    try {
+      final bytes = await remoteDataSource.downloadFileBytes(fileId);
+      return Right(bytes);
+    } catch (e) {
+      return Left(DownloadFileFailure('Erro ao fazer download: $e'));
     }
   }
 

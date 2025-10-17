@@ -2,6 +2,8 @@ import 'package:mobx/mobx.dart';
 
 import '../../domain/entities/drive_category.dart';
 import '../../domain/entities/drive_item.dart';
+import '../../domain/usecases/get_folder_contents_usecase.dart';
+import '../../domain/usecases/get_own_files_usecase.dart';
 import '../../domain/usecases/get_recent_items_usecase.dart';
 
 part 'new_drive_store.g.dart';
@@ -10,9 +12,13 @@ class NewDriveStore = _NewDriveStoreBase with _$NewDriveStore;
 
 abstract class _NewDriveStoreBase with Store {
   final GetRecentItemsUseCase? getRecentItemsUseCase;
+  final GetOwnFilesUseCase? getOwnFilesUseCase;
+  final GetFolderContentsUseCase? getFolderContentsUseCase;
 
   _NewDriveStoreBase({
     this.getRecentItemsUseCase,
+    this.getOwnFilesUseCase,
+    this.getFolderContentsUseCase,
   });
 
   // Observables
@@ -32,6 +38,24 @@ abstract class _NewDriveStoreBase with Store {
   @observable
   String? errorMessage;
 
+  @observable
+  DriveItemType? selectedCategoryType;
+
+  @observable
+  String? viewMode; // 'category', 'my-files', 'all-shared'
+
+  @observable
+  ObservableList<DriveItem> ownFiles = ObservableList<DriveItem>();
+
+  @observable
+  bool isLoadingOwnFiles = false;
+
+  @observable
+  DriveItem? currentFolder; // Pasta atualmente aberta
+
+  @observable
+  bool isLoadingFolder = false;
+
   // Computed
 
   @computed
@@ -40,6 +64,62 @@ abstract class _NewDriveStoreBase with Store {
     final sorted = allItems.toList()
       ..sort((a, b) => b.lastViewed.compareTo(a.lastViewed));
     return sorted.take(4).toList();
+  }
+
+  @computed
+  List<DriveItem> get selectedCategoryItems {
+    // Retorna itens filtrados pela categoria selecionada
+    if (selectedCategoryType == null) {
+      return [];
+    }
+    return allItems.where((item) => item.type == selectedCategoryType).toList();
+  }
+
+  @computed
+  List<DriveItem> get filteredCategoryItems {
+    // Retorna itens da categoria filtrados por busca
+    var items = selectedCategoryItems;
+
+    if (searchQuery.isEmpty) {
+      return items;
+    }
+
+    final query = searchQuery.toLowerCase();
+    return items
+        .where((item) => item.name.toLowerCase().contains(query))
+        .toList();
+  }
+
+  @computed
+  List<DriveItem> get viewItems {
+    // Retorna itens baseado no modo de visualização
+    switch (viewMode) {
+      case 'category':
+        return selectedCategoryItems;
+      case 'my-files':
+        // Arquivos enviados pelo usuário
+        return ownFiles.toList();
+      case 'all-shared':
+        // Todos os arquivos compartilhados
+        return allItems;
+      default:
+        return [];
+    }
+  }
+
+  @computed
+  List<DriveItem> get filteredViewItems {
+    // Retorna itens do modo de visualização filtrados por busca
+    var items = viewItems;
+
+    if (searchQuery.isEmpty) {
+      return items;
+    }
+
+    final query = searchQuery.toLowerCase();
+    return items
+        .where((item) => item.name.toLowerCase().contains(query))
+        .toList();
   }
 
   // Actions
@@ -81,6 +161,72 @@ abstract class _NewDriveStoreBase with Store {
     } catch (e) {
       errorMessage = 'Erro ao carregar itens compartilhados recentemente';
       isLoading = false;
+    }
+  }
+
+  @action
+  Future<void> loadOwnFiles() async {
+    isLoadingOwnFiles = true;
+    errorMessage = null;
+
+    try {
+      if (getOwnFilesUseCase != null) {
+        // Usar UseCase real
+        final result = await getOwnFilesUseCase!();
+
+        result.fold(
+          (failure) {
+            errorMessage = failure.message;
+            isLoadingOwnFiles = false;
+          },
+          (items) {
+            ownFiles.clear();
+            ownFiles.addAll(items);
+            isLoadingOwnFiles = false;
+          },
+        );
+      } else {
+        // Fallback para dados mockados
+        await Future.delayed(const Duration(milliseconds: 500));
+        ownFiles.clear();
+        ownFiles.addAll(_getMockedRecentItems());
+        isLoadingOwnFiles = false;
+      }
+    } catch (e) {
+      errorMessage = 'Erro ao carregar meus arquivos';
+      isLoadingOwnFiles = false;
+    }
+  }
+
+  @action
+  Future<void> loadFolderContents(String folderId) async {
+    isLoadingFolder = true;
+    errorMessage = null;
+
+    try {
+      if (getFolderContentsUseCase != null) {
+        // Usar UseCase real
+        final result = await getFolderContentsUseCase!(folderId);
+
+        result.fold(
+          (failure) {
+            errorMessage = failure.message;
+            isLoadingFolder = false;
+          },
+          (folderItem) {
+            currentFolder = folderItem;
+            isLoadingFolder = false;
+          },
+        );
+      } else {
+        // Fallback para dados mockados
+        await Future.delayed(const Duration(milliseconds: 500));
+        currentFolder = _getMockedFolderItem();
+        isLoadingFolder = false;
+      }
+    } catch (e) {
+      errorMessage = 'Erro ao carregar conteúdo da pasta';
+      isLoadingFolder = false;
     }
   }
 
@@ -164,6 +310,34 @@ abstract class _NewDriveStoreBase with Store {
     errorMessage = null;
   }
 
+  @action
+  void selectCategory(DriveItemType type) {
+    selectedCategoryType = type;
+  }
+
+  @action
+  void clearSelectedCategory() {
+    selectedCategoryType = null;
+  }
+
+  @action
+  void setViewMode(String mode) {
+    viewMode = mode;
+    // Limpar busca ao mudar de modo
+    searchQuery = '';
+
+    // Carregar dados específicos do modo
+    if (mode == 'my-files') {
+      loadOwnFiles();
+    }
+  }
+
+  @action
+  void clearViewMode() {
+    viewMode = null;
+    searchQuery = '';
+  }
+
   // Métodos auxiliares para dados mockados
   // TODO: Remover quando integrar com backend
 
@@ -234,5 +408,30 @@ abstract class _NewDriveStoreBase with Store {
         totalSize: '30.5 MB',
       ),
     ];
+  }
+
+  DriveItem _getMockedFolderItem() {
+    final now = DateTime.now();
+    return DriveItem(
+      id: '46',
+      name: 'Fundamental II',
+      type: DriveItemType.folder,
+      size: '0 B',
+      lastViewed: now,
+      parentId: null,
+      parentName: null,
+      children: [
+        DriveItem(
+          id: '45',
+          name: 'Ativação VPN Opera.mp4',
+          type: DriveItemType.video,
+          size: '35.6 MB',
+          lastViewed: now,
+          thumbnailUrl: 'https://via.placeholder.com/300x200',
+          parentId: 46,
+          parentName: 'Fundamental II',
+        ),
+      ],
+    );
   }
 }

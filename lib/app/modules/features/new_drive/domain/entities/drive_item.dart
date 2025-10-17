@@ -18,6 +18,9 @@ class DriveItem extends Equatable {
   final DateTime lastViewed;
   final String? thumbnailUrl;
   final int? itemCount; // Para pastas/categorias
+  final int? parentId; // ID da pasta pai
+  final String? parentName; // Nome da pasta pai (para exibição)
+  final List<DriveItem>? children; // Itens dentro desta pasta
 
   const DriveItem({
     required this.id,
@@ -27,6 +30,9 @@ class DriveItem extends Equatable {
     required this.lastViewed,
     this.thumbnailUrl,
     this.itemCount,
+    this.parentId,
+    this.parentName,
+    this.children,
   });
 
   /// Formata a data de compartilhamento de acordo com as regras de negócio
@@ -65,5 +71,8 @@ class DriveItem extends Equatable {
         lastViewed,
         thumbnailUrl,
         itemCount,
+        parentId,
+        parentName,
+        children,
       ];
 }
