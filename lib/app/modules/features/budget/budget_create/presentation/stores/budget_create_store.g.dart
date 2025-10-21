@@ -93,6 +93,24 @@ mixin _$BudgetCreateStore on _BudgetCreateStoreBase, Store {
     });
   }
 
+  late final _$hasAttemptedLoadPartnersAtom = Atom(
+      name: '_BudgetCreateStoreBase.hasAttemptedLoadPartners',
+      context: context);
+
+  @override
+  bool get hasAttemptedLoadPartners {
+    _$hasAttemptedLoadPartnersAtom.reportRead();
+    return super.hasAttemptedLoadPartners;
+  }
+
+  @override
+  set hasAttemptedLoadPartners(bool value) {
+    _$hasAttemptedLoadPartnersAtom
+        .reportWrite(value, super.hasAttemptedLoadPartners, () {
+      super.hasAttemptedLoadPartners = value;
+    });
+  }
+
   late final _$errorAtom =
       Atom(name: '_BudgetCreateStoreBase.error', context: context);
 
@@ -313,16 +331,18 @@ mixin _$BudgetCreateStore on _BudgetCreateStoreBase, Store {
       AsyncAction('_BudgetCreateStoreBase.validateForm', context: context);
 
   @override
-  Future<bool> validateForm(int partnerId) {
-    return _$validateFormAsyncAction.run(() => super.validateForm(partnerId));
+  Future<bool> validateForm(int partnerId, int userId) {
+    return _$validateFormAsyncAction
+        .run(() => super.validateForm(partnerId, userId));
   }
 
   late final _$createDraftAsyncAction =
       AsyncAction('_BudgetCreateStoreBase.createDraft', context: context);
 
   @override
-  Future<bool> createDraft(int partnerId) {
-    return _$createDraftAsyncAction.run(() => super.createDraft(partnerId));
+  Future<bool> createDraft(int partnerId, int userId) {
+    return _$createDraftAsyncAction
+        .run(() => super.createDraft(partnerId, userId));
   }
 
   late final _$_BudgetCreateStoreBaseActionController =
@@ -439,11 +459,23 @@ mixin _$BudgetCreateStore on _BudgetCreateStoreBase, Store {
   }
 
   @override
+  void reset() {
+    final _$actionInfo = _$_BudgetCreateStoreBaseActionController.startAction(
+        name: '_BudgetCreateStoreBase.reset');
+    try {
+      return super.reset();
+    } finally {
+      _$_BudgetCreateStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
   String toString() {
     return '''
 isLoading: ${isLoading},
 isLoadingPartners: ${isLoadingPartners},
 isCreatingDraft: ${isCreatingDraft},
+hasAttemptedLoadPartners: ${hasAttemptedLoadPartners},
 error: ${error},
 partnerError: ${partnerError},
 validationError: ${validationError},

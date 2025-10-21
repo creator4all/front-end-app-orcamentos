@@ -1,4 +1,5 @@
 import '../../domain/entities/budget_detail_entity.dart';
+import 'category_dto.dart';
 import 'product_selection_dto.dart';
 
 /// DTO para detalhes de orçamento
@@ -16,6 +17,9 @@ class BudgetDetailDto {
   final List<int> cityIds;
   final List<ProductSelectionDto> products;
   final Map<String, bool> categoryStates;
+  final List<CategoryDTO> categories;
+  final List<Map<String, dynamic>>
+      citiesData; // ✅ Dados completos das cidades com indicadores
 
   BudgetDetailDto({
     required this.id,
@@ -30,6 +34,8 @@ class BudgetDetailDto {
     required this.cityIds,
     required this.products,
     required this.categoryStates,
+    required this.categories,
+    required this.citiesData,
   });
 
   /// Cria DTO a partir do JSON da API
@@ -66,10 +72,61 @@ class BudgetDetailDto {
 
     // Parse cidades
     final List<int> cities = [];
+    final List<Map<String, dynamic>> citiesDataList = [];
+
     if (json['cidades'] != null && json['cidades'] is List) {
-      cities.addAll((json['cidades'] as List).map((e) => e as int));
+      print('🔍 [BudgetDetailDTO] Parseando cidades...');
+      for (final cidade in json['cidades'] as List) {
+        if (cidade is int) {
+          // Cidade é um ID simples
+          cities.add(cidade);
+          print('   ✅ Cidade ID: $cidade');
+          citiesDataList.add({
+            'id': cidade,
+            'nome': 'Cidade $cidade',
+            'indicadores': [],
+          });
+        } else if (cidade is Map<String, dynamic>) {
+          // Cidade é um objeto com {id, nome, indicadores}
+          final cidadeId = cidade['id'] as int;
+          cities.add(cidadeId);
+          final cidadeName = cidade['nome'] ?? 'Cidade $cidadeId';
+          final indicadores = (cidade['indicadores'] ?? []) as List;
+
+          print('   ✅ Cidade: $cidadeName (ID: $cidadeId)');
+          print('      📊 Indicadores: ${indicadores.length}');
+
+          citiesDataList.add({
+            'id': cidadeId,
+            'nome': cidadeName,
+            'indicadores': indicadores,
+          });
+        }
+      }
+      print('✅ [BudgetDetailDTO] Total de cidades: ${cities.length}');
     } else if (json['orc_cidade_id'] != null) {
       cities.add(json['orc_cidade_id'] as int);
+      citiesDataList.add({
+        'id': json['orc_cidade_id'] as int,
+        'nome': 'Cidade ${json['orc_cidade_id']}',
+        'indicadores': [],
+      });
+    }
+
+    // ✅ Parse categorias com subcategorias e produtos
+    final List<CategoryDTO> categoriesList = [];
+    if (json['categorias'] != null && json['categorias'] is List) {
+      print(
+          '🔍 [BudgetDetailDTO] Parseando ${(json['categorias'] as List).length} categorias...');
+      categoriesList.addAll(
+        (json['categorias'] as List).map(
+          (c) => CategoryDTO.fromJson(Map<String, dynamic>.from(c)),
+        ),
+      );
+      print(
+          '✅ [BudgetDetailDTO] ${categoriesList.length} categorias parseadas');
+    } else {
+      print('⚠️ [BudgetDetailDTO] Nenhuma categoria encontrada no JSON!');
     }
 
     return BudgetDetailDto(
@@ -91,6 +148,8 @@ class BudgetDetailDto {
       cityIds: cities,
       products: productsList,
       categoryStates: categories,
+      categories: categoriesList,
+      citiesData: citiesDataList,
     );
   }
 
@@ -112,6 +171,7 @@ class BudgetDetailDto {
           .where((e) => e.value)
           .map((e) => e.key)
           .toList(),
+      'categorias': categories.map((c) => c.toJson()).toList(),
     };
   }
 
@@ -130,6 +190,8 @@ class BudgetDetailDto {
       cityIds: cityIds,
       products: products.map((p) => p.toEntity()).toList(),
       categoryStates: categoryStates,
+      categories: categories.map((c) => c.toEntity()).toList(),
+      citiesData: citiesData,
     );
   }
 
@@ -150,6 +212,9 @@ class BudgetDetailDto {
           .map((p) => ProductSelectionDto.fromEntity(p))
           .toList(),
       categoryStates: entity.categoryStates,
+      categories:
+          entity.categories.map((c) => CategoryDTO.fromEntity(c)).toList(),
+      citiesData: [], // Não há dados de cidades na entity, apenas IDs
     );
   }
 }

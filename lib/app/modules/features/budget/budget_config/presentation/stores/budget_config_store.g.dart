@@ -37,6 +37,20 @@ mixin _$BudgetConfigStore on _BudgetConfigStoreBase, Store {
           Computed<int>(() => super.selectedProductsCount,
               name: '_BudgetConfigStoreBase.selectedProductsCount'))
       .value;
+  Computed<int>? _$totalActiveProductsComputed;
+
+  @override
+  int get totalActiveProducts => (_$totalActiveProductsComputed ??=
+          Computed<int>(() => super.totalActiveProducts,
+              name: '_BudgetConfigStoreBase.totalActiveProducts'))
+      .value;
+  Computed<int>? _$totalSelectedProductsComputed;
+
+  @override
+  int get totalSelectedProducts => (_$totalSelectedProductsComputed ??=
+          Computed<int>(() => super.totalSelectedProducts,
+              name: '_BudgetConfigStoreBase.totalSelectedProducts'))
+      .value;
   Computed<bool>? _$hasDataComputed;
 
   @override
@@ -49,6 +63,13 @@ mixin _$BudgetConfigStore on _BudgetConfigStoreBase, Store {
   bool get hasCensusData =>
       (_$hasCensusDataComputed ??= Computed<bool>(() => super.hasCensusData,
               name: '_BudgetConfigStoreBase.hasCensusData'))
+          .value;
+  Computed<bool>? _$hasCategoriesComputed;
+
+  @override
+  bool get hasCategories =>
+      (_$hasCategoriesComputed ??= Computed<bool>(() => super.hasCategories,
+              name: '_BudgetConfigStoreBase.hasCategories'))
           .value;
 
   late final _$isLoadingAtom =
@@ -195,6 +216,54 @@ mixin _$BudgetConfigStore on _BudgetConfigStoreBase, Store {
     });
   }
 
+  late final _$categoriesAtom =
+      Atom(name: '_BudgetConfigStoreBase.categories', context: context);
+
+  @override
+  ObservableList<CategoryEntity> get categories {
+    _$categoriesAtom.reportRead();
+    return super.categories;
+  }
+
+  @override
+  set categories(ObservableList<CategoryEntity> value) {
+    _$categoriesAtom.reportWrite(value, super.categories, () {
+      super.categories = value;
+    });
+  }
+
+  late final _$selectedCategoryAtom =
+      Atom(name: '_BudgetConfigStoreBase.selectedCategory', context: context);
+
+  @override
+  CategoryEntity? get selectedCategory {
+    _$selectedCategoryAtom.reportRead();
+    return super.selectedCategory;
+  }
+
+  @override
+  set selectedCategory(CategoryEntity? value) {
+    _$selectedCategoryAtom.reportWrite(value, super.selectedCategory, () {
+      super.selectedCategory = value;
+    });
+  }
+
+  late final _$selectedSubcategoryAtom = Atom(
+      name: '_BudgetConfigStoreBase.selectedSubcategory', context: context);
+
+  @override
+  SubcategoryEntity? get selectedSubcategory {
+    _$selectedSubcategoryAtom.reportRead();
+    return super.selectedSubcategory;
+  }
+
+  @override
+  set selectedSubcategory(SubcategoryEntity? value) {
+    _$selectedSubcategoryAtom.reportWrite(value, super.selectedSubcategory, () {
+      super.selectedSubcategory = value;
+    });
+  }
+
   late final _$initializeAsyncAction =
       AsyncAction('_BudgetConfigStoreBase.initialize', context: context);
 
@@ -265,6 +334,61 @@ mixin _$BudgetConfigStore on _BudgetConfigStoreBase, Store {
   }
 
   @override
+  void selectCategory(CategoryEntity? category) {
+    final _$actionInfo = _$_BudgetConfigStoreBaseActionController.startAction(
+        name: '_BudgetConfigStoreBase.selectCategory');
+    try {
+      return super.selectCategory(category);
+    } finally {
+      _$_BudgetConfigStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void selectSubcategory(SubcategoryEntity? subcategory) {
+    final _$actionInfo = _$_BudgetConfigStoreBaseActionController.startAction(
+        name: '_BudgetConfigStoreBase.selectSubcategory');
+    try {
+      return super.selectSubcategory(subcategory);
+    } finally {
+      _$_BudgetConfigStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void toggleProduct(int productId, bool selected) {
+    final _$actionInfo = _$_BudgetConfigStoreBaseActionController.startAction(
+        name: '_BudgetConfigStoreBase.toggleProduct');
+    try {
+      return super.toggleProduct(productId, selected);
+    } finally {
+      _$_BudgetConfigStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void updateProductQuantity(int productId, int quantity) {
+    final _$actionInfo = _$_BudgetConfigStoreBaseActionController.startAction(
+        name: '_BudgetConfigStoreBase.updateProductQuantity');
+    try {
+      return super.updateProductQuantity(productId, quantity);
+    } finally {
+      _$_BudgetConfigStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void updateProductObservations(int productId, String? observations) {
+    final _$actionInfo = _$_BudgetConfigStoreBaseActionController.startAction(
+        name: '_BudgetConfigStoreBase.updateProductObservations');
+    try {
+      return super.updateProductObservations(productId, observations);
+    } finally {
+      _$_BudgetConfigStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
   void reset() {
     final _$actionInfo = _$_BudgetConfigStoreBaseActionController.startAction(
         name: '_BudgetConfigStoreBase.reset');
@@ -287,12 +411,18 @@ censusData: ${censusData},
 categoryStates: ${categoryStates},
 validityDate: ${validityDate},
 budgetName: ${budgetName},
+categories: ${categories},
+selectedCategory: ${selectedCategory},
+selectedSubcategory: ${selectedSubcategory},
 canFinalize: ${canFinalize},
 selectedCategoriesCount: ${selectedCategoriesCount},
 totalValue: ${totalValue},
 selectedProductsCount: ${selectedProductsCount},
+totalActiveProducts: ${totalActiveProducts},
+totalSelectedProducts: ${totalSelectedProducts},
 hasData: ${hasData},
-hasCensusData: ${hasCensusData}
+hasCensusData: ${hasCensusData},
+hasCategories: ${hasCategories}
     ''';
   }
 }

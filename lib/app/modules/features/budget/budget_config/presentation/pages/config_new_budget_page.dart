@@ -2,12 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../../../shared/widgets/budget_summary_card.dart';
 import '../../../../../../shared/widgets/custom_top_bar.dart';
 import '../../../../../../shared/widgets/product_category.dart';
-import '../../../../../../shared/widgets/school_census.dart';
+import '../../domain/entities/category_entity.dart';
+import '../../domain/entities/product_entity.dart';
+import '../../domain/entities/subcategory_entity.dart';
 import '../stores/budget_config_store.dart';
+import '../widgets/product_detail_modal.dart';
+import '../widgets/products_modal.dart';
+import '../widgets/school_census_card.dart';
+import '../widgets/subcategories_modal.dart';
 
 class ConfigNewBudgetPage extends StatefulWidget {
   final int budgetId;
@@ -34,8 +41,12 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     super.initState();
     store = Modular.get<BudgetConfigStore>();
 
-    // Define a data atual para o campo "Data do orçamento"
-    _dataOrcamentoController.text = DateTime.now().toString().split(' ')[0];
+    // Define a data atual para o campo "Data do orçamento" no formato brasileiro
+    _dataOrcamentoController.text =
+        DateFormat('dd/MM/yyyy').format(DateTime.now());
+
+    // Define o valor padrão para "Validade do orçamento"
+    _validadeOrcamentoController.text = '60';
 
     // Inicializa a store com o budgetId
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -48,23 +59,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     _dataOrcamentoController.dispose();
     _validadeOrcamentoController.dispose();
     super.dispose();
-  }
-
-  Future<void> _selectValidityDate() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate:
-          store.validityDate ?? DateTime.now().add(const Duration(days: 30)),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-    );
-
-    if (picked != null) {
-      setState(() {
-        _validadeOrcamentoController.text = picked.toString().split(' ')[0];
-        store.setValidityDate(picked);
-      });
-    }
   }
 
   Future<void> _handleSave() async {
@@ -149,122 +143,134 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                   // Resumo do orçamento
                   BudgetSummaryCard(
                     budgetValue: store.totalValue,
-                    selectedProductsCount: store.selectedProductsCount,
+                    selectedProductsCount: store.selectedCategoriesCount,
                   ),
 
                   SizedBox(height: 12.h),
 
-                  // Censo Escolar
-                  if (store.hasCensusData)
-                    SchoolCensus(
-                      leadingIcon:
-                          const Icon(Icons.school, color: Colors.black54),
-                      title: 'Censo Escolar',
-                      info1: '${store.censusData!.totalClasses} turmas',
-                      info2: '${store.censusData!.totalStudents} alunos',
-                    ),
-
-                  if (store.isLoadingCensus)
+                  // ✅ Card do Censo Escolar
+                  if (store.budgetDetail?.cityIds.isNotEmpty ?? false)
                     Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12.h),
-                      child: const CircularProgressIndicator(),
+                      padding: EdgeInsets.only(bottom: 12.h),
+                      child: SchoolCensusCard(
+                        numberOfCities: store.budgetDetail?.cityIds.length ?? 0,
+                        citiesData: _extractCitiesData(),
+                      ),
                     ),
 
                   SizedBox(height: 12.h),
 
-                  // Categoria: Livros
-                  _buildCategory(
-                    'livros',
-                    'Livros',
-                    Icons.menu_book,
-                  ),
+                  // ✅ Categorias Dinâmicas
+                  if (store.hasCategories)
+                    ...store.categories.map((category) {
+                      return Padding(
+                        padding: EdgeInsets.only(bottom: 12.h),
+                        child: _buildCategoryFromEntity(category),
+                      );
+                    }),
 
-                  SizedBox(height: 16.h),
-
-                  // Tecnologias
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Tecnologias',
+                  // Mensagem se não houver categorias
+                  if (!store.hasCategories)
+                    Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24.h),
+                      child: Text(
+                        'Nenhuma categoria disponível',
                         style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF117BBD),
+                          fontSize: 14.sp,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ),
+
+                  SizedBox(height: 24.h),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    'Data do orçamento',
+                                    style: TextStyle(
+                                      fontSize: 14.sp,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: 8.w),
+                                Icon(
+                                  Icons.info,
+                                  color: const Color(0xFF117BBD),
+                                  size: 16.sp,
+                                ),
+                              ],
+                            ),
+                            TextField(
+                              controller: _dataOrcamentoController,
+                              readOnly: true,
+                              minLines: 1,
+                              maxLines: 1,
+                              decoration: InputDecoration(
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10.r),
+                                ),
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 12.w,
+                                  vertical: 12.h,
+                                ),
+                              ),
+                              style: TextStyle(fontSize: 14.sp),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(width: 8.w),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    'Validade do orç. *',
+                                    style: TextStyle(
+                                      fontSize: 14.sp,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(width: 8.w),
+                                Icon(
+                                  Icons.info,
+                                  color: const Color(0xFF117BBD),
+                                  size: 16.sp,
+                                ),
+                              ],
+                            ),
+                            TextField(
+                              controller: _validadeOrcamentoController,
+                              keyboardType: TextInputType.number,
+                              minLines: 1,
+                              maxLines: 1,
+                              decoration: InputDecoration(
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10.r),
+                                ),
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 12.w,
+                                  vertical: 12.h,
+                                ),
+                              ),
+                              style: TextStyle(fontSize: 14.sp),
+                            ),
+                          ],
                         ),
                       ),
                     ],
-                  ),
-
-                  SizedBox(height: 8.h),
-
-                  // Categoria: Portal
-                  _buildCategory(
-                    'portal',
-                    'Portal/Aplicativos',
-                    Icons.computer,
-                  ),
-
-                  SizedBox(height: 8.h),
-
-                  // Categoria: Gamificação
-                  _buildCategory(
-                    'gamificacao',
-                    'Gamificação',
-                    Icons.videogame_asset,
-                  ),
-
-                  SizedBox(height: 8.h),
-
-                  // Categoria: Avaliação Diagnóstica
-                  _buildCategory(
-                    'avaliacao',
-                    'Avaliação Diagnóstica',
-                    Icons.assessment,
-                  ),
-
-                  SizedBox(height: 16.h),
-
-                  // Categoria: Serviços
-                  _buildCategory(
-                    'servicos',
-                    'Serviços',
-                    Icons.support_agent,
-                  ),
-
-                  SizedBox(height: 24.h),
-
-                  // Data do Orçamento
-                  TextField(
-                    controller: _dataOrcamentoController,
-                    readOnly: true,
-                    decoration: InputDecoration(
-                      labelText: 'Data do Orçamento',
-                      border: const OutlineInputBorder(),
-                      suffixIcon: const Icon(Icons.calendar_today),
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 12.w,
-                        vertical: 12.h,
-                      ),
-                    ),
-                  ),
-
-                  SizedBox(height: 16.h),
-
-                  // Validade do Orçamento
-                  TextField(
-                    controller: _validadeOrcamentoController,
-                    readOnly: true,
-                    onTap: _selectValidityDate,
-                    decoration: InputDecoration(
-                      labelText: 'Validade do Orçamento *',
-                      border: const OutlineInputBorder(),
-                      suffixIcon: const Icon(Icons.calendar_today),
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 12.w,
-                        vertical: 12.h,
-                      ),
-                    ),
                   ),
 
                   SizedBox(height: 24.h),
@@ -328,6 +334,117 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
       ),
     );
   }
+
+  // ========== MÉTODOS AUXILIARES ==========
+
+  /// Extrai dados das cidades para o card do Censo Escolar
+  /// Retorna lista de mapas com {id, nome, indicadores}
+  List<Map<String, dynamic>> _extractCitiesData() {
+    if (store.budgetDetail == null) {
+      return [];
+    }
+
+    // Usar dados das cidades já parseadas do DTO
+    return store.budgetDetail!.citiesData;
+  }
+
+  // ========== MÉTODOS PARA MODAIS ==========
+
+  void _showSubcategoriesModal(CategoryEntity category) {
+    print('🔍 [ConfigPage] Abrindo modal de subcategorias: ${category.nome}');
+    print('   📦 Subcategorias: ${category.subcategorias.length}');
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => SubcategoriesModal(
+        category: category,
+        onSubcategoryTap: (subcategory) {
+          print(
+              '🔍 [ConfigPage] Subcategoria selecionada: ${subcategory.nome}');
+          Navigator.pop(context);
+          _showProductsModal(subcategory);
+        },
+      ),
+    );
+  }
+
+  void _showProductsModal(SubcategoryEntity subcategory) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => ProductsModal(
+        subcategory: subcategory,
+        onProductTap: _showProductDetailModal,
+        onProductToggle: (productId, selected) {
+          store.toggleProduct(productId, selected);
+        },
+        onQuantityChanged: (productId, quantity) {
+          store.updateProductQuantity(productId, quantity);
+        },
+      ),
+    );
+  }
+
+  void _showProductDetailModal(ProductEntity product) {
+    showDialog(
+      context: context,
+      builder: (_) => ProductDetailModal(
+        product: product,
+        onSave: (quantity, observations) {
+          store.updateProductQuantity(product.id, quantity);
+          store.updateProductObservations(product.id, observations);
+        },
+      ),
+    );
+  }
+
+  // ========== HELPER PARA ÍCONES ==========
+
+  IconData _getCategoryIcon(String categoryName) {
+    switch (categoryName.toLowerCase()) {
+      case 'livros':
+        return Icons.menu_book;
+      case 'tecnologias':
+        return Icons.computer;
+      default:
+        return Icons.category;
+    }
+  }
+
+  // ========== BUILD CATEGORIA DINÂMICA ==========
+
+  Widget _buildCategoryFromEntity(CategoryEntity category) {
+    print('🏗️ [ConfigPage] Construindo categoria: ${category.nome}');
+    print('   - Produtos ativos: ${category.totalActiveProducts}');
+    print('   - Produtos selecionados: ${category.selectedProductsCount}');
+    print('   - Valor total: ${category.formattedTotalValue}');
+
+    return Observer(
+      builder: (_) {
+        return ProductCategory(
+          categoryIcon: Icon(
+            _getCategoryIcon(category.nome),
+            color: Colors.black54,
+          ),
+          title: category.nome,
+          value: category.formattedTotalValue,
+          selectedCount: category.selectedProductsCount,
+          totalCount: category.totalActiveProducts,
+          isSelected: category.hasSelectedProducts,
+          onCheckboxChanged: null, // Não permitir toggle direto da categoria
+          onActionTap: () {
+            print('👆 [ConfigPage] Categoria clicada: ${category.nome}');
+            _showSubcategoriesModal(category);
+          },
+        );
+      },
+    );
+  }
+
+  // ========== BUILD CATEGORIA ANTIGA (MANTER PARA COMPATIBILIDADE) ==========
 
   Widget _buildCategory(String key, String title, IconData icon) {
     return Observer(

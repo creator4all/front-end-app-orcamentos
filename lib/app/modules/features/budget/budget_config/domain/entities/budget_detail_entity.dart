@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 
+import 'category_entity.dart';
 import 'product_selection_entity.dart';
 
 /// Entidade que representa os detalhes completos de um orçamento
@@ -35,11 +36,17 @@ class BudgetDetailEntity extends Equatable {
   /// Lista de IDs das cidades
   final List<int> cityIds;
 
-  /// Lista de produtos selecionados
+  /// Lista de produtos selecionados (legado - manter para compatibilidade)
   final List<ProductSelectionEntity> products;
 
-  /// Estado das categorias (livros, portal, etc)
+  /// Estado das categorias (livros, portal, etc) - manter para compatibilidade
   final Map<String, bool> categoryStates;
+
+  /// ✅ Lista de categorias com subcategorias e produtos (nova estrutura)
+  final List<CategoryEntity> categories;
+
+  /// ✅ Dados completos das cidades com indicadores para Censo Escolar
+  final List<Map<String, dynamic>> citiesData;
 
   const BudgetDetailEntity({
     required this.id,
@@ -54,6 +61,8 @@ class BudgetDetailEntity extends Equatable {
     required this.cityIds,
     required this.products,
     required this.categoryStates,
+    required this.categories,
+    required this.citiesData,
   });
 
   // ========== Regras de Negócio ==========
@@ -73,6 +82,24 @@ class BudgetDetailEntity extends Equatable {
   /// Verifica se tem múltiplas cidades
   bool get isMultiCity => cityIds.length > 1;
 
+  /// ✅ Quantidade total de produtos ativos em todas as categorias
+  int get totalActiveProducts {
+    return categories.fold(0, (sum, c) => sum + c.totalActiveProducts);
+  }
+
+  /// ✅ Quantidade total de produtos selecionados em todas as categorias
+  int get totalSelectedProducts {
+    return categories.fold(0, (sum, c) => sum + c.selectedProductsCount);
+  }
+
+  /// ✅ Valor total calculado a partir das categorias
+  double get calculatedTotal {
+    return categories.fold(0.0, (sum, c) => sum + c.totalValue);
+  }
+
+  /// Verifica se tem categorias disponíveis
+  bool get hasCategories => categories.isNotEmpty;
+
   @override
   List<Object?> get props => [
         id,
@@ -87,6 +114,7 @@ class BudgetDetailEntity extends Equatable {
         cityIds,
         products,
         categoryStates,
+        categories,
       ];
 
   /// Cria uma cópia com campos alterados
@@ -103,6 +131,8 @@ class BudgetDetailEntity extends Equatable {
     List<int>? cityIds,
     List<ProductSelectionEntity>? products,
     Map<String, bool>? categoryStates,
+    List<CategoryEntity>? categories,
+    List<Map<String, dynamic>>? citiesData,
   }) {
     return BudgetDetailEntity(
       id: id ?? this.id,
@@ -117,6 +147,8 @@ class BudgetDetailEntity extends Equatable {
       cityIds: cityIds ?? this.cityIds,
       products: products ?? this.products,
       categoryStates: categoryStates ?? this.categoryStates,
+      categories: categories ?? this.categories,
+      citiesData: citiesData ?? this.citiesData,
     );
   }
 }

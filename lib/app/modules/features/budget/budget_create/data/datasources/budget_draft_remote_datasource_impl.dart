@@ -22,11 +22,16 @@ class BudgetDraftRemoteDataSourceImpl implements BudgetDraftRemoteDataSource {
       print('📦 [BudgetDraftDataSource] Payload: $payload');
 
       final response = await apiService.post(url, payload);
-      print('📡 [BudgetDraftDataSource] Resposta da API: $response');
+      print('📡 [BudgetDraftDataSource] Resposta da API bruta: $response');
 
-      // Extrair dados da resposta
-      final data = response['dados'] ?? response['data'] ?? response;
+      // Extrair dados da resposta com unwrap seguro
+      var data = response['dados'] ?? response['data'] ?? response;
+      // Alguns endpoints retornam { dados: { ... } } embutido dentro de 'data'
+      if (data is Map && data.containsKey('dados')) {
+        data = data['dados'];
+      }
 
+      print('📡 [BudgetDraftDataSource] Dados extraídos para parsing: $data');
       print('✅ [BudgetDraftDataSource] Orçamento criado com sucesso');
 
       // Converter para Entity usando DTO
@@ -50,9 +55,14 @@ class BudgetDraftRemoteDataSourceImpl implements BudgetDraftRemoteDataSource {
 
       final response = await apiService.get(url);
 
-      // Extrair dados da resposta
-      final data = response['dados'] ?? response['data'] ?? response;
+      // Extrair dados da resposta com unwrap seguro
+      var data = response['dados'] ?? response['data'] ?? response;
+      if (data is Map && data.containsKey('dados')) {
+        data = data['dados'];
+      }
 
+      print(
+          '📡 [BudgetDraftDataSource] Dados extraídos para parsing (get): $data');
       print('✅ [BudgetDraftDataSource] Orçamento carregado com sucesso');
 
       // Converter para Entity usando DTO

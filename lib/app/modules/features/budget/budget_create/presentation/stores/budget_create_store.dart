@@ -33,6 +33,11 @@ abstract class _BudgetCreateStoreBase with Store {
   @observable
   bool isCreatingDraft = false;
 
+  /// Flag para controlar se já tentou carregar parceiros
+  /// Evita loop infinito quando a API retorna lista vazia
+  @observable
+  bool hasAttemptedLoadPartners = false;
+
   // ========== ERROR HANDLING ==========
 
   @observable
@@ -130,8 +135,17 @@ abstract class _BudgetCreateStoreBase with Store {
   // ========== ACTIONS ==========
 
   /// Carrega a lista de parceiros padrão
+  /// Só executa uma vez para evitar loop infinito
   @action
   Future<void> loadPartners() async {
+    // ✅ Evita múltiplas tentativas
+    if (hasAttemptedLoadPartners) {
+      print(
+          '⚠️ [BudgetCreateStore] Já tentou carregar parceiros anteriormente');
+      return;
+    }
+
+    hasAttemptedLoadPartners = true;
     isLoadingPartners = true;
     partnerError = null;
 
@@ -150,8 +164,17 @@ abstract class _BudgetCreateStoreBase with Store {
         (partnerList) {
           print(
               '✅ [BudgetCreateStore] Parceiros carregados: ${partnerList.length}');
+
+          // Debug detalhado
+          for (var partner in partnerList) {
+            print('   📌 Parceiro ID ${partner.id}: ${partner.displayName}');
+          }
+
           partners.clear();
           partners.addAll(partnerList);
+
+          print('   📊 hasPartners após adicionar: $hasPartners');
+          print('   📊 partners.length: ${partners.length}');
         },
       );
     } catch (e) {
@@ -225,8 +248,10 @@ abstract class _BudgetCreateStoreBase with Store {
   }
 
   /// Valida os dados antes de criar
+  ///
+  /// Requer partnerId e userId para validação completa
   @action
-  Future<bool> validateForm(int partnerId) async {
+  Future<bool> validateForm(int partnerId, int userId) async {
     validationError = null;
 
     if (!isFormValid) {
@@ -239,16 +264,23 @@ abstract class _BudgetCreateStoreBase with Store {
       return false;
     }
 
+    if (userId <= 0) {
+      validationError = 'Usuário não autenticado';
+      return false;
+    }
+
     try {
       print('🔍 [BudgetCreateStore] Validando dados...');
 
       final params = CreateBudgetDraftParams(
         partnerId: partnerId,
+        userId: userId, // ✅ Adiciona userId
         stateCode: selectedStateCode!,
         cityCode: selectedCityCode!,
         responsibleName: responsibleName,
         responsibleEmail: responsibleEmail,
         validityDate: validityDate,
+        total: 0.0,
       );
 
       final result = await validateBudgetDataUseCase(params);
@@ -272,10 +304,17 @@ abstract class _BudgetCreateStoreBase with Store {
   }
 
   /// Cria um novo orçamento em rascunho
+  ///
+  /// Requer partnerId do parceiro selecionado e userId do usuário autenticado
   @action
-  Future<bool> createDraft(int partnerId) async {
+  Future<bool> createDraft(int partnerId, int userId) async {
     if (!isFormValid) {
       error = 'Preencha todos os campos obrigatórios';
+      return false;
+    }
+
+    if (userId <= 0) {
+      error = 'Usuário não autenticado';
       return false;
     }
 
@@ -287,11 +326,13 @@ abstract class _BudgetCreateStoreBase with Store {
 
       final params = CreateBudgetDraftParams(
         partnerId: partnerId,
+        userId: userId, // ✅ Adiciona ID do usuário
         stateCode: selectedStateCode!,
         cityCode: selectedCityCode!,
         responsibleName: responsibleName,
         responsibleEmail: responsibleEmail,
         validityDate: validityDate,
+        total: 0.0, // Rascunho começa com total 0
       );
 
       final result = await createDraftBudgetUseCase(params);
@@ -332,6 +373,7 @@ abstract class _BudgetCreateStoreBase with Store {
     createdDraft = null;
     error = null;
     validationError = null;
+    // Não resetar hasAttemptedLoadPartners - mantém cache da tentativa
     print('🔄 [BudgetCreateStore] Formulário limpo');
   }
 
@@ -341,5 +383,16 @@ abstract class _BudgetCreateStoreBase with Store {
     error = null;
     partnerError = null;
     validationError = null;
+  }
+
+  /// Reseta completamente a store (incluindo flag de tentativa de parceiros)
+  @action
+  void reset() {
+    clearForm();
+    clearErrors();
+    partners.clear();
+    hasAttemptedLoadPartners = false;
+    isLoadingPartners = false;
+    print('🔄 [BudgetCreateStore] Store resetada completamente');
   }
 }

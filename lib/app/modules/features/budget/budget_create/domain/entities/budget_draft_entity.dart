@@ -5,7 +5,8 @@ import 'location_entity.dart';
 /// Entidade que representa um Orçamento em Rascunho
 class BudgetDraftEntity extends Equatable {
   final int id;
-  final int partnerId;
+  final int?
+      partnerId; // ✅ Nullable - só existe quando admin escolhe parceiro destino
   final String partnerName;
   final LocationEntity location;
   final String? responsibleName;
@@ -17,7 +18,7 @@ class BudgetDraftEntity extends Equatable {
 
   const BudgetDraftEntity({
     required this.id,
-    required this.partnerId,
+    this.partnerId, // ✅ Nullable
     required this.partnerName,
     required this.location,
     this.responsibleName,
@@ -45,6 +46,9 @@ class BudgetDraftEntity extends Equatable {
   /// Verifica se a validade está no futuro
   bool get isValidityInFuture =>
       validityDate != null && validityDate!.isAfter(DateTime.now());
+
+  /// Verifica se tem parceiro destino definido
+  bool get hasPartnerDestino => partnerId != null && partnerId! > 0;
 
   /// Retorna o nome formatado do responsável
   String get responsibleDisplay => responsibleName ?? 'Não informado';
