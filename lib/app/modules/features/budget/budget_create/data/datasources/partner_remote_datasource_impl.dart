@@ -38,8 +38,21 @@ class PartnerRemoteDataSourceImpl implements PartnerRemoteDataSource {
       print(
           '📋 [PartnerDataSource] Lista processada: ${list.length} parceiros');
 
+      // Debug: mostrar primeiro item da lista
+      if (list.isNotEmpty) {
+        print('🔍 [PartnerDataSource] Primeiro item: ${list[0]}');
+      }
+
       // Converter para Entities usando DTO
-      return PartnerDto.listFromJson(list);
+      final entities = PartnerDto.listFromJson(list);
+
+      print('✅ [PartnerDataSource] Entities criadas: ${entities.length}');
+      if (entities.isNotEmpty) {
+        print(
+            '🔍 [PartnerDataSource] Primeira entity: ${entities[0].displayName}');
+      }
+
+      return entities;
     } on DioException catch (e) {
       print('❌ [PartnerDataSource] Erro Dio: ${e.message}');
       throw _handleDioError(e);

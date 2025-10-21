@@ -6,32 +6,47 @@ import '../entities/budget_draft_entity.dart';
 /// Dados necessários para criar um orçamento em rascunho
 class CreateBudgetDraftParams {
   final int partnerId;
+  final int userId; // ID do usuário criando o orçamento (OBRIGATÓRIO)
   final String stateCode;
   final String cityCode;
   final String? responsibleName;
   final String? responsibleEmail;
   final DateTime? validityDate;
+  final double total; // Total do orçamento (pode ser 0 para rascunho)
 
   const CreateBudgetDraftParams({
     required this.partnerId,
+    required this.userId,
     required this.stateCode,
     required this.cityCode,
     this.responsibleName,
     this.responsibleEmail,
     this.validityDate,
+    this.total = 0.0, // Padrão 0 para rascunho
   });
 
   /// Validação dos dados obrigatórios
   bool get isValid =>
-      partnerId > 0 && stateCode.isNotEmpty && cityCode.isNotEmpty;
+      partnerId > 0 &&
+      userId > 0 &&
+      stateCode.isNotEmpty &&
+      cityCode.isNotEmpty;
 
   /// Converte para Map para envio à API
   Map<String, dynamic> toJson() {
+    // Calcula dias de validade (60 dias a partir de hoje se não especificado)
+    final validity =
+        validityDate ?? DateTime.now().add(const Duration(days: 60));
+    final now = DateTime.now();
+    final diasValidade = validity.difference(now).inDays;
+
     final Map<String, dynamic> data = {
       'orc_parceiro_id': partnerId,
-      'orc_estado': stateCode,
-      'orc_cidade': cityCode,
+      'orc_usuario_id': userId, // ✅ Campo obrigatório
+      'cidades': [int.parse(cityCode)], // ✅ Backend espera array de IDs
       'orc_status': 'rascunho',
+      'orc_total': total, // ✅ Campo obrigatório (pode ser 0)
+      'orc_dias_validade': diasValidade.clamp(1, 365), // ✅ Entre 1 e 365 dias
     };
 
     if (responsibleName != null && responsibleName!.isNotEmpty) {
@@ -40,10 +55,6 @@ class CreateBudgetDraftParams {
 
     if (responsibleEmail != null && responsibleEmail!.isNotEmpty) {
       data['orc_responsavel_email'] = responsibleEmail;
-    }
-
-    if (validityDate != null) {
-      data['orc_validade'] = validityDate!.toIso8601String().split('T')[0];
     }
 
     return data;

@@ -20,11 +20,24 @@ class PartnerDto {
   /// Cria DTO a partir de JSON da API
   factory PartnerDto.fromJson(Map<String, dynamic> json) {
     return PartnerDto(
-      id: json['parceiro_id'] as int? ?? json['id'] as int,
-      name: json['parceiro_nome'] as String? ?? json['nome'] as String? ?? '',
-      cnpj: json['parceiro_cnpj'] as String? ?? json['cnpj'] as String?,
-      logo: json['parceiro_logo'] as String? ?? json['logo'] as String?,
-      isActive: _parseActive(json['parceiro_ativo'] ?? json['ativo'] ?? true),
+      id: json['par_partnerId'] as int? ??
+          json['parceiro_id'] as int? ??
+          json['id'] as int? ??
+          0,
+      name: json['par_legal_name'] as String? ??
+          json['par_trade_name'] as String? ??
+          json['parceiro_nome'] as String? ??
+          json['nome'] as String? ??
+          '',
+      cnpj: json['par_cnpj'] as String? ??
+          json['parceiro_cnpj'] as String? ??
+          json['cnpj'] as String?,
+      logo: json['par_logo'] as String? ??
+          json['parceiro_logo'] as String? ??
+          json['logo'] as String?,
+      isActive: _parseActive(
+        json['par_status'] ?? json['parceiro_ativo'] ?? json['ativo'] ?? true,
+      ),
     );
   }
 

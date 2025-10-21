@@ -16,16 +16,50 @@ class BudgetDetailRemoteDataSourceImpl implements BudgetDetailRemoteDataSource {
       print('🌐 [BudgetDetailDataSource] GET /api/orcamentos/$id');
 
       final response = await apiService.get('/api/orcamentos/$id');
-      print('📡 [BudgetDetailDataSource] Response: $response');
+
+      // Log do tamanho para verificar se não está truncado
+      final responseStr = response.toString();
+      print(
+          '📡 [BudgetDetailDataSource] Response size: ${responseStr.length} chars');
+      print(
+          '📡 [BudgetDetailDataSource] Response tem categorias? ${response.toString().contains("categorias")}');
 
       // Extrair dados da resposta
-      final data = response is Map<String, dynamic>
-          ? (response['dados'] ?? response['data'] ?? response)
-          : response;
+      // response pode ser: {dados: {...}} ou {data: {...}} ou direto o objeto
+      Map<String, dynamic> data;
+
+      if (response.containsKey('dados')) {
+        // Caso: {dados: {...}}
+        data = response['dados'] as Map<String, dynamic>;
+      } else if (response.containsKey('data')) {
+        // Caso: {data: {...}}
+        final dataField = response['data'];
+        if (dataField is Map && dataField.containsKey('dados')) {
+          // Caso: {data: {dados: {...}}}
+          data = dataField['dados'] as Map<String, dynamic>;
+        } else {
+          // Caso: {data: {...}} direto
+          data = dataField as Map<String, dynamic>;
+        }
+      } else {
+        // Caso: já é o objeto direto
+        data = response;
+      }
+
+      print(
+          '📦 [BudgetDetailDataSource] Data extraído tem categorias? ${data.containsKey("categorias")}');
+      if (data.containsKey('categorias') && data['categorias'] is List) {
+        print(
+            '✅ [BudgetDetailDataSource] Campo categorias encontrado: ${(data['categorias'] as List).length} itens');
+      } else {
+        print('⚠️ [BudgetDetailDataSource] Campo categorias NÃO encontrado!');
+        print(
+            '🔍 [BudgetDetailDataSource] Keys disponíveis: ${data.keys.toList()}');
+      }
 
       print('✅ [BudgetDetailDataSource] Orçamento carregado ID: $id');
 
-      return BudgetDetailDto.fromJson(Map<String, dynamic>.from(data as Map));
+      return BudgetDetailDto.fromJson(data);
     } on DioException catch (e) {
       print('❌ [BudgetDetailDataSource] Erro Dio: ${e.message}');
       throw _handleDioError(e);
