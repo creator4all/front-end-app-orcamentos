@@ -12,9 +12,9 @@ import '../../domain/entities/product_entity.dart';
 import '../../domain/entities/subcategory_entity.dart';
 import '../stores/budget_config_store.dart';
 import '../widgets/product_detail_modal.dart';
-import '../widgets/products_modal.dart';
 import '../widgets/school_census_card.dart';
 import '../widgets/subcategories_modal.dart';
+import '../widgets/subcategory_products_modal.dart';
 
 class ConfigNewBudgetPage extends StatefulWidget {
   final int budgetId;
@@ -364,27 +364,23 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
           print(
               '🔍 [ConfigPage] Subcategoria selecionada: ${subcategory.nome}');
           Navigator.pop(context);
-          _showProductsModal(subcategory);
+          _showProductsModal(category, subcategory);
         },
       ),
     );
   }
 
-  void _showProductsModal(SubcategoryEntity subcategory) {
-    showModalBottomSheet(
+  void _showProductsModal(
+      CategoryEntity category, SubcategoryEntity subcategory) {
+    print('🔍 [ConfigPage] Abrindo modal de produtos: ${subcategory.nome}');
+    print('   📦 Produtos ativos: ${subcategory.activeProductsCount}');
+
+    // Usar o helper estático que encapsula CustomModal.show
+    // Agora recebe categoryId para buscar dados reativos da store
+    SubcategoryProductsModal.show(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => ProductsModal(
-        subcategory: subcategory,
-        onProductTap: _showProductDetailModal,
-        onProductToggle: (productId, selected) {
-          store.toggleProduct(productId, selected);
-        },
-        onQuantityChanged: (productId, quantity) {
-          store.updateProductQuantity(productId, quantity);
-        },
-      ),
+      subcategory: subcategory,
+      categoryId: category.id,
     );
   }
 
