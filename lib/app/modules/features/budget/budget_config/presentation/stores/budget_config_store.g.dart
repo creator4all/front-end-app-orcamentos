@@ -389,6 +389,18 @@ mixin _$BudgetConfigStore on _BudgetConfigStoreBase, Store {
   }
 
   @override
+  void updateProductIndicators(
+      int productId, Map<String, List<String>> selectedIndicators) {
+    final _$actionInfo = _$_BudgetConfigStoreBaseActionController.startAction(
+        name: '_BudgetConfigStoreBase.updateProductIndicators');
+    try {
+      return super.updateProductIndicators(productId, selectedIndicators);
+    } finally {
+      _$_BudgetConfigStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
   void reset() {
     final _$actionInfo = _$_BudgetConfigStoreBaseActionController.startAction(
         name: '_BudgetConfigStoreBase.reset');

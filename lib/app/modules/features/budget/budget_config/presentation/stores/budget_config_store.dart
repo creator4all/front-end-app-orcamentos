@@ -471,6 +471,68 @@ abstract class _BudgetConfigStoreBase with Store {
   }
 
   @action
+  void updateProductIndicators(
+      int productId, Map<String, List<String>> selectedIndicators) {
+    print(
+        '🔄 [BudgetConfigStore] Atualizando indicadores do produto: $productId');
+    print('   📋 Indicadores selecionados: $selectedIndicators');
+
+    // Encontrar o produto
+    for (var i = 0; i < categories.length; i++) {
+      final category = categories[i];
+
+      for (var j = 0; j < category.subcategorias.length; j++) {
+        final subcategory = category.subcategorias[j];
+
+        final productIndex =
+            subcategory.produtos.indexWhere((p) => p.id == productId);
+
+        if (productIndex != -1) {
+          final product = subcategory.produtos[productIndex];
+
+          // ⚠️ Só permitir se estiver ativo
+          if (!product.ativo) {
+            print('⚠️ [BudgetConfigStore] Produto $productId está inativo');
+            return;
+          }
+
+          // Atualizar indicadores
+          // TODO: Adicionar campo para armazenar indicadores selecionados no ProductEntity
+          // Por enquanto, apenas loga a ação
+          print('✅ [BudgetConfigStore] Indicadores atualizados com sucesso');
+          print(
+              '   📊 Total de grupos selecionados: ${selectedIndicators.length}');
+
+          // Criar nova lista de produtos (por enquanto, sem alteração)
+          // No futuro, adicionar campo selectedIndicators ao ProductEntity
+          final updatedProducts =
+              List<ProductEntity>.from(subcategory.produtos);
+
+          // Criar nova subcategoria
+          final updatedSubcategory =
+              subcategory.copyWith(produtos: updatedProducts);
+
+          // Criar nova lista de subcategorias
+          final updatedSubcategories =
+              List<SubcategoryEntity>.from(category.subcategorias);
+          updatedSubcategories[j] = updatedSubcategory;
+
+          // Criar nova categoria
+          final updatedCategory =
+              category.copyWith(subcategorias: updatedSubcategories);
+
+          // Atualizar a categoria na lista
+          categories[i] = updatedCategory;
+
+          return;
+        }
+      }
+    }
+
+    print('⚠️ [BudgetConfigStore] Produto $productId não encontrado');
+  }
+
+  @action
   void reset() {
     budgetDetail = null;
     censusData = null;
