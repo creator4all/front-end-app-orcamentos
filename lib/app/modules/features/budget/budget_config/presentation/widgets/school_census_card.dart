@@ -8,11 +8,13 @@ import '../../../../../../shared/widgets/card_layout.dart';
 class SchoolCensusCard extends StatelessWidget {
   final int numberOfCities;
   final List<Map<String, dynamic>> citiesData;
+  final VoidCallback? onTap;
 
   const SchoolCensusCard({
     super.key,
     required this.numberOfCities,
     required this.citiesData,
+    this.onTap,
   });
 
   /// Calcula o total de turmas (quantidade de indices_etapa)
@@ -120,9 +122,7 @@ class SchoolCensusCard extends StatelessWidget {
       showShadow: true,
       shadowColor: const Color(0xFF6A6F72),
       showActionButton: true,
-      onActionTap: () {
-        // Ação do botão (pode ser expandido depois)
-      },
+      onActionTap: onTap,
     );
   }
 }

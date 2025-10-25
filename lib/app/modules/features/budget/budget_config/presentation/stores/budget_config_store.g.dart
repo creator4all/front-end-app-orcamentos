@@ -401,6 +401,17 @@ mixin _$BudgetConfigStore on _BudgetConfigStoreBase, Store {
   }
 
   @override
+  void toggleCategoryWithCascade(int categoryId, bool selected) {
+    final _$actionInfo = _$_BudgetConfigStoreBaseActionController.startAction(
+        name: '_BudgetConfigStoreBase.toggleCategoryWithCascade');
+    try {
+      return super.toggleCategoryWithCascade(categoryId, selected);
+    } finally {
+      _$_BudgetConfigStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
   void reset() {
     final _$actionInfo = _$_BudgetConfigStoreBaseActionController.startAction(
         name: '_BudgetConfigStoreBase.reset');

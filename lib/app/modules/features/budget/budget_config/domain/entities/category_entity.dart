@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 
+import 'statistics_entity.dart';
 import 'subcategory_entity.dart';
 
 /// Entidade que representa uma categoria de produtos no orçamento
@@ -10,13 +11,21 @@ class CategoryEntity extends Equatable {
   /// Nome para exibição (ex: "Livros", "Tecnologias")
   final String nome;
 
+  /// Ordem de exibição (menor valor = maior prioridade)
+  final int ordem;
+
   /// Lista de subcategorias
   final List<SubcategoryEntity> subcategorias;
+
+  /// Estatísticas agregadas da categoria (soma de todas subcategorias)
+  final StatisticsEntity? estatisticas;
 
   const CategoryEntity({
     required this.id,
     required this.nome,
+    required this.ordem,
     required this.subcategorias,
+    this.estatisticas,
   });
 
   // ========== Getters Úteis ==========
@@ -77,19 +86,25 @@ class CategoryEntity extends Equatable {
   List<Object?> get props => [
         id,
         nome,
+        ordem,
         subcategorias,
+        estatisticas,
       ];
 
   /// Cria uma cópia com campos alterados
   CategoryEntity copyWith({
     int? id,
     String? nome,
+    int? ordem,
     List<SubcategoryEntity>? subcategorias,
+    StatisticsEntity? estatisticas,
   }) {
     return CategoryEntity(
       id: id ?? this.id,
       nome: nome ?? this.nome,
+      ordem: ordem ?? this.ordem,
       subcategorias: subcategorias ?? this.subcategorias,
+      estatisticas: estatisticas ?? this.estatisticas,
     );
   }
 
@@ -104,6 +119,6 @@ class CategoryEntity extends Equatable {
 
   @override
   String toString() {
-    return 'CategoryEntity(id: $id, nome: $nome, subcategorias: ${subcategorias.length}, produtos: $totalActiveProducts, selecionados: $selectedProductsCount)';
+    return 'CategoryEntity(id: $id, nome: $nome, ordem: $ordem, subcategorias: ${subcategorias.length}, produtos: $totalActiveProducts, selecionados: $selectedProductsCount)';
   }
 }

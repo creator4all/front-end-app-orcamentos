@@ -23,6 +23,9 @@ class ProductCategory extends StatelessWidget {
   /// Optional tap handler for the trailing action area.
   final VoidCallback? onActionTap;
 
+  /// Optional tap handler for the entire card area (excluding checkbox).
+  final VoidCallback? onCardTap;
+
   const ProductCategory({
     super.key,
     required this.categoryIcon,
@@ -33,6 +36,7 @@ class ProductCategory extends StatelessWidget {
     this.isSelected = false,
     this.onCheckboxChanged,
     this.onActionTap,
+    this.onCardTap,
   });
 
   @override
@@ -124,65 +128,73 @@ class ProductCategory extends StatelessWidget {
                 // Second column: title and value (~60-66%)
                 Expanded(
                   flex: 7,
-                  child: Padding(
-                    padding: EdgeInsets.only(right: 12.w, bottom: 12.h),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Title (required)
-                        Flexible(
-                          child: Text(
-                            title,
-                            style: textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
+                  child: GestureDetector(
+                    onTap: onCardTap ?? onActionTap,
+                    child: Container(
+                      color: Colors.transparent,
+                      child: Padding(
+                        padding: EdgeInsets.only(right: 12.w, bottom: 12.h),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Title (required)
+                            Flexible(
+                              child: Text(
+                                title,
+                                style: textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
                             ),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                          ),
+                            SizedBox(height: 1.h),
+                            // Value
+                            Flexible(
+                              child: Text(
+                                value,
+                                style: textTheme.bodySmall,
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                            ),
+                          ],
                         ),
-                        SizedBox(height: 1.h),
-                        // Value
-                        Flexible(
-                          child: Text(
-                            value,
-                            style: textTheme.bodySmall,
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
-
-                // Third column: selected count + action button (~20%)
+                ), // Third column: selected count + action button (~20%)
                 Expanded(
                   flex: 2,
-                  child: Container(
-                    height: 70.h,
-                    alignment: Alignment.bottomRight,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        // Selected count text
-                        Padding(
-                          padding: EdgeInsets.only(top: 8.h, right: 8.w),
-                          child: Text(
-                            '$selectedCount/$totalCount',
-                            style: textTheme.bodySmall?.copyWith(
-                              color: Colors.grey[600],
-                              fontWeight: FontWeight.w500,
+                  child: GestureDetector(
+                    onTap: onCardTap ?? onActionTap,
+                    child: Container(
+                      height: 70.h,
+                      alignment: Alignment.bottomRight,
+                      color: Colors.transparent,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          // Selected count text
+                          Padding(
+                            padding: EdgeInsets.only(top: 8.h, right: 8.w),
+                            child: Text(
+                              '$selectedCount/$totalCount',
+                              style: textTheme.bodySmall?.copyWith(
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
-                        ),
-                        // Action button
-                        ActionButton(
-                          onTap: onActionTap,
-                        ),
-                      ],
+                          // Action button
+                          ActionButton(
+                            onTap: onActionTap,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -191,6 +203,6 @@ class ProductCategory extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ); // AnimatedContainer
   }
 }
