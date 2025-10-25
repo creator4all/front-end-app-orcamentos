@@ -155,19 +155,39 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                       child: SchoolCensusCard(
                         numberOfCities: store.budgetDetail?.cityIds.length ?? 0,
                         citiesData: _extractCitiesData(),
+                        onTap: () {
+                          print('👆 [ConfigPage] Censo Escolar clicado');
+                          // TODO: Navegar para tela de detalhes do censo escolar
+                          // Modular.to.pushNamed('/census-detail/${widget.budgetId}');
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                  'Navegação para Censo Escolar em desenvolvimento'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        },
                       ),
                     ),
 
                   SizedBox(height: 12.h),
 
-                  // ✅ Categorias Dinâmicas
-                  if (store.hasCategories)
-                    ...store.categories.map((category) {
-                      return Padding(
+                  // ✅ Categorias Dinâmicas (Layout Customizado)
+                  if (store.hasCategories) ...[
+                    // 1. LIVROS (sempre primeiro, se existir)
+                    if (_getLivrosCategory() != null)
+                      Padding(
                         padding: EdgeInsets.only(bottom: 12.h),
-                        child: _buildCategoryFromEntity(category),
-                      );
-                    }),
+                        child: _buildCategoryFromEntity(_getLivrosCategory()!),
+                      ),
+
+                    // 2. TECNOLOGIAS (header + subcategorias expandidas)
+                    if (_getTecnologiasCategory() != null) ...[
+                      _buildTecnologiasHeader(_getTecnologiasCategory()!),
+                      ..._buildTecnologiasSubcategories(
+                          _getTecnologiasCategory()!),
+                    ],
+                  ],
 
                   // Mensagem se não houver categorias
                   if (!store.hasCategories)
@@ -337,6 +357,126 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
 
   // ========== MÉTODOS AUXILIARES ==========
 
+  /// Busca a categoria "Livros" nas categorias disponíveis
+  CategoryEntity? _getLivrosCategory() {
+    if (!store.hasCategories) return null;
+    try {
+      return store.categories.firstWhere(
+        (cat) => cat.nome.toLowerCase() == 'livros',
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Busca a categoria "Tecnologias" nas categorias disponíveis
+  CategoryEntity? _getTecnologiasCategory() {
+    if (!store.hasCategories) return null;
+    try {
+      return store.categories.firstWhere(
+        (cat) => cat.nome.toLowerCase() == 'tecnologias',
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Constrói o header customizado para Tecnologias
+  Widget _buildTecnologiasHeader(CategoryEntity tecnologias) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, 0, 0, 10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Tecnologias',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF117BBD),
+                ),
+              ),
+              SizedBox(height: 4.h),
+              Text(
+                NumberFormat.currency(
+                  locale: 'pt_BR',
+                  symbol: 'R\$',
+                  decimalDigits: 2,
+                ).format(tecnologias.totalValue),
+                style: TextStyle(
+                  fontSize: 15.sp,
+                  fontWeight: FontWeight.w400,
+                  color: Colors.black,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Constrói a lista de subcategorias expandidas para Tecnologias
+  /// Ordena por campo "ordem" do backend
+  List<Widget> _buildTecnologiasSubcategories(CategoryEntity tecnologias) {
+    // Ordenar subcategorias por ordem
+    final sortedSubcategories = tecnologias.subcategorias.toList()
+      ..sort((a, b) => a.ordem.compareTo(b.ordem));
+
+    return sortedSubcategories.map((subcategory) {
+      return Padding(
+        padding: EdgeInsets.only(bottom: 12.h),
+        child: _buildSubcategoryCard(subcategory, tecnologias),
+      );
+    }).toList();
+  }
+
+  /// Constrói um card para subcategoria usando ProductCategory widget
+  Widget _buildSubcategoryCard(
+      SubcategoryEntity subcategory, CategoryEntity parentCategory) {
+    return Observer(
+      builder: (_) {
+        // ✅ Buscar categoria atualizada da store
+        final currentCategory = store.categories.firstWhere(
+          (c) => c.id == parentCategory.id,
+          orElse: () => parentCategory,
+        );
+
+        // ✅ Buscar subcategoria atualizada dentro da categoria
+        final currentSubcategory = currentCategory.subcategorias.firstWhere(
+          (s) => s.id == subcategory.id,
+          orElse: () => subcategory,
+        );
+
+        return ProductCategory(
+          categoryIcon: const Icon(
+            Icons.layers_outlined,
+            color: Colors.black54,
+          ),
+          title: currentSubcategory.nome,
+          value: currentSubcategory.formattedTotalValue,
+          selectedCount: currentSubcategory.selectedProductsCount,
+          totalCount: currentSubcategory.activeProductsCount,
+          isSelected: currentSubcategory.selectedProductsCount > 0,
+          onCheckboxChanged: null, // Desabilitado para subcategorias
+          onCardTap: () {
+            print(
+                '👆 [ConfigPage] Card subcategoria clicado: ${currentSubcategory.nome}');
+            _showProductsModal(currentCategory, currentSubcategory);
+          },
+          onActionTap: () {
+            print(
+                '👆 [ConfigPage] Botão ação subcategoria: ${currentSubcategory.nome}');
+            _showProductsModal(currentCategory, currentSubcategory);
+          },
+        );
+      },
+    );
+  }
+
   /// Extrai dados das cidades para o card do Censo Escolar
   /// Retorna lista de mapas com {id, nome, indicadores}
   List<Map<String, dynamic>> _extractCitiesData() {
@@ -420,20 +560,36 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
 
     return Observer(
       builder: (_) {
+        // ✅ Buscar categoria atualizada da store dentro do Observer
+        final currentCategory = store.categories.firstWhere(
+          (c) => c.id == category.id,
+          orElse: () => category,
+        );
+
         return ProductCategory(
           categoryIcon: Icon(
-            _getCategoryIcon(category.nome),
+            _getCategoryIcon(currentCategory.nome),
             color: Colors.black54,
           ),
-          title: category.nome,
-          value: category.formattedTotalValue,
-          selectedCount: category.selectedProductsCount,
-          totalCount: category.totalActiveProducts,
-          isSelected: category.hasSelectedProducts,
-          onCheckboxChanged: null, // Não permitir toggle direto da categoria
+          title: currentCategory.nome,
+          value: currentCategory.formattedTotalValue,
+          selectedCount: currentCategory.selectedProductsCount,
+          totalCount: currentCategory.totalActiveProducts,
+          isSelected: currentCategory.hasSelectedProducts,
+          onCheckboxChanged: (bool? value) {
+            print(
+                '☑️ [ConfigPage] Checkbox categoria: ${currentCategory.nome} = $value');
+            store.toggleCategoryWithCascade(currentCategory.id, value ?? false);
+          },
+          onCardTap: () {
+            print(
+                '👆 [ConfigPage] Card categoria clicado: ${currentCategory.nome}');
+            _showSubcategoriesModal(currentCategory);
+          },
           onActionTap: () {
-            print('👆 [ConfigPage] Categoria clicada: ${category.nome}');
-            _showSubcategoriesModal(category);
+            print(
+                '👆 [ConfigPage] Botão ação categoria: ${currentCategory.nome}');
+            _showSubcategoriesModal(currentCategory);
           },
         );
       },

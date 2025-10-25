@@ -1,16 +1,21 @@
 import '../../domain/entities/category_entity.dart';
+import 'statistics_dto.dart';
 import 'subcategory_dto.dart';
 
 /// DTO para parsing JSON das categorias da API
 class CategoryDTO {
   final int id;
   final String nome;
+  final int ordem;
   final List<SubcategoryDTO> subcategorias;
+  final StatisticsDTO? estatisticas;
 
   CategoryDTO({
     required this.id,
     required this.nome,
+    required this.ordem,
     required this.subcategorias,
+    this.estatisticas,
   });
 
   /// Cria um DTO a partir do JSON da API
@@ -20,8 +25,9 @@ class CategoryDTO {
 
       final int id = json['id'] as int;
       final String nome = json['nome'] as String;
+      final int ordem = json['ordem'] as int? ?? 0;
 
-      print('   ✅ ID: $id, Nome: $nome');
+      print('   ✅ ID: $id, Nome: $nome, Ordem: $ordem');
 
       final List<SubcategoryDTO> subcategorias = [];
       if (json['subcategorias'] != null && json['subcategorias'] is List) {
@@ -43,10 +49,21 @@ class CategoryDTO {
         }
       }
 
+      // Parse estatísticas (novo formato)
+      StatisticsDTO? estatisticas;
+      if (json['estatisticas'] != null) {
+        estatisticas = StatisticsDTO.fromJson(
+            json['estatisticas'] as Map<String, dynamic>);
+        print(
+            '   ✅ Estatísticas: ${estatisticas.totalProdutos} produtos, ${estatisticas.produtosSelecionados} selecionados');
+      }
+
       return CategoryDTO(
         id: id,
         nome: nome,
+        ordem: ordem,
         subcategorias: subcategorias,
+        estatisticas: estatisticas,
       );
     } catch (e, stackTrace) {
       print('❌ [CategoryDTO] Erro ao parsear categoria: $e');
@@ -61,7 +78,9 @@ class CategoryDTO {
     return CategoryEntity(
       id: id,
       nome: nome,
+      ordem: ordem,
       subcategorias: subcategorias.map((s) => s.toEntity()).toList(),
+      estatisticas: estatisticas?.toEntity(),
     );
   }
 
@@ -70,7 +89,9 @@ class CategoryDTO {
     return {
       'id': id,
       'nome': nome,
+      'ordem': ordem,
       'subcategorias': subcategorias.map((s) => s.toJson()).toList(),
+      if (estatisticas != null) 'estatisticas': estatisticas!.toJson(),
     };
   }
 
@@ -79,9 +100,13 @@ class CategoryDTO {
     return CategoryDTO(
       id: entity.id,
       nome: entity.nome,
+      ordem: entity.ordem,
       subcategorias: entity.subcategorias
           .map((s) => SubcategoryDTO.fromEntity(s))
           .toList(),
+      estatisticas: entity.estatisticas != null
+          ? StatisticsDTO.fromEntity(entity.estatisticas!)
+          : null,
     );
   }
 }

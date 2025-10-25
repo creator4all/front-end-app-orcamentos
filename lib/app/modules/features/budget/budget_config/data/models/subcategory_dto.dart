@@ -1,16 +1,21 @@
 import '../../domain/entities/subcategory_entity.dart';
 import 'product_dto.dart';
+import 'statistics_dto.dart';
 
 /// DTO para parsing JSON das subcategorias da API
 class SubcategoryDTO {
   final int id;
   final String nome;
+  final int ordem;
   final List<ProductDTO> produtos;
+  final StatisticsDTO? estatisticas;
 
   SubcategoryDTO({
     required this.id,
     required this.nome,
+    required this.ordem,
     required this.produtos,
+    this.estatisticas,
   });
 
   /// Cria um DTO a partir do JSON da API
@@ -20,7 +25,9 @@ class SubcategoryDTO {
 
       final int id = json['id'] as int;
       final String nome = json['nome'] as String;
+      final int ordem = json['ordem'] as int? ?? 0;
 
+      // Parse produtos (opcional - pode não vir no novo formato)
       final List<ProductDTO> produtos = [];
       if (json['produtos'] != null && json['produtos'] is List) {
         final prodList = json['produtos'] as List<dynamic>;
@@ -39,12 +46,25 @@ class SubcategoryDTO {
             rethrow;
           }
         }
+      } else {
+        print('      📊 Sem produtos - usando estatísticas');
+      }
+
+      // Parse estatísticas (novo formato)
+      StatisticsDTO? estatisticas;
+      if (json['estatisticas'] != null) {
+        estatisticas = StatisticsDTO.fromJson(
+            json['estatisticas'] as Map<String, dynamic>);
+        print(
+            '      ✅ Estatísticas: ${estatisticas.totalProdutos} produtos, ${estatisticas.produtosSelecionados} selecionados');
       }
 
       return SubcategoryDTO(
         id: id,
         nome: nome,
+        ordem: ordem,
         produtos: produtos,
+        estatisticas: estatisticas,
       );
     } catch (e, stackTrace) {
       print('❌ [SubcategoryDTO] Erro ao parsear subcategoria: $e');
@@ -59,7 +79,9 @@ class SubcategoryDTO {
     return SubcategoryEntity(
       id: id,
       nome: nome,
+      ordem: ordem,
       produtos: produtos.map((p) => p.toEntity()).toList(),
+      estatisticas: estatisticas?.toEntity(),
     );
   }
 
@@ -68,7 +90,9 @@ class SubcategoryDTO {
     return {
       'id': id,
       'nome': nome,
+      'ordem': ordem,
       'produtos': produtos.map((p) => p.toJson()).toList(),
+      if (estatisticas != null) 'estatisticas': estatisticas!.toJson(),
     };
   }
 
@@ -77,7 +101,11 @@ class SubcategoryDTO {
     return SubcategoryDTO(
       id: entity.id,
       nome: entity.nome,
+      ordem: entity.ordem,
       produtos: entity.produtos.map((p) => ProductDTO.fromEntity(p)).toList(),
+      estatisticas: entity.estatisticas != null
+          ? StatisticsDTO.fromEntity(entity.estatisticas!)
+          : null,
     );
   }
 }

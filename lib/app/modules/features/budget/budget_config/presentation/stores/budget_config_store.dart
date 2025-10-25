@@ -532,6 +532,102 @@ abstract class _BudgetConfigStoreBase with Store {
     print('⚠️ [BudgetConfigStore] Produto $productId não encontrado');
   }
 
+  /// Toggle de categoria com desmarcação em cascata
+  /// Se marcar (true): marca a categoria
+  /// Se desmarcar (false): desmarca TODOS os produtos de TODAS as subcategorias
+  @action
+  void toggleCategoryWithCascade(int categoryId, bool selected) {
+    print(
+        '🔄 [BudgetConfigStore] Toggle categoria $categoryId com cascata: $selected');
+
+    // Encontrar a categoria
+    final categoryIndex = categories.indexWhere((c) => c.id == categoryId);
+    if (categoryIndex == -1) {
+      print('⚠️ [BudgetConfigStore] Categoria $categoryId não encontrada');
+      return;
+    }
+
+    final category = categories[categoryIndex];
+
+    if (!selected) {
+      // ❌ DESMARCAR: desmarcar TODOS os produtos de TODAS as subcategorias
+      print(
+          '   ❌ Desmarcando todos os produtos da categoria: ${category.nome}');
+      print(
+          '   📊 ANTES - Produtos selecionados na categoria: ${category.selectedProductsCount}');
+      print(
+          '   📊 ANTES - hasSelectedProducts: ${category.hasSelectedProducts}');
+
+      final updatedSubcategories = category.subcategorias.map((subcategory) {
+        print('      🔍 Subcategoria: ${subcategory.nome}');
+        print('         Produtos antes: ${subcategory.produtos.length}');
+        print(
+            '         Selecionados antes: ${subcategory.selectedProductsCount}');
+
+        // Desmarcar todos os produtos desta subcategoria
+        final updatedProducts = subcategory.produtos.map((product) {
+          if (product.selecionado) {
+            print(
+                '         ❌ Desmarcando: ${product.solucao} (selecionado: ${product.selecionado})');
+          }
+          final newProduct =
+              product.copyWith(selecionado: false, quantidade: 1);
+          print(
+              '         ✓ Resultado: ${newProduct.solucao} (selecionado: ${newProduct.selecionado})');
+          return newProduct;
+        }).toList();
+
+        print('         Produtos depois: ${updatedProducts.length}');
+        print(
+            '         Selecionados na lista: ${updatedProducts.where((p) => p.selecionado).length}');
+
+        // ⚠️ CRÍTICO: Zerar estatísticas para forçar recálculo via produtos
+        // Quando desmarcamos produtos, estatísticas antigas causam estado inconsistente
+        final estatisticasZeradas = subcategory.estatisticas?.copyWith(
+          totalProdutos: 0,
+          produtosSelecionados: 0,
+          valorTotal: 0.0,
+          valorSelecionado: 0.0,
+        );
+
+        // Atualizar subcategoria com produtos desmarcados E estatísticas zeradas
+        final newSub = subcategory.copyWith(
+          produtos: updatedProducts,
+          estatisticas: estatisticasZeradas,
+        );
+        print(
+            '         Selecionados no getter: ${newSub.selectedProductsCount}');
+        return newSub;
+      }).toList();
+
+      // Criar nova categoria com subcategorias atualizadas (sem alterar estatísticas)
+      final updatedCategory =
+          category.copyWith(subcategorias: updatedSubcategories);
+
+      print(
+          '   📊 DEPOIS - Produtos selecionados na categoria: ${updatedCategory.selectedProductsCount}');
+      print(
+          '   📊 DEPOIS - hasSelectedProducts: ${updatedCategory.hasSelectedProducts}');
+
+      // Atualizar na lista com reatribuição completa para forçar notificação MobX
+      final newCategories = List<CategoryEntity>.from(categories);
+      newCategories[categoryIndex] = updatedCategory;
+      categories = ObservableList.of(newCategories);
+
+      print('   ✅ Todos os produtos desmarcados');
+      print('   💰 Total recalculado: R\$ ${totalValue.toStringAsFixed(2)}');
+      print('   📦 Produtos selecionados: $totalSelectedProducts');
+      print(
+          '   🔍 hasSelectedProducts: ${updatedCategory.hasSelectedProducts}');
+    } else {
+      // ✅ MARCAR: apenas marca a categoria (não seleciona produtos automaticamente)
+      print('   ✅ Categoria marcada: ${category.nome}');
+      print(
+          '   ℹ️ Produtos devem ser selecionados individualmente nas subcategorias');
+      // Nenhuma ação necessária, produtos devem ser selecionados individualmente
+    }
+  }
+
   @action
   void reset() {
     budgetDetail = null;

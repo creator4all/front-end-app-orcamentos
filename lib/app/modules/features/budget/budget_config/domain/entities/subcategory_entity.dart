@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 import 'product_entity.dart';
+import 'statistics_entity.dart';
 
 /// Entidade que representa uma subcategoria de produtos
 class SubcategoryEntity extends Equatable {
@@ -10,16 +11,27 @@ class SubcategoryEntity extends Equatable {
   /// Nome da subcategoria (ex: "Como se escreve", "Educação Musical")
   final String nome;
 
-  /// Lista de produtos da subcategoria
+  /// Ordem de exibição (menor valor = maior prioridade)
+  final int ordem;
+
+  /// Lista de produtos da subcategoria (pode estar vazia se usar estatísticas)
   final List<ProductEntity> produtos;
+
+  /// Estatísticas agregadas (usado quando produtos não estão carregados)
+  final StatisticsEntity? estatisticas;
 
   const SubcategoryEntity({
     required this.id,
     required this.nome,
+    required this.ordem,
     required this.produtos,
+    this.estatisticas,
   });
 
   // ========== Getters Úteis ==========
+
+  /// Verifica se está usando estatísticas (produtos não carregados ainda)
+  bool get usandoEstatisticas => produtos.isEmpty && estatisticas != null;
 
   /// ⚠️ Lista apenas produtos ATIVOS (que podem ser exibidos)
   List<ProductEntity> get activeProdutos {
@@ -37,18 +49,38 @@ class SubcategoryEntity extends Equatable {
   }
 
   /// Quantidade total de produtos ativos
-  int get activeProductsCount => activeProdutos.length;
+  /// Usa estatísticas se produtos não carregados
+  int get activeProductsCount {
+    if (usandoEstatisticas) {
+      return estatisticas!.totalProdutos;
+    }
+    return activeProdutos.length;
+  }
 
   /// Quantidade de produtos selecionados
-  int get selectedProductsCount => selectedProdutos.length;
+  /// Usa estatísticas se produtos não carregados
+  int get selectedProductsCount {
+    if (usandoEstatisticas) {
+      return estatisticas!.produtosSelecionados;
+    }
+    return selectedProdutos.length;
+  }
 
   /// Valor total dos produtos selecionados
+  /// Usa estatísticas se produtos não carregados
   double get totalValue {
+    if (usandoEstatisticas) {
+      return estatisticas!.valorSelecionado;
+    }
     return selectedProdutos.fold(0.0, (sum, p) => sum + p.totalValue);
   }
 
   /// Valor total se todos os produtos fossem selecionados
+  /// Usa estatísticas se produtos não carregados
   double get maxPossibleValue {
+    if (usandoEstatisticas) {
+      return estatisticas!.valorTotal;
+    }
     return activeProdutos.fold(0.0, (sum, p) => sum + p.totalValue);
   }
 
@@ -74,18 +106,22 @@ class SubcategoryEntity extends Equatable {
   String get formattedTotalValue => 'R\$ ${totalValue.toStringAsFixed(2)}';
 
   @override
-  List<Object?> get props => [id, nome, produtos];
+  List<Object?> get props => [id, nome, ordem, produtos, estatisticas];
 
   /// Cria uma cópia com campos alterados
   SubcategoryEntity copyWith({
     int? id,
     String? nome,
+    int? ordem,
     List<ProductEntity>? produtos,
+    StatisticsEntity? estatisticas,
   }) {
     return SubcategoryEntity(
       id: id ?? this.id,
       nome: nome ?? this.nome,
+      ordem: ordem ?? this.ordem,
       produtos: produtos ?? this.produtos,
+      estatisticas: estatisticas ?? this.estatisticas,
     );
   }
 
@@ -100,6 +136,9 @@ class SubcategoryEntity extends Equatable {
 
   @override
   String toString() {
-    return 'SubcategoryEntity(id: $id, nome: $nome, produtos: ${produtos.length}, ativos: $activeProductsCount, selecionados: $selectedProductsCount)';
+    if (usandoEstatisticas) {
+      return 'SubcategoryEntity(id: $id, nome: $nome, ordem: $ordem, usando estatísticas: total=${estatisticas!.totalProdutos}, selecionados=${estatisticas!.produtosSelecionados})';
+    }
+    return 'SubcategoryEntity(id: $id, nome: $nome, ordem: $ordem, produtos: ${produtos.length}, ativos: $activeProductsCount, selecionados: $selectedProductsCount)';
   }
 }
