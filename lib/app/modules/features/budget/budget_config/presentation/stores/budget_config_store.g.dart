@@ -71,6 +71,13 @@ mixin _$BudgetConfigStore on _BudgetConfigStoreBase, Store {
       (_$hasCategoriesComputed ??= Computed<bool>(() => super.hasCategories,
               name: '_BudgetConfigStoreBase.hasCategories'))
           .value;
+  Computed<bool>? _$isFullyLoadedComputed;
+
+  @override
+  bool get isFullyLoaded =>
+      (_$isFullyLoadedComputed ??= Computed<bool>(() => super.isFullyLoaded,
+              name: '_BudgetConfigStoreBase.isFullyLoaded'))
+          .value;
 
   late final _$isLoadingAtom =
       Atom(name: '_BudgetConfigStoreBase.isLoading', context: context);
@@ -85,6 +92,22 @@ mixin _$BudgetConfigStore on _BudgetConfigStoreBase, Store {
   set isLoading(bool value) {
     _$isLoadingAtom.reportWrite(value, super.isLoading, () {
       super.isLoading = value;
+    });
+  }
+
+  late final _$isLoadingProductsAtom =
+      Atom(name: '_BudgetConfigStoreBase.isLoadingProducts', context: context);
+
+  @override
+  bool get isLoadingProducts {
+    _$isLoadingProductsAtom.reportRead();
+    return super.isLoadingProducts;
+  }
+
+  @override
+  set isLoadingProducts(bool value) {
+    _$isLoadingProductsAtom.reportWrite(value, super.isLoadingProducts, () {
+      super.isLoadingProducts = value;
     });
   }
 
@@ -281,6 +304,15 @@ mixin _$BudgetConfigStore on _BudgetConfigStoreBase, Store {
         .run(() => super.loadBudgetDetail(budgetId));
   }
 
+  late final _$_loadAllProductsAsyncAction =
+      AsyncAction('_BudgetConfigStoreBase._loadAllProducts', context: context);
+
+  @override
+  Future<void> _loadAllProducts(int budgetId) {
+    return _$_loadAllProductsAsyncAction
+        .run(() => super._loadAllProducts(budgetId));
+  }
+
   late final _$loadCensusDataAsyncAction =
       AsyncAction('_BudgetConfigStoreBase.loadCensusData', context: context);
 
@@ -295,6 +327,16 @@ mixin _$BudgetConfigStore on _BudgetConfigStoreBase, Store {
   @override
   Future<Either<BudgetFailure, BudgetDetailEntity>> finalizeBudget() {
     return _$finalizeBudgetAsyncAction.run(() => super.finalizeBudget());
+  }
+
+  late final _$reloadProductsAfterCensusEditAsyncAction = AsyncAction(
+      '_BudgetConfigStoreBase.reloadProductsAfterCensusEdit',
+      context: context);
+
+  @override
+  Future<void> reloadProductsAfterCensusEdit() {
+    return _$reloadProductsAfterCensusEditAsyncAction
+        .run(() => super.reloadProductsAfterCensusEdit());
   }
 
   late final _$_BudgetConfigStoreBaseActionController =
@@ -412,6 +454,19 @@ mixin _$BudgetConfigStore on _BudgetConfigStoreBase, Store {
   }
 
   @override
+  void toggleSubcategoryWithCascade(
+      int categoryId, int subcategoryId, bool selected) {
+    final _$actionInfo = _$_BudgetConfigStoreBaseActionController.startAction(
+        name: '_BudgetConfigStoreBase.toggleSubcategoryWithCascade');
+    try {
+      return super
+          .toggleSubcategoryWithCascade(categoryId, subcategoryId, selected);
+    } finally {
+      _$_BudgetConfigStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
   void reset() {
     final _$actionInfo = _$_BudgetConfigStoreBaseActionController.startAction(
         name: '_BudgetConfigStoreBase.reset');
@@ -426,6 +481,7 @@ mixin _$BudgetConfigStore on _BudgetConfigStoreBase, Store {
   String toString() {
     return '''
 isLoading: ${isLoading},
+isLoadingProducts: ${isLoadingProducts},
 isLoadingCensus: ${isLoadingCensus},
 isSaving: ${isSaving},
 error: ${error},
@@ -445,7 +501,8 @@ totalActiveProducts: ${totalActiveProducts},
 totalSelectedProducts: ${totalSelectedProducts},
 hasData: ${hasData},
 hasCensusData: ${hasCensusData},
-hasCategories: ${hasCategories}
+hasCategories: ${hasCategories},
+isFullyLoaded: ${isFullyLoaded}
     ''';
   }
 }

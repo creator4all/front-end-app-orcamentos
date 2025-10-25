@@ -13,7 +13,9 @@ import 'budget_config/domain/repositories/budget_detail_repository.dart';
 import 'budget_config/domain/repositories/census_repository.dart';
 import 'budget_config/domain/usecases/calculate_totals_usecase.dart';
 import 'budget_config/domain/usecases/finalize_budget_usecase.dart';
+import 'budget_config/domain/usecases/get_all_budget_products_usecase.dart';
 import 'budget_config/domain/usecases/get_budget_detail_usecase.dart';
+import 'budget_config/domain/usecases/get_category_products_usecase.dart';
 import 'budget_config/domain/usecases/get_census_data_usecase.dart';
 import 'budget_config/domain/usecases/toggle_category_usecase.dart';
 import 'budget_config/presentation/pages/config_new_budget_page.dart';
@@ -155,6 +157,12 @@ class BudgetModuleNew extends Module {
         Bind.lazySingleton<GetBudgetDetailUseCase>(
           (i) => GetBudgetDetailUseCase(i.get<BudgetDetailRepository>()),
         ),
+        Bind.lazySingleton<GetAllBudgetProductsUseCase>(
+          (i) => GetAllBudgetProductsUseCase(i.get<BudgetDetailRepository>()),
+        ),
+        Bind.lazySingleton<GetCategoryProductsUseCase>(
+          (i) => GetCategoryProductsUseCase(i.get<BudgetDetailRepository>()),
+        ),
         Bind.lazySingleton<GetCensusDataUseCase>(
           (i) => GetCensusDataUseCase(i.get<CensusRepository>()),
         ),
@@ -172,6 +180,8 @@ class BudgetModuleNew extends Module {
         Bind.lazySingleton<BudgetConfigStore>(
           (i) => BudgetConfigStore(
             getBudgetDetailUseCase: i.get<GetBudgetDetailUseCase>(),
+            getAllBudgetProductsUseCase: i.get<GetAllBudgetProductsUseCase>(),
+            getCategoryProductsUseCase: i.get<GetCategoryProductsUseCase>(),
             getCensusDataUseCase: i.get<GetCensusDataUseCase>(),
             toggleCategoryUseCase: i.get<ToggleCategoryUseCase>(),
             calculateTotalsUseCase: i.get<CalculateTotalsUseCase>(),

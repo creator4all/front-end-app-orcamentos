@@ -11,6 +11,7 @@ class ProductDTO {
   final String indicacao;
   final String tipoProduto;
   final int ordem;
+  final int subcategoriaId;
   final bool selecionado;
   final int quantidade;
   final bool temOverride;
@@ -29,6 +30,7 @@ class ProductDTO {
     required this.indicacao,
     required this.tipoProduto,
     required this.ordem,
+    required this.subcategoriaId,
     required this.selecionado,
     required this.quantidade,
     required this.temOverride,
@@ -74,6 +76,9 @@ class ProductDTO {
       final int ordem = json['ordem'] as int;
       print('            ✅ ordem: $ordem');
 
+      final int subcategoriaId = json['subcategoria_id'] as int;
+      print('            ✅ subcategoria_id: $subcategoriaId');
+
       final bool selecionado = json['selecionado'] as bool;
       print('            ✅ selecionado: $selecionado');
 
@@ -110,6 +115,7 @@ class ProductDTO {
         indicacao: indicacao,
         tipoProduto: tipoProduto,
         ordem: ordem,
+        subcategoriaId: subcategoriaId,
         selecionado: selecionado,
         quantidade: quantidade,
         temOverride: temOverride,
@@ -139,6 +145,7 @@ class ProductDTO {
       indicacao: indicacao,
       tipoProduto: tipoProduto,
       ordem: ordem,
+      subcategoriaId: subcategoriaId,
       selecionado: selecionado,
       quantidade: quantidade,
       temOverride: temOverride,
@@ -161,6 +168,7 @@ class ProductDTO {
       'indicacao': indicacao,
       'tipo_produto': tipoProduto,
       'ordem': ordem,
+      'subcategoria_id': subcategoriaId,
       'selecionado': selecionado,
       'quantidade': quantidade,
       'tem_override': temOverride,
@@ -183,6 +191,7 @@ class ProductDTO {
       indicacao: entity.indicacao,
       tipoProduto: entity.tipoProduto,
       ordem: entity.ordem,
+      subcategoriaId: entity.subcategoriaId,
       selecionado: entity.selecionado,
       quantidade: entity.quantidade,
       temOverride: entity.temOverride,
