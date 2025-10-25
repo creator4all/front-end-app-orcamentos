@@ -164,7 +164,7 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                           // 2. Ao retornar da tela de edição (após salvar), chamar:
                           //    await store.reloadProductsAfterCensusEdit();
                           // 3. Isso irá recarregar os produtos com quantidades recalculadas pelo backend
-                          
+
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text(
