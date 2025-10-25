@@ -863,14 +863,16 @@ abstract class _BudgetConfigStoreBase with Store {
   Future<void> reloadProductsAfterCensusEdit() async {
     if (budgetDetail == null) return;
 
-    print('🔄 [BudgetConfigStore] Recarregando produtos após edição do censo...');
-    
+    print(
+        '🔄 [BudgetConfigStore] Recarregando produtos após edição do censo...');
+
     isLoadingProducts = true;
     error = null;
 
     try {
       await _loadAllProducts(budgetDetail!.id);
-      print('✅ [BudgetConfigStore] Produtos recarregados com novas quantidades');
+      print(
+          '✅ [BudgetConfigStore] Produtos recarregados com novas quantidades');
     } catch (e) {
       error = 'Erro ao recarregar produtos: $e';
       print('❌ [BudgetConfigStore] Erro ao recarregar: $e');
