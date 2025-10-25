@@ -29,6 +29,9 @@ class ProductEntity extends Equatable {
   /// Ordem de exibição
   final int ordem;
 
+  /// ID da subcategoria a qual o produto pertence
+  final int subcategoriaId;
+
   /// ✅ Estado do checkbox (true = marcado, false = desmarcado)
   final bool selecionado;
 
@@ -60,6 +63,7 @@ class ProductEntity extends Equatable {
     required this.indicacao,
     required this.tipoProduto,
     required this.ordem,
+    required this.subcategoriaId,
     required this.selecionado,
     required this.quantidade,
     required this.temOverride,
@@ -107,6 +111,7 @@ class ProductEntity extends Equatable {
         indicacao,
         tipoProduto,
         ordem,
+        subcategoriaId,
         selecionado,
         quantidade,
         temOverride,
@@ -127,6 +132,7 @@ class ProductEntity extends Equatable {
     String? indicacao,
     String? tipoProduto,
     int? ordem,
+    int? subcategoriaId,
     bool? selecionado,
     int? quantidade,
     bool? temOverride,
@@ -145,6 +151,7 @@ class ProductEntity extends Equatable {
       indicacao: indicacao ?? this.indicacao,
       tipoProduto: tipoProduto ?? this.tipoProduto,
       ordem: ordem ?? this.ordem,
+      subcategoriaId: subcategoriaId ?? this.subcategoriaId,
       selecionado: selecionado ?? this.selecionado,
       quantidade: quantidade ?? this.quantidade,
       temOverride: temOverride ?? this.temOverride,

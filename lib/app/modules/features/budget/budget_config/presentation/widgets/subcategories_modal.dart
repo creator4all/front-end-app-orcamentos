@@ -9,11 +9,14 @@ import '../../domain/entities/subcategory_entity.dart';
 class SubcategoriesModal extends StatelessWidget {
   final CategoryEntity category;
   final Function(SubcategoryEntity) onSubcategoryTap;
+  final Function(int categoryId, int subcategoryId, bool selected)?
+      onCheckboxChanged;
 
   const SubcategoriesModal({
     super.key,
     required this.category,
     required this.onSubcategoryTap,
+    this.onCheckboxChanged,
   });
 
   @override
@@ -54,29 +57,42 @@ class SubcategoriesModal extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Checkbox
-            Container(
-              width: 17.w,
-              height: 17.h,
-              decoration: BoxDecoration(
-                color: hasSelectedProducts
-                    ? const Color(0xFF2830F2)
-                    : Colors.white,
-                border: Border.all(
+            // Checkbox - clicável separadamente
+            GestureDetector(
+              onTap: () {
+                if (onCheckboxChanged != null) {
+                  print(
+                      '✅ [SubcategoriesModal] Checkbox subcategoria ${subcategory.nome}: ${!hasSelectedProducts ? "MARCAR" : "DESMARCAR"}');
+                  onCheckboxChanged!(
+                    category.id,
+                    subcategory.id,
+                    !hasSelectedProducts,
+                  );
+                }
+              },
+              child: Container(
+                width: 17.w,
+                height: 17.h,
+                decoration: BoxDecoration(
                   color: hasSelectedProducts
                       ? const Color(0xFF2830F2)
-                      : const Color(0xFFEAEAEA),
-                  width: 2,
+                      : Colors.white,
+                  border: Border.all(
+                    color: hasSelectedProducts
+                        ? const Color(0xFF2830F2)
+                        : const Color(0xFFEAEAEA),
+                    width: 2,
+                  ),
+                  borderRadius: BorderRadius.circular(5.r),
                 ),
-                borderRadius: BorderRadius.circular(5.r),
+                child: hasSelectedProducts
+                    ? const Icon(
+                        Icons.check,
+                        color: Colors.white,
+                        size: 14,
+                      )
+                    : null,
               ),
-              child: hasSelectedProducts
-                  ? const Icon(
-                      Icons.check,
-                      color: Colors.white,
-                      size: 14,
-                    )
-                  : null,
             ),
 
             SizedBox(width: 12.w),

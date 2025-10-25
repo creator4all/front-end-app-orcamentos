@@ -9,7 +9,9 @@ import '../../domain/entities/product_entity.dart';
 import '../../domain/entities/subcategory_entity.dart';
 import '../../domain/usecases/calculate_totals_usecase.dart';
 import '../../domain/usecases/finalize_budget_usecase.dart';
+import '../../domain/usecases/get_all_budget_products_usecase.dart';
 import '../../domain/usecases/get_budget_detail_usecase.dart';
+import '../../domain/usecases/get_category_products_usecase.dart';
 import '../../domain/usecases/get_census_data_usecase.dart';
 import '../../domain/usecases/toggle_category_usecase.dart';
 
@@ -19,6 +21,8 @@ class BudgetConfigStore = _BudgetConfigStoreBase with _$BudgetConfigStore;
 
 abstract class _BudgetConfigStoreBase with Store {
   final GetBudgetDetailUseCase getBudgetDetailUseCase;
+  final GetAllBudgetProductsUseCase getAllBudgetProductsUseCase;
+  final GetCategoryProductsUseCase getCategoryProductsUseCase;
   final GetCensusDataUseCase getCensusDataUseCase;
   final ToggleCategoryUseCase toggleCategoryUseCase;
   final CalculateTotalsUseCase calculateTotalsUseCase;
@@ -26,6 +30,8 @@ abstract class _BudgetConfigStoreBase with Store {
 
   _BudgetConfigStoreBase({
     required this.getBudgetDetailUseCase,
+    required this.getAllBudgetProductsUseCase,
+    required this.getCategoryProductsUseCase,
     required this.getCensusDataUseCase,
     required this.toggleCategoryUseCase,
     required this.calculateTotalsUseCase,
@@ -36,6 +42,9 @@ abstract class _BudgetConfigStoreBase with Store {
 
   @observable
   bool isLoading = false;
+
+  @observable
+  bool isLoadingProducts = false;
 
   @observable
   bool isLoadingCensus = false;
@@ -121,6 +130,9 @@ abstract class _BudgetConfigStoreBase with Store {
   @computed
   bool get hasCategories => categories.isNotEmpty;
 
+  @computed
+  bool get isFullyLoaded => !isLoading && !isLoadingProducts;
+
   // ========== ACTIONS ==========
 
   @action
@@ -138,6 +150,7 @@ abstract class _BudgetConfigStoreBase with Store {
   @action
   Future<void> loadBudgetDetail(int budgetId) async {
     isLoading = true;
+    isLoadingProducts = true;
     error = null;
 
     try {
@@ -145,20 +158,22 @@ abstract class _BudgetConfigStoreBase with Store {
 
       final result = await getBudgetDetailUseCase(budgetId);
 
-      result.fold(
-        (failure) {
+      await result.fold(
+        (failure) async {
           print('❌ [BudgetConfigStore] Erro: ${failure.message}');
           error = failure.message;
           budgetDetail = null;
+          isLoading = false;
+          isLoadingProducts = false;
         },
-        (budget) {
+        (budget) async {
           print('✅ [BudgetConfigStore] Orçamento carregado: ${budget.id}');
           print(
               '📦 [BudgetConfigStore] Categorias recebidas: ${budget.categories.length}');
 
           budgetDetail = budget;
 
-          // ✅ Inicializar categorias
+          // ✅ Inicializar categorias COM estatísticas (sem produtos ainda)
           categories.clear();
           categories.addAll(budget.categories);
 
@@ -166,7 +181,7 @@ abstract class _BudgetConfigStoreBase with Store {
               '📊 [BudgetConfigStore] Categorias na store: ${categories.length}');
           for (var cat in categories) {
             print(
-                '   - ${cat.nome}: ${cat.subcategorias.length} subcategorias, ${cat.totalActiveProducts} produtos');
+                '   - ${cat.nome}: ${cat.subcategorias.length} subcategorias');
           }
 
           // Inicializar estados de categorias (manter para compatibilidade)
@@ -178,13 +193,93 @@ abstract class _BudgetConfigStoreBase with Store {
 
           // Inicializar nome
           budgetName = budget.name;
+
+          // ✅ Info básica carregada
+          isLoading = false;
+
+          // 🚀 EAGER LOAD: Buscar TODOS os produtos do orçamento
+          print('🔄 [BudgetConfigStore] Iniciando EAGER LOAD de produtos...');
+          await _loadAllProducts(budgetId);
+
+          // ✅ Produtos carregados
+          isLoadingProducts = false;
         },
       );
     } catch (e) {
       print('❌ [BudgetConfigStore] Erro inesperado: $e');
       error = 'Erro ao carregar orçamento: $e';
-    } finally {
       isLoading = false;
+      isLoadingProducts = false;
+    }
+  }
+
+  /// Carrega TODOS os produtos do orçamento de uma vez (EAGER LOAD)
+  /// Distribui produtos nas categorias corretas usando subcategoriaId
+  @action
+  Future<void> _loadAllProducts(int budgetId) async {
+    try {
+      print('🌐 [BudgetConfigStore] Buscando todos os produtos...');
+
+      final result = await getAllBudgetProductsUseCase(budgetId: budgetId);
+
+      result.fold(
+        (failure) {
+          print(
+              '❌ [BudgetConfigStore] Erro ao carregar produtos: ${failure.message}');
+          // Não definir error aqui, manter estatísticas se falhar
+        },
+        (allProducts) {
+          print(
+              '✅ [BudgetConfigStore] ${allProducts.length} produtos carregados');
+
+          // Agrupar produtos por subcategoria_id
+          final productsBySubcategory = <int, List<ProductEntity>>{};
+
+          for (final product in allProducts) {
+            final subId = product.subcategoriaId;
+            productsBySubcategory.putIfAbsent(subId, () => []);
+            productsBySubcategory[subId]!.add(product);
+          }
+
+          print('📦 [BudgetConfigStore] Produtos agrupados por subcategoria:');
+          productsBySubcategory.forEach((subId, prods) {
+            print('   - Subcategoria $subId: ${prods.length} produtos');
+          });
+
+          // Distribuir produtos nas subcategorias corretas
+          final updatedCategories = categories.map((cat) {
+            // Atualizar subcategorias com produtos reais
+            final updatedSubcategories = cat.subcategorias.map((sub) {
+              final subProducts = productsBySubcategory[sub.id] ?? [];
+
+              if (subProducts.isEmpty) {
+                // Subcategoria sem produtos, manter como está (com estatísticas)
+                return sub;
+              }
+
+              // Substituir estatísticas por produtos reais
+              return sub.copyWith(
+                produtos: subProducts,
+                estatisticas:
+                    null, // Remove estatísticas (agora tem produtos reais)
+              );
+            }).toList();
+
+            return cat.copyWith(subcategorias: updatedSubcategories);
+          }).toList();
+
+          // Atualizar lista de categorias
+          categories.clear();
+          categories.addAll(updatedCategories);
+
+          print('✅ [BudgetConfigStore] Produtos distribuídos nas categorias');
+          print('💰 Total calculado: R\$ ${totalValue.toStringAsFixed(2)}');
+          print('📦 Produtos selecionados: $totalSelectedProducts');
+        },
+      );
+    } catch (e) {
+      print('❌ [BudgetConfigStore] Erro inesperado ao carregar produtos: $e');
+      // Manter estatísticas se falhar
     }
   }
 
@@ -324,26 +419,33 @@ abstract class _BudgetConfigStoreBase with Store {
           // ✅ Alternar campo 'selecionado'
           final updatedProduct = product.copyWith(selecionado: selected);
 
-          // Criar nova lista de produtos
+          // Criar nova lista de produtos com imutabilidade
           final updatedProducts =
-              List<ProductEntity>.from(subcategory.produtos);
-          updatedProducts[productIndex] = updatedProduct;
+              subcategory.produtos.asMap().entries.map((entry) {
+            return entry.key == productIndex ? updatedProduct : entry.value;
+          }).toList();
 
           // Criar nova subcategoria
           final updatedSubcategory =
               subcategory.copyWith(produtos: updatedProducts);
 
-          // Criar nova lista de subcategorias
+          // Criar nova lista de subcategorias com imutabilidade
           final updatedSubcategories =
-              List<SubcategoryEntity>.from(category.subcategorias);
-          updatedSubcategories[j] = updatedSubcategory;
+              category.subcategorias.asMap().entries.map((entry) {
+            return entry.key == j ? updatedSubcategory : entry.value;
+          }).toList();
 
           // Criar nova categoria
           final updatedCategory =
               category.copyWith(subcategorias: updatedSubcategories);
 
-          // Atualizar a categoria na lista
-          categories[i] = updatedCategory;
+          // ⚠️ CORREÇÃO: Substituir categoria na lista observável
+          // Criar NOVA lista para forçar notificação do MobX
+          categories = ObservableList.of(
+            categories.asMap().entries.map((entry) {
+              return entry.key == i ? updatedCategory : entry.value;
+            }).toList(),
+          );
 
           print('✅ [BudgetConfigStore] Produto $productId agora: $selected');
           print('💰 Total recalculado: R\$ ${totalValue.toStringAsFixed(2)}');
@@ -532,13 +634,13 @@ abstract class _BudgetConfigStoreBase with Store {
     print('⚠️ [BudgetConfigStore] Produto $productId não encontrado');
   }
 
-  /// Toggle de categoria com desmarcação em cascata
-  /// Se marcar (true): marca a categoria
-  /// Se desmarcar (false): desmarca TODOS os produtos de TODAS as subcategorias
+  /// Toggle de categoria com marcação/desmarcação em cascata
+  /// SIMPLIFICADO: Produtos já estão carregados (EAGER LOAD)
+  /// Apenas marca/desmarca produtos que já estão na memória
   @action
   void toggleCategoryWithCascade(int categoryId, bool selected) {
     print(
-        '🔄 [BudgetConfigStore] Toggle categoria $categoryId com cascata: $selected');
+        '🔄 [BudgetConfigStore] Toggle categoria $categoryId: ${selected ? "MARCAR" : "DESMARCAR"}');
 
     // Encontrar a categoria
     final categoryIndex = categories.indexWhere((c) => c.id == categoryId);
@@ -549,82 +651,231 @@ abstract class _BudgetConfigStoreBase with Store {
 
     final category = categories[categoryIndex];
 
-    if (!selected) {
-      // ❌ DESMARCAR: desmarcar TODOS os produtos de TODAS as subcategorias
-      print(
-          '   ❌ Desmarcando todos os produtos da categoria: ${category.nome}');
-      print(
-          '   📊 ANTES - Produtos selecionados na categoria: ${category.selectedProductsCount}');
-      print(
-          '   📊 ANTES - hasSelectedProducts: ${category.hasSelectedProducts}');
+    print('   📦 Categoria: ${category.nome}');
+    print(
+        '   📊 Produtos ANTES: ${category.selectedProductsCount} selecionados');
 
-      final updatedSubcategories = category.subcategorias.map((subcategory) {
-        print('      🔍 Subcategoria: ${subcategory.nome}');
-        print('         Produtos antes: ${subcategory.produtos.length}');
-        print(
-            '         Selecionados antes: ${subcategory.selectedProductsCount}');
-
-        // Desmarcar todos os produtos desta subcategoria
-        final updatedProducts = subcategory.produtos.map((product) {
-          if (product.selecionado) {
-            print(
-                '         ❌ Desmarcando: ${product.solucao} (selecionado: ${product.selecionado})');
-          }
-          final newProduct =
-              product.copyWith(selecionado: false, quantidade: 1);
-          print(
-              '         ✓ Resultado: ${newProduct.solucao} (selecionado: ${newProduct.selecionado})');
-          return newProduct;
-        }).toList();
-
-        print('         Produtos depois: ${updatedProducts.length}');
-        print(
-            '         Selecionados na lista: ${updatedProducts.where((p) => p.selecionado).length}');
-
-        // ⚠️ CRÍTICO: Zerar estatísticas para forçar recálculo via produtos
-        // Quando desmarcamos produtos, estatísticas antigas causam estado inconsistente
-        final estatisticasZeradas = subcategory.estatisticas?.copyWith(
-          totalProdutos: 0,
-          produtosSelecionados: 0,
-          valorTotal: 0.0,
-          valorSelecionado: 0.0,
+    // Atualizar todas as subcategorias da categoria
+    final updatedSubcategories = category.subcategorias.map((subcategory) {
+      // Marcar/desmarcar todos os produtos da subcategoria
+      final updatedProducts = subcategory.produtos.map((product) {
+        return product.copyWith(
+          selecionado: selected,
+          quantidade: 1, // Manter quantidade padrão
         );
-
-        // Atualizar subcategoria com produtos desmarcados E estatísticas zeradas
-        final newSub = subcategory.copyWith(
-          produtos: updatedProducts,
-          estatisticas: estatisticasZeradas,
-        );
-        print(
-            '         Selecionados no getter: ${newSub.selectedProductsCount}');
-        return newSub;
       }).toList();
 
-      // Criar nova categoria com subcategorias atualizadas (sem alterar estatísticas)
-      final updatedCategory =
-          category.copyWith(subcategorias: updatedSubcategories);
+      // Remover estatísticas (agora tem produtos reais)
+      return subcategory.copyWith(
+        produtos: updatedProducts,
+        estatisticas: null,
+      );
+    }).toList();
+
+    // Criar nova categoria com subcategorias atualizadas
+    final updatedCategory = category.copyWith(
+      subcategorias: updatedSubcategories,
+    );
+
+    // ⚠️ CORREÇÃO: Substituir categoria na lista observável
+    // Criar NOVA lista para forçar notificação do MobX
+    categories = ObservableList.of(
+      categories.asMap().entries.map((entry) {
+        return entry.key == categoryIndex ? updatedCategory : entry.value;
+      }).toList(),
+    );
+
+    print(
+        '   ✅ Categoria ${selected ? "marcada" : "desmarcada"}: ${updatedCategory.selectedProductsCount} produtos');
+    print('   💰 Total recalculado: R\$ ${totalValue.toStringAsFixed(2)}');
+    print('   📦 Produtos selecionados no orçamento: $totalSelectedProducts');
+  }
+
+  /// Marca/desmarca todos os produtos de uma SUBCATEGORIA específica
+  @action
+  void toggleSubcategoryWithCascade(
+      int categoryId, int subcategoryId, bool selected) {
+    print(
+        '🔄 [BudgetConfigStore] Toggle subcategoria $subcategoryId da categoria $categoryId: ${selected ? "MARCAR" : "DESMARCAR"}');
+
+    // Encontrar a categoria
+    final categoryIndex = categories.indexWhere((c) => c.id == categoryId);
+    if (categoryIndex == -1) {
+      print('⚠️ [BudgetConfigStore] Categoria $categoryId não encontrada');
+      return;
+    }
+
+    final category = categories[categoryIndex];
+
+    // Encontrar a subcategoria
+    final subcategoryIndex =
+        category.subcategorias.indexWhere((s) => s.id == subcategoryId);
+    if (subcategoryIndex == -1) {
+      print(
+          '⚠️ [BudgetConfigStore] Subcategoria $subcategoryId não encontrada');
+      return;
+    }
+
+    final subcategory = category.subcategorias[subcategoryIndex];
+
+    print('   📦 Subcategoria: ${subcategory.nome}');
+    print(
+        '   📊 Produtos ANTES: ${subcategory.selectedProductsCount} selecionados');
+
+    // Marcar/desmarcar todos os produtos da subcategoria
+    final updatedProducts = subcategory.produtos.map((product) {
+      return product.copyWith(
+        selecionado: selected,
+        quantidade: 1, // Manter quantidade padrão
+      );
+    }).toList();
+
+    // Criar nova subcategoria com produtos atualizados
+    final updatedSubcategory = subcategory.copyWith(
+      produtos: updatedProducts,
+      estatisticas: null,
+    );
+
+    // Atualizar lista de subcategorias na categoria
+    final updatedSubcategories =
+        category.subcategorias.asMap().entries.map((entry) {
+      return entry.key == subcategoryIndex ? updatedSubcategory : entry.value;
+    }).toList();
+
+    // Criar nova categoria com subcategorias atualizadas
+    final updatedCategory = category.copyWith(
+      subcategorias: updatedSubcategories,
+    );
+
+    // ⚠️ CORREÇÃO: Substituir categoria na lista observável
+    // Criar NOVA lista para forçar notificação do MobX
+    categories = ObservableList.of(
+      categories.asMap().entries.map((entry) {
+        return entry.key == categoryIndex ? updatedCategory : entry.value;
+      }).toList(),
+    );
+
+    print(
+        '   ✅ Subcategoria ${selected ? "marcada" : "desmarcada"}: ${updatedSubcategory.selectedProductsCount} produtos');
+    print('   💰 Total recalculado: R\$ ${totalValue.toStringAsFixed(2)}');
+    print('   📦 Produtos selecionados no orçamento: $totalSelectedProducts');
+  }
+
+  /// Atualiza categoria com produtos carregados e marca/desmarca todos
+  void _updateCategoryWithProducts(
+    int categoryId,
+    List<ProductEntity> products, {
+    required bool selected,
+  }) {
+    final categoryIndex = categories.indexWhere((c) => c.id == categoryId);
+    if (categoryIndex == -1) return;
+
+    final category = categories[categoryIndex];
+
+    print(
+        '   📦 Distribuindo ${products.length} produtos nas subcategorias da categoria ${category.nome}');
+
+    // Backend retorna produtos com subcategoria_id
+    // Vamos agrupar produtos por subcategoriaId
+    print('   🔍 Agrupando produtos por subcategoriaId...');
+    final productsBySubcategory = <int, List<ProductEntity>>{};
+
+    for (final product in products) {
+      final subId = product.subcategoriaId;
+      productsBySubcategory.putIfAbsent(subId, () => []).add(product);
+      print('      - Produto ${product.codigo} → Subcategoria ID: $subId');
+    }
+
+    print('   🔍 Subcategorias com produtos:');
+    productsBySubcategory.forEach((subId, prods) {
+      print('      - Subcategoria ID $subId: ${prods.length} produtos');
+    });
+
+    print('   🔍 Subcategorias existentes na categoria:');
+    for (final sub in category.subcategorias) {
+      print('      - ${sub.nome} (ID: ${sub.id})');
+    }
+
+    // Atualizar cada subcategoria com seus produtos específicos
+    final updatedSubcategories = category.subcategorias.map((sub) {
+      // Buscar produtos desta subcategoria
+      final subcategoryProducts = productsBySubcategory[sub.id] ?? [];
+
+      // Marcar/desmarcar todos os produtos
+      final updatedProducts = subcategoryProducts
+          .map((p) => p.copyWith(
+                selecionado: selected,
+                quantidade: selected ? 1 : 1,
+              ))
+          .toList();
 
       print(
-          '   📊 DEPOIS - Produtos selecionados na categoria: ${updatedCategory.selectedProductsCount}');
-      print(
-          '   📊 DEPOIS - hasSelectedProducts: ${updatedCategory.hasSelectedProducts}');
+          '      ✓ Subcategoria ${sub.nome} (ID: ${sub.id}): ${updatedProducts.length} produtos');
 
-      // Atualizar na lista com reatribuição completa para forçar notificação MobX
-      final newCategories = List<CategoryEntity>.from(categories);
-      newCategories[categoryIndex] = updatedCategory;
-      categories = ObservableList.of(newCategories);
+      // Remover estatísticas (agora tem produtos reais)
+      return sub.copyWith(
+        produtos: updatedProducts,
+        estatisticas: null,
+      );
+    }).toList();
 
-      print('   ✅ Todos os produtos desmarcados');
-      print('   💰 Total recalculado: R\$ ${totalValue.toStringAsFixed(2)}');
-      print('   📦 Produtos selecionados: $totalSelectedProducts');
-      print(
-          '   🔍 hasSelectedProducts: ${updatedCategory.hasSelectedProducts}');
-    } else {
-      // ✅ MARCAR: apenas marca a categoria (não seleciona produtos automaticamente)
-      print('   ✅ Categoria marcada: ${category.nome}');
-      print(
-          '   ℹ️ Produtos devem ser selecionados individualmente nas subcategorias');
-      // Nenhuma ação necessária, produtos devem ser selecionados individualmente
+    // Atualizar categoria
+    final updatedCategory =
+        category.copyWith(subcategorias: updatedSubcategories);
+
+    // Atualizar lista
+    final newCategories = List<CategoryEntity>.from(categories);
+    newCategories[categoryIndex] = updatedCategory;
+    categories = ObservableList.of(newCategories);
+
+    print('   ✅ Categoria atualizada com produtos reais');
+  }
+
+  /// Marca/desmarca todos os produtos de uma categoria (quando produtos já estão carregados)
+  void _selectAllProductsInCategory(int categoryId, {required bool selected}) {
+    final categoryIndex = categories.indexWhere((c) => c.id == categoryId);
+    if (categoryIndex == -1) return;
+
+    final category = categories[categoryIndex];
+
+    final updatedSubcategories = category.subcategorias.map((sub) {
+      final updatedProducts = sub.produtos
+          .map((p) => p.copyWith(
+                selecionado: selected,
+                quantidade: selected ? 1 : 1,
+              ))
+          .toList();
+
+      return sub.copyWith(produtos: updatedProducts);
+    }).toList();
+
+    final updatedCategory =
+        category.copyWith(subcategorias: updatedSubcategories);
+
+    final newCategories = List<CategoryEntity>.from(categories);
+    newCategories[categoryIndex] = updatedCategory;
+    categories = ObservableList.of(newCategories);
+  }
+
+  /// 🔄 Recarrega produtos quando censo escolar é editado
+  /// Backend recalcula as quantidades baseado nos novos dados do censo
+  @action
+  Future<void> reloadProductsAfterCensusEdit() async {
+    if (budgetDetail == null) return;
+
+    print('🔄 [BudgetConfigStore] Recarregando produtos após edição do censo...');
+    
+    isLoadingProducts = true;
+    error = null;
+
+    try {
+      await _loadAllProducts(budgetDetail!.id);
+      print('✅ [BudgetConfigStore] Produtos recarregados com novas quantidades');
+    } catch (e) {
+      error = 'Erro ao recarregar produtos: $e';
+      print('❌ [BudgetConfigStore] Erro ao recarregar: $e');
+    } finally {
+      isLoadingProducts = false;
     }
   }
 

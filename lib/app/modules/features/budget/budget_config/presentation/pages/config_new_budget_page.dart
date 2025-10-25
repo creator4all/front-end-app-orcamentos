@@ -11,6 +11,7 @@ import '../../domain/entities/category_entity.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../domain/entities/subcategory_entity.dart';
 import '../stores/budget_config_store.dart';
+import '../widgets/budget_skeleton.dart';
 import '../widgets/product_detail_modal.dart';
 import '../widgets/school_census_card.dart';
 import '../widgets/subcategories_modal.dart';
@@ -98,8 +99,9 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
       ),
       body: Observer(
         builder: (_) {
-          if (store.isLoading) {
-            return const Center(child: CircularProgressIndicator());
+          // Mostrar skeleton enquanto carrega dados completos
+          if (!store.isFullyLoaded) {
+            return const BudgetSkeleton();
           }
 
           if (store.error != null && !store.hasData) {
@@ -155,10 +157,14 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                       child: SchoolCensusCard(
                         numberOfCities: store.budgetDetail?.cityIds.length ?? 0,
                         citiesData: _extractCitiesData(),
-                        onTap: () {
+                        onTap: () async {
                           print('👆 [ConfigPage] Censo Escolar clicado');
-                          // TODO: Navegar para tela de detalhes do censo escolar
-                          // Modular.to.pushNamed('/census-detail/${widget.budgetId}');
+                          // TODO: Navegar para tela de edição do censo escolar
+                          // 1. Navegar: await Modular.to.pushNamed('/census-edit/${widget.budgetId}');
+                          // 2. Ao retornar da tela de edição (após salvar), chamar:
+                          //    await store.reloadProductsAfterCensusEdit();
+                          // 3. Isso irá recarregar os produtos com quantidades recalculadas pelo backend
+                          
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text(
@@ -461,7 +467,16 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
           selectedCount: currentSubcategory.selectedProductsCount,
           totalCount: currentSubcategory.activeProductsCount,
           isSelected: currentSubcategory.selectedProductsCount > 0,
-          onCheckboxChanged: null, // Desabilitado para subcategorias
+          onCheckboxChanged: (selected) {
+            if (selected == null) return;
+            print(
+                '✅ [ConfigPage] Checkbox subcategoria ${currentSubcategory.nome}: ${selected ? "MARCAR" : "DESMARCAR"}');
+            store.toggleSubcategoryWithCascade(
+              currentCategory.id,
+              currentSubcategory.id,
+              selected,
+            );
+          },
           onCardTap: () {
             print(
                 '👆 [ConfigPage] Card subcategoria clicado: ${currentSubcategory.nome}');
@@ -498,13 +513,32 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => SubcategoriesModal(
-        category: category,
-        onSubcategoryTap: (subcategory) {
-          print(
-              '🔍 [ConfigPage] Subcategoria selecionada: ${subcategory.nome}');
-          Navigator.pop(context);
-          _showProductsModal(category, subcategory);
+      builder: (_) => Observer(
+        builder: (_) {
+          // ✅ Buscar categoria atualizada da store
+          final currentCategory = store.categories.firstWhere(
+            (c) => c.id == category.id,
+            orElse: () => category,
+          );
+
+          return SubcategoriesModal(
+            category: currentCategory,
+            onSubcategoryTap: (subcategory) {
+              print(
+                  '🔍 [ConfigPage] Subcategoria selecionada: ${subcategory.nome}');
+              Navigator.pop(context);
+              _showProductsModal(currentCategory, subcategory);
+            },
+            onCheckboxChanged: (categoryId, subcategoryId, selected) {
+              print(
+                  '✅ [ConfigPage] Checkbox subcategoria (modal): categoryId=$categoryId, subcategoryId=$subcategoryId, selected=$selected');
+              store.toggleSubcategoryWithCascade(
+                categoryId,
+                subcategoryId,
+                selected,
+              );
+            },
+          );
         },
       ),
     );

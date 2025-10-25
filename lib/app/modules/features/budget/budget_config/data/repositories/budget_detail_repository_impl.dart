@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 
 import '../../../shared/errors/budget_failure.dart';
 import '../../domain/entities/budget_detail_entity.dart';
+import '../../domain/entities/product_entity.dart';
 import '../../domain/repositories/budget_detail_repository.dart';
 import '../datasources/budget_detail_remote_datasource.dart';
 
@@ -23,6 +24,56 @@ class BudgetDetailRepositoryImpl implements BudgetDetailRepository {
       print('✅ [Repository] Orçamento convertido para entidade');
 
       return Right(entity);
+    } on Exception catch (e) {
+      print('❌ [Repository] Erro: $e');
+      return Left(_mapExceptionToFailure(e));
+    }
+  }
+
+  @override
+  Future<Either<BudgetFailure, List<ProductEntity>>> getAllProducts({
+    required int budgetId,
+  }) async {
+    try {
+      print(
+          '📦 [Repository] Buscando TODOS os produtos do orçamento $budgetId (EAGER LOAD)');
+
+      final dtos = await remoteDataSource.getAllProducts(
+        budgetId: budgetId,
+      );
+
+      // Converter DTOs para Entities
+      final entities = dtos.map((dto) => dto.toEntity()).toList();
+
+      print('✅ [Repository] ${entities.length} produtos convertidos (TODOS)');
+
+      return Right(entities);
+    } on Exception catch (e) {
+      print('❌ [Repository] Erro: $e');
+      return Left(_mapExceptionToFailure(e));
+    }
+  }
+
+  @override
+  Future<Either<BudgetFailure, List<ProductEntity>>> getCategoryProducts({
+    required int budgetId,
+    required int categoryId,
+  }) async {
+    try {
+      print(
+          '📦 [Repository] Buscando produtos da categoria $categoryId no orçamento $budgetId');
+
+      final dtos = await remoteDataSource.getCategoryProducts(
+        budgetId: budgetId,
+        categoryId: categoryId,
+      );
+
+      // Converter DTOs para Entities
+      final entities = dtos.map((dto) => dto.toEntity()).toList();
+
+      print('✅ [Repository] ${entities.length} produtos convertidos');
+
+      return Right(entities);
     } on Exception catch (e) {
       print('❌ [Repository] Erro: $e');
       return Left(_mapExceptionToFailure(e));

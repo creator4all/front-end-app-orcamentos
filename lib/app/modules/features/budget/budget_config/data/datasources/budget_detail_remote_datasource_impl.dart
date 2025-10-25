@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../../../../../../../services/api_service.dart';
 import '../models/budget_detail_dto.dart';
+import '../models/product_dto.dart';
 import 'budget_detail_remote_datasource.dart';
 
 /// Implementação concreta do BudgetDetailRemoteDataSource usando Dio/ApiService
@@ -60,6 +61,109 @@ class BudgetDetailRemoteDataSourceImpl implements BudgetDetailRemoteDataSource {
       print('✅ [BudgetDetailDataSource] Orçamento carregado ID: $id');
 
       return BudgetDetailDto.fromJson(data);
+    } on DioException catch (e) {
+      print('❌ [BudgetDetailDataSource] Erro Dio: ${e.message}');
+      throw _handleDioError(e);
+    } catch (e) {
+      print('❌ [BudgetDetailDataSource] Erro desconhecido: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<List<ProductDTO>> getAllProducts({
+    required int budgetId,
+  }) async {
+    try {
+      print(
+          '🌐 [BudgetDetailDataSource] GET /api/orcamentos/$budgetId/produtos-completos (EAGER LOAD)');
+
+      final response = await apiService.get(
+        '/api/orcamentos/$budgetId/produtos-completos',
+      );
+
+      print(
+          '📡 [BudgetDetailDataSource] Response size: ${response.toString().length} chars');
+
+      // Extrair dados da resposta
+      Map<String, dynamic> data;
+
+      if (response.containsKey('dados')) {
+        data = response['dados'] as Map<String, dynamic>;
+      } else if (response.containsKey('data')) {
+        final dataField = response['data'];
+        if (dataField is Map && dataField.containsKey('dados')) {
+          data = dataField['dados'] as Map<String, dynamic>;
+        } else {
+          data = dataField as Map<String, dynamic>;
+        }
+      } else {
+        data = response;
+      }
+
+      // Extrair array de produtos
+      final produtosJson = data['produtos'] as List<dynamic>;
+      print(
+          '✅ [BudgetDetailDataSource] ${produtosJson.length} produtos carregados (TODOS)');
+
+      // Parsear cada produto
+      final produtos = produtosJson
+          .map((json) => ProductDTO.fromJson(json as Map<String, dynamic>))
+          .toList();
+
+      return produtos;
+    } on DioException catch (e) {
+      print('❌ [BudgetDetailDataSource] Erro Dio: ${e.message}');
+      throw _handleDioError(e);
+    } catch (e) {
+      print('❌ [BudgetDetailDataSource] Erro desconhecido: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<List<ProductDTO>> getCategoryProducts({
+    required int budgetId,
+    required int categoryId,
+  }) async {
+    try {
+      print(
+          '🌐 [BudgetDetailDataSource] GET /api/orcamentos/$budgetId/categorias/$categoryId/produtos');
+
+      final response = await apiService.get(
+        '/api/orcamentos/$budgetId/categorias/$categoryId/produtos',
+      );
+
+      print(
+          '📡 [BudgetDetailDataSource] Response size: ${response.toString().length} chars');
+
+      // Extrair dados da resposta
+      Map<String, dynamic> data;
+
+      if (response.containsKey('dados')) {
+        data = response['dados'] as Map<String, dynamic>;
+      } else if (response.containsKey('data')) {
+        final dataField = response['data'];
+        if (dataField is Map && dataField.containsKey('dados')) {
+          data = dataField['dados'] as Map<String, dynamic>;
+        } else {
+          data = dataField as Map<String, dynamic>;
+        }
+      } else {
+        data = response;
+      }
+
+      // Extrair array de produtos
+      final produtosJson = data['produtos'] as List<dynamic>;
+      print(
+          '✅ [BudgetDetailDataSource] ${produtosJson.length} produtos carregados da categoria $categoryId');
+
+      // Parsear cada produto
+      final produtos = produtosJson
+          .map((json) => ProductDTO.fromJson(json as Map<String, dynamic>))
+          .toList();
+
+      return produtos;
     } on DioException catch (e) {
       print('❌ [BudgetDetailDataSource] Erro Dio: ${e.message}');
       throw _handleDioError(e);
