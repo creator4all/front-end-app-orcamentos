@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:intl/intl.dart';
 
 import '../../domain/entities/product_entity.dart';
 
@@ -232,6 +233,12 @@ class _ProductDetailModalState extends State<ProductDetailModal> {
 
   Widget _buildTotalSection() {
     final total = widget.product.valor * _quantity;
+    final formatter = NumberFormat.currency(
+      locale: 'pt_BR',
+      symbol: 'R\$',
+      decimalDigits: 2,
+    );
+
     return Container(
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
@@ -250,7 +257,7 @@ class _ProductDetailModalState extends State<ProductDetailModal> {
             ),
           ),
           Text(
-            'R\$ ${total.toStringAsFixed(2)}',
+            formatter.format(total),
             style: TextStyle(
               fontSize: 18.sp,
               fontWeight: FontWeight.bold,

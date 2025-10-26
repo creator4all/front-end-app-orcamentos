@@ -17,11 +17,44 @@ class BudgetEditRemoteDataSourceImpl implements BudgetEditRemoteDataSource {
       final response = await apiService.get('/api/orcamentos/$id');
       print('📡 [BudgetEditDataSource] Response: $response');
 
-      final data = response['dados'] ?? response['data'] ?? response;
+      // ApiService envolve em { success: true, data: {...} }
+      // Então precisamos acessar response['data']['dados']
+      final data = response['data']?['dados'] ?? response['data'] ?? response;
 
       print('✅ [BudgetEditDataSource] Orçamento carregado para edição');
 
       return BudgetEditDto.fromJson(Map<String, dynamic>.from(data as Map));
+    } on DioException catch (e) {
+      print('❌ [BudgetEditDataSource] Erro Dio: ${e.message}');
+      throw _handleDioError(e);
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> getBudgetProductsComplete(int id) async {
+    try {
+      print(
+          '🌐 [BudgetEditDataSource] GET /api/orcamentos/$id/produtos-completos');
+
+      final response =
+          await apiService.get('/api/orcamentos/$id/produtos-completos');
+
+      print('📡 [BudgetEditDataSource] Response completo: $response');
+      print('📡 [BudgetEditDataSource] response[data]: ${response['data']}');
+      print(
+          '📡 [BudgetEditDataSource] response[data][dados]: ${response['data']?['dados']}');
+
+      // ApiService envolve em { success: true, data: {...} }
+      // A API retorna: data: { dados: { orcamento_id, total_produtos, produtos: [...] } }
+      final data = response['data']?['dados'] ?? response['data'] ?? response;
+
+      print('✅ [BudgetEditDataSource] Dados extraídos: ${data.keys}');
+      print(
+          '✅ [BudgetEditDataSource] Total de produtos: ${data['total_produtos']}');
+      print(
+          '✅ [BudgetEditDataSource] Produtos array length: ${(data['produtos'] as List?)?.length}');
+
+      return Map<String, dynamic>.from(data as Map);
     } on DioException catch (e) {
       print('❌ [BudgetEditDataSource] Erro Dio: ${e.message}');
       throw _handleDioError(e);
@@ -45,18 +78,22 @@ class BudgetEditRemoteDataSourceImpl implements BudgetEditRemoteDataSource {
 
       if (name != null) body['nome'] = name;
       if (validityDays != null) body['orc_dias_validade'] = validityDays;
-      if (validityDate != null)
+      if (validityDate != null) {
         body['orc_data_validade'] = validityDate.toIso8601String();
+      }
       if (status != null) body['orc_status'] = status;
-      if (selectedProductIds != null)
+      if (selectedProductIds != null) {
         body['produtos_selecionados'] = selectedProductIds;
+      }
 
       print('📋 [BudgetEditDataSource] Body: $body');
 
       final response = await apiService.put('/api/orcamentos/$id', body);
       print('📡 [BudgetEditDataSource] Response: $response');
 
-      final data = response['dados'] ?? response['data'] ?? response;
+      // ApiService envolve em { success: true, data: {...} }
+      // Então precisamos acessar response['data']['dados']
+      final data = response['data']?['dados'] ?? response['data'] ?? response;
 
       print('✅ [BudgetEditDataSource] Orçamento atualizado');
 
