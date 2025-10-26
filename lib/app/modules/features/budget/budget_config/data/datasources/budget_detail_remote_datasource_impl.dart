@@ -85,24 +85,49 @@ class BudgetDetailRemoteDataSourceImpl implements BudgetDetailRemoteDataSource {
       print(
           '📡 [BudgetDetailDataSource] Response size: ${response.toString().length} chars');
 
-      // Extrair dados da resposta
-      Map<String, dynamic> data;
-
-      if (response.containsKey('dados')) {
-        data = response['dados'] as Map<String, dynamic>;
-      } else if (response.containsKey('data')) {
-        final dataField = response['data'];
-        if (dataField is Map && dataField.containsKey('dados')) {
-          data = dataField['dados'] as Map<String, dynamic>;
-        } else {
-          data = dataField as Map<String, dynamic>;
-        }
-      } else {
-        data = response;
+      // ApiService envolve a resposta em {success: true, data: {...}}
+      // Verificar se API retornou erro
+      if (response.containsKey('success') && response['success'] == false) {
+        final errorMsg =
+            response['error'] ?? response['message'] ?? 'Erro desconhecido';
+        print('❌ [BudgetDetailDataSource] API retornou erro: $errorMsg');
+        print('🔍 Response completo: $response');
+        throw Exception('Erro ao buscar produtos: $errorMsg');
       }
 
-      // Extrair array de produtos
-      final produtosJson = data['produtos'] as List<dynamic>;
+      // Extrair 'data' do wrapper do ApiService: {success: true, data: {dados: {...}}}
+      if (!response.containsKey('data')) {
+        print('❌ [BudgetDetailDataSource] Response não contém chave "data"');
+        print('🔍 Response keys: ${response.keys}');
+        throw Exception('Resposta do ApiService em formato inválido');
+      }
+
+      final data = response['data'] as Map<String, dynamic>;
+
+      // Agora extrair 'dados' da resposta da API: {dados: {produtos: [...], censo_cidades: {...}}}
+      if (!data.containsKey('dados')) {
+        print('❌ [BudgetDetailDataSource] data não contém chave "dados"');
+        print('🔍 data keys: ${data.keys}');
+        throw Exception('Resposta da API em formato inválido');
+      }
+
+      final dados = data['dados'] as Map<String, dynamic>;
+
+      // Validar estrutura dos dados
+      if (!dados.containsKey('produtos')) {
+        print('❌ [BudgetDetailDataSource] "dados" não contém chave "produtos"');
+        print('🔍 Dados keys: ${dados.keys}');
+        throw Exception('Dados sem array de produtos');
+      }
+
+      // Extrair array de produtos com null-safety
+      final produtosJson = dados['produtos'] as List<dynamic>?;
+
+      if (produtosJson == null || produtosJson.isEmpty) {
+        print('⚠️ [BudgetDetailDataSource] Array de produtos vazio ou null');
+        return []; // Retornar lista vazia em vez de crashar
+      }
+
       print(
           '✅ [BudgetDetailDataSource] ${produtosJson.length} produtos carregados (TODOS)');
 
@@ -217,10 +242,8 @@ class BudgetDetailRemoteDataSourceImpl implements BudgetDetailRemoteDataSource {
       final response = await apiService.put('/api/orcamentos/$id', body);
       print('📡 [BudgetDetailDataSource] Response: $response');
 
-      // Extrair dados da resposta
-      final data = response is Map<String, dynamic>
-          ? (response['dados'] ?? response['data'] ?? response)
-          : response;
+      // Extrair dados da resposta - response já é Map<String, dynamic>
+      final data = response['dados'] ?? response['data'] ?? response;
 
       print('✅ [BudgetDetailDataSource] Orçamento atualizado ID: $id');
 

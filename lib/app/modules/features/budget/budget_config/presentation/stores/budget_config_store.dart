@@ -188,8 +188,9 @@ abstract class _BudgetConfigStoreBase with Store {
           categoryStates.clear();
           categoryStates.addAll(budget.categoryStates);
 
-          // Inicializar data de validade
-          validityDate = budget.validityDate;
+          // Inicializar data de validade (padrão: 60 dias se não vier do backend)
+          validityDate = budget.validityDate ??
+              DateTime.now().add(const Duration(days: 60));
 
           // Inicializar nome
           budgetName = budget.name;
@@ -268,9 +269,11 @@ abstract class _BudgetConfigStoreBase with Store {
             return cat.copyWith(subcategorias: updatedSubcategories);
           }).toList();
 
-          // Atualizar lista de categorias
-          categories.clear();
-          categories.addAll(updatedCategories);
+          // 🔧 FIX: Forçar recriação completa do ObservableList
+          // Isso garante que todos os Observers detectem a mudança
+          runInAction(() {
+            categories = ObservableList.of(updatedCategories);
+          });
 
           print('✅ [BudgetConfigStore] Produtos distribuídos nas categorias');
           print('💰 Total calculado: R\$ ${totalValue.toStringAsFixed(2)}');

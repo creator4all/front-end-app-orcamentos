@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../../../../../shared/widgets/budget_summary_card.dart';
 import '../../../../../../shared/widgets/custom_top_bar.dart';
 import '../../../../../../shared/widgets/product_category.dart';
+import '../../../../../budget/presentation/pages/school_census.dart';
 import '../../domain/entities/category_entity.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../domain/entities/subcategory_entity.dart';
@@ -90,6 +91,54 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     );
   }
 
+  /// Valida orçamento antes de salvar e mostra feedback apropriado
+  Future<void> _handleSaveWithValidation() async {
+    // 1️⃣ Validar data de validade
+    if (store.validityDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor, defina a data de validade do orçamento'),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+
+    // 2️⃣ Validar produtos selecionados (Dialog de confirmação se vazio)
+    if (store.totalSelectedProducts == 0) {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Orçamento sem produtos'),
+          content: const Text(
+            'Você não adicionou nenhum produto ao orçamento.\n\n'
+            'Deseja salvar mesmo assim?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF117BBD),
+              ),
+              child: const Text('Salvar mesmo assim'),
+            ),
+          ],
+        ),
+      );
+
+      // Se usuário cancelou, não prosseguir
+      if (confirm != true) return;
+    }
+
+    // 3️⃣ Todas as validações passaram, prosseguir com save
+    await _handleSave();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -158,20 +207,37 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                         numberOfCities: store.budgetDetail?.cityIds.length ?? 0,
                         citiesData: _extractCitiesData(),
                         onTap: () async {
-                          print('👆 [ConfigPage] Censo Escolar clicado');
-                          // TODO: Navegar para tela de edição do censo escolar
-                          // 1. Navegar: await Modular.to.pushNamed('/census-edit/${widget.budgetId}');
-                          // 2. Ao retornar da tela de edição (após salvar), chamar:
-                          //    await store.reloadProductsAfterCensusEdit();
-                          // 3. Isso irá recarregar os produtos com quantidades recalculadas pelo backend
+                          print(
+                              '👆 [ConfigPage] Navegando para edição do Censo Escolar');
 
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                  'Navegação para Censo Escolar em desenvolvimento'),
-                              duration: Duration(seconds: 2),
+                          // Navegar para tela de edição do censo usando Navigator.push
+                          // A tela SchoolCensusPage espera argumentos via ModalRoute
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const SchoolCensusPage(),
+                              settings: RouteSettings(
+                                arguments: {
+                                  'censo': store
+                                      .censusData, // Passar dados do censo da store
+                                },
+                              ),
                             ),
                           );
+
+                          // Ao retornar da tela, verificar se houve atualização
+                          if (result != null &&
+                              result is Map &&
+                              result.containsKey('updatedCenso')) {
+                            print(
+                                '✅ [ConfigPage] Censo editado, recarregando produtos...');
+
+                            // Recarregar produtos com quantidades recalculadas
+                            await store.reloadProductsAfterCensusEdit();
+
+                            print(
+                                '✅ [ConfigPage] Produtos atualizados com sucesso!');
+                          }
                         },
                       ),
                     ),
@@ -325,14 +391,13 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                       ),
                     ),
 
-                  // Botão Salvar
+                  // Botão Salvar (sempre habilitado, exceto quando salvando)
                   SizedBox(
                     width: double.infinity,
                     height: 50.h,
                     child: ElevatedButton(
-                      onPressed: store.isSaving || !store.canFinalize
-                          ? null
-                          : _handleSave,
+                      onPressed:
+                          store.isSaving ? null : _handleSaveWithValidation,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF117BBD),
                         shape: RoundedRectangleBorder(
@@ -506,6 +571,19 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
   // ========== MÉTODOS PARA MODAIS ==========
 
   void _showSubcategoriesModal(CategoryEntity category) {
+    // 🔒 GUARD: Não permitir abertura enquanto produtos estão carregando
+    if (store.isLoadingProducts) {
+      print('⚠️ [ConfigPage] Modal bloqueado - produtos ainda carregando');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Aguarde, carregando produtos...'),
+          duration: Duration(seconds: 2),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     print('🔍 [ConfigPage] Abrindo modal de subcategorias: ${category.nome}');
     print('   📦 Subcategorias: ${category.subcategorias.length}');
 
@@ -546,6 +624,19 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
 
   void _showProductsModal(
       CategoryEntity category, SubcategoryEntity subcategory) {
+    // 🔒 GUARD: Não permitir abertura enquanto produtos estão carregando
+    if (store.isLoadingProducts) {
+      print('⚠️ [ConfigPage] Modal de produtos bloqueado - ainda carregando');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Aguarde, carregando produtos...'),
+          duration: Duration(seconds: 2),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     print('🔍 [ConfigPage] Abrindo modal de produtos: ${subcategory.nome}');
     print('   📦 Produtos ativos: ${subcategory.activeProductsCount}');
 
