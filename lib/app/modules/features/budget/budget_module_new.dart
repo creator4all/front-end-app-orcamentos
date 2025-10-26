@@ -39,8 +39,10 @@ import 'budget_edit/data/datasources/budget_edit_remote_datasource.dart';
 import 'budget_edit/data/datasources/budget_edit_remote_datasource_impl.dart';
 import 'budget_edit/data/repositories/budget_edit_repository_impl.dart';
 import 'budget_edit/domain/repositories/budget_edit_repository.dart';
+import 'budget_edit/domain/usecases/get_all_budget_products_for_edit_usecase.dart';
 import 'budget_edit/domain/usecases/get_budget_for_edit_usecase.dart';
 import 'budget_edit/domain/usecases/update_budget_usecase.dart';
+import 'budget_edit/presentation/pages/edit_budget_page.dart';
 import 'budget_edit/presentation/stores/budget_edit_store.dart';
 // Budget List - Clean Architecture
 import 'budget_list/data/datasources/budget_remote_datasource.dart';
@@ -204,6 +206,10 @@ class BudgetModuleNew extends Module {
         Bind.lazySingleton<GetBudgetForEditUseCase>(
           (i) => GetBudgetForEditUseCase(i.get<BudgetEditRepository>()),
         ),
+        Bind.lazySingleton<GetAllBudgetProductsForEditUseCase>(
+          (i) =>
+              GetAllBudgetProductsForEditUseCase(i.get<BudgetEditRepository>()),
+        ),
         Bind.lazySingleton<UpdateBudgetUseCase>(
           (i) => UpdateBudgetUseCase(i.get<BudgetEditRepository>()),
         ),
@@ -212,7 +218,9 @@ class BudgetModuleNew extends Module {
         Bind.lazySingleton<BudgetEditStore>(
           (i) => BudgetEditStore(
             getBudgetForEditUseCase: i.get<GetBudgetForEditUseCase>(),
+            getAllProductsUseCase: i.get<GetAllBudgetProductsForEditUseCase>(),
             updateBudgetUseCase: i.get<UpdateBudgetUseCase>(),
+            getCensusDataUseCase: i.get<GetCensusDataUseCase>(),
           ),
         ),
       ];
@@ -231,6 +239,10 @@ class BudgetModuleNew extends Module {
           return ConfigNewBudgetPage(budgetId: budgetId);
         }),
 
-        // TODO: Rotas da feature Budget Edit
+        // Budget Edit
+        ChildRoute('/edit/:budgetId', child: (context, args) {
+          final budgetId = int.parse(args.params['budgetId']);
+          return EditBudgetPage(budgetId: budgetId);
+        }),
       ];
 }

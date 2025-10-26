@@ -25,11 +25,15 @@ class ProductInfoModal extends StatefulWidget {
   /// ID do produto
   final int productId;
 
+  /// Store a ser usada (pode ser BudgetConfigStore ou BudgetEditStore)
+  final dynamic store;
+
   const ProductInfoModal({
     super.key,
     required this.categoryId,
     required this.subcategoryId,
     required this.productId,
+    this.store,
   });
 
   /// Mostra a modal
@@ -38,6 +42,7 @@ class ProductInfoModal extends StatefulWidget {
     required int categoryId,
     required int subcategoryId,
     required int productId,
+    dynamic store,
   }) {
     return CustomModal.show(
       context: context,
@@ -46,6 +51,7 @@ class ProductInfoModal extends StatefulWidget {
         categoryId: categoryId,
         subcategoryId: subcategoryId,
         productId: productId,
+        store: store,
       ),
     );
   }
@@ -110,10 +116,11 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
 
   /// Salva as alterações
   void _handleSave() {
-    final store = Modular.get<BudgetConfigStore>();
+    final storeInstance = widget.store ?? Modular.get<BudgetConfigStore>();
 
     // Salvar indicadores selecionados
-    store.updateProductIndicators(widget.productId, _selectedIndicators);
+    storeInstance.updateProductIndicators(
+        widget.productId, _selectedIndicators);
 
     // Fechar modal
     Navigator.pop(context);
@@ -234,12 +241,12 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
 
   @override
   Widget build(BuildContext context) {
-    final store = Modular.get<BudgetConfigStore>();
+    final storeInstance = widget.store ?? Modular.get<BudgetConfigStore>();
 
     return Observer(
       builder: (_) {
         // Busca dados da store
-        final category = store.categories.firstWhere(
+        final category = storeInstance.categories.firstWhere(
           (c) => c.id == widget.categoryId,
           orElse: () => throw Exception('Categoria não encontrada'),
         );

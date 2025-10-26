@@ -249,10 +249,9 @@ class _BudgetListPageState extends State<BudgetListPage> {
                             userRole: UserRole
                                 .admin, // TODO: Implementar baseado no usuário logado
                             onTap: () {
-                              // Navigate to edit budget page
+                              // Navegar para página de edição com ID do orçamento
                               Modular.to.pushNamed(
-                                '/budget/edit',
-                                arguments: {'budget': b},
+                                '/budget/edit/${b.id}',
                               );
                             },
                           ),

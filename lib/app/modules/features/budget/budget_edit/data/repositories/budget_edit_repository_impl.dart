@@ -1,5 +1,7 @@
 import 'package:dartz/dartz.dart';
 
+import '../../../budget_config/data/models/product_dto.dart';
+import '../../../budget_config/domain/entities/product_entity.dart';
 import '../../../shared/errors/budget_failure.dart';
 import '../../domain/entities/budget_edit_entity.dart';
 import '../../domain/repositories/budget_edit_repository.dart';
@@ -24,6 +26,37 @@ class BudgetEditRepositoryImpl implements BudgetEditRepository {
       return Right(entity);
     } on Exception catch (e) {
       print('❌ [Repository] Erro: $e');
+      return Left(_mapExceptionToFailure(e));
+    }
+  }
+
+  @override
+  Future<Either<BudgetFailure, List<ProductEntity>>> getAllProducts({
+    required int budgetId,
+  }) async {
+    try {
+      print(
+          '📦 [Repository] Buscando todos os produtos do orçamento: $budgetId');
+
+      final productsData =
+          await remoteDataSource.getBudgetProductsComplete(budgetId);
+
+      // Extrair array de produtos
+      final produtosJson = productsData['produtos'] as List<dynamic>? ?? [];
+
+      print('✅ [Repository] ${produtosJson.length} produtos recebidos');
+
+      // Parsear cada produto usando ProductDTO
+      final produtos = produtosJson
+          .map((json) => ProductDTO.fromJson(json as Map<String, dynamic>))
+          .map((dto) => dto.toEntity())
+          .toList();
+
+      print('✅ [Repository] Produtos convertidos para entidades');
+
+      return Right(produtos);
+    } on Exception catch (e) {
+      print('❌ [Repository] Erro ao buscar produtos: $e');
       return Left(_mapExceptionToFailure(e));
     }
   }

@@ -23,10 +23,14 @@ class SubcategoryProductsModal extends StatelessWidget {
   /// ID da subcategoria
   final int subcategoryId;
 
+  /// Store a ser usada (pode ser BudgetConfigStore ou BudgetEditStore)
+  final dynamic store;
+
   const SubcategoryProductsModal({
     super.key,
     required this.categoryId,
     required this.subcategoryId,
+    this.store,
   });
 
   /// Mostra a modal usando showModalBottomSheet
@@ -34,6 +38,7 @@ class SubcategoryProductsModal extends StatelessWidget {
     required BuildContext context,
     required SubcategoryEntity subcategory,
     required int categoryId,
+    dynamic store,
   }) {
     return CustomModal.show(
       context: context,
@@ -41,6 +46,7 @@ class SubcategoryProductsModal extends StatelessWidget {
       content: SubcategoryProductsModal(
         categoryId: categoryId,
         subcategoryId: subcategory.id,
+        store: store,
       ),
     );
   }
@@ -52,17 +58,19 @@ class SubcategoryProductsModal extends StatelessWidget {
       categoryId: categoryId,
       subcategoryId: subcategoryId,
       productId: product.id,
+      store: store, // Passa a mesma store
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final store = Modular.get<BudgetConfigStore>();
+    // Usa a store passada ou busca do Modular como fallback
+    final storeInstance = store ?? Modular.get<BudgetConfigStore>();
 
     return Observer(
       builder: (_) {
         // Busca a subcategoria atualizada da store
-        final category = store.categories.firstWhere(
+        final category = storeInstance.categories.firstWhere(
           (c) => c.id == categoryId,
           orElse: () => throw Exception('Categoria não encontrada'),
         );
@@ -115,7 +123,7 @@ class SubcategoryProductsModal extends StatelessWidget {
                 return ProductItemCard(
                   product: product,
                   onToggle: (isSelected) {
-                    store.toggleProduct(product.id, isSelected);
+                    storeInstance.toggleProduct(product.id, isSelected);
                   },
                   onInfoTap: () => _handleInfoTap(context, product),
                 );

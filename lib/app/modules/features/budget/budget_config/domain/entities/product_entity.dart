@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:intl/intl.dart';
 
 /// Entidade que representa um produto no orçamento
 class ProductEntity extends Equatable {
@@ -94,11 +95,25 @@ class ProductEntity extends Equatable {
   bool get hasAnyOverride =>
       hasValueOverride || hasActiveOverride || temOverride;
 
-  /// Formata o valor para exibição
-  String get formattedValue => 'R\$ ${valor.toStringAsFixed(2)}';
+  /// Formata o valor para exibição (padrão brasileiro)
+  String get formattedValue {
+    final formatter = NumberFormat.currency(
+      locale: 'pt_BR',
+      symbol: 'R\$',
+      decimalDigits: 2,
+    );
+    return formatter.format(valor);
+  }
 
-  /// Formata o valor total para exibição
-  String get formattedTotalValue => 'R\$ ${totalValue.toStringAsFixed(2)}';
+  /// Formata o valor total para exibição (padrão brasileiro)
+  String get formattedTotalValue {
+    final formatter = NumberFormat.currency(
+      locale: 'pt_BR',
+      symbol: 'R\$',
+      decimalDigits: 2,
+    );
+    return formatter.format(totalValue);
+  }
 
   @override
   List<Object?> get props => [

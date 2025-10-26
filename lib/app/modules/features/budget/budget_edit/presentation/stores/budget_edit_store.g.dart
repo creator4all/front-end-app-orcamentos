@@ -35,6 +35,48 @@ mixin _$BudgetEditStore on _BudgetEditStoreBase, Store {
       (_$totalValueComputed ??= Computed<double>(() => super.totalValue,
               name: '_BudgetEditStoreBase.totalValue'))
           .value;
+  Computed<int>? _$totalActiveProductsComputed;
+
+  @override
+  int get totalActiveProducts => (_$totalActiveProductsComputed ??=
+          Computed<int>(() => super.totalActiveProducts,
+              name: '_BudgetEditStoreBase.totalActiveProducts'))
+      .value;
+  Computed<int>? _$totalSelectedProductsComputed;
+
+  @override
+  int get totalSelectedProducts => (_$totalSelectedProductsComputed ??=
+          Computed<int>(() => super.totalSelectedProducts,
+              name: '_BudgetEditStoreBase.totalSelectedProducts'))
+      .value;
+  Computed<int>? _$selectedCategoriesCountComputed;
+
+  @override
+  int get selectedCategoriesCount => (_$selectedCategoriesCountComputed ??=
+          Computed<int>(() => super.selectedCategoriesCount,
+              name: '_BudgetEditStoreBase.selectedCategoriesCount'))
+      .value;
+  Computed<bool>? _$hasCategoriesComputed;
+
+  @override
+  bool get hasCategories =>
+      (_$hasCategoriesComputed ??= Computed<bool>(() => super.hasCategories,
+              name: '_BudgetEditStoreBase.hasCategories'))
+          .value;
+  Computed<bool>? _$hasCensusDataComputed;
+
+  @override
+  bool get hasCensusData =>
+      (_$hasCensusDataComputed ??= Computed<bool>(() => super.hasCensusData,
+              name: '_BudgetEditStoreBase.hasCensusData'))
+          .value;
+  Computed<bool>? _$isFullyLoadedComputed;
+
+  @override
+  bool get isFullyLoaded =>
+      (_$isFullyLoadedComputed ??= Computed<bool>(() => super.isFullyLoaded,
+              name: '_BudgetEditStoreBase.isFullyLoaded'))
+          .value;
 
   late final _$isLoadingAtom =
       Atom(name: '_BudgetEditStoreBase.isLoading', context: context);
@@ -65,6 +107,38 @@ mixin _$BudgetEditStore on _BudgetEditStoreBase, Store {
   set isSaving(bool value) {
     _$isSavingAtom.reportWrite(value, super.isSaving, () {
       super.isSaving = value;
+    });
+  }
+
+  late final _$isLoadingProductsAtom =
+      Atom(name: '_BudgetEditStoreBase.isLoadingProducts', context: context);
+
+  @override
+  bool get isLoadingProducts {
+    _$isLoadingProductsAtom.reportRead();
+    return super.isLoadingProducts;
+  }
+
+  @override
+  set isLoadingProducts(bool value) {
+    _$isLoadingProductsAtom.reportWrite(value, super.isLoadingProducts, () {
+      super.isLoadingProducts = value;
+    });
+  }
+
+  late final _$isLoadingCensusAtom =
+      Atom(name: '_BudgetEditStoreBase.isLoadingCensus', context: context);
+
+  @override
+  bool get isLoadingCensus {
+    _$isLoadingCensusAtom.reportRead();
+    return super.isLoadingCensus;
+  }
+
+  @override
+  set isLoadingCensus(bool value) {
+    _$isLoadingCensusAtom.reportWrite(value, super.isLoadingCensus, () {
+      super.isLoadingCensus = value;
     });
   }
 
@@ -148,6 +222,22 @@ mixin _$BudgetEditStore on _BudgetEditStoreBase, Store {
     });
   }
 
+  late final _$budgetNameAtom =
+      Atom(name: '_BudgetEditStoreBase.budgetName', context: context);
+
+  @override
+  String? get budgetName {
+    _$budgetNameAtom.reportRead();
+    return super.budgetName;
+  }
+
+  @override
+  set budgetName(String? value) {
+    _$budgetNameAtom.reportWrite(value, super.budgetName, () {
+      super.budgetName = value;
+    });
+  }
+
   late final _$selectedProductIdsAtom =
       Atom(name: '_BudgetEditStoreBase.selectedProductIds', context: context);
 
@@ -164,6 +254,78 @@ mixin _$BudgetEditStore on _BudgetEditStoreBase, Store {
     });
   }
 
+  late final _$categoriesAtom =
+      Atom(name: '_BudgetEditStoreBase.categories', context: context);
+
+  @override
+  ObservableList<CategoryEntity> get categories {
+    _$categoriesAtom.reportRead();
+    return super.categories;
+  }
+
+  @override
+  set categories(ObservableList<CategoryEntity> value) {
+    _$categoriesAtom.reportWrite(value, super.categories, () {
+      super.categories = value;
+    });
+  }
+
+  late final _$selectedCategoryAtom =
+      Atom(name: '_BudgetEditStoreBase.selectedCategory', context: context);
+
+  @override
+  CategoryEntity? get selectedCategory {
+    _$selectedCategoryAtom.reportRead();
+    return super.selectedCategory;
+  }
+
+  @override
+  set selectedCategory(CategoryEntity? value) {
+    _$selectedCategoryAtom.reportWrite(value, super.selectedCategory, () {
+      super.selectedCategory = value;
+    });
+  }
+
+  late final _$selectedSubcategoryAtom =
+      Atom(name: '_BudgetEditStoreBase.selectedSubcategory', context: context);
+
+  @override
+  SubcategoryEntity? get selectedSubcategory {
+    _$selectedSubcategoryAtom.reportRead();
+    return super.selectedSubcategory;
+  }
+
+  @override
+  set selectedSubcategory(SubcategoryEntity? value) {
+    _$selectedSubcategoryAtom.reportWrite(value, super.selectedSubcategory, () {
+      super.selectedSubcategory = value;
+    });
+  }
+
+  late final _$censusDataAtom =
+      Atom(name: '_BudgetEditStoreBase.censusData', context: context);
+
+  @override
+  CensusDataEntity? get censusData {
+    _$censusDataAtom.reportRead();
+    return super.censusData;
+  }
+
+  @override
+  set censusData(CensusDataEntity? value) {
+    _$censusDataAtom.reportWrite(value, super.censusData, () {
+      super.censusData = value;
+    });
+  }
+
+  late final _$initializeAsyncAction =
+      AsyncAction('_BudgetEditStoreBase.initialize', context: context);
+
+  @override
+  Future<void> initialize(int budgetId) {
+    return _$initializeAsyncAction.run(() => super.initialize(budgetId));
+  }
+
   late final _$loadBudgetForEditAsyncAction =
       AsyncAction('_BudgetEditStoreBase.loadBudgetForEdit', context: context);
 
@@ -171,6 +333,31 @@ mixin _$BudgetEditStore on _BudgetEditStoreBase, Store {
   Future<void> loadBudgetForEdit(int budgetId) {
     return _$loadBudgetForEditAsyncAction
         .run(() => super.loadBudgetForEdit(budgetId));
+  }
+
+  late final _$_loadAllProductsAsyncAction =
+      AsyncAction('_BudgetEditStoreBase._loadAllProducts', context: context);
+
+  @override
+  Future<void> _loadAllProducts(int budgetId) {
+    return _$_loadAllProductsAsyncAction
+        .run(() => super._loadAllProducts(budgetId));
+  }
+
+  late final _$loadCensusDataAsyncAction =
+      AsyncAction('_BudgetEditStoreBase.loadCensusData', context: context);
+
+  @override
+  Future<void> loadCensusData(int cityId) {
+    return _$loadCensusDataAsyncAction.run(() => super.loadCensusData(cityId));
+  }
+
+  late final _$updateBudgetAsyncAction =
+      AsyncAction('_BudgetEditStoreBase.updateBudget', context: context);
+
+  @override
+  Future<Either<BudgetFailure, BudgetEditEntity>> updateBudget() {
+    return _$updateBudgetAsyncAction.run(() => super.updateBudget());
   }
 
   late final _$saveBudgetAsyncAction =
@@ -183,6 +370,50 @@ mixin _$BudgetEditStore on _BudgetEditStoreBase, Store {
 
   late final _$_BudgetEditStoreBaseActionController =
       ActionController(name: '_BudgetEditStoreBase', context: context);
+
+  @override
+  void toggleCategory(int categoryId) {
+    final _$actionInfo = _$_BudgetEditStoreBaseActionController.startAction(
+        name: '_BudgetEditStoreBase.toggleCategory');
+    try {
+      return super.toggleCategory(categoryId);
+    } finally {
+      _$_BudgetEditStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void selectCategory(CategoryEntity category) {
+    final _$actionInfo = _$_BudgetEditStoreBaseActionController.startAction(
+        name: '_BudgetEditStoreBase.selectCategory');
+    try {
+      return super.selectCategory(category);
+    } finally {
+      _$_BudgetEditStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void selectSubcategory(SubcategoryEntity subcategory) {
+    final _$actionInfo = _$_BudgetEditStoreBaseActionController.startAction(
+        name: '_BudgetEditStoreBase.selectSubcategory');
+    try {
+      return super.selectSubcategory(subcategory);
+    } finally {
+      _$_BudgetEditStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void toggleProductInCategory(int categoryId, int productId, bool selected) {
+    final _$actionInfo = _$_BudgetEditStoreBaseActionController.startAction(
+        name: '_BudgetEditStoreBase.toggleProductInCategory');
+    try {
+      return super.toggleProductInCategory(categoryId, productId, selected);
+    } finally {
+      _$_BudgetEditStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
 
   @override
   void toggleProductSelection(int productId) {
@@ -251,20 +482,90 @@ mixin _$BudgetEditStore on _BudgetEditStoreBase, Store {
   }
 
   @override
+  void toggleCategoryWithCascade(int categoryId, bool selected) {
+    final _$actionInfo = _$_BudgetEditStoreBaseActionController.startAction(
+        name: '_BudgetEditStoreBase.toggleCategoryWithCascade');
+    try {
+      return super.toggleCategoryWithCascade(categoryId, selected);
+    } finally {
+      _$_BudgetEditStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void toggleSubcategoryWithCascade(
+      int categoryId, int subcategoryId, bool selected) {
+    final _$actionInfo = _$_BudgetEditStoreBaseActionController.startAction(
+        name: '_BudgetEditStoreBase.toggleSubcategoryWithCascade');
+    try {
+      return super
+          .toggleSubcategoryWithCascade(categoryId, subcategoryId, selected);
+    } finally {
+      _$_BudgetEditStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void toggleProduct(int productId, bool selected) {
+    final _$actionInfo = _$_BudgetEditStoreBaseActionController.startAction(
+        name: '_BudgetEditStoreBase.toggleProduct');
+    try {
+      return super.toggleProduct(productId, selected);
+    } finally {
+      _$_BudgetEditStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void updateProductQuantity(int productId, int quantity) {
+    final _$actionInfo = _$_BudgetEditStoreBaseActionController.startAction(
+        name: '_BudgetEditStoreBase.updateProductQuantity');
+    try {
+      return super.updateProductQuantity(productId, quantity);
+    } finally {
+      _$_BudgetEditStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void updateProductObservations(int productId, String observations) {
+    final _$actionInfo = _$_BudgetEditStoreBaseActionController.startAction(
+        name: '_BudgetEditStoreBase.updateProductObservations');
+    try {
+      return super.updateProductObservations(productId, observations);
+    } finally {
+      _$_BudgetEditStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
   String toString() {
     return '''
 isLoading: ${isLoading},
 isSaving: ${isSaving},
+isLoadingProducts: ${isLoadingProducts},
+isLoadingCensus: ${isLoadingCensus},
 error: ${error},
 budgetData: ${budgetData},
 selectedStatus: ${selectedStatus},
 isArchived: ${isArchived},
 validityDate: ${validityDate},
+budgetName: ${budgetName},
 selectedProductIds: ${selectedProductIds},
+categories: ${categories},
+selectedCategory: ${selectedCategory},
+selectedSubcategory: ${selectedSubcategory},
+censusData: ${censusData},
 hasData: ${hasData},
 canSave: ${canSave},
 selectedProductsCount: ${selectedProductsCount},
-totalValue: ${totalValue}
+totalValue: ${totalValue},
+totalActiveProducts: ${totalActiveProducts},
+totalSelectedProducts: ${totalSelectedProducts},
+selectedCategoriesCount: ${selectedCategoriesCount},
+hasCategories: ${hasCategories},
+hasCensusData: ${hasCensusData},
+isFullyLoaded: ${isFullyLoaded}
     ''';
   }
 }

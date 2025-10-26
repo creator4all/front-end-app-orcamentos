@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:intl/intl.dart';
 
 import 'statistics_entity.dart';
 import 'subcategory_entity.dart';
@@ -79,8 +80,15 @@ class CategoryEntity extends Equatable {
   /// Verifica se tem subcategorias com produtos ativos
   bool get hasActiveSubcategories => activeSubcategoriesCount > 0;
 
-  /// Formata o valor total para exibição
-  String get formattedTotalValue => 'R\$ ${totalValue.toStringAsFixed(2)}';
+  /// Formata o valor total para exibição (padrão brasileiro)
+  String get formattedTotalValue {
+    final formatter = NumberFormat.currency(
+      locale: 'pt_BR',
+      symbol: 'R\$',
+      decimalDigits: 2,
+    );
+    return formatter.format(totalValue);
+  }
 
   @override
   List<Object?> get props => [
