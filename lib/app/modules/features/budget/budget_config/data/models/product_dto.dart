@@ -1,4 +1,6 @@
+import '../../domain/entities/indicador_etapa_entity.dart';
 import '../../domain/entities/product_entity.dart';
+import 'indicador_etapa_dto.dart';
 
 /// DTO para parsing JSON dos produtos da API
 class ProductDTO {
@@ -18,7 +20,7 @@ class ProductDTO {
   final String? observacoes;
   final double valorOriginal;
   final bool ativoOriginal;
-  final List<dynamic> indicadoresEtapa;
+  final List<IndicadorEtapaEntity> indicadoresEtapa;
 
   ProductDTO({
     required this.id,
@@ -61,8 +63,15 @@ class ProductDTO {
       final String? observacoes = json['observacoes'] as String?;
       final double valorOriginal = (json['valor_original'] as num).toDouble();
       final bool ativoOriginal = json['ativo_original'] as bool;
-      final List<dynamic> indicadoresEtapa =
-          json['indicadores_etapa'] as List<dynamic>;
+
+      // Parse indicadores de etapa
+      final List<IndicadorEtapaEntity> indicadoresEtapa =
+          (json['indicadores_etapa'] as List<dynamic>?)
+                  ?.map((item) =>
+                      IndicadorEtapaDTO.fromJson(item as Map<String, dynamic>)
+                          .toEntity())
+                  .toList() ??
+              [];
 
       return ProductDTO(
         id: id,
@@ -130,7 +139,9 @@ class ProductDTO {
       'observacoes': observacoes,
       'valor_original': valorOriginal,
       'ativo_original': ativoOriginal,
-      'indicadores_etapa': indicadoresEtapa,
+      'indicadores_etapa': indicadoresEtapa
+          .map((e) => IndicadorEtapaDTO.fromEntity(e).toJson())
+          .toList(),
     };
   }
 

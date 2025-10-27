@@ -4,10 +4,10 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../../../shared/widgets/custom_checkbox.dart';
 import '../../../../../../shared/widgets/custom_modal.dart';
 import '../../domain/entities/product_entity.dart';
 import '../stores/budget_config_store.dart';
+import 'indicadores_etapa_section.dart';
 
 /// Modal de informações detalhadas do produto
 ///
@@ -61,22 +61,6 @@ class ProductInfoModal extends StatefulWidget {
 }
 
 class _ProductInfoModalState extends State<ProductInfoModal> {
-  // Mapa para armazenar indicadores selecionados
-  // Key: grupo, Value: lista de indicadores selecionados
-  final Map<String, List<String>> _selectedIndicators = {};
-
-  @override
-  void initState() {
-    super.initState();
-    // Inicializar indicadores selecionados do produto
-    _initializeSelectedIndicators();
-  }
-
-  void _initializeSelectedIndicators() {
-    // TODO: Carregar indicadores já selecionados do produto
-    // Por enquanto, inicializa vazio
-  }
-
   /// Formata valor para padrão brasileiro
   String _formatCurrency(double value) {
     final formatter = NumberFormat.currency(
@@ -87,41 +71,8 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
     return formatter.format(value);
   }
 
-  /// Verifica se um indicador está selecionado
-  bool _isIndicatorSelected(String group, String indicator) {
-    return _selectedIndicators[group]?.contains(indicator) ?? false;
-  }
-
-  /// Alterna seleção de um indicador
-  void _toggleIndicator(String group, String indicator, bool selected) {
-    setState(() {
-      if (selected) {
-        // Adiciona o indicador
-        if (_selectedIndicators[group] == null) {
-          _selectedIndicators[group] = [];
-        }
-        if (!_selectedIndicators[group]!.contains(indicator)) {
-          _selectedIndicators[group]!.add(indicator);
-        }
-      } else {
-        // Remove o indicador
-        _selectedIndicators[group]?.remove(indicator);
-        // Remove o grupo se estiver vazio
-        if (_selectedIndicators[group]?.isEmpty ?? false) {
-          _selectedIndicators.remove(group);
-        }
-      }
-    });
-  }
-
-  /// Salva as alterações
+  /// Salva as alterações (fecha a modal)
   void _handleSave() {
-    final storeInstance = widget.store ?? Modular.get<BudgetConfigStore>();
-
-    // Salvar indicadores selecionados
-    storeInstance.updateProductIndicators(
-        widget.productId, _selectedIndicators);
-
     // Fechar modal
     Navigator.pop(context);
   }
@@ -189,56 +140,6 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
     );
   }
 
-  /// Constrói grupo de indicadores
-  Widget _buildIndicatorGroup(String groupName, List<dynamic> indicators) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Título do grupo
-        Text(
-          groupName,
-          style: TextStyle(
-            fontSize: 14.sp,
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFF000000),
-          ),
-        ),
-        SizedBox(height: 8.h),
-
-        // Lista de indicadores
-        ...indicators.map((indicator) {
-          final indicatorName = indicator.toString();
-          return Padding(
-            padding: EdgeInsets.only(bottom: 8.h),
-            child: Row(
-              children: [
-                CustomCheckbox(
-                  value: _isIndicatorSelected(groupName, indicatorName),
-                  onChanged: (value) {
-                    _toggleIndicator(groupName, indicatorName, value);
-                  },
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: Text(
-                    indicatorName,
-                    style: TextStyle(
-                      fontSize: 13.sp,
-                      fontWeight: FontWeight.w400,
-                      color: const Color(0xFF000000),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }),
-
-        SizedBox(height: 16.h),
-      ],
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final storeInstance = widget.store ?? Modular.get<BudgetConfigStore>();
@@ -272,28 +173,11 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
 
             // Seção 2: Indicadores de Etapa
             if (product.indicadoresEtapa.isNotEmpty) ...[
-              // Parsear e exibir indicadores agrupados
-              ...(() {
-                final List<Widget> indicatorWidgets = [];
-
-                for (var indicatorGroup in product.indicadoresEtapa) {
-                  if (indicatorGroup is Map) {
-                    final groupName =
-                        indicatorGroup['grupo']?.toString() ?? 'Sem grupo';
-                    final itens = indicatorGroup['itens'] as List? ?? [];
-
-                    if (itens.isNotEmpty) {
-                      indicatorWidgets
-                          .add(_buildIndicatorGroup(groupName, itens));
-                    }
-                  }
-                }
-
-                return indicatorWidgets;
-              })(),
+              IndicadoresEtapaSection(
+                indicadores: product.indicadoresEtapa,
+              ),
+              SizedBox(height: 24.h),
             ],
-
-            SizedBox(height: 24.h),
 
             // Botão Salvar
             SizedBox(

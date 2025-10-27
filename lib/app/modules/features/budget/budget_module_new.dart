@@ -2,6 +2,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 
 import '../../../../services/api_service.dart';
 import '../../../shared/core/http/dio_client.dart';
+import '../../budget/external/services/budget_service.dart';
 // Budget Config - Clean Architecture
 import 'budget_config/data/datasources/budget_detail_remote_datasource.dart';
 import 'budget_config/data/datasources/budget_detail_remote_datasource_impl.dart';
@@ -65,6 +66,9 @@ class BudgetModuleNew extends Module {
         // ==================== CORE ====================
         Bind.lazySingleton((i) => DioClient()),
         Bind.lazySingleton((i) => ApiService(dio: i.get<DioClient>().dio)),
+
+        // ==================== LEGACY SERVICES (para compatibilidade) ====================
+        Bind.lazySingleton((i) => BudgetService(i.get<ApiService>())),
 
         // ==================== BUDGET LIST ====================
         // DataSources
