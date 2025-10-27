@@ -52,13 +52,13 @@ class ProductDTO {
       final double valor = (json['valor'] as num).toDouble();
       final String indicacao = (json['indicacao'] as String?) ?? '';
       final String tipoProduto = json['tipo_produto'] as String;
-      final int ordem = json['ordem'] as int;
+      // Parse defensivo: ordem pode vir null, vazio ou 0
+      final int ordem = (json['ordem'] as int?) ?? 0;
       final int subcategoriaId = json['subcategoria_id'] as int;
       final bool selecionado = json['selecionado'] as bool;
       final int quantidade = (json['quantidade'] as num).toInt();
       final bool temOverride = json['tem_override'] as bool;
-      const String? observacoes = null;
-      // final String? observacoes = json['observacoes'] as String?;
+      final String? observacoes = json['observacoes'] as String?;
       final double valorOriginal = (json['valor_original'] as num).toDouble();
       final bool ativoOriginal = json['ativo_original'] as bool;
       final List<dynamic> indicadoresEtapa =
