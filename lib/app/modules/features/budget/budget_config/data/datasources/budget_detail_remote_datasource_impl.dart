@@ -100,10 +100,12 @@ class BudgetDetailRemoteDataSourceImpl implements BudgetDetailRemoteDataSource {
       debugPrint(
           '🌐 [DataSource] GET /api/orcamentos/$budgetId/produtos-completos');
 
-      // ✅ Apenas esta chamada específica pede o responseType como 'plain'
+      // ✅ Usar ResponseType.bytes para receber bytes crus
+      // Depois fazemos decode UTF-8 MANUAL para evitar corrupção de caracteres especiais
+      // Necessário porque JSON tem 114KB+ (5000+ linhas) e Dio não consegue fazer auto-parse
       final response = await apiService.get(
         '/api/orcamentos/$budgetId/produtos-completos',
-        responseType: ResponseType.plain,
+        responseType: ResponseType.bytes,
       );
 
       // Verificar se API retornou erro
@@ -114,16 +116,33 @@ class BudgetDetailRemoteDataSourceImpl implements BudgetDetailRemoteDataSource {
         throw Exception('Erro ao buscar produtos: $errorMsg');
       }
 
-      // Extrair a string JSON de 'data'
-      if (!response.containsKey('data') || response['data'] is! String) {
-        debugPrint(
-            '❌ [DataSource] Resposta não contém uma string JSON em "data"');
+      // Extrair bytes da resposta
+      if (!response.containsKey('data')) {
+        debugPrint('❌ [DataSource] Resposta não contém dados em "data"');
         throw Exception('Resposta da API em formato inválido');
       }
 
-      final jsonString = response['data'] as String;
-      debugPrint(
-          '📦 [DataSource] String JSON recebida: ${jsonString.length} chars');
+      final dynamic rawData = response['data'];
+
+      // Converter bytes para String com UTF-8 EXPLÍCITO
+      String jsonString;
+
+      if (rawData is List<int>) {
+        // ✅ DECODE UTF-8 MANUAL - Garante que caracteres especiais (ê, ó, á, ã) sejam preservados
+        jsonString = utf8.decode(rawData, allowMalformed: false);
+        debugPrint(
+            '📦 [DataSource] Bytes decodificados com UTF-8: ${jsonString.length} chars');
+      } else if (rawData is String) {
+        // Fallback: se já vier como string
+        jsonString = rawData;
+        debugPrint(
+            '⚠️ [DataSource] Dados já vieram como String: ${jsonString.length} chars');
+      } else {
+        debugPrint(
+            '❌ [DataSource] Tipo de dados inesperado: ${rawData.runtimeType}');
+        throw Exception('Formato de resposta inválido');
+      }
+
       debugPrint('🚀 [DataSource] Iniciando parse em Isolate com compute()...');
 
       // 🚀 Parse assíncrono em isolate para não travar a UI
