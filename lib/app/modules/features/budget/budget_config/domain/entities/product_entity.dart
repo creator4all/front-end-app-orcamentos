@@ -1,6 +1,8 @@
 import 'package:equatable/equatable.dart';
 import 'package:intl/intl.dart';
 
+import 'indicador_etapa_entity.dart';
+
 /// Entidade que representa um produto no orçamento
 class ProductEntity extends Equatable {
   /// ID único do produto
@@ -51,8 +53,8 @@ class ProductEntity extends Equatable {
   /// Status ativo original
   final bool ativoOriginal;
 
-  /// Indicadores de etapa
-  final List<dynamic> indicadoresEtapa;
+  /// Indicadores de etapa (ex: Pré-escola, Ensino Fundamental, etc.)
+  final List<IndicadorEtapaEntity> indicadoresEtapa;
 
   const ProductEntity({
     required this.id,
@@ -154,7 +156,7 @@ class ProductEntity extends Equatable {
     String? observacoes,
     double? valorOriginal,
     bool? ativoOriginal,
-    List<dynamic>? indicadoresEtapa,
+    List<IndicadorEtapaEntity>? indicadoresEtapa,
   }) {
     return ProductEntity(
       id: id ?? this.id,

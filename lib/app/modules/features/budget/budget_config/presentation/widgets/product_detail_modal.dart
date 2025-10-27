@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 
 import '../../domain/entities/product_entity.dart';
+import 'indicadores_etapa_section.dart';
 
 /// Modal que exibe detalhes completos de um produto
 class ProductDetailModal extends StatefulWidget {
@@ -85,6 +86,14 @@ class _ProductDetailModalState extends State<ProductDetailModal> {
 
                     // Observações
                     _buildObservationsSection(),
+
+                    // Indicadores de Etapa
+                    if (widget.product.indicadoresEtapa.isNotEmpty) ...[
+                      SizedBox(height: 16.h),
+                      IndicadoresEtapaSection(
+                        indicadores: widget.product.indicadoresEtapa,
+                      ),
+                    ],
 
                     // Informações adicionais
                     if (widget.product.hasAnyOverride) ...[

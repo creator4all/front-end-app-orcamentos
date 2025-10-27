@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -8,8 +7,11 @@ import 'package:intl/intl.dart';
 // Imports compartilhados
 import '../../../../../../shared/widgets/budget_summary_card.dart';
 import '../../../../../../shared/widgets/custom_top_bar.dart';
+import '../../../../../../shared/widgets/export_pdf_modal.dart';
 import '../../../../../../shared/widgets/product_category.dart';
 import '../../../../../../shared/widgets/status_tag_widget.dart';
+// Imports de serviços
+import '../../../../../budget/external/services/budget_service.dart';
 // Imports da feature
 import '../../../budget_config/domain/entities/category_entity.dart';
 import '../../../budget_config/domain/entities/product_entity.dart';
@@ -1057,37 +1059,34 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     }
   }
 
-  /// 📤 Compartilha informações do orçamento
+  /// 📤 Abre modal para exportar e compartilhar PDF do orçamento
   Future<void> _handleShare() async {
     if (store.budgetData == null) return;
 
-    final budget = store.budgetData!;
-    final shareText = '''
-📋 Orçamento #${budget.id}
-💰 Valor Total: ${_formatCurrency(store.totalValue)}
-📦 Produtos: ${store.selectedProductsCount}
-📅 Validade: ${DateFormat('dd/MM/yyyy').format(store.validityDate ?? DateTime.now())}
-📌 Status: ${_getStatusLabel(store.selectedStatus)}
-${store.isArchived ? '📦 Arquivado' : ''}
-  ''';
+    try {
+      // Obter BudgetService do Modular
+      final budgetService = Modular.get<BudgetService>();
+      print('✅ BudgetService obtido via Modular');
 
-    // Copiar para clipboard
-    await Clipboard.setData(ClipboardData(text: shareText));
+      // Abrir modal de exportação de PDF
+      await ExportPdfModal.show(
+        context: context,
+        orcamentoId: widget.budgetId,
+        budgetService: budgetService,
+      );
+    } catch (e) {
+      print('❌ Erro ao abrir modal de compartilhamento: $e');
 
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content:
-            const Text('Informações copiadas para a área de transferência'),
-        backgroundColor: Colors.green,
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.r),
-        ),
-      ),
-    );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao abrir modal de compartilhamento: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 
   /// 🏷️ Retorna label legível para o status
