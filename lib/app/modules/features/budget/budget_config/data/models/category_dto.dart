@@ -21,29 +21,20 @@ class CategoryDTO {
   /// Cria um DTO a partir do JSON da API
   factory CategoryDTO.fromJson(Map<String, dynamic> json) {
     try {
-      print('🔍 [CategoryDTO] Parseando categoria: ${json['nome']}');
-
       final int id = json['id'] as int;
       final String nome = json['nome'] as String;
       final int ordem = json['ordem'] as int? ?? 0;
 
-      print('   ✅ ID: $id, Nome: $nome, Ordem: $ordem');
-
       final List<SubcategoryDTO> subcategorias = [];
       if (json['subcategorias'] != null && json['subcategorias'] is List) {
         final subcatList = json['subcategorias'] as List<dynamic>;
-        print('   📦 Parseando ${subcatList.length} subcategorias...');
 
         for (int i = 0; i < subcatList.length; i++) {
           try {
             final subcatJson = subcatList[i] as Map<String, dynamic>;
             final subcat = SubcategoryDTO.fromJson(subcatJson);
             subcategorias.add(subcat);
-            print(
-                '      ✅ Subcategoria ${i + 1}/${subcatList.length}: ${subcat.nome}');
           } catch (e) {
-            print('      ❌ Erro na subcategoria ${i + 1}: $e');
-            print('      📄 JSON: ${subcatList[i]}');
             rethrow;
           }
         }
@@ -54,8 +45,6 @@ class CategoryDTO {
       if (json['estatisticas'] != null) {
         estatisticas = StatisticsDTO.fromJson(
             json['estatisticas'] as Map<String, dynamic>);
-        print(
-            '   ✅ Estatísticas: ${estatisticas.totalProdutos} produtos, ${estatisticas.produtosSelecionados} selecionados');
       }
 
       return CategoryDTO(
@@ -65,10 +54,7 @@ class CategoryDTO {
         subcategorias: subcategorias,
         estatisticas: estatisticas,
       );
-    } catch (e, stackTrace) {
-      print('❌ [CategoryDTO] Erro ao parsear categoria: $e');
-      print('📄 JSON recebido: $json');
-      print('Stack trace: $stackTrace');
+    } catch (e) {
       rethrow;
     }
   }

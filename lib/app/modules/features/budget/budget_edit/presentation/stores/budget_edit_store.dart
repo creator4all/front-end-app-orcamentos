@@ -8,6 +8,8 @@ import '../../../budget_config/domain/entities/product_entity.dart';
 import '../../../budget_config/domain/entities/subcategory_entity.dart';
 import '../../../budget_config/domain/usecases/get_census_data_usecase.dart';
 import '../../../shared/errors/budget_failure.dart';
+import '../../../shared/models/budget_update_dto.dart';
+import '../../../shared/models/product_selection_update_dto.dart';
 import '../../domain/entities/budget_edit_entity.dart';
 import '../../domain/usecases/get_all_budget_products_for_edit_usecase.dart';
 import '../../domain/usecases/get_budget_for_edit_usecase.dart';
@@ -128,8 +130,6 @@ abstract class _BudgetEditStoreBase with Store {
 
   @action
   Future<void> initialize(int budgetId) async {
-    print('🔄 [BudgetEditStore] Inicializando edição do orçamento: $budgetId');
-
     // 1. Carregar estrutura (categorias/subcategorias com estatísticas)
     await loadBudgetForEdit(budgetId);
 
@@ -149,28 +149,21 @@ abstract class _BudgetEditStoreBase with Store {
     error = null;
 
     try {
-      print('🔄 [BudgetEditStore] Carregando orçamento para edição: $budgetId');
-
       final result = await getBudgetForEditUseCase(budgetId);
 
       result.fold(
         (failure) {
-          print('❌ [BudgetEditStore] Erro: ${failure.message}');
           error = failure.message;
           budgetData = null;
           isLoading = false;
           isLoadingProducts = false;
         },
         (budget) {
-          print('✅ [BudgetEditStore] Orçamento carregado');
           budgetData = budget;
 
           // Inicializar categorias a partir dos dados do orçamento
           categories.clear();
           categories.addAll(_parseCategoriesFromBudget(budget));
-
-          print(
-              '📦 [BudgetEditStore] Categorias carregadas: ${categories.length}');
 
           // Inicializar estados
           selectedStatus = budget.status;
@@ -184,14 +177,11 @@ abstract class _BudgetEditStoreBase with Store {
             budget.products.where((p) => p.isSelected).map((p) => p.productId),
           );
 
-          print('   Produtos selecionados: ${selectedProductIds.length}');
-
           isLoading = false;
           isLoadingProducts = false;
         },
       );
     } catch (e) {
-      print('❌ [BudgetEditStore] Erro inesperado: $e');
       error = 'Erro ao carregar orçamento: $e';
       isLoading = false;
       isLoadingProducts = false;
@@ -205,21 +195,14 @@ abstract class _BudgetEditStoreBase with Store {
     isLoadingProducts = true;
 
     try {
-      print('🌐 [BudgetEditStore] Buscando todos os produtos...');
-
       final result = await getAllProductsUseCase(budgetId: budgetId);
 
       result.fold(
         (failure) {
-          print(
-              '❌ [BudgetEditStore] Erro ao carregar produtos: ${failure.message}');
           error = failure.message;
           isLoadingProducts = false;
         },
         (allProducts) {
-          print(
-              '✅ [BudgetEditStore] ${allProducts.length} produtos carregados');
-
           // Agrupar produtos por subcategoria_id
           final productsBySubcategory = <int, List<ProductEntity>>{};
 
@@ -228,11 +211,6 @@ abstract class _BudgetEditStoreBase with Store {
             productsBySubcategory.putIfAbsent(subId, () => []);
             productsBySubcategory[subId]!.add(product);
           }
-
-          print('📦 [BudgetEditStore] Produtos agrupados por subcategoria:');
-          productsBySubcategory.forEach((subId, prods) {
-            print('   - Subcategoria $subId: ${prods.length} produtos');
-          });
 
           // Distribuir produtos nas subcategorias corretas
           final updatedCategories = categories.map((cat) {
@@ -262,19 +240,13 @@ abstract class _BudgetEditStoreBase with Store {
             categories = ObservableList.of(updatedCategories);
           });
 
-          print('✅ [BudgetEditStore] Produtos distribuídos nas categorias');
-
           // Atualizar selectedProductIds baseado nos produtos reais
           _updateSelectedProductIds();
-
-          print('💰 Total calculado: R\$ ${totalValue.toStringAsFixed(2)}');
-          print('📦 Produtos selecionados: $selectedProductsCount');
 
           isLoadingProducts = false;
         },
       );
     } catch (e) {
-      print('❌ [BudgetEditStore] Erro inesperado ao carregar produtos: $e');
       error = 'Erro ao carregar produtos: $e';
       isLoadingProducts = false;
     }
@@ -293,35 +265,23 @@ abstract class _BudgetEditStoreBase with Store {
         }
       }
     }
-
-    print(
-        '✅ [BudgetEditStore] Produtos selecionados atualizados: ${selectedProductIds.length}');
   }
 
   /// Converte dados do orçamento em estrutura de categorias (apenas estrutura, sem produtos)
   List<CategoryEntity> _parseCategoriesFromBudget(BudgetEditEntity budget) {
-    print('🔄 [BudgetEditStore] Parseando estrutura de categorias...');
-
     try {
       // Verificar se categoriesData contém uma lista de categorias
       if (budget.categoriesData is! List) {
-        print('❌ [BudgetEditStore] categoriesData não é uma lista');
-        print('   Tipo: ${budget.categoriesData.runtimeType}');
-        print('   Conteúdo: ${budget.categoriesData}');
         return [];
       }
 
       final categoriesList = budget.categoriesData as List<dynamic>;
-      print(
-          '📦 [BudgetEditStore] ${categoriesList.length} categorias encontradas');
 
       final List<CategoryEntity> categories = [];
 
       for (var i = 0; i < categoriesList.length; i++) {
         try {
           final categoryJson = categoriesList[i] as Map<String, dynamic>;
-          print(
-              '   Parseando categoria ${i + 1}/${categoriesList.length}: ${categoryJson['nome']}');
 
           // Usar CategoryDTO para parsing (estrutura + estatísticas)
           final categoryDto = CategoryDTO.fromJson(categoryJson);
@@ -329,20 +289,13 @@ abstract class _BudgetEditStoreBase with Store {
 
           // Adicionar categoria (produtos virão depois em _loadAllProducts)
           categories.add(categoryEntity);
-          print('   ✅ Categoria ${categoryEntity.nome} parseada com sucesso');
-        } catch (e, stackTrace) {
-          print('   ❌ Erro ao parsear categoria ${i + 1}: $e');
-          print('   Stack: $stackTrace');
+        } catch (e) {
           // Continua parseando outras categorias
         }
       }
 
-      print(
-          '✅ [BudgetEditStore] ${categories.length} categorias (estrutura) parseadas com sucesso');
       return categories;
-    } catch (e, stackTrace) {
-      print('❌ [BudgetEditStore] Erro geral ao parsear categorias: $e');
-      print('Stack: $stackTrace');
+    } catch (e) {
       return [];
     }
   }
@@ -352,24 +305,18 @@ abstract class _BudgetEditStoreBase with Store {
     isLoadingCensus = true;
 
     try {
-      print(
-          '🔄 [BudgetEditStore] Carregando dados do censo para cidade: $cityId');
-
       final result = await getCensusDataUseCase(cityId);
 
       result.fold(
         (failure) {
-          print(
-              '❌ [BudgetEditStore] Erro ao carregar censo: ${failure.message}');
           error = failure.message;
         },
         (data) {
-          print('✅ [BudgetEditStore] Dados do censo carregados');
           censusData = data;
         },
       );
     } catch (e) {
-      print('❌ [BudgetEditStore] Erro inesperado ao carregar censo: $e');
+      // Erro silencioso
     } finally {
       isLoadingCensus = false;
     }
@@ -381,7 +328,6 @@ abstract class _BudgetEditStoreBase with Store {
     if (categoryIndex != -1) {
       // A CategoryEntity não tem isExpanded
       // A lógica de expansão será gerenciada pela UI
-      print('🔄 [BudgetEditStore] Categoria selecionada: $categoryId');
     }
   }
 
@@ -403,9 +349,6 @@ abstract class _BudgetEditStoreBase with Store {
     } else {
       selectedProductIds.remove(productId);
     }
-
-    print(
-        '🔄 [BudgetEditStore] Produto $productId ${selected ? "selecionado" : "desmarcado"}');
   }
 
   @action
@@ -459,8 +402,6 @@ abstract class _BudgetEditStoreBase with Store {
     error = null;
 
     try {
-      print('🔄 [BudgetEditStore] Salvando alterações...');
-
       // Calcular dias de validade
       int? validityDays;
       if (validityDate != null) {
@@ -480,20 +421,17 @@ abstract class _BudgetEditStoreBase with Store {
 
       return result.fold(
         (failure) {
-          print('❌ [BudgetEditStore] Erro ao salvar: ${failure.message}');
           error = failure.message;
           isSaving = false;
           return Left(failure);
         },
         (updatedBudget) {
-          print('✅ [BudgetEditStore] Orçamento salvo com sucesso');
           budgetData = updatedBudget;
           isSaving = false;
           return Right(updatedBudget);
         },
       );
     } catch (e) {
-      print('❌ [BudgetEditStore] Erro inesperado: $e');
       error = 'Erro ao salvar: $e';
       isSaving = false;
       return Left(UnknownFailure(e.toString()));
@@ -529,8 +467,6 @@ abstract class _BudgetEditStoreBase with Store {
 
   @action
   void toggleCategoryWithCascade(int categoryId, bool selected) {
-    print('🔄 [BudgetEditStore] Toggle categoria $categoryId: $selected');
-
     final categoryIndex = categories.indexWhere((c) => c.id == categoryId);
     if (categoryIndex == -1) return;
 
@@ -568,9 +504,6 @@ abstract class _BudgetEditStoreBase with Store {
   @action
   void toggleSubcategoryWithCascade(
       int categoryId, int subcategoryId, bool selected) {
-    print(
-        '🔄 [BudgetEditStore] Toggle subcategoria $subcategoryId na categoria $categoryId: $selected');
-
     final categoryIndex = categories.indexWhere((c) => c.id == categoryId);
     if (categoryIndex == -1) return;
 
@@ -613,8 +546,6 @@ abstract class _BudgetEditStoreBase with Store {
 
   @action
   void toggleProduct(int productId, bool selected) {
-    print('🔄 [BudgetEditStore] Toggle produto $productId: $selected');
-
     // Encontrar e atualizar o produto em sua categoria/subcategoria
     for (var i = 0; i < categories.length; i++) {
       final category = categories[i];
@@ -662,9 +593,6 @@ abstract class _BudgetEditStoreBase with Store {
 
   @action
   void updateProductQuantity(int productId, int quantity) {
-    print(
-        '🔄 [BudgetEditStore] Atualizando quantidade do produto $productId: $quantity');
-
     // Encontrar e atualizar o produto
     for (var i = 0; i < categories.length; i++) {
       final category = categories[i];
@@ -704,8 +632,6 @@ abstract class _BudgetEditStoreBase with Store {
 
   @action
   void updateProductObservations(int productId, String observations) {
-    print('🔄 [BudgetEditStore] Atualizando observações do produto $productId');
-
     // Encontrar e atualizar o produto
     for (var i = 0; i < categories.length; i++) {
       final category = categories[i];
@@ -740,6 +666,90 @@ abstract class _BudgetEditStoreBase with Store {
           return;
         }
       }
+    }
+  }
+
+  /// 💾 Salva orçamento editado usando DTO completo
+  ///
+  /// **NOVO MÉTODO** que substitui o antigo `updateBudget()`
+  ///
+  /// Permite alterar:
+  /// - Produtos (seleção e quantidade) - via DTO
+  /// - Status (pendente, aprovado, arquivado, etc)
+  /// - Dados gerais (nome, validade, total)
+  /// - Estado de arquivamento
+  ///
+  /// Diferença do método antigo: Usa BudgetUpdateDto para enviar
+  /// todos os produtos com seus estados reais ao backend
+  @action
+  Future<Either<BudgetFailure, BudgetEditEntity>> saveBudgetWithDto() async {
+    if (budgetData == null) {
+      error = 'Orçamento não carregado';
+      return const Left(ValidationFailure('Orçamento não carregado'));
+    }
+
+    if (validityDate == null) {
+      error = 'Data de validade não definida';
+      return const Left(ValidationFailure('Data de validade obrigatória'));
+    }
+
+    isSaving = true;
+    error = null;
+
+    try {
+      // 1. Coletar todos os produtos de todas as categorias/subcategorias
+      final produtosParaSalvar = <ProductSelectionUpdateDto>[];
+
+      for (final category in categories) {
+        for (final subcategory in category.subcategorias) {
+          for (final product in subcategory.produtos) {
+            produtosParaSalvar.add(ProductSelectionUpdateDto(
+              productId: product.id,
+              selecionado: product.selecionado,
+              quantidade: product.quantidade,
+            ));
+          }
+        }
+      }
+
+      // 2. Calcular total
+      final totalCalculado = totalValue;
+
+      // 3. Calcular dias de validade
+      final diasValidade = validityDate!.difference(DateTime.now()).inDays;
+
+      // 4. Criar DTO de atualização
+      final updateDto = BudgetUpdateDto(
+        nome: budgetName,
+        diasValidade: diasValidade > 0 ? diasValidade : 1,
+        status: selectedStatus, // ⚠️ Pode ser qualquer status no budget_edit
+        isArchived: isArchived, // 📦 Envia estado de arquivamento
+        total: totalCalculado,
+        produtos: produtosParaSalvar,
+      );
+
+      // 5. Chamar UseCase com DTO
+      final result = await updateBudgetUseCase.callWithDto(
+        budgetId: budgetData!.id,
+        updateData: updateDto,
+      );
+
+      return result.fold(
+        (failure) {
+          error = failure.message;
+          isSaving = false;
+          return Left(failure);
+        },
+        (updatedBudget) {
+          budgetData = updatedBudget;
+          isSaving = false;
+          return Right(updatedBudget);
+        },
+      );
+    } catch (e) {
+      error = 'Erro ao salvar orçamento: $e';
+      isSaving = false;
+      return Left(UnknownFailure(e.toString()));
     }
   }
 }

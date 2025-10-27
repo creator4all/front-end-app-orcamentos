@@ -368,6 +368,14 @@ mixin _$BudgetEditStore on _BudgetEditStoreBase, Store {
     return _$saveBudgetAsyncAction.run(() => super.saveBudget());
   }
 
+  late final _$saveBudgetWithDtoAsyncAction =
+      AsyncAction('_BudgetEditStoreBase.saveBudgetWithDto', context: context);
+
+  @override
+  Future<Either<BudgetFailure, BudgetEditEntity>> saveBudgetWithDto() {
+    return _$saveBudgetWithDtoAsyncAction.run(() => super.saveBudgetWithDto());
+  }
+
   late final _$_BudgetEditStoreBaseActionController =
       ActionController(name: '_BudgetEditStoreBase', context: context);
 

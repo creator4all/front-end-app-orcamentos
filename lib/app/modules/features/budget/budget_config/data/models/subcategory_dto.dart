@@ -21,8 +21,6 @@ class SubcategoryDTO {
   /// Cria um DTO a partir do JSON da API
   factory SubcategoryDTO.fromJson(Map<String, dynamic> json) {
     try {
-      print('   🔍 [SubcategoryDTO] Parseando subcategoria: ${json['nome']}');
-
       final int id = json['id'] as int;
       final String nome = json['nome'] as String;
       final int ordem = json['ordem'] as int? ?? 0;
@@ -31,23 +29,16 @@ class SubcategoryDTO {
       final List<ProductDTO> produtos = [];
       if (json['produtos'] != null && json['produtos'] is List) {
         final prodList = json['produtos'] as List<dynamic>;
-        print('      📦 Parseando ${prodList.length} produtos...');
 
         for (int i = 0; i < prodList.length; i++) {
           try {
             final prodJson = prodList[i] as Map<String, dynamic>;
             final prod = ProductDTO.fromJson(prodJson);
             produtos.add(prod);
-            print(
-                '         ✅ Produto ${i + 1}/${prodList.length}: ${prod.solucao}');
           } catch (e) {
-            print('         ❌ Erro no produto ${i + 1}: $e');
-            print('         📄 JSON: ${prodList[i]}');
             rethrow;
           }
         }
-      } else {
-        print('      📊 Sem produtos - usando estatísticas');
       }
 
       // Parse estatísticas (novo formato)
@@ -55,8 +46,6 @@ class SubcategoryDTO {
       if (json['estatisticas'] != null) {
         estatisticas = StatisticsDTO.fromJson(
             json['estatisticas'] as Map<String, dynamic>);
-        print(
-            '      ✅ Estatísticas: ${estatisticas.totalProdutos} produtos, ${estatisticas.produtosSelecionados} selecionados');
       }
 
       return SubcategoryDTO(
@@ -66,10 +55,7 @@ class SubcategoryDTO {
         produtos: produtos,
         estatisticas: estatisticas,
       );
-    } catch (e, stackTrace) {
-      print('❌ [SubcategoryDTO] Erro ao parsear subcategoria: $e');
-      print('📄 JSON recebido: $json');
-      print('Stack trace: $stackTrace');
+    } catch (e) {
       rethrow;
     }
   }
