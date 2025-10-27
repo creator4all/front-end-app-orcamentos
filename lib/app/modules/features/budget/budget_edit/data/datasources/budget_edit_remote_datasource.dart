@@ -1,3 +1,4 @@
+import '../../../shared/models/budget_update_dto.dart';
 import '../models/budget_edit_dto.dart';
 
 /// Interface abstrata para operações remotas de edição de orçamento
@@ -8,7 +9,10 @@ abstract class BudgetEditRemoteDataSource {
   /// Busca TODOS os produtos completos do orçamento com seus estados reais do banco
   Future<Map<String, dynamic>> getBudgetProductsComplete(int id);
 
-  /// Atualiza um orçamento
+  /// Atualiza um orçamento (Método legado)
+  ///
+  /// **DEPRECATED**: Use [updateBudgetWithDto]
+  @Deprecated('Use updateBudgetWithDto')
   Future<BudgetEditDto> updateBudget({
     required int id,
     String? name,
@@ -17,5 +21,18 @@ abstract class BudgetEditRemoteDataSource {
     String? status,
     bool? isArchived,
     List<int>? selectedProductIds,
+  });
+
+  /// Atualiza um orçamento usando DTO completo
+  ///
+  /// Endpoint: PUT /api/orcamentos/{id}
+  ///
+  /// [budgetId] ID do orçamento a atualizar
+  /// [updateData] DTO com dados para atualização (partial update)
+  ///
+  /// Retorna o orçamento atualizado do backend
+  Future<BudgetEditDto> updateBudgetWithDto({
+    required int budgetId,
+    required BudgetUpdateDto updateData,
   });
 }

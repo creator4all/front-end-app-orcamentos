@@ -80,18 +80,25 @@ class SubcategoryProductsModal extends StatelessWidget {
           orElse: () => throw Exception('Subcategoria não encontrada'),
         );
 
-        print(
-            '🔍 [SubcategoryProductsModal] Subcategoria: ${subcategory.nome}');
-        print('   📦 Total produtos: ${subcategory.produtos.length}');
-        print('   ✅ Produtos ativos: ${subcategory.activeProdutos.length}');
-        print(
-            '   📊 Produtos selecionados: ${subcategory.selectedProdutos.length}');
+        // 🐛 DEBUG: Verificar estado dos produtos
+        debugPrint('🔍 [DEBUG] Subcategoria: ${subcategory.nome}');
+        debugPrint('   📦 Total produtos: ${subcategory.produtos.length}');
+        debugPrint(
+            '   ✅ Produtos ativos: ${subcategory.activeProdutos.length}');
+
+        if (subcategory.produtos.isNotEmpty) {
+          debugPrint('   � Primeiros 3 produtos:');
+          for (var i = 0; i < 3 && i < subcategory.produtos.length; i++) {
+            final p = subcategory.produtos[i];
+            debugPrint('      - ${p.solucao} (ativo: ${p.ativo}, ID: ${p.id})');
+          }
+        }
 
         final activeProducts = subcategory.activeProdutos;
 
         // Se não houver produtos ativos
         if (activeProducts.isEmpty) {
-          print('   ⚠️ LISTA VAZIA - Nenhum produto ativo encontrado!');
+          debugPrint('   ⚠️ LISTA VAZIA - Nenhum produto ativo encontrado!');
           return Center(
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: 32.h),

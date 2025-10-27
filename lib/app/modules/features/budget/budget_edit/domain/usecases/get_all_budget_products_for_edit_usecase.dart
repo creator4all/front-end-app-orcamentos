@@ -25,7 +25,6 @@ class GetAllBudgetProductsForEditUseCase {
   Future<Either<BudgetFailure, List<ProductEntity>>> call({
     required int budgetId,
   }) async {
-    print('🔄 [UseCase] Buscando todos os produtos do orçamento: $budgetId');
     return await repository.getAllProducts(budgetId: budgetId);
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -8,6 +9,7 @@ import 'package:intl/intl.dart';
 import '../../../../../../shared/widgets/budget_summary_card.dart';
 import '../../../../../../shared/widgets/custom_top_bar.dart';
 import '../../../../../../shared/widgets/product_category.dart';
+import '../../../../../../shared/widgets/status_tag_widget.dart';
 // Imports da feature
 import '../../../budget_config/domain/entities/category_entity.dart';
 import '../../../budget_config/domain/entities/product_entity.dart';
@@ -51,6 +53,40 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     return formatter.format(value);
   }
 
+  /// Sincroniza campo de texto de validade com a store
+  void _syncValidityFieldWithStore() {
+    if (store.validityDate != null) {
+      // Calcular dias a partir da data de validade existente
+      final hoje = DateTime.now();
+      final hojeDate = DateTime(hoje.year, hoje.month, hoje.day);
+      final dias = store.validityDate!.difference(hojeDate).inDays;
+      _validadeOrcamentoController.text = dias.toString();
+    } else {
+      // Se não tem data, usar 60 dias como padrão
+      _validadeOrcamentoController.text = '60';
+      _updateValidityDate(60);
+    }
+  }
+
+  /// Atualiza validityDate na store quando usuário digita
+  void _onValidityDaysChanged() {
+    final text = _validadeOrcamentoController.text;
+    if (text.isNotEmpty) {
+      final dias = int.tryParse(text);
+      if (dias != null && dias > 0) {
+        _updateValidityDate(dias);
+      }
+    }
+  }
+
+  /// Calcula e seta nova data de validade baseado nos dias
+  void _updateValidityDate(int dias) {
+    final hoje = DateTime.now();
+    final hojeDate = DateTime(hoje.year, hoje.month, hoje.day);
+    final novaData = hojeDate.add(Duration(days: dias));
+    store.setValidityDate(novaData);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -60,17 +96,21 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     _dataOrcamentoController.text =
         DateFormat('dd/MM/yyyy').format(DateTime.now());
 
-    // Define o valor padrão para "Validade do orçamento"
-    _validadeOrcamentoController.text = '60';
+    // ✅ Listener para mudanças no campo de validade
+    _validadeOrcamentoController.addListener(_onValidityDaysChanged);
 
     // Inicializa a store com o budgetId
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      store.initialize(widget.budgetId);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await store.initialize(widget.budgetId);
+
+      // ✅ Após carregar, sincronizar campo com store
+      _syncValidityFieldWithStore();
     });
   }
 
   @override
   void dispose() {
+    _validadeOrcamentoController.removeListener(_onValidityDaysChanged);
     _dataOrcamentoController.dispose();
     _validadeOrcamentoController.dispose();
     super.dispose();
@@ -127,7 +167,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
   }
 
   Future<void> _handleSaveChanges() async {
-    final result = await store.updateBudget();
+    final result = await store.saveBudgetWithDto();
 
     result.fold(
       (failure) {
@@ -206,6 +246,9 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
               padding: EdgeInsets.all(16.w),
               child: Column(
                 children: [
+                  // 🏷️ Status Header (Tags + Compartilhar) - PRIMEIRO
+                  _buildStatusHeader(),
+
                   // Resumo do orçamento
                   BudgetSummaryCard(
                     budgetValue: store.totalValue,
@@ -347,7 +390,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                     ],
                   ),
 
-                  SizedBox(height: 24.h),
+                  SizedBox(height: 4.h),
 
                   // Mensagem de erro
                   if (store.error != null)
@@ -372,6 +415,9 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                         ],
                       ),
                     ),
+
+                  // 🎛️ Controles de Status e Arquivamento
+                  _buildStatusControls(),
 
                   // Botão Salvar (sempre habilitado, exceto quando salvando)
                   SizedBox(
@@ -813,5 +859,250 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
         ],
       ),
     );
+  }
+
+  /// 🏷️ Widget de Status Header (Tags + Botão Compartilhar)
+  Widget _buildStatusHeader() {
+    return Observer(
+      builder: (_) => Padding(
+        padding: EdgeInsets.only(bottom: 12.h),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Tags de status
+            Row(
+              children: [
+                StatusTagWidget(
+                  type: _mapStatusToTagType(store.selectedStatus),
+                ),
+                if (store.isArchived) ...[
+                  SizedBox(width: 8.w),
+                  const StatusTagWidget(type: TagType.archived),
+                ],
+              ],
+            ),
+            // Botão compartilhar (iOS style)
+            IconButton(
+              icon: Icon(
+                Icons.ios_share,
+                size: 24.sp,
+                color: const Color(0xFF0C498E),
+              ),
+              onPressed: _handleShare,
+              tooltip: 'Compartilhar orçamento',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 🎛️ Widget de Controles de Status (Dropdowns)
+  Widget _buildStatusControls() {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(0, 0, 0, 12.h),
+      child: Row(
+        children: [
+          // Dropdown Status
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Status Orçamento',
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Observer(
+                  builder: (_) => DropdownButtonFormField<String>(
+                    value: store.selectedStatus,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12.w,
+                        vertical: 8.h,
+                      ),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'pendente',
+                        child: Text(
+                          'Pendente',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: 'aprovado',
+                        child: Text(
+                          'Aprovado',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: 'expirado',
+                        child: Text(
+                          'Expirado',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: 'nao_aprovado',
+                        child: Text(
+                          'Não Aprovado',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        store.setStatus(value);
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 8.w),
+          // Dropdown Arquivado
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Arquivado',
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Observer(
+                  builder: (_) => DropdownButtonFormField<bool>(
+                    value: store.isArchived,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12.w,
+                        vertical: 8.h,
+                      ),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: false,
+                        child: Text(
+                          'Não',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: true,
+                        child: Text(
+                          'Sim',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        store.setArchived(value);
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 🔄 Mapeia status string para TagType enum
+  TagType _mapStatusToTagType(String status) {
+    switch (status) {
+      case 'pendente':
+        return TagType.pending;
+      case 'aprovado':
+        return TagType.approved;
+      case 'nao_aprovado':
+        return TagType.notApproved;
+      case 'expirado':
+        return TagType.expired;
+      default:
+        return TagType.pending;
+    }
+  }
+
+  /// 📤 Compartilha informações do orçamento
+  Future<void> _handleShare() async {
+    if (store.budgetData == null) return;
+
+    final budget = store.budgetData!;
+    final shareText = '''
+📋 Orçamento #${budget.id}
+💰 Valor Total: ${_formatCurrency(store.totalValue)}
+📦 Produtos: ${store.selectedProductsCount}
+📅 Validade: ${DateFormat('dd/MM/yyyy').format(store.validityDate ?? DateTime.now())}
+📌 Status: ${_getStatusLabel(store.selectedStatus)}
+${store.isArchived ? '📦 Arquivado' : ''}
+  ''';
+
+    // Copiar para clipboard
+    await Clipboard.setData(ClipboardData(text: shareText));
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content:
+            const Text('Informações copiadas para a área de transferência'),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8.r),
+        ),
+      ),
+    );
+  }
+
+  /// 🏷️ Retorna label legível para o status
+  String _getStatusLabel(String status) {
+    switch (status) {
+      case 'pendente':
+        return 'Pendente';
+      case 'aprovado':
+        return 'Aprovado';
+      case 'expirado':
+        return 'Expirado';
+      case 'nao_aprovado':
+        return 'Não Aprovado';
+      default:
+        return status;
+    }
   }
 }

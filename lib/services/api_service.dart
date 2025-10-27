@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+
 import '../config/api_config.dart';
 
 class ApiService {
@@ -7,12 +8,16 @@ class ApiService {
   ApiService({Dio? dio}) : _dio = dio ?? Dio();
 
   // Generic GET request
-  Future<Map<String, dynamic>> get(String endpoint, {String? token}) async {
+  Future<Map<String, dynamic>> get(String endpoint,
+      {String? token, ResponseType? responseType}) async {
     try {
       final options = Options(
         headers: token != null
             ? ApiConfig.headersWithToken(token)
             : ApiConfig.headers,
+        // Permite que o tipo de resposta seja sobrescrito para chamadas específicas,
+        // usando JSON como padrão.
+        responseType: responseType ?? ResponseType.json,
       );
 
       final response = await _dio.get(
@@ -37,6 +42,7 @@ class ApiService {
         headers: token != null
             ? ApiConfig.headersWithToken(token)
             : ApiConfig.headers,
+        responseType: ResponseType.json,
       );
 
       final response = await _dio.post(
@@ -62,6 +68,7 @@ class ApiService {
         headers: token != null
             ? ApiConfig.headersWithToken(token)
             : ApiConfig.headers,
+        responseType: ResponseType.json,
       );
 
       final response = await _dio.put(
@@ -86,6 +93,7 @@ class ApiService {
         headers: token != null
             ? ApiConfig.headersWithToken(token)
             : ApiConfig.headers,
+        responseType: ResponseType.json,
       );
 
       final response = await _dio.delete(
@@ -108,14 +116,24 @@ class ApiService {
       if (response.statusCode != null &&
           response.statusCode! >= 200 &&
           response.statusCode! < 300) {
+        // Se o responseType for 'plain', os dados serão uma String.
+        // Caso contrário, o Dio já fez o parse.
+        if (response.data is String) {
+          return {'success': true, 'data': response.data};
+        }
+
+        // O Dio já fez o parse do JSON
         return {
           'success': true,
           'data': response.data,
         };
       } else {
+        final errorData = response.data;
+        final errorMessage =
+            errorData is Map ? errorData['message'] : errorData.toString();
         return {
           'success': false,
-          'error': response.data?['message'] ?? 'Erro na requisição',
+          'error': errorMessage ?? 'Erro na requisição',
           'statusCode': response.statusCode,
         };
       }
@@ -123,7 +141,6 @@ class ApiService {
       return {
         'success': false,
         'error': 'Erro ao processar resposta: ${e.toString()}',
-        'statusCode': response.statusCode,
       };
     }
   }

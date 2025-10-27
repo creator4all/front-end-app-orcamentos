@@ -64,7 +64,7 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
   }
 
   Future<void> _handleSave() async {
-    final result = await store.finalizeBudget();
+    final result = await store.saveBudget();
 
     result.fold(
       (failure) {

@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 
 import '../../../shared/errors/budget_failure.dart';
+import '../../../shared/models/budget_update_dto.dart';
 import '../../domain/entities/budget_detail_entity.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../domain/repositories/budget_detail_repository.dart';
@@ -16,16 +17,11 @@ class BudgetDetailRepositoryImpl implements BudgetDetailRepository {
   Future<Either<BudgetFailure, BudgetDetailEntity>> getBudgetById(
       int id) async {
     try {
-      print('📦 [Repository] Buscando orçamento ID: $id');
-
       final dto = await remoteDataSource.getBudgetById(id);
       final entity = dto.toEntity();
 
-      print('✅ [Repository] Orçamento convertido para entidade');
-
       return Right(entity);
     } on Exception catch (e) {
-      print('❌ [Repository] Erro: $e');
       return Left(_mapExceptionToFailure(e));
     }
   }
@@ -35,9 +31,6 @@ class BudgetDetailRepositoryImpl implements BudgetDetailRepository {
     required int budgetId,
   }) async {
     try {
-      print(
-          '📦 [Repository] Buscando TODOS os produtos do orçamento $budgetId (EAGER LOAD)');
-
       final dtos = await remoteDataSource.getAllProducts(
         budgetId: budgetId,
       );
@@ -45,11 +38,8 @@ class BudgetDetailRepositoryImpl implements BudgetDetailRepository {
       // Converter DTOs para Entities
       final entities = dtos.map((dto) => dto.toEntity()).toList();
 
-      print('✅ [Repository] ${entities.length} produtos convertidos (TODOS)');
-
       return Right(entities);
     } on Exception catch (e) {
-      print('❌ [Repository] Erro: $e');
       return Left(_mapExceptionToFailure(e));
     }
   }
@@ -60,9 +50,6 @@ class BudgetDetailRepositoryImpl implements BudgetDetailRepository {
     required int categoryId,
   }) async {
     try {
-      print(
-          '📦 [Repository] Buscando produtos da categoria $categoryId no orçamento $budgetId');
-
       final dtos = await remoteDataSource.getCategoryProducts(
         budgetId: budgetId,
         categoryId: categoryId,
@@ -71,11 +58,8 @@ class BudgetDetailRepositoryImpl implements BudgetDetailRepository {
       // Converter DTOs para Entities
       final entities = dtos.map((dto) => dto.toEntity()).toList();
 
-      print('✅ [Repository] ${entities.length} produtos convertidos');
-
       return Right(entities);
     } on Exception catch (e) {
-      print('❌ [Repository] Erro: $e');
       return Left(_mapExceptionToFailure(e));
     }
   }
@@ -108,6 +92,31 @@ class BudgetDetailRepositoryImpl implements BudgetDetailRepository {
       return Right(entity);
     } on Exception catch (e) {
       print('❌ [Repository] Erro: $e');
+      return Left(_mapExceptionToFailure(e));
+    }
+  }
+
+  @override
+  Future<Either<BudgetFailure, BudgetDetailEntity>> updateBudgetWithDto({
+    required int budgetId,
+    required BudgetUpdateDto updateData,
+  }) async {
+    try {
+      print('📦 [Repository] Atualizando orçamento ID: $budgetId com DTO');
+      print('   📝 Dados: ${updateData.toString()}');
+
+      final dto = await remoteDataSource.updateBudgetWithDto(
+        budgetId: budgetId,
+        updateData: updateData,
+      );
+
+      final entity = dto.toEntity();
+
+      print('✅ [Repository] Orçamento atualizado com sucesso via DTO');
+
+      return Right(entity);
+    } on Exception catch (e) {
+      print('❌ [Repository] Erro ao atualizar com DTO: $e');
       return Left(_mapExceptionToFailure(e));
     }
   }
