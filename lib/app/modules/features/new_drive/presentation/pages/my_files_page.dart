@@ -64,9 +64,10 @@ class _MyFilesPageState extends State<MyFilesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF3F4F6),
-      appBar: const CustomTopBar(
+      appBar: CustomTopBar(
         title: 'Meus Arquivos',
         showBackButton: true,
+        authStore: authStore,
       ),
       body: Observer(
         builder: (_) {

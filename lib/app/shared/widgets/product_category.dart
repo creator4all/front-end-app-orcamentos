@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../utils/string_utils.dart';
 import 'action_button.dart';
 import 'card_base.dart';
 
@@ -142,7 +143,7 @@ class ProductCategory extends StatelessWidget {
                             // Title (required)
                             Flexible(
                               child: Text(
-                                title,
+                                capitalizeFirstLetter(title),
                                 style: textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.w600,
                                 ),

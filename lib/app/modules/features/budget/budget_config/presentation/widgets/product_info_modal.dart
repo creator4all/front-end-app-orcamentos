@@ -4,6 +4,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../../../shared/utils/string_utils.dart';
 import '../../../../../../shared/widgets/custom_modal.dart';
 import '../../domain/entities/product_entity.dart';
 import '../stores/budget_config_store.dart';
@@ -124,11 +125,11 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildInfoRow('Grupo', categoryName),
+          _buildInfoRow('Grupo', capitalizeFirstLetter(categoryName)),
           SizedBox(height: 8.h),
-          _buildInfoRow('Sub-grupo', subcategoryName),
+          _buildInfoRow('Sub-grupo', capitalizeFirstLetter(subcategoryName)),
           SizedBox(height: 8.h),
-          _buildInfoRow('Solução', product.solucao),
+          _buildInfoRow('Solução', capitalizeFirstLetter(product.solucao)),
           SizedBox(height: 8.h),
           _buildInfoRow('Indicação', product.indicacao),
           SizedBox(height: 8.h),

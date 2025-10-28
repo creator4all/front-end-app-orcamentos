@@ -4,10 +4,11 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-import '../../../../shared/widgets/widgets.dart';
 import '../../../../shared/widgets/rename_budget_modal.dart';
-import '../stores/budget_list_store.dart';
+import '../../../../shared/widgets/widgets.dart';
+import '../../../features/auth/presentation/stores/auth_store.dart';
 import '../../external/services/budget_service.dart';
+import '../stores/budget_list_store.dart';
 
 class BudgetListPage extends StatefulWidget {
   const BudgetListPage({super.key});
@@ -18,11 +19,13 @@ class BudgetListPage extends StatefulWidget {
 
 class _BudgetListPageState extends State<BudgetListPage> {
   late final BudgetListStore _store;
+  late final AuthStore _authStore;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _store = Modular.get<BudgetListStore>();
+    _authStore = Modular.get<AuthStore>();
     _checkAuthAndFetch();
   }
 
@@ -33,12 +36,13 @@ class _BudgetListPageState extends State<BudgetListPage> {
       final token = await storage.read(key: 'auth_token');
       print('🔐 Token encontrado: ${token != null ? 'SIM' : 'NÃO'}');
       if (token != null) {
-        print('🔐 Token (primeiros 20 chars): ${token.substring(0, token.length > 20 ? 20 : token.length)}...');
+        print(
+            '🔐 Token (primeiros 20 chars): ${token.substring(0, token.length > 20 ? 20 : token.length)}...');
       }
     } catch (e) {
       print('❌ Erro ao verificar token: $e');
     }
-    
+
     _store.fetch();
   }
 
@@ -54,7 +58,7 @@ class _BudgetListPageState extends State<BudgetListPage> {
         _store.toggleFilter(filter);
       }
     }
-    
+
     // Adicionar novos filtros
     for (final filter in filters) {
       if (!_store.selectedFilters.contains(filter)) {
@@ -76,7 +80,7 @@ class _BudgetListPageState extends State<BudgetListPage> {
           // Chamar o serviço para renomear o orçamento
           final service = Modular.get<BudgetService>();
           await service.renomear(budgetId, newName);
-          
+
           // Atualizar a lista
           _store.refresh();
         },
@@ -96,12 +100,10 @@ class _BudgetListPageState extends State<BudgetListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomTopBar(
+      appBar: CustomTopBar(
         title: 'Orçamentos',
         showBackButton: false,
-        userName: 'Pedro Penha',
-        userEmail: 'pedro.penha.martins@gmail.com',
-        userDocument: '03.848.869/0001-89',
+        authStore: _authStore,
       ),
       body: SafeArea(
         child: Column(
@@ -122,7 +124,9 @@ class _BudgetListPageState extends State<BudgetListPage> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text(
-                      _store.selectedFilters.contains('arquivado') ? 'Arquivados' : 'Realizados',
+                      _store.selectedFilters.contains('arquivado')
+                          ? 'Arquivados'
+                          : 'Realizados',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18.sp,
@@ -234,7 +238,8 @@ class _BudgetListPageState extends State<BudgetListPage> {
                                 null, // TODO: Implementar quando tiver dados do parceiro
                             seller:
                                 null, // TODO: Implementar quando tiver dados do vendedor
-                            budgetCode: 'ORC-${b.id.toString().padLeft(4, '0')}',
+                            budgetCode:
+                                'ORC-${b.id.toString().padLeft(4, '0')}',
                             dueDate: b.dataValidade ??
                                 DateTime.now()
                                     .add(Duration(days: b.diasValidade)),

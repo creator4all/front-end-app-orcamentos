@@ -6,6 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../../../../shared/widgets/rename_budget_modal.dart';
 import '../../../../../../shared/widgets/widgets.dart';
+import '../../../../../features/auth/presentation/stores/auth_store.dart';
 import '../stores/budget_list_store.dart';
 
 class BudgetListPage extends StatefulWidget {
@@ -17,11 +18,13 @@ class BudgetListPage extends StatefulWidget {
 
 class _BudgetListPageState extends State<BudgetListPage> {
   late final BudgetListStore _store;
+  late final AuthStore _authStore;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _store = Modular.get<BudgetListStore>();
+    _authStore = Modular.get<AuthStore>();
     _checkAuthAndFetch();
   }
 
@@ -97,12 +100,10 @@ class _BudgetListPageState extends State<BudgetListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomTopBar(
+      appBar: CustomTopBar(
         title: 'Orçamentos',
         showBackButton: false,
-        userName: 'Pedro Penha',
-        userEmail: 'pedro.penha.martins@gmail.com',
-        userDocument: '03.848.869/0001-89',
+        authStore: _authStore,
       ),
       body: SafeArea(
         child: Column(

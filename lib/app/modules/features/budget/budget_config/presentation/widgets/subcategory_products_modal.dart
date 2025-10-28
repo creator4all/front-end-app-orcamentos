@@ -3,6 +3,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../../../../shared/utils/string_utils.dart';
 import '../../../../../../shared/widgets/custom_modal.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../domain/entities/subcategory_entity.dart';
@@ -42,7 +43,7 @@ class SubcategoryProductsModal extends StatelessWidget {
   }) {
     return CustomModal.show(
       context: context,
-      title: subcategory.nome,
+      title: capitalizeFirstLetter(subcategory.nome),
       content: SubcategoryProductsModal(
         categoryId: categoryId,
         subcategoryId: subcategory.id,

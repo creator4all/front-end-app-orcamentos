@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../../../shared/utils/string_utils.dart';
 import '../../../../../../shared/widgets/custom_checkbox.dart';
 import '../../domain/entities/product_entity.dart';
 
@@ -79,7 +80,7 @@ class ProductItemCard extends StatelessWidget {
               children: [
                 // Nome do produto
                 Text(
-                  product.solucao,
+                  capitalizeFirstLetter(product.solucao),
                   style: TextStyle(
                     fontSize: 12.sp,
                     fontWeight: FontWeight.w400,
