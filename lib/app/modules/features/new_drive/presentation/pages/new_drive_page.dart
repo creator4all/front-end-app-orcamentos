@@ -61,9 +61,10 @@ class _NewDrivePageState extends State<NewDrivePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF3F4F6),
-      appBar: const CustomTopBar(
+      appBar: CustomTopBar(
         title: 'Multi Drive',
         showBackButton: true,
+        authStore: authStore,
       ),
       body: Observer(
         builder: (_) {

@@ -12,6 +12,8 @@ import '../../../../../../shared/widgets/product_category.dart';
 import '../../../../../../shared/widgets/status_tag_widget.dart';
 // Imports de serviços
 import '../../../../../budget/external/services/budget_service.dart';
+// Imports de auth
+import '../../../../auth/presentation/stores/auth_store.dart';
 // Imports da feature
 import '../../../budget_config/domain/entities/category_entity.dart';
 import '../../../budget_config/domain/entities/product_entity.dart';
@@ -38,6 +40,7 @@ class EditBudgetPage extends StatefulWidget {
 
 class _EditBudgetPageState extends State<EditBudgetPage> {
   late final BudgetEditStore store;
+  late final AuthStore _authStore;
 
   final TextEditingController _dataOrcamentoController =
       TextEditingController();
@@ -93,6 +96,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
   void initState() {
     super.initState();
     store = Modular.get<BudgetEditStore>();
+    _authStore = Modular.get<AuthStore>();
 
     // Define a data atual para o campo "Data do orçamento" no formato brasileiro
     _dataOrcamentoController.text =
@@ -199,9 +203,10 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomTopBar(
+      appBar: CustomTopBar(
         title: 'Editar Orçamento',
         showBackButton: true,
+        authStore: _authStore,
       ),
       body: Observer(
         builder: (_) {

@@ -4,6 +4,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_top_bar.dart';
 
+import '../../../auth/presentation/stores/auth_store.dart';
 import '../../domain/entities/drive_item.dart';
 import '../stores/file_opener_store.dart';
 import '../stores/new_drive_store.dart';
@@ -32,6 +33,7 @@ class FolderContentsPage extends StatefulWidget {
 class _FolderContentsPageState extends State<FolderContentsPage> {
   final NewDriveStore store = Modular.get<NewDriveStore>();
   final FileOpenerStore fileOpenerStore = Modular.get<FileOpenerStore>();
+  final AuthStore _authStore = Modular.get<AuthStore>();
   final TextEditingController searchController = TextEditingController();
 
   @override
@@ -54,6 +56,7 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
       appBar: CustomTopBar(
         title: widget.folderName ?? 'Pasta',
         showBackButton: true,
+        authStore: _authStore,
       ),
       body: Observer(
         builder: (_) {

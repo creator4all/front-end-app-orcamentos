@@ -69,6 +69,29 @@ abstract class _AuthStoreBase with Store {
     return '${partner.tradeName} (${partner.cnpj})';
   }
 
+  // ========== GETTERS PARA CUSTOM TOP BAR ==========
+
+  /// Retorna o nome do usuário para exibição no perfil
+  @computed
+  String get userDisplayName => currentUser?.name ?? 'Usuário';
+
+  /// Retorna o email do usuário para exibição no perfil
+  @computed
+  String get userDisplayEmail => currentUser?.email ?? 'Sem email';
+
+  /// Retorna o documento (CNPJ) do parceiro para exibição no perfil
+  @computed
+  String get userDisplayDocument =>
+      currentUser?.partner?.cnpj ?? 'Sem documento';
+
+  /// Retorna a URL do avatar do usuário
+  @computed
+  String? get userDisplayAvatar => currentUser?.avatar;
+
+  /// Retorna true se o usuário tem um parceiro vinculado
+  @computed
+  bool get hasPartnerData => currentUser?.partner != null;
+
   /// Action para realizar login
   @action
   Future<void> login(String email, String password) async {

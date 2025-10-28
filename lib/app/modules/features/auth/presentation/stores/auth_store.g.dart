@@ -50,6 +50,41 @@ mixin _$AuthStore on _AuthStoreBase, Store {
       (_$partnerInfoComputed ??= Computed<String>(() => super.partnerInfo,
               name: '_AuthStoreBase.partnerInfo'))
           .value;
+  Computed<String>? _$userDisplayNameComputed;
+
+  @override
+  String get userDisplayName => (_$userDisplayNameComputed ??= Computed<String>(
+          () => super.userDisplayName,
+          name: '_AuthStoreBase.userDisplayName'))
+      .value;
+  Computed<String>? _$userDisplayEmailComputed;
+
+  @override
+  String get userDisplayEmail => (_$userDisplayEmailComputed ??=
+          Computed<String>(() => super.userDisplayEmail,
+              name: '_AuthStoreBase.userDisplayEmail'))
+      .value;
+  Computed<String>? _$userDisplayDocumentComputed;
+
+  @override
+  String get userDisplayDocument => (_$userDisplayDocumentComputed ??=
+          Computed<String>(() => super.userDisplayDocument,
+              name: '_AuthStoreBase.userDisplayDocument'))
+      .value;
+  Computed<String?>? _$userDisplayAvatarComputed;
+
+  @override
+  String? get userDisplayAvatar => (_$userDisplayAvatarComputed ??=
+          Computed<String?>(() => super.userDisplayAvatar,
+              name: '_AuthStoreBase.userDisplayAvatar'))
+      .value;
+  Computed<bool>? _$hasPartnerDataComputed;
+
+  @override
+  bool get hasPartnerData =>
+      (_$hasPartnerDataComputed ??= Computed<bool>(() => super.hasPartnerData,
+              name: '_AuthStoreBase.hasPartnerData'))
+          .value;
 
   late final _$isLoadingAtom =
       Atom(name: '_AuthStoreBase.isLoading', context: context);
@@ -176,7 +211,12 @@ partnerName: ${partnerName},
 isAdmin: ${isAdmin},
 hasPartner: ${hasPartner},
 partnerId: ${partnerId},
-partnerInfo: ${partnerInfo}
+partnerInfo: ${partnerInfo},
+userDisplayName: ${userDisplayName},
+userDisplayEmail: ${userDisplayEmail},
+userDisplayDocument: ${userDisplayDocument},
+userDisplayAvatar: ${userDisplayAvatar},
+hasPartnerData: ${hasPartnerData}
     ''';
   }
 }
