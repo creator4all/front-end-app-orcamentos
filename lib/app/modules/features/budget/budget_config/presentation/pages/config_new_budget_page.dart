@@ -8,6 +8,7 @@ import '../../../../../../shared/widgets/budget_summary_card.dart';
 import '../../../../../../shared/widgets/custom_top_bar.dart';
 import '../../../../../../shared/widgets/product_category.dart';
 import '../../../../../budget/presentation/pages/school_census.dart';
+import '../../../../auth/presentation/stores/auth_store.dart';
 import '../../domain/entities/category_entity.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../domain/entities/subcategory_entity.dart';
@@ -32,6 +33,7 @@ class ConfigNewBudgetPage extends StatefulWidget {
 
 class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
   late final BudgetConfigStore store;
+  late final AuthStore _authStore;
 
   final TextEditingController _dataOrcamentoController =
       TextEditingController();
@@ -42,6 +44,7 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
   void initState() {
     super.initState();
     store = Modular.get<BudgetConfigStore>();
+    _authStore = Modular.get<AuthStore>();
 
     // Define a data atual para o campo "Data do orçamento" no formato brasileiro
     _dataOrcamentoController.text =
@@ -64,7 +67,7 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
   }
 
   Future<void> _handleSave() async {
-    final result = await store.finalizeBudget();
+    final result = await store.saveBudget();
 
     result.fold(
       (failure) {
@@ -142,9 +145,10 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomTopBar(
+      appBar: CustomTopBar(
         title: 'Configurar Orçamento',
         showBackButton: true,
+        authStore: _authStore,
       ),
       body: Observer(
         builder: (_) {

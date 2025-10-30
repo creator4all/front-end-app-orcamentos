@@ -15,8 +15,10 @@ class BudgetEditDto {
   final int userId;
   final int? partnerId;
   final List<int> cityIds;
+  final List<Map<String, dynamic>>
+      citiesDataRaw; // Dados completos das cidades com indicadores
   final List<ProductSelectionDto> products;
-  final Map<String, dynamic> categoriesData;
+  final dynamic categoriesData; // Pode ser List ou Map dependendo da API
   final CensusDataDto? censusData;
 
   BudgetEditDto({
@@ -31,36 +33,34 @@ class BudgetEditDto {
     required this.userId,
     this.partnerId,
     required this.cityIds,
+    this.citiesDataRaw = const [],
     required this.products,
     required this.categoriesData,
     this.censusData,
   });
 
   factory BudgetEditDto.fromJson(Map<String, dynamic> json) {
-    // Parse produtos
+    // Parse produtos - NÃO parseamos aqui, virão de /produtos-completos
     final List<ProductSelectionDto> productsList = [];
 
-    // Estrutura organizada (categorias > subcategorias > produtos)
-    if (json['categorias'] != null && json['categorias'] is List) {
-      for (final categoria in json['categorias']) {
-        final subcategorias = categoria['subcategorias'] as List? ?? [];
-        for (final subcategoria in subcategorias) {
-          final subId = subcategoria['id'] as int;
-          final produtos = subcategoria['produtos'] as List? ?? [];
-          for (final produto in produtos) {
-            final produtoData = Map<String, dynamic>.from(produto);
-            produtoData['subcategoria_id'] = subId;
-            produtoData['categoria'] = categoria['nome'];
-            productsList.add(ProductSelectionDto.fromJson(produtoData));
-          }
+    // Parse cidades (IDs e dados completos)
+    final List<int> cities = [];
+    final List<Map<String, dynamic>> citiesData = [];
+
+    if (json['cidades'] != null && json['cidades'] is List) {
+      final cidadesList = json['cidades'] as List;
+      for (final cidade in cidadesList) {
+        // Se é um objeto com 'id', pega o id E os dados completos
+        if (cidade is Map<String, dynamic> && cidade['id'] != null) {
+          cities.add(cidade['id'] as int);
+          citiesData.add(
+              Map<String, dynamic>.from(cidade)); // Armazena dados completos
+        }
+        // Se é um int direto
+        else if (cidade is int) {
+          cities.add(cidade);
         }
       }
-    }
-
-    // Parse cidades
-    final List<int> cities = [];
-    if (json['cidades'] != null && json['cidades'] is List) {
-      cities.addAll((json['cidades'] as List).map((e) => e as int));
     } else if (json['orc_cidade_id'] != null) {
       cities.add(json['orc_cidade_id'] as int);
     }
@@ -92,8 +92,9 @@ class BudgetEditDto {
       userId: json['orc_usuario_id'] ?? json['usuario_id'] ?? 0,
       partnerId: json['orc_partner_destino_id'] ?? json['partner_id'],
       cityIds: cities,
+      citiesDataRaw: citiesData,
       products: productsList,
-      categoriesData: json['categorias'] ?? {},
+      categoriesData: json['categorias'] ?? [],
       censusData: census,
     );
   }
@@ -128,6 +129,7 @@ class BudgetEditDto {
       userId: userId,
       partnerId: partnerId,
       cityIds: cityIds,
+      citiesDataRaw: citiesDataRaw,
       products: products.map((p) => p.toEntity()).toList(),
       categoriesData: categoriesData,
       censusData: censusData?.toEntity(),

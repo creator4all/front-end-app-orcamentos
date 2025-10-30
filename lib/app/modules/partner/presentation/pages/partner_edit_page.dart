@@ -1,12 +1,15 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobx/mobx.dart';
-import '../stores/partner_store.dart';
+
 import '../../../../shared/widgets/custom_top_bar.dart';
+import '../../../features/auth/presentation/stores/auth_store.dart';
+import '../stores/partner_store.dart';
 
 class PartnerEditPage extends StatefulWidget {
   const PartnerEditPage({super.key});
@@ -17,6 +20,7 @@ class PartnerEditPage extends StatefulWidget {
 
 class _PartnerEditPageState extends State<PartnerEditPage> {
   late final PartnerStore _store;
+  late final AuthStore _authStore;
   final ImagePicker _imagePicker = ImagePicker();
 
   final TextEditingController _tradeNameController = TextEditingController();
@@ -27,7 +31,8 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _store = Modular.get<PartnerStore>();
-    
+    _authStore = Modular.get<AuthStore>();
+
     // Observar mudanças no partner e atualizar controllers
     reaction(
       (_) => _store.partner,
@@ -39,7 +44,7 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
         }
       },
     );
-    
+
     _store.fetch();
   }
 
@@ -62,13 +67,18 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
 
       if (image != null) {
         _store.setSelectedLogo(File(image.path));
-        
+
         // Upload automático
         final success = await _store.uploadLogo();
-        
+
         if (!mounted) return;
-        
+
         if (success) {
+          // ✅ Recarregar dados do usuário na AuthStore
+          await _authStore.loadCurrentUser();
+
+          if (!mounted) return;
+
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Logo atualizado com sucesso!'),
@@ -102,10 +112,15 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
     _store.setPhone(_phoneController.text);
 
     final success = await _store.save();
-    
+
     if (!mounted) return;
-    
+
     if (success) {
+      // ✅ Recarregar dados do usuário na AuthStore
+      await _authStore.loadCurrentUser();
+
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Empresa atualizada com sucesso!'),
@@ -125,165 +140,170 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomTopBar(
+      appBar: CustomTopBar(
         title: 'Editar Empresa',
         showBackButton: true,
+        authStore: _authStore,
       ),
       body: SafeArea(
         child: Observer(
-              builder: (_) {
-                if (_store.isLoading) {
-                  return const Center(
-                    child: CircularProgressIndicator(
-                      color: Color(0xFF117BBD),
+          builder: (_) {
+            if (_store.isLoading) {
+              return const Center(
+                child: CircularProgressIndicator(
+                  color: Color(0xFF117BBD),
+                ),
+              );
+            }
+
+            if (_store.error != null && _store.partner == null) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline,
+                        size: 64, color: Colors.red),
+                    SizedBox(height: 16.h),
+                    Text(
+                      'Erro ao carregar empresa',
+                      style: TextStyle(
+                          fontSize: 18.sp, fontWeight: FontWeight.bold),
                     ),
-                  );
-                }
-
-                if (_store.error != null && _store.partner == null) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                        SizedBox(height: 16.h),
-                        Text(
-                          'Erro ao carregar empresa',
-                          style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
-                        ),
-                        SizedBox(height: 8.h),
-                        Text(
-                          _store.error!,
-                          style: TextStyle(fontSize: 14.sp, color: Colors.grey),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: 16.h),
-                        ElevatedButton(
-                          onPressed: () => _store.fetch(),
-                          child: const Text('Tentar Novamente'),
-                        ),
-                      ],
+                    SizedBox(height: 8.h),
+                    Text(
+                      _store.error!,
+                      style: TextStyle(fontSize: 14.sp, color: Colors.grey),
+                      textAlign: TextAlign.center,
                     ),
-                  );
-                }
+                    SizedBox(height: 16.h),
+                    ElevatedButton(
+                      onPressed: () => _store.fetch(),
+                      child: const Text('Tentar Novamente'),
+                    ),
+                  ],
+                ),
+              );
+            }
 
-                return SingleChildScrollView(
-                  padding: EdgeInsets.all(16.w),
-                  child: Column(
-                    children: [
-                      // Logo da empresa
-                      GestureDetector(
-                        onTap: _pickImage,
-                        child: Container(
-                          width: 120.r,
-                          height: 120.r,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.grey[200],
-                            image: _store.partner?.logo != null
-                                ? DecorationImage(
-                                    image: NetworkImage(
-                                      'https://your-api-url.com/storage/logos/${_store.partner!.logo}',
-                                    ),
-                                    fit: BoxFit.cover,
-                                  )
-                                : null,
-                          ),
-                          child: _store.partner?.logo == null
-                              ? Icon(
-                                  Icons.business,
-                                  size: 60.r,
-                                  color: Colors.grey[400],
-                                )
-                              : null,
-                        ),
+            return SingleChildScrollView(
+              padding: EdgeInsets.all(16.w),
+              child: Column(
+                children: [
+                  // Logo da empresa
+                  GestureDetector(
+                    onTap: _pickImage,
+                    child: Container(
+                      width: 120.r,
+                      height: 120.r,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.grey[200],
+                        image: _store.partner?.logo != null
+                            ? DecorationImage(
+                                image: NetworkImage(
+                                  'https://your-api-url.com/storage/logos/${_store.partner!.logo}',
+                                ),
+                                fit: BoxFit.cover,
+                              )
+                            : null,
                       ),
-
-                      SizedBox(height: 12.h),
-
-                      // Botão trocar logo
-                      TextButton.icon(
-                        onPressed: _pickImage,
-                        icon: const Icon(Icons.camera_alt),
-                        label: const Text('Trocar Logo'),
-                        style: TextButton.styleFrom(
-                          foregroundColor: const Color(0xFF117BBD),
-                        ),
-                      ),
-
-                      SizedBox(height: 32.h),
-
-                      // Nome Fantasia
-                      _buildTextFieldWithLabel(
-                        controller: _tradeNameController,
-                        label: 'Nome Fantasia',
-                      ),
-
-                      SizedBox(height: 16.h),
-
-                      // Email
-                      _buildTextFieldWithLabel(
-                        controller: _emailController,
-                        label: 'Email',
-                        keyboardType: TextInputType.emailAddress,
-                      ),
-
-                      SizedBox(height: 16.h),
-
-                      // Telefone
-                      _buildTextFieldWithLabel(
-                        controller: _phoneController,
-                        label: 'Telefone',
-                        keyboardType: TextInputType.phone,
-                      ),
-
-                      SizedBox(height: 24.h),
-
-                      // Cards read-only
-                      _buildReadOnlyCard('Razão Social', _store.partner?.legalName ?? ''),
-                      SizedBox(height: 12.h),
-                      _buildReadOnlyCard('CNPJ', _formatCnpj(_store.partner?.cnpj ?? '')),
-
-                      SizedBox(height: 32.h),
-
-                      // Botão Salvar
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50.h,
-                        child: ElevatedButton.icon(
-                          onPressed: _store.isSaving ? null : _save,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF117BBD),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8.r),
-                            ),
-                          ),
-                          icon: _store.isSaving
-                              ? SizedBox(
-                                  width: 20.w,
-                                  height: 20.h,
-                                  child: const CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Icon(Icons.save, color: Colors.white),
-                          label: Text(
-                            _store.isSaving ? 'Salvando...' : 'Salvar Alterações',
-                            style: TextStyle(
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                      child: _store.partner?.logo == null
+                          ? Icon(
+                              Icons.business,
+                              size: 60.r,
+                              color: Colors.grey[400],
+                            )
+                          : null,
+                    ),
                   ),
-                );
-              },
-            ),
-          ),
+
+                  SizedBox(height: 12.h),
+
+                  // Botão trocar logo
+                  TextButton.icon(
+                    onPressed: _pickImage,
+                    icon: const Icon(Icons.camera_alt),
+                    label: const Text('Trocar Logo'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF117BBD),
+                    ),
+                  ),
+
+                  SizedBox(height: 32.h),
+
+                  // Nome Fantasia
+                  _buildTextFieldWithLabel(
+                    controller: _tradeNameController,
+                    label: 'Nome Fantasia',
+                  ),
+
+                  SizedBox(height: 16.h),
+
+                  // Email
+                  _buildTextFieldWithLabel(
+                    controller: _emailController,
+                    label: 'Email',
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+
+                  SizedBox(height: 16.h),
+
+                  // Telefone
+                  _buildTextFieldWithLabel(
+                    controller: _phoneController,
+                    label: 'Telefone',
+                    keyboardType: TextInputType.phone,
+                  ),
+
+                  SizedBox(height: 24.h),
+
+                  // Cards read-only
+                  _buildReadOnlyCard(
+                      'Razão Social', _store.partner?.legalName ?? ''),
+                  SizedBox(height: 12.h),
+                  _buildReadOnlyCard(
+                      'CNPJ', _formatCnpj(_store.partner?.cnpj ?? '')),
+
+                  SizedBox(height: 32.h),
+
+                  // Botão Salvar
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50.h,
+                    child: ElevatedButton.icon(
+                      onPressed: _store.isSaving ? null : _save,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF117BBD),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                      ),
+                      icon: _store.isSaving
+                          ? SizedBox(
+                              width: 20.w,
+                              height: 20.h,
+                              child: const CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Icon(Icons.save, color: Colors.white),
+                      label: Text(
+                        _store.isSaving ? 'Salvando...' : 'Salvar Alterações',
+                        style: TextStyle(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 
@@ -322,7 +342,8 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
               borderRadius: BorderRadius.circular(8.r),
               borderSide: const BorderSide(color: Color(0xFF117BBD), width: 2),
             ),
-            contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+            contentPadding:
+                EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
           ),
         ),
       ],

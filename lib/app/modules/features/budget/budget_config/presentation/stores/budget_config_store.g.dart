@@ -339,6 +339,14 @@ mixin _$BudgetConfigStore on _BudgetConfigStoreBase, Store {
         .run(() => super.reloadProductsAfterCensusEdit());
   }
 
+  late final _$saveBudgetAsyncAction =
+      AsyncAction('_BudgetConfigStoreBase.saveBudget', context: context);
+
+  @override
+  Future<Either<BudgetFailure, BudgetDetailEntity>> saveBudget() {
+    return _$saveBudgetAsyncAction.run(() => super.saveBudget());
+  }
+
   late final _$_BudgetConfigStoreBaseActionController =
       ActionController(name: '_BudgetConfigStoreBase', context: context);
 

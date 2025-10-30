@@ -13,10 +13,10 @@ class DioClient {
       BaseOptions(
         baseUrl: ApiConfig.baseUrl,
         connectTimeout:
-            const Duration(seconds: 30), // Aumentado de 10 para 30 segundos
-        receiveTimeout:
-            const Duration(seconds: 30), // Aumentado de 10 para 30 segundos
-        sendTimeout: const Duration(seconds: 30), // Adicionado sendTimeout
+            const Duration(seconds: 30), // Tempo para estabelecer conexão
+        receiveTimeout: const Duration(
+            seconds: 120), // ⚠️ AUMENTADO: 120s para JSONs grandes (116KB+)
+        sendTimeout: const Duration(seconds: 60), // Tempo para enviar dados
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',

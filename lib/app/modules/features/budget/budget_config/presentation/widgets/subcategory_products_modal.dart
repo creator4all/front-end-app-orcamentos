@@ -3,6 +3,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../../../../shared/utils/string_utils.dart';
 import '../../../../../../shared/widgets/custom_modal.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../domain/entities/subcategory_entity.dart';
@@ -23,10 +24,14 @@ class SubcategoryProductsModal extends StatelessWidget {
   /// ID da subcategoria
   final int subcategoryId;
 
+  /// Store a ser usada (pode ser BudgetConfigStore ou BudgetEditStore)
+  final dynamic store;
+
   const SubcategoryProductsModal({
     super.key,
     required this.categoryId,
     required this.subcategoryId,
+    this.store,
   });
 
   /// Mostra a modal usando showModalBottomSheet
@@ -34,13 +39,15 @@ class SubcategoryProductsModal extends StatelessWidget {
     required BuildContext context,
     required SubcategoryEntity subcategory,
     required int categoryId,
+    dynamic store,
   }) {
     return CustomModal.show(
       context: context,
-      title: subcategory.nome,
+      title: capitalizeFirstLetter(subcategory.nome),
       content: SubcategoryProductsModal(
         categoryId: categoryId,
         subcategoryId: subcategory.id,
+        store: store,
       ),
     );
   }
@@ -52,17 +59,19 @@ class SubcategoryProductsModal extends StatelessWidget {
       categoryId: categoryId,
       subcategoryId: subcategoryId,
       productId: product.id,
+      store: store, // Passa a mesma store
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final store = Modular.get<BudgetConfigStore>();
+    // Usa a store passada ou busca do Modular como fallback
+    final storeInstance = store ?? Modular.get<BudgetConfigStore>();
 
     return Observer(
       builder: (_) {
         // Busca a subcategoria atualizada da store
-        final category = store.categories.firstWhere(
+        final category = storeInstance.categories.firstWhere(
           (c) => c.id == categoryId,
           orElse: () => throw Exception('Categoria não encontrada'),
         );
@@ -72,18 +81,25 @@ class SubcategoryProductsModal extends StatelessWidget {
           orElse: () => throw Exception('Subcategoria não encontrada'),
         );
 
-        print(
-            '🔍 [SubcategoryProductsModal] Subcategoria: ${subcategory.nome}');
-        print('   📦 Total produtos: ${subcategory.produtos.length}');
-        print('   ✅ Produtos ativos: ${subcategory.activeProdutos.length}');
-        print(
-            '   📊 Produtos selecionados: ${subcategory.selectedProdutos.length}');
+        // 🐛 DEBUG: Verificar estado dos produtos
+        debugPrint('🔍 [DEBUG] Subcategoria: ${subcategory.nome}');
+        debugPrint('   📦 Total produtos: ${subcategory.produtos.length}');
+        debugPrint(
+            '   ✅ Produtos ativos: ${subcategory.activeProdutos.length}');
+
+        if (subcategory.produtos.isNotEmpty) {
+          debugPrint('   � Primeiros 3 produtos:');
+          for (var i = 0; i < 3 && i < subcategory.produtos.length; i++) {
+            final p = subcategory.produtos[i];
+            debugPrint('      - ${p.solucao} (ativo: ${p.ativo}, ID: ${p.id})');
+          }
+        }
 
         final activeProducts = subcategory.activeProdutos;
 
         // Se não houver produtos ativos
         if (activeProducts.isEmpty) {
-          print('   ⚠️ LISTA VAZIA - Nenhum produto ativo encontrado!');
+          debugPrint('   ⚠️ LISTA VAZIA - Nenhum produto ativo encontrado!');
           return Center(
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: 32.h),
@@ -115,7 +131,7 @@ class SubcategoryProductsModal extends StatelessWidget {
                 return ProductItemCard(
                   product: product,
                   onToggle: (isSelected) {
-                    store.toggleProduct(product.id, isSelected);
+                    storeInstance.toggleProduct(product.id, isSelected);
                   },
                   onInfoTap: () => _handleInfoTap(context, product),
                 );
