@@ -13,6 +13,8 @@ export 'custom_modal.dart';
 // Export da CustomTopBar
 export 'custom_top_bar.dart';
 export 'days_remaining_widget.dart';
+// Export do ExportPdfModal
+export 'export_pdf_modal.dart';
 // Export do ProductInfoModal
 export 'product_info_modal.dart';
 // Export do ProfileModal

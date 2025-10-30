@@ -1,6 +1,9 @@
 import 'package:dartz/dartz.dart';
 
+import '../../../budget_config/data/models/product_dto.dart';
+import '../../../budget_config/domain/entities/product_entity.dart';
 import '../../../shared/errors/budget_failure.dart';
+import '../../../shared/models/budget_update_dto.dart';
 import '../../domain/entities/budget_edit_entity.dart';
 import '../../domain/repositories/budget_edit_repository.dart';
 import '../datasources/budget_edit_remote_datasource.dart';
@@ -14,16 +17,39 @@ class BudgetEditRepositoryImpl implements BudgetEditRepository {
   Future<Either<BudgetFailure, BudgetEditEntity>> getBudgetForEdit(
       int id) async {
     try {
-      print('📦 [Repository] Buscando orçamento para edição: $id');
 
       final dto = await remoteDataSource.getBudgetForEdit(id);
       final entity = dto.toEntity();
 
-      print('✅ [Repository] Orçamento convertido para entidade');
 
       return Right(entity);
     } on Exception catch (e) {
-      print('❌ [Repository] Erro: $e');
+      return Left(_mapExceptionToFailure(e));
+    }
+  }
+
+  @override
+  Future<Either<BudgetFailure, List<ProductEntity>>> getAllProducts({
+    required int budgetId,
+  }) async {
+    try {
+
+      final productsData =
+          await remoteDataSource.getBudgetProductsComplete(budgetId);
+
+      // Extrair array de produtos
+      final produtosJson = productsData['produtos'] as List<dynamic>? ?? [];
+
+
+      // Parsear cada produto usando ProductDTO
+      final produtos = produtosJson
+          .map((json) => ProductDTO.fromJson(json as Map<String, dynamic>))
+          .map((dto) => dto.toEntity())
+          .toList();
+
+
+      return Right(produtos);
+    } on Exception catch (e) {
       return Left(_mapExceptionToFailure(e));
     }
   }
@@ -39,7 +65,6 @@ class BudgetEditRepositoryImpl implements BudgetEditRepository {
     List<int>? selectedProductIds,
   }) async {
     try {
-      print('📦 [Repository] Atualizando orçamento: $id');
 
       final dto = await remoteDataSource.updateBudget(
         id: id,
@@ -53,11 +78,30 @@ class BudgetEditRepositoryImpl implements BudgetEditRepository {
 
       final entity = dto.toEntity();
 
-      print('✅ [Repository] Orçamento atualizado');
 
       return Right(entity);
     } on Exception catch (e) {
-      print('❌ [Repository] Erro: $e');
+      return Left(_mapExceptionToFailure(e));
+    }
+  }
+
+  @override
+  Future<Either<BudgetFailure, BudgetEditEntity>> updateBudgetWithDto({
+    required int budgetId,
+    required BudgetUpdateDto updateData,
+  }) async {
+    try {
+
+      final dto = await remoteDataSource.updateBudgetWithDto(
+        budgetId: budgetId,
+        updateData: updateData,
+      );
+
+      final entity = dto.toEntity();
+
+
+      return Right(entity);
+    } on Exception catch (e) {
       return Left(_mapExceptionToFailure(e));
     }
   }

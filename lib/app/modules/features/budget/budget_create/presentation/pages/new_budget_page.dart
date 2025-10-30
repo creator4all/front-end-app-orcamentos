@@ -242,9 +242,10 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomTopBar(
+      appBar: CustomTopBar(
         title: 'Novo orçamento',
         showBackButton: true,
+        authStore: _authStore,
       ),
       body: SafeArea(
         child: RefreshIndicator(

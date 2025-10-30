@@ -16,8 +16,10 @@ class BudgetEditEntity extends Equatable {
   final int userId;
   final int? partnerId;
   final List<int> cityIds;
+  final List<Map<String, dynamic>>
+      citiesDataRaw; // Dados completos das cidades com indicadores
   final List<ProductSelectionEntity> products;
-  final Map<String, dynamic> categoriesData;
+  final dynamic categoriesData; // Pode ser List ou Map dependendo da API
   final CensusDataEntity? censusData;
 
   const BudgetEditEntity({
@@ -32,6 +34,7 @@ class BudgetEditEntity extends Equatable {
     required this.userId,
     this.partnerId,
     required this.cityIds,
+    this.citiesDataRaw = const [],
     required this.products,
     required this.categoriesData,
     this.censusData,
@@ -65,6 +68,7 @@ class BudgetEditEntity extends Equatable {
         userId,
         partnerId,
         cityIds,
+        citiesDataRaw,
         products,
         categoriesData,
         censusData,
@@ -82,8 +86,9 @@ class BudgetEditEntity extends Equatable {
     int? userId,
     int? partnerId,
     List<int>? cityIds,
+    List<Map<String, dynamic>>? citiesDataRaw,
     List<ProductSelectionEntity>? products,
-    Map<String, dynamic>? categoriesData,
+    dynamic categoriesData,
     CensusDataEntity? censusData,
   }) {
     return BudgetEditEntity(
@@ -98,6 +103,7 @@ class BudgetEditEntity extends Equatable {
       userId: userId ?? this.userId,
       partnerId: partnerId ?? this.partnerId,
       cityIds: cityIds ?? this.cityIds,
+      citiesDataRaw: citiesDataRaw ?? this.citiesDataRaw,
       products: products ?? this.products,
       categoriesData: categoriesData ?? this.categoriesData,
       censusData: censusData ?? this.censusData,

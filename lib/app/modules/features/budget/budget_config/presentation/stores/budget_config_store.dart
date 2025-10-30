@@ -1,7 +1,10 @@
 import 'package:dartz/dartz.dart';
+import 'package:flutter/foundation.dart';
 import 'package:mobx/mobx.dart';
 
 import '../../../shared/errors/budget_failure.dart';
+import '../../../shared/models/budget_update_dto.dart';
+import '../../../shared/models/product_selection_update_dto.dart';
 import '../../domain/entities/budget_detail_entity.dart';
 import '../../domain/entities/category_entity.dart';
 import '../../domain/entities/census_data_entity.dart';
@@ -13,6 +16,7 @@ import '../../domain/usecases/get_all_budget_products_usecase.dart';
 import '../../domain/usecases/get_budget_detail_usecase.dart';
 import '../../domain/usecases/get_category_products_usecase.dart';
 import '../../domain/usecases/get_census_data_usecase.dart';
+import '../../domain/usecases/save_budget_usecase.dart';
 import '../../domain/usecases/toggle_category_usecase.dart';
 
 part 'budget_config_store.g.dart';
@@ -27,6 +31,7 @@ abstract class _BudgetConfigStoreBase with Store {
   final ToggleCategoryUseCase toggleCategoryUseCase;
   final CalculateTotalsUseCase calculateTotalsUseCase;
   final FinalizeBudgetUseCase finalizeBudgetUseCase;
+  final SaveBudgetUseCase saveBudgetUseCase;
 
   _BudgetConfigStoreBase({
     required this.getBudgetDetailUseCase,
@@ -36,6 +41,7 @@ abstract class _BudgetConfigStoreBase with Store {
     required this.toggleCategoryUseCase,
     required this.calculateTotalsUseCase,
     required this.finalizeBudgetUseCase,
+    required this.saveBudgetUseCase,
   });
 
   // ========== OBSERVABLES ==========
@@ -137,8 +143,6 @@ abstract class _BudgetConfigStoreBase with Store {
 
   @action
   Future<void> initialize(int budgetId) async {
-    print('🔄 [BudgetConfigStore] Inicializando com orçamento ID: $budgetId');
-
     await loadBudgetDetail(budgetId);
 
     // Carregar censo se tiver cidade
@@ -154,35 +158,21 @@ abstract class _BudgetConfigStoreBase with Store {
     error = null;
 
     try {
-      print('🔄 [BudgetConfigStore] Carregando detalhes do orçamento...');
-
       final result = await getBudgetDetailUseCase(budgetId);
 
       await result.fold(
         (failure) async {
-          print('❌ [BudgetConfigStore] Erro: ${failure.message}');
           error = failure.message;
           budgetDetail = null;
           isLoading = false;
           isLoadingProducts = false;
         },
         (budget) async {
-          print('✅ [BudgetConfigStore] Orçamento carregado: ${budget.id}');
-          print(
-              '📦 [BudgetConfigStore] Categorias recebidas: ${budget.categories.length}');
-
           budgetDetail = budget;
 
           // ✅ Inicializar categorias COM estatísticas (sem produtos ainda)
           categories.clear();
           categories.addAll(budget.categories);
-
-          print(
-              '📊 [BudgetConfigStore] Categorias na store: ${categories.length}');
-          for (var cat in categories) {
-            print(
-                '   - ${cat.nome}: ${cat.subcategorias.length} subcategorias');
-          }
 
           // Inicializar estados de categorias (manter para compatibilidade)
           categoryStates.clear();
@@ -199,7 +189,6 @@ abstract class _BudgetConfigStoreBase with Store {
           isLoading = false;
 
           // 🚀 EAGER LOAD: Buscar TODOS os produtos do orçamento
-          print('🔄 [BudgetConfigStore] Iniciando EAGER LOAD de produtos...');
           await _loadAllProducts(budgetId);
 
           // ✅ Produtos carregados
@@ -207,7 +196,6 @@ abstract class _BudgetConfigStoreBase with Store {
         },
       );
     } catch (e) {
-      print('❌ [BudgetConfigStore] Erro inesperado: $e');
       error = 'Erro ao carregar orçamento: $e';
       isLoading = false;
       isLoadingProducts = false;
@@ -219,19 +207,20 @@ abstract class _BudgetConfigStoreBase with Store {
   @action
   Future<void> _loadAllProducts(int budgetId) async {
     try {
-      print('🌐 [BudgetConfigStore] Buscando todos os produtos...');
+      debugPrint(
+          '🚀 [BudgetConfigStore] Iniciando carregamento de produtos...');
 
       final result = await getAllBudgetProductsUseCase(budgetId: budgetId);
 
       result.fold(
         (failure) {
-          print(
-              '❌ [BudgetConfigStore] Erro ao carregar produtos: ${failure.message}');
+          debugPrint(
+              '❌ [BudgetConfigStore] ERRO ao carregar produtos: ${failure.message}');
           // Não definir error aqui, manter estatísticas se falhar
         },
         (allProducts) {
-          print(
-              '✅ [BudgetConfigStore] ${allProducts.length} produtos carregados');
+          debugPrint(
+              '✅ [BudgetConfigStore] ${allProducts.length} produtos recebidos do UseCase');
 
           // Agrupar produtos por subcategoria_id
           final productsBySubcategory = <int, List<ProductEntity>>{};
@@ -242,9 +231,9 @@ abstract class _BudgetConfigStoreBase with Store {
             productsBySubcategory[subId]!.add(product);
           }
 
-          print('📦 [BudgetConfigStore] Produtos agrupados por subcategoria:');
+          debugPrint('📦 [BudgetConfigStore] Produtos agrupados:');
           productsBySubcategory.forEach((subId, prods) {
-            print('   - Subcategoria $subId: ${prods.length} produtos');
+            debugPrint('   - Subcategoria $subId: ${prods.length} produtos');
           });
 
           // Distribuir produtos nas subcategorias corretas
@@ -254,10 +243,14 @@ abstract class _BudgetConfigStoreBase with Store {
               final subProducts = productsBySubcategory[sub.id] ?? [];
 
               if (subProducts.isEmpty) {
+                debugPrint(
+                    '   ⚠️ Subcategoria ${sub.id} (${sub.nome}) sem produtos - mantendo estatísticas');
                 // Subcategoria sem produtos, manter como está (com estatísticas)
                 return sub;
               }
 
+              debugPrint(
+                  '   ✅ Subcategoria ${sub.id} (${sub.nome}): ${subProducts.length} produtos');
               // Substituir estatísticas por produtos reais
               return sub.copyWith(
                 produtos: subProducts,
@@ -275,13 +268,14 @@ abstract class _BudgetConfigStoreBase with Store {
             categories = ObservableList.of(updatedCategories);
           });
 
-          print('✅ [BudgetConfigStore] Produtos distribuídos nas categorias');
-          print('💰 Total calculado: R\$ ${totalValue.toStringAsFixed(2)}');
-          print('📦 Produtos selecionados: $totalSelectedProducts');
+          debugPrint('🎉 [BudgetConfigStore] Merge concluído!');
+          debugPrint('   Total categorias: ${categories.length}');
+          debugPrint('   Total valor: R\$ ${totalValue.toStringAsFixed(2)}');
         },
       );
-    } catch (e) {
-      print('❌ [BudgetConfigStore] Erro inesperado ao carregar produtos: $e');
+    } catch (e, stackTrace) {
+      debugPrint('💥 [BudgetConfigStore] EXCEÇÃO ao carregar produtos: $e');
+      debugPrint('Stack: $stackTrace');
       // Manter estatísticas se falhar
     }
   }
@@ -291,24 +285,18 @@ abstract class _BudgetConfigStoreBase with Store {
     isLoadingCensus = true;
 
     try {
-      print('🔄 [BudgetConfigStore] Carregando censo da cidade: $cityId');
-
       final result = await getCensusDataUseCase(cityId);
 
       result.fold(
         (failure) {
-          print(
-              '❌ [BudgetConfigStore] Erro ao carregar censo: ${failure.message}');
           // Não definir error aqui pois censo é opcional
           censusData = null;
         },
         (census) {
-          print('✅ [BudgetConfigStore] Censo carregado: ${census.summary}');
           censusData = census;
         },
       );
     } catch (e) {
-      print('❌ [BudgetConfigStore] Erro inesperado ao carregar censo: $e');
       censusData = null;
     } finally {
       isLoadingCensus = false;
@@ -317,24 +305,18 @@ abstract class _BudgetConfigStoreBase with Store {
 
   @action
   void toggleCategory(String categoryKey) {
-    print('🔄 [BudgetConfigStore] Alternando categoria: $categoryKey');
-
     final newValue = toggleCategoryUseCase(categoryKey, categoryStates);
     categoryStates[categoryKey] = newValue;
-
-    print('✅ [BudgetConfigStore] Categoria $categoryKey = $newValue');
   }
 
   @action
   void setValidityDate(DateTime? date) {
     validityDate = date;
-    print('📅 [BudgetConfigStore] Data de validade definida: $date');
   }
 
   @action
   void setBudgetName(String? name) {
     budgetName = name;
-    print('📝 [BudgetConfigStore] Nome do orçamento definido: $name');
   }
 
   @action
@@ -414,8 +396,6 @@ abstract class _BudgetConfigStoreBase with Store {
 
           // ⚠️ Só permitir alteração se o produto estiver ativo
           if (!product.ativo) {
-            print(
-                '⚠️ [BudgetConfigStore] Produto $productId está inativo, ignorando toggle');
             return;
           }
 
@@ -898,5 +878,94 @@ abstract class _BudgetConfigStoreBase with Store {
     isLoading = false;
     isLoadingCensus = false;
     isSaving = false;
+  }
+
+  /// 💾 Salva orçamento configurado como "pendente"
+  ///
+  /// Utilizado quando o usuário:
+  /// 1. Cria um orçamento (rascunho)
+  /// 2. Configura produtos e quantidades
+  /// 3. Clica em "Salvar Orçamento"
+  ///
+  /// Este método coleta todos os produtos e suas quantidades,
+  /// calcula o total e atualiza o status para "pendente"
+  @action
+  Future<Either<BudgetFailure, BudgetDetailEntity>> saveBudget() async {
+    if (budgetDetail == null) {
+      error = 'Orçamento não carregado';
+      return const Left(ValidationFailure('Orçamento não carregado'));
+    }
+
+    if (validityDate == null) {
+      error = 'Data de validade não definida';
+      return const Left(ValidationFailure('Data de validade obrigatória'));
+    }
+
+    isSaving = true;
+    error = null;
+
+    try {
+      print('💾 [BudgetConfigStore] Salvando orçamento como PENDENTE...');
+
+      // 1. Coletar todos os produtos de todas as categorias/subcategorias
+      final produtosParaSalvar = <ProductSelectionUpdateDto>[];
+
+      for (final category in categories) {
+        for (final subcategory in category.subcategorias) {
+          for (final product in subcategory.produtos) {
+            produtosParaSalvar.add(ProductSelectionUpdateDto(
+              productId: product.id,
+              selecionado: product.selecionado,
+              quantidade: product.quantidade,
+            ));
+          }
+        }
+      }
+
+      print('   📦 Salvando ${produtosParaSalvar.length} produtos');
+      print(
+          '   ✅ Selecionados: ${produtosParaSalvar.where((p) => p.selecionado).length}');
+
+      // 2. Calcular total
+      final totalCalculado = totalValue;
+
+      // 3. Calcular dias de validade
+      final diasValidade = validityDate!.difference(DateTime.now()).inDays;
+
+      // 4. Criar DTO de atualização
+      final updateDto = BudgetUpdateDto(
+        nome: budgetName,
+        diasValidade: diasValidade > 0 ? diasValidade : 1,
+        status: 'pendente', // ⚠️ SEMPRE pendente no budget_config
+        total: totalCalculado,
+        produtos: produtosParaSalvar,
+      );
+
+      // 5. Chamar UseCase
+      final result = await saveBudgetUseCase(
+        budgetId: budgetDetail!.id,
+        updateData: updateDto,
+      );
+
+      return result.fold(
+        (failure) {
+          print('❌ [BudgetConfigStore] Erro ao salvar: ${failure.message}');
+          error = failure.message;
+          isSaving = false;
+          return Left(failure);
+        },
+        (updatedBudget) {
+          print('✅ [BudgetConfigStore] Orçamento salvo com status PENDENTE');
+          budgetDetail = updatedBudget;
+          isSaving = false;
+          return Right(updatedBudget);
+        },
+      );
+    } catch (e) {
+      print('❌ [BudgetConfigStore] Erro inesperado: $e');
+      error = 'Erro ao salvar orçamento: $e';
+      isSaving = false;
+      return Left(UnknownFailure(e.toString()));
+    }
   }
 }

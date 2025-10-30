@@ -1,12 +1,14 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobx/mobx.dart';
-import 'dart:io';
 
 import '../../../../shared/widgets/widgets.dart';
+import '../../../features/auth/presentation/stores/auth_store.dart';
 import '../stores/profile_store.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -18,6 +20,7 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   late final ProfileStore _store;
+  late final AuthStore _authStore;
   final ImagePicker _imagePicker = ImagePicker();
 
   final TextEditingController _nameController = TextEditingController();
@@ -29,7 +32,8 @@ class _ProfilePageState extends State<ProfilePage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _store = Modular.get<ProfileStore>();
-    
+    _authStore = Modular.get<AuthStore>();
+
     // Observar mudanças no perfil e atualizar controllers
     reaction(
       (_) => _store.profile,
@@ -43,7 +47,7 @@ class _ProfilePageState extends State<ProfilePage> {
         }
       },
     );
-    
+
     _store.fetch();
   }
 
@@ -67,10 +71,15 @@ class _ProfilePageState extends State<ProfilePage> {
 
       if (image != null) {
         _store.setSelectedAvatar(File(image.path));
-        
+
         // Fazer upload automaticamente
         final success = await _store.uploadAvatar();
         if (success && mounted) {
+          // ✅ Recarregar dados do usuário na AuthStore
+          await _authStore.loadCurrentUser();
+
+          if (!mounted) return;
+
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Avatar atualizado com sucesso!'),
@@ -99,10 +108,15 @@ class _ProfilePageState extends State<ProfilePage> {
     _store.setPhone(_phoneController.text);
 
     final success = await _store.save();
-    
+
     if (!mounted) return;
-    
+
     if (success) {
+      // ✅ Recarregar dados do usuário na AuthStore
+      await _authStore.loadCurrentUser();
+
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Perfil atualizado com sucesso!'),
@@ -122,9 +136,10 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomTopBar(
+      appBar: CustomTopBar(
         title: 'Meu Perfil',
         showBackButton: true,
+        authStore: _authStore,
       ),
       body: SafeArea(
         child: Observer(
@@ -154,7 +169,7 @@ class _ProfilePageState extends State<ProfilePage> {
               child: Column(
                 children: [
                   SizedBox(height: 20.h),
-                  
+
                   // Informações adicionais (read-only) - MOVIDO PARA CIMA
                   if (_store.profile!.roleName != null)
                     _buildInfoCard(
@@ -173,22 +188,25 @@ class _ProfilePageState extends State<ProfilePage> {
                   ],
 
                   SizedBox(height: 24.h),
-                  
+
                   // Avatar
                   Stack(
                     children: [
                       Observer(
                         builder: (_) {
                           final avatarUrl = _store.profile!.avatar;
-                          final baseUrl = 'http://192.168.3.2:8080'; // TODO: Pegar do ApiConfig
+                          const baseUrl =
+                              'http://192.168.3.2:8080'; // TODO: Pegar do ApiConfig
                           return CircleAvatar(
                             radius: 60.r,
                             backgroundColor: const Color(0xFFE0E0E0),
-                            backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
-                                ? NetworkImage('$baseUrl$avatarUrl')
-                                : null,
+                            backgroundImage:
+                                avatarUrl != null && avatarUrl.isNotEmpty
+                                    ? NetworkImage('$baseUrl$avatarUrl')
+                                    : null,
                             child: avatarUrl == null || avatarUrl.isEmpty
-                                ? Icon(Icons.person, size: 60.sp, color: Colors.grey)
+                                ? Icon(Icons.person,
+                                    size: 60.sp, color: Colors.grey)
                                 : null,
                           );
                         },
@@ -202,7 +220,8 @@ class _ProfilePageState extends State<ProfilePage> {
                             ),
                             child: const Center(
                               child: CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
                             ),
                           ),
@@ -218,11 +237,13 @@ class _ProfilePageState extends State<ProfilePage> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF117BBD),
                       foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 24.w, vertical: 12.h),
                     ),
                     icon: const Icon(Icons.camera_alt),
                     label: Text(
-                      _store.profile!.avatar == null || _store.profile!.avatar!.isEmpty
+                      _store.profile!.avatar == null ||
+                              _store.profile!.avatar!.isEmpty
                           ? 'Adicionar Foto'
                           : 'Trocar Foto',
                     ),
@@ -283,7 +304,8 @@ class _ProfilePageState extends State<ProfilePage> {
                               height: 20.h,
                               child: const CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
                             )
                           : const Icon(Icons.save),
@@ -338,9 +360,11 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8.r),
-                borderSide: const BorderSide(color: Color(0xFF117BBD), width: 2),
+                borderSide:
+                    const BorderSide(color: Color(0xFF117BBD), width: 2),
               ),
-              contentPadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
             ),
           ),
         ),

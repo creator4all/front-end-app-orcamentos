@@ -2,6 +2,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 
 import '../../../../services/api_service.dart';
 import '../../../shared/core/http/dio_client.dart';
+import '../../budget/external/services/budget_service.dart';
 // Budget Config - Clean Architecture
 import 'budget_config/data/datasources/budget_detail_remote_datasource.dart';
 import 'budget_config/data/datasources/budget_detail_remote_datasource_impl.dart';
@@ -17,6 +18,7 @@ import 'budget_config/domain/usecases/get_all_budget_products_usecase.dart';
 import 'budget_config/domain/usecases/get_budget_detail_usecase.dart';
 import 'budget_config/domain/usecases/get_category_products_usecase.dart';
 import 'budget_config/domain/usecases/get_census_data_usecase.dart';
+import 'budget_config/domain/usecases/save_budget_usecase.dart';
 import 'budget_config/domain/usecases/toggle_category_usecase.dart';
 import 'budget_config/presentation/pages/config_new_budget_page.dart';
 import 'budget_config/presentation/stores/budget_config_store.dart';
@@ -39,8 +41,10 @@ import 'budget_edit/data/datasources/budget_edit_remote_datasource.dart';
 import 'budget_edit/data/datasources/budget_edit_remote_datasource_impl.dart';
 import 'budget_edit/data/repositories/budget_edit_repository_impl.dart';
 import 'budget_edit/domain/repositories/budget_edit_repository.dart';
+import 'budget_edit/domain/usecases/get_all_budget_products_for_edit_usecase.dart';
 import 'budget_edit/domain/usecases/get_budget_for_edit_usecase.dart';
 import 'budget_edit/domain/usecases/update_budget_usecase.dart';
+import 'budget_edit/presentation/pages/edit_budget_page.dart';
 import 'budget_edit/presentation/stores/budget_edit_store.dart';
 // Budget List - Clean Architecture
 import 'budget_list/data/datasources/budget_remote_datasource.dart';
@@ -62,6 +66,9 @@ class BudgetModuleNew extends Module {
         // ==================== CORE ====================
         Bind.lazySingleton((i) => DioClient()),
         Bind.lazySingleton((i) => ApiService(dio: i.get<DioClient>().dio)),
+
+        // ==================== LEGACY SERVICES (para compatibilidade) ====================
+        Bind.lazySingleton((i) => BudgetService(i.get<ApiService>())),
 
         // ==================== BUDGET LIST ====================
         // DataSources
@@ -175,6 +182,9 @@ class BudgetModuleNew extends Module {
         Bind.lazySingleton<FinalizeBudgetUseCase>(
           (i) => FinalizeBudgetUseCase(i.get<BudgetDetailRepository>()),
         ),
+        Bind.lazySingleton<SaveBudgetUseCase>(
+          (i) => SaveBudgetUseCase(i.get<BudgetDetailRepository>()),
+        ),
 
         // Stores
         Bind.lazySingleton<BudgetConfigStore>(
@@ -186,6 +196,7 @@ class BudgetModuleNew extends Module {
             toggleCategoryUseCase: i.get<ToggleCategoryUseCase>(),
             calculateTotalsUseCase: i.get<CalculateTotalsUseCase>(),
             finalizeBudgetUseCase: i.get<FinalizeBudgetUseCase>(),
+            saveBudgetUseCase: i.get<SaveBudgetUseCase>(),
           ),
         ),
 
@@ -204,6 +215,10 @@ class BudgetModuleNew extends Module {
         Bind.lazySingleton<GetBudgetForEditUseCase>(
           (i) => GetBudgetForEditUseCase(i.get<BudgetEditRepository>()),
         ),
+        Bind.lazySingleton<GetAllBudgetProductsForEditUseCase>(
+          (i) =>
+              GetAllBudgetProductsForEditUseCase(i.get<BudgetEditRepository>()),
+        ),
         Bind.lazySingleton<UpdateBudgetUseCase>(
           (i) => UpdateBudgetUseCase(i.get<BudgetEditRepository>()),
         ),
@@ -212,7 +227,9 @@ class BudgetModuleNew extends Module {
         Bind.lazySingleton<BudgetEditStore>(
           (i) => BudgetEditStore(
             getBudgetForEditUseCase: i.get<GetBudgetForEditUseCase>(),
+            getAllProductsUseCase: i.get<GetAllBudgetProductsForEditUseCase>(),
             updateBudgetUseCase: i.get<UpdateBudgetUseCase>(),
+            getCensusDataUseCase: i.get<GetCensusDataUseCase>(),
           ),
         ),
       ];
@@ -231,6 +248,10 @@ class BudgetModuleNew extends Module {
           return ConfigNewBudgetPage(budgetId: budgetId);
         }),
 
-        // TODO: Rotas da feature Budget Edit
+        // Budget Edit
+        ChildRoute('/edit/:budgetId', child: (context, args) {
+          final budgetId = int.parse(args.params['budgetId']);
+          return EditBudgetPage(budgetId: budgetId);
+        }),
       ];
 }

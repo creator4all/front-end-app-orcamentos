@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:intl/intl.dart';
 
 /// Entidade que representa estatísticas agregadas de produtos
 /// Usada quando não há produtos individuais carregados (apenas contadores)
@@ -72,12 +73,25 @@ class StatisticsEntity extends Equatable {
 
   // ========== Formatação para Exibição ==========
 
-  /// Formata o valor total para exibição
-  String get formattedValorTotal => 'R\$ ${valorTotal.toStringAsFixed(2)}';
+  /// Formata o valor total para exibição (padrão brasileiro)
+  String get formattedValorTotal {
+    final formatter = NumberFormat.currency(
+      locale: 'pt_BR',
+      symbol: 'R\$',
+      decimalDigits: 2,
+    );
+    return formatter.format(valorTotal);
+  }
 
-  /// Formata o valor selecionado para exibição
-  String get formattedValorSelecionado =>
-      'R\$ ${valorSelecionado.toStringAsFixed(2)}';
+  /// Formata o valor selecionado para exibição (padrão brasileiro)
+  String get formattedValorSelecionado {
+    final formatter = NumberFormat.currency(
+      locale: 'pt_BR',
+      symbol: 'R\$',
+      decimalDigits: 2,
+    );
+    return formatter.format(valorSelecionado);
+  }
 
   /// Formata o percentual de seleção
   String get formattedPercentualSelecionado =>
