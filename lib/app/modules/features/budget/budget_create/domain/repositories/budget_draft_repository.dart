@@ -9,6 +9,8 @@ class CreateBudgetDraftParams {
   final int userId; // ID do usuário criando o orçamento (OBRIGATÓRIO)
   final String stateCode;
   final String cityCode;
+  final int cityId; // ID da cidade (OBRIGATÓRIO para novo payload)
+  final String cityName; // Nome da cidade (OBRIGATÓRIO para novo payload)
   final String? responsibleName;
   final String? responsibleEmail;
   final DateTime? validityDate;
@@ -19,6 +21,8 @@ class CreateBudgetDraftParams {
     required this.userId,
     required this.stateCode,
     required this.cityCode,
+    required this.cityId,
+    required this.cityName,
     this.responsibleName,
     this.responsibleEmail,
     this.validityDate,
@@ -43,10 +47,11 @@ class CreateBudgetDraftParams {
     final Map<String, dynamic> data = {
       'orc_parceiro_id': partnerId,
       'orc_usuario_id': userId, // ✅ Campo obrigatório
-      'cidades': [int.parse(cityCode)], // ✅ Backend espera array de IDs
+      'orc_cidade_id': cityId, // ✅ ID único da cidade (não mais array)
       'orc_status': 'rascunho',
-      'orc_total': total, // ✅ Campo obrigatório (pode ser 0)
+      'orc_total': total, // ✅ Campo obrigatório (pode ser 0 para rascunho)
       'orc_dias_validade': diasValidade.clamp(1, 365), // ✅ Entre 1 e 365 dias
+      'orc_nome': cityName, // ✅ Nome da cidade (obrigatório)
     };
 
     if (responsibleName != null && responsibleName!.isNotEmpty) {

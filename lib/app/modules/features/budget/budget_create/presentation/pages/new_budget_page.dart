@@ -447,6 +447,7 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                                     _store.setSelectedCity(
                                       cidade.id.toString(),
                                       cidade.nome,
+                                      cityId: cidade.id,
                                     );
 
                                     if (mounted) setState(() {});

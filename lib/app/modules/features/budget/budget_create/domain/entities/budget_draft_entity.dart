@@ -1,6 +1,8 @@
 import 'package:equatable/equatable.dart';
 
+import 'cidade_entity.dart';
 import 'location_entity.dart';
+import 'orcamento_produto_entity.dart';
 
 /// Entidade que representa um Orçamento em Rascunho
 class BudgetDraftEntity extends Equatable {
@@ -15,6 +17,12 @@ class BudgetDraftEntity extends Equatable {
   final String status; // 'rascunho'
   final DateTime createdAt;
   final int createdByUserId;
+  final int validityDays;
+  final double total;
+  final bool createdByAdmin;
+  final DateTime dataValidade;
+  final CidadeEntity? cidade;
+  final List<OrcamentoProdutoEntity> orcamentoProdutos;
 
   const BudgetDraftEntity({
     required this.id,
@@ -27,6 +35,12 @@ class BudgetDraftEntity extends Equatable {
     required this.status,
     required this.createdAt,
     required this.createdByUserId,
+    required this.validityDays,
+    required this.total,
+    required this.createdByAdmin,
+    required this.dataValidade,
+    this.cidade,
+    required this.orcamentoProdutos,
   });
 
   /// Verifica se o orçamento está em estado de rascunho
@@ -87,6 +101,12 @@ class BudgetDraftEntity extends Equatable {
     String? status,
     DateTime? createdAt,
     int? createdByUserId,
+    int? validityDays,
+    double? total,
+    bool? createdByAdmin,
+    DateTime? dataValidade,
+    CidadeEntity? cidade,
+    List<OrcamentoProdutoEntity>? orcamentoProdutos,
   }) {
     return BudgetDraftEntity(
       id: id ?? this.id,
@@ -99,6 +119,12 @@ class BudgetDraftEntity extends Equatable {
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       createdByUserId: createdByUserId ?? this.createdByUserId,
+      validityDays: validityDays ?? this.validityDays,
+      total: total ?? this.total,
+      createdByAdmin: createdByAdmin ?? this.createdByAdmin,
+      dataValidade: dataValidade ?? this.dataValidade,
+      cidade: cidade ?? this.cidade,
+      orcamentoProdutos: orcamentoProdutos ?? this.orcamentoProdutos,
     );
   }
 }

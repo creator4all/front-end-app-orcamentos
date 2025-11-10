@@ -18,21 +18,26 @@ class BudgetDraftRemoteDataSourceImpl implements BudgetDraftRemoteDataSource {
       const url = '/api/orcamentos/';
       final payload = params.toJson();
 
-      print('🌐 [BudgetDraftDataSource] Criando orçamento: $url');
-      print('📦 [BudgetDraftDataSource] Payload: $payload');
-
       final response = await apiService.post(url, payload);
-      print('📡 [BudgetDraftDataSource] Resposta da API bruta: $response');
+
+      var data = response['data'][0];
 
       // Extrair dados da resposta com unwrap seguro
-      var data = response['dados'] ?? response['data'] ?? response;
-      // Alguns endpoints retornam { dados: { ... } } embutido dentro de 'data'
-      if (data is Map && data.containsKey('dados')) {
-        data = data['dados'];
-      }
+      // var data = response['dados'] ?? response['data'] ?? response;
 
-      print('📡 [BudgetDraftDataSource] Dados extraídos para parsing: $data');
-      print('✅ [BudgetDraftDataSource] Orçamento criado com sucesso');
+      // // Se dados é um array, extrair o primeiro item
+      // if (data is List && data.isNotEmpty) {
+      //   data = data.first;
+      // }
+
+      // // Alguns endpoints retornam { dados: { ... } } embutido dentro de 'data'
+      // if (data is Map && data.containsKey('dados')) {
+      //   data = data['dados'];
+      //   // Se ainda for array, extrair primeiro item
+      //   if (data is List && data.isNotEmpty) {
+      //     data = data.first;
+      //   }
+      // }
 
       // Converter para Entity usando DTO
       final dto =
