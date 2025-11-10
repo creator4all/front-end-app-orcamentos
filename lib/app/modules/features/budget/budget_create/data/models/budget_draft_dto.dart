@@ -1,5 +1,7 @@
 import '../../domain/entities/budget_draft_entity.dart';
 import '../../domain/entities/location_entity.dart';
+import 'cidade_dto.dart';
+import 'orcamento_produto_dto.dart';
 
 /// Data Transfer Object para Orçamento em Rascunho
 /// Responsável pela serialização/deserialização de JSON
@@ -22,6 +24,9 @@ class BudgetDraftDto {
   final double total;
   final bool createdByAdmin;
   final DateTime? createdAt;
+  final DateTime dataValidade;
+  final CidadeDto? cidade;
+  final List<OrcamentoProdutoDto> orcamentoProdutos;
 
   const BudgetDraftDto({
     required this.id,
@@ -41,27 +46,22 @@ class BudgetDraftDto {
     required this.total,
     required this.createdByAdmin,
     this.createdAt,
+    required this.dataValidade,
+    this.cidade,
+    required this.orcamentoProdutos,
   });
 
   /// Cria DTO a partir de JSON da API
   factory BudgetDraftDto.fromJson(Map<String, dynamic> json) {
     try {
-      // Parse cidades array
-      final cidadesArray = json['cidades'] as List? ?? [];
-      final cityIds = <int>[];
-      final cityNames = <String>[];
+      // Parse novo payload com orc_cidade_id (single value)
+      final cityId = (json['orc_cidade_id'] as num?)?.toInt() ?? 0;
+      final cityName = json['orc_nome'] as String? ?? '';
+      
+      final cityIds = cityId > 0 ? [cityId] : <int>[];
+      final cityNames = cityName.isNotEmpty ? [cityName] : <String>[];
 
-      for (var cidade in cidadesArray) {
-        if (cidade is Map<String, dynamic>) {
-          final cidadeId = cidade['id'];
-          if (cidadeId != null) {
-            cityIds.add((cidadeId as num).toInt());
-            cityNames.add(cidade['nome'] as String? ?? '');
-          }
-        }
-      }
-
-      // Parse usuario
+      // Parse usuario (pode ser null)
       final usuario = json['usuario'] as Map<String, dynamic>?;
 
       // Parse partner_destino (pode ser null)
@@ -72,42 +72,38 @@ class BudgetDraftDto {
       final parsedUserId = userId != null ? (userId as num).toInt() : 0;
 
       // Parse validity date com segurança
-      final validityDateStr = json['data_validade'];
+      final validityDateStr = json['orc_data_validade'];
       final parsedValidityDate = validityDateStr != null
           ? DateTime.parse(validityDateStr as String)
           : DateTime.now();
 
       // Parse validity days com segurança
-      final validityDaysValue = json['dias_validade'];
+      final validityDaysValue = json['orc_dias_validade'];
       final parsedValidityDays =
-          validityDaysValue != null ? (validityDaysValue as num).toInt() : 0;
+          validityDaysValue != null ? (validityDaysValue as num).toInt() : 60;
 
       // Parse total com segurança
-      final totalValue = json['total'];
+      final totalValue = json['orc_total'];
       final parsedTotal =
           totalValue != null ? (totalValue as num).toDouble() : 0.0;
 
-      print('📊 [BudgetDraftDto] Parseando:');
-      try {
-        print(
-            '   id: ${json['id']} (type: ${json['id'] != null ? json['id'].runtimeType : 'null'})');
-        print(
-            '   dias_validade: $validityDaysValue (type: ${validityDaysValue != null ? validityDaysValue.runtimeType : 'null'})');
-        print(
-            '   total: $totalValue (type: ${totalValue != null ? totalValue.runtimeType : 'null'})');
-        print(
-            '   data_validade: $validityDateStr (type: ${validityDateStr != null ? validityDateStr.runtimeType : 'null'})');
-      } catch (_) {
-        // runtimeType access can sometimes throw on web or unusual objects; ignore logging in that case
-      }
+      // Parse cidade completa
+      final cidadeJson = json['cidade'] as Map<String, dynamic>?;
+      final cidade = cidadeJson != null ? CidadeDto.fromJson(cidadeJson) : null;
+
+      // Parse orcamento_produtos array
+      final produtosArray = json['orcamento_produtos'] as List? ?? [];
+      final orcamentoProdutos = produtosArray
+          .map((item) => OrcamentoProdutoDto.fromJson(item as Map<String, dynamic>))
+          .toList();
 
       return BudgetDraftDto(
-        id: (json['id'] as num?)?.toInt() ?? 0,
-        name: json['nome'] as String?,
+        id: (json['orc_orcamentoId'] as num?)?.toInt() ?? 0,
+        name: json['orc_nome'] as String?,
         partnerId: partnerDestino?['id'] != null
             ? (partnerDestino?['id'] as num?)?.toInt()
             : null,
-        partnerName: partnerDestino?['nome_fantasia'] as String?, // ✅ Nullable
+        partnerName: partnerDestino?['nome_fantasia'] as String?,
         userId: parsedUserId,
         userName: usuario?['nome'] as String? ?? '',
         userEmail: usuario?['email'] as String? ?? '',
@@ -117,10 +113,13 @@ class BudgetDraftDto {
         responsibleEmail: json['orc_responsavel_email'] as String?,
         validityDate: parsedValidityDate,
         validityDays: parsedValidityDays,
-        status: json['status'] as String? ?? '',
+        status: json['orc_status'] as String? ?? 'rascunho',
         total: parsedTotal,
-        createdByAdmin: json['criado_por_admin'] as bool? ?? false,
+        createdByAdmin: json['orc_criado_por_admin'] as bool? ?? false,
         createdAt: _parseDate(json['created_at']),
+        dataValidade: parsedValidityDate,
+        cidade: cidade,
+        orcamentoProdutos: orcamentoProdutos,
       );
     } catch (e, stackTrace) {
       print('❌ [BudgetDraftDto] Erro ao parsear JSON:');
@@ -163,6 +162,12 @@ class BudgetDraftDto {
       status: status,
       createdAt: createdAt ?? DateTime.now(),
       createdByUserId: userId,
+      validityDays: validityDays,
+      total: total,
+      createdByAdmin: createdByAdmin,
+      dataValidade: dataValidade,
+      cidade: cidade?.toEntity(),
+      orcamentoProdutos: orcamentoProdutos.map((dto) => dto.toEntity()).toList(),
     );
   }
 

@@ -255,6 +255,22 @@ mixin _$BudgetCreateStore on _BudgetCreateStoreBase, Store {
     });
   }
 
+  late final _$selectedCityIdAtom =
+      Atom(name: '_BudgetCreateStoreBase.selectedCityId', context: context);
+
+  @override
+  int? get selectedCityId {
+    _$selectedCityIdAtom.reportRead();
+    return super.selectedCityId;
+  }
+
+  @override
+  set selectedCityId(int? value) {
+    _$selectedCityIdAtom.reportWrite(value, super.selectedCityId, () {
+      super.selectedCityId = value;
+    });
+  }
+
   late final _$responsibleNameAtom =
       Atom(name: '_BudgetCreateStoreBase.responsibleName', context: context);
 
@@ -382,11 +398,11 @@ mixin _$BudgetCreateStore on _BudgetCreateStoreBase, Store {
   }
 
   @override
-  void setSelectedCity(String code, String name) {
+  void setSelectedCity(String code, String name, {int? cityId}) {
     final _$actionInfo = _$_BudgetCreateStoreBaseActionController.startAction(
         name: '_BudgetCreateStoreBase.setSelectedCity');
     try {
-      return super.setSelectedCity(code, name);
+      return super.setSelectedCity(code, name, cityId: cityId);
     } finally {
       _$_BudgetCreateStoreBaseActionController.endAction(_$actionInfo);
     }
@@ -485,6 +501,7 @@ selectedStateCode: ${selectedStateCode},
 selectedStateName: ${selectedStateName},
 selectedCityCode: ${selectedCityCode},
 selectedCityName: ${selectedCityName},
+selectedCityId: ${selectedCityId},
 responsibleName: ${responsibleName},
 responsibleEmail: ${responsibleEmail},
 validityDate: ${validityDate},

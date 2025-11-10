@@ -71,6 +71,9 @@ abstract class _BudgetCreateStoreBase with Store {
   @observable
   String? selectedCityName;
 
+  @observable
+  int? selectedCityId; // ID numérico da cidade (OBRIGATÓRIO para novo payload)
+
   // ========== FORM FIELDS ==========
 
   @observable
@@ -212,10 +215,11 @@ abstract class _BudgetCreateStoreBase with Store {
 
   /// Define a cidade selecionada
   @action
-  void setSelectedCity(String code, String name) {
+  void setSelectedCity(String code, String name, {int? cityId}) {
     selectedCityCode = code;
     selectedCityName = name;
-    print('✅ [BudgetCreateStore] Cidade selecionada: $name ($code)');
+    selectedCityId = cityId ?? int.tryParse(code); // Usa cityId ou tenta parsear code
+    print('✅ [BudgetCreateStore] Cidade selecionada: $name ($code) - ID: $selectedCityId');
   }
 
   /// Limpa seleção de localização
@@ -277,6 +281,8 @@ abstract class _BudgetCreateStoreBase with Store {
         userId: userId, // ✅ Adiciona userId
         stateCode: selectedStateCode!,
         cityCode: selectedCityCode!,
+        cityId: selectedCityId ?? int.parse(selectedCityCode!),
+        cityName: selectedCityName!,
         responsibleName: responsibleName,
         responsibleEmail: responsibleEmail,
         validityDate: validityDate,
@@ -329,6 +335,8 @@ abstract class _BudgetCreateStoreBase with Store {
         userId: userId, // ✅ Adiciona ID do usuário
         stateCode: selectedStateCode!,
         cityCode: selectedCityCode!,
+        cityId: selectedCityId ?? int.parse(selectedCityCode!),
+        cityName: selectedCityName!,
         responsibleName: responsibleName,
         responsibleEmail: responsibleEmail,
         validityDate: validityDate,
@@ -367,6 +375,7 @@ abstract class _BudgetCreateStoreBase with Store {
     selectedStateName = null;
     selectedCityCode = null;
     selectedCityName = null;
+    selectedCityId = null;
     responsibleName = null;
     responsibleEmail = null;
     validityDate = null;
