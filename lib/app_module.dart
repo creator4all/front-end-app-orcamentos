@@ -19,15 +19,37 @@ import 'app/modules/features/new_drive/new_drive_module.dart'; // NOVO - Clean A
 import 'app/modules/partner/external/services/partner_service.dart';
 import 'app/modules/partner/partner_module.dart';
 import 'app/modules/profile/profile_module.dart';
+import 'app/shared/core/http/app_http_client.dart'; // ✅ IMPORT NOVO HTTP CLIENT
 import 'app/shared/core/http/dio_client.dart';
+import 'app/shared/core/http/dio_config_factory.dart';
+import 'app/shared/core/http/dio_http_client_impl.dart';
+import 'app/shared/core/http/http_client_config.dart';
+import 'app/shared/core/utils/token_cache.dart';
+import 'config/api_config.dart';
 import 'services/api_service.dart';
 
 class AppModule extends Module {
   @override
   List<Bind> get binds => [
-        // ==================== CORE ====================
+        // ==================== NOVO HTTP CLIENT ====================
 
-        // Core HTTP Client
+        // Configuração do cliente HTTP
+        Bind.singleton<HttpClientConfig>(
+          (i) => DioConfigFactory.createDefault(
+            baseUrl: ApiConfig.baseUrl,
+            getToken: () => TokenCache.instance.getTokenOrEmpty(),
+            enableLogger: _isDebugMode(),
+          ),
+        ),
+
+        // Cliente HTTP (implementação concreta do AppHttpClient)
+        Bind.singleton<AppHttpClient>(
+          (i) => DioHttpClientImpl(i.get<HttpClientConfig>()),
+        ),
+
+        // ==================== CORE (LEGADO) ====================
+
+        // Core HTTP Client (Legado - ainda usado por alguns serviços)
         Bind.singleton<Dio>((i) => DioClient().dio),
 
         // API Service
@@ -43,6 +65,7 @@ class AppModule extends Module {
         // DataSource
         Bind.singleton<AuthDatasource>(
           (i) => AuthApiDatasource(
+            httpClient: i.get<AppHttpClient>(),
             dio: i.get<Dio>(),
             secureStorage: i.get<FlutterSecureStorage>(),
           ),
@@ -72,6 +95,7 @@ class AppModule extends Module {
             loginUsecase: i.get<LoginUsecase>(),
             logoutUsecase: i.get<LogoutUsecase>(),
             getCurrentUserUsecase: i.get<GetCurrentUserUsecase>(),
+            secureStorage: i.get<FlutterSecureStorage>(),
           ),
         ),
 
@@ -103,4 +127,11 @@ class AppModule extends Module {
         // Redirect to auth by default
         RedirectRoute('/', to: '/auth/login'),
       ];
+
+  /// Verifica se está em modo debug
+  bool _isDebugMode() {
+    bool isDebug = false;
+    assert(isDebug = true);
+    return isDebug;
+  }
 }

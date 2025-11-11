@@ -1,6 +1,8 @@
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mobx/mobx.dart';
 
+import '../../../../../shared/core/utils/token_cache.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/usecases/get_current_user_usecase.dart';
 import '../../domain/usecases/login_usecase.dart';
@@ -16,11 +18,13 @@ abstract class _AuthStoreBase with Store {
   final LoginUsecase loginUsecase;
   final LogoutUsecase logoutUsecase;
   final GetCurrentUserUsecase getCurrentUserUsecase;
+  final FlutterSecureStorage secureStorage;
 
   _AuthStoreBase({
     required this.loginUsecase,
     required this.logoutUsecase,
     required this.getCurrentUserUsecase,
+    required this.secureStorage,
   });
 
   /// Estado de carregamento
@@ -195,6 +199,17 @@ abstract class _AuthStoreBase with Store {
   Future<void> loadCurrentUser() async {
     isLoading = true;
     errorMessage = null;
+
+    // Tentar carregar token do SecureStorage e cachear
+    try {
+      final token = await secureStorage.read(key: 'auth_token');
+      if (token != null && token.isNotEmpty) {
+        TokenCache.instance.setToken(token);
+        print('✅ [AuthStore] Token carregado do SecureStorage e cacheado');
+      }
+    } catch (e) {
+      print('⚠️ [AuthStore] Erro ao carregar token: $e');
+    }
 
     final result = await getCurrentUserUsecase();
 
