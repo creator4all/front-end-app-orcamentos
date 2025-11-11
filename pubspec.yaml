@@ -20,6 +20,8 @@ dependencies:
   dartz: ^0.10.1
   flutter_screenutil: ^5.7.0
   equatable: ^2.0.5
+  connectivity_plus: ^5.0.2
+  internet_connection_checker: ^1.0.0+1
   
   # State Management
   mobx: ^2.2.0

@@ -4,13 +4,18 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../../../../config/api_config.dart';
+import '../../../../../shared/core/errors/http_exceptions.dart';
+import '../../../../../shared/core/http/app_http_client.dart';
+import '../../../../../shared/core/http/http_request_config.dart';
+import '../../../../../shared/core/utils/token_cache.dart';
 import '../models/user_model.dart';
 import 'auth_datasource.dart';
 
-/// Implementação do DataSource de autenticação usando Dio
+/// Implementação do DataSource de autenticação
 /// Responsável por fazer chamadas HTTP e gerenciar armazenamento seguro
 class AuthApiDatasource implements AuthDatasource {
-  final Dio dio;
+  final AppHttpClient httpClient;
+  final Dio dio; // Mantido temporariamente para getCurrentUser e outros métodos
   final FlutterSecureStorage secureStorage;
 
   // Keys para storage
@@ -18,6 +23,7 @@ class AuthApiDatasource implements AuthDatasource {
   static const String _userKey = 'user_data';
 
   AuthApiDatasource({
+    required this.httpClient,
     required this.dio,
     required this.secureStorage,
   });
@@ -33,98 +39,82 @@ class AuthApiDatasource implements AuthDatasource {
 
     try {
       print('📡 Fazendo POST para ${ApiConfig.loginEndpoint}...');
-      final response = await dio.post(
+
+      // ✅ USANDO NOVO AppHttpClient com User-Agent customizado
+      final response = await httpClient.post(
         ApiConfig.loginEndpoint,
-        options: Options(
-          headers: ApiConfig.headers,
-        ),
         data: {
           'usr_email': email,
           'usr_password': password,
         },
+        config: HttpRequestConfig(
+          headers: {
+            'User-Agent':
+                'App-Orcamentos-V1', // ⚠️ OBRIGATÓRIO para evitar OTP em mobile
+          },
+        ),
       );
 
-      if (response.statusCode == 200) {
-        final data = response.data;
+      // Processar resposta de sucesso
+      final data = response.body;
 
-        // Validar estrutura da resposta
-        if (data is! Map<String, dynamic>) {
-          throw Exception(
-              'Resposta da API inválida: esperado Map<String, dynamic>');
-        }
+      // Validar estrutura da resposta
+      if (!data.containsKey('dados')) {
+        throw Exception(
+            'Resposta da API inválida: chave "dados" não encontrada');
+      }
 
-        if (!data.containsKey('dados')) {
-          throw Exception(
-              'Resposta da API inválida: chave "dados" não encontrada');
-        }
+      final dadosResponse = data['dados'] as Map<String, dynamic>;
 
-        final dadosResponse = data['dados'] as Map<String, dynamic>;
+      // === PASSO 1: Salvar token ===
+      if (dadosResponse.containsKey('token') &&
+          dadosResponse['token'] != null) {
+        final token = dadosResponse['token'].toString();
 
-        // === PASSO 1: Salvar token ===
-        if (dadosResponse.containsKey('token') &&
-            dadosResponse['token'] != null) {
-          final token = dadosResponse['token'].toString();
-          await secureStorage.write(
-            key: _tokenKey,
-            value: token,
-          );
-
-          print('✅ Token salvo com sucesso');
-          print('📝 Token: ${token.substring(0, 20)}...');
-        } else {
-          throw Exception('Token não retornado pela API de login');
-        }
-
-        // === PASSO 2: SEMPRE buscar dados completos do usuário via /api/perfil/me ===
-        print('🔍 Buscando dados completos do usuário via /api/perfil/me...');
-        final userModel =
-            await getCurrentUser(forceRefresh: true); // ⭐ FORÇA BUSCAR DA API
-
-        // === PASSO 3: Salvar dados completos do usuário no cache ===
+        // Salvar no SecureStorage
         await secureStorage.write(
-          key: _userKey,
-          value: jsonEncode(userModel.toJson()),
+          key: _tokenKey,
+          value: token,
         );
 
-        print('✅ Dados completos do usuário salvos no cache');
+        // Cachear no TokenCache para uso síncrono nos interceptors
+        TokenCache.instance.setToken(token);
 
-        return userModel;
+        print('✅ Token salvo com sucesso (SecureStorage + TokenCache)');
+        print('📝 Token: ${token.substring(0, 20)}...');
       } else {
-        throw Exception('Login failed: ${response.statusMessage}');
+        throw Exception('Token não retornado pela API de login');
       }
-    } on DioException catch (e) {
-      // Tratar erros do Dio com mensagens amigáveis
-      if (e.response != null) {
-        final statusCode = e.response!.statusCode;
-        switch (statusCode) {
-          case 401:
-            throw Exception(
-                'Credenciais inválidas. Verifique seu email e senha.');
-          case 403:
-            throw Exception('Acesso negado. Conta pode estar desativada.');
-          case 404:
-            throw Exception(
-                'Serviço não encontrado. Tente novamente mais tarde.');
-          case 500:
-            throw Exception(
-                'Erro interno do servidor. Tente novamente mais tarde.');
-          default:
-            throw Exception(
-                'Erro no servidor (código $statusCode). Tente novamente.');
-        }
-      } else {
-        // Erro de rede
-        if (e.type == DioExceptionType.connectionTimeout ||
-            e.type == DioExceptionType.receiveTimeout) {
-          throw Exception('Tempo de conexão esgotado. Verifique sua internet.');
-        } else if (e.type == DioExceptionType.connectionError) {
-          throw Exception(
-              'Falha na conexão. Verifique sua internet e tente novamente.');
-        } else {
-          throw Exception('Erro de rede: ${e.message}');
-        }
-      }
+
+      // === PASSO 2: SEMPRE buscar dados completos do usuário via /api/perfil/me ===
+      print('🔍 Buscando dados completos do usuário via /api/perfil/me...');
+      final userModel =
+          await getCurrentUser(forceRefresh: true); // ⭐ FORÇA BUSCAR DA API
+
+      // === PASSO 3: Salvar dados completos do usuário no cache ===
+      await secureStorage.write(
+        key: _userKey,
+        value: jsonEncode(userModel.toJson()),
+      );
+
+      print('✅ Dados completos do usuário salvos no cache');
+
+      return userModel;
+    } on UnauthorizedException {
+      throw Exception('Credenciais inválidas. Verifique seu email e senha.');
+    } on ForbiddenException {
+      throw Exception('Acesso negado. Conta pode estar desativada.');
+    } on NotFoundException {
+      throw Exception('Serviço não encontrado. Tente novamente mais tarde.');
+    } on InternalServerException {
+      throw Exception('Erro interno do servidor. Tente novamente mais tarde.');
+    } on TimeoutException {
+      throw Exception('Tempo de conexão esgotado. Verifique sua internet.');
+    } on ConnectionException {
+      throw Exception(
+          'Falha na conexão. Verifique sua internet e tente novamente.');
     } catch (e) {
+      print('❌ Erro inesperado: $e');
       throw Exception('Erro inesperado ao fazer login: $e');
     }
   }
@@ -155,6 +145,11 @@ class AuthApiDatasource implements AuthDatasource {
       // Limpar dados armazenados
       await secureStorage.delete(key: _tokenKey);
       await secureStorage.delete(key: _userKey);
+
+      // Limpar token do cache em memória
+      TokenCache.instance.clearToken();
+
+      print('✅ Logout realizado: SecureStorage e TokenCache limpos');
     } catch (e) {
       throw Exception('Erro ao fazer logout: $e');
     }
