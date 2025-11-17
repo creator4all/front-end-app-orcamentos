@@ -15,6 +15,10 @@ class CategoryEntity extends Equatable {
   /// Ordem de exibição (menor valor = maior prioridade)
   final int ordem;
 
+  /// Define se a categoria deve ser exibida expandida (subcategorias visíveis)
+  /// ou como card único (abre modal ao clicar)
+  final bool expandido;
+
   /// Lista de subcategorias
   final List<SubcategoryEntity> subcategorias;
 
@@ -25,6 +29,7 @@ class CategoryEntity extends Equatable {
     required this.id,
     required this.nome,
     required this.ordem,
+    required this.expandido,
     required this.subcategorias,
     this.estatisticas,
   });
@@ -90,11 +95,20 @@ class CategoryEntity extends Equatable {
     return formatter.format(totalValue);
   }
 
+  /// Verifica se a categoria deve ser exibida expandida
+  /// (mostrando subcategorias diretamente na tela)
+  bool get deveExibirExpandida => expandido;
+
+  /// Verifica se a categoria deve ser exibida como card compacto
+  /// (abrindo modal ao clicar)
+  bool get deveExibirComoCard => !expandido;
+
   @override
   List<Object?> get props => [
         id,
         nome,
         ordem,
+        expandido,
         subcategorias,
         estatisticas,
       ];
@@ -104,6 +118,7 @@ class CategoryEntity extends Equatable {
     int? id,
     String? nome,
     int? ordem,
+    bool? expandido,
     List<SubcategoryEntity>? subcategorias,
     StatisticsEntity? estatisticas,
   }) {
@@ -111,6 +126,7 @@ class CategoryEntity extends Equatable {
       id: id ?? this.id,
       nome: nome ?? this.nome,
       ordem: ordem ?? this.ordem,
+      expandido: expandido ?? this.expandido,
       subcategorias: subcategorias ?? this.subcategorias,
       estatisticas: estatisticas ?? this.estatisticas,
     );

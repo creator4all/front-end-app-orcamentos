@@ -1,53 +1,45 @@
-import 'package:dio/dio.dart';
-
-import '../../../../../../../services/api_service.dart';
+import '../../../../../../../app/shared/core/http/app_http_client.dart';
 import '../../domain/entities/budget_draft_entity.dart';
 import '../../domain/repositories/budget_draft_repository.dart';
 import '../models/budget_draft_dto.dart';
 import 'budget_draft_remote_datasource.dart';
 
-/// Implementação concreta do BudgetDraftRemoteDataSource usando Dio/ApiService
 class BudgetDraftRemoteDataSourceImpl implements BudgetDraftRemoteDataSource {
-  final ApiService apiService;
+  final AppHttpClient client;
 
-  BudgetDraftRemoteDataSourceImpl(this.apiService);
+  BudgetDraftRemoteDataSourceImpl(this.client);
 
   @override
   Future<BudgetDraftEntity> createDraft(CreateBudgetDraftParams params) async {
     try {
       const url = '/api/orcamentos/';
-      final payload = params.toJson();
+      final response = await client.post(url, data: params.toJson());
 
-      final response = await apiService.post(url, payload);
+      var data = response.body['dados'];
 
-      var data = response['data'][0];
+      if (data == null) {
+        throw Exception('Resposta da API não contém dados válidos');
+      }
 
-      // Extrair dados da resposta com unwrap seguro
-      // var data = response['dados'] ?? response['data'] ?? response;
+      // ⚠️ IMPORTANTE: dados deve ser um Map (não List)
+      if (data is List) {
+        print('⚠️ [BudgetDraftRemoteDataSourceImpl] Aviso: dados é List, esperado Map');
+        if (data.isNotEmpty) {
+          data = data.first;
+        } else {
+          throw Exception('Array de dados está vazio');
+        }
+      }
 
-      // // Se dados é um array, extrair o primeiro item
-      // if (data is List && data.isNotEmpty) {
-      //   data = data.first;
-      // }
+      if (data is! Map) {
+        throw Exception('Formato inesperado: dados não é Map. Tipo: ${data.runtimeType}');
+      }
 
-      // // Alguns endpoints retornam { dados: { ... } } embutido dentro de 'data'
-      // if (data is Map && data.containsKey('dados')) {
-      //   data = data['dados'];
-      //   // Se ainda for array, extrair primeiro item
-      //   if (data is List && data.isNotEmpty) {
-      //     data = data.first;
-      //   }
-      // }
-
-      // Converter para Entity usando DTO
-      final dto =
-          BudgetDraftDto.fromJson(Map<String, dynamic>.from(data as Map));
+      print('✅ [BudgetDraftRemoteDataSourceImpl] Parseando orçamento criado com sucesso');
+      final dto = BudgetDraftDto.fromJson(Map<String, dynamic>.from(data as Map));
       return dto.toEntity();
-    } on DioException catch (e) {
-      print('❌ [BudgetDraftDataSource] Erro Dio: ${e.message}');
-      throw _handleDioError(e);
     } catch (e) {
-      print('❌ [BudgetDraftDataSource] Erro desconhecido: $e');
+      print('❌ [BudgetDraftRemoteDataSourceImpl] Erro ao criar orçamento: $e');
       rethrow;
     }
   }
@@ -56,29 +48,33 @@ class BudgetDraftRemoteDataSourceImpl implements BudgetDraftRemoteDataSource {
   Future<BudgetDraftEntity> getDraftById(int budgetId) async {
     try {
       final url = '/api/orcamentos/$budgetId';
-      print('🔍 [BudgetDraftDataSource] Buscando orçamento ID: $budgetId');
+      final response = await client.get(url);
 
-      final response = await apiService.get(url);
+      var data = response.body['dados'] ?? response.body['data'];
 
-      // Extrair dados da resposta com unwrap seguro
-      var data = response['dados'] ?? response['data'] ?? response;
-      if (data is Map && data.containsKey('dados')) {
-        data = data['dados'];
+      if (data == null) {
+        throw Exception('Orçamento não encontrado');
       }
 
-      print(
-          '📡 [BudgetDraftDataSource] Dados extraídos para parsing (get): $data');
-      print('✅ [BudgetDraftDataSource] Orçamento carregado com sucesso');
+      // ⚠️ IMPORTANTE: dados deve ser um Map (não List)
+      if (data is List) {
+        print('⚠️ [BudgetDraftRemoteDataSourceImpl] Aviso: dados é List, esperado Map');
+        if (data.isNotEmpty) {
+          data = data.first;
+        } else {
+          throw Exception('Array de dados está vazio');
+        }
+      }
 
-      // Converter para Entity usando DTO
-      final dto =
-          BudgetDraftDto.fromJson(Map<String, dynamic>.from(data as Map));
+      if (data is! Map) {
+        throw Exception('Formato inesperado: dados não é Map. Tipo: ${data.runtimeType}');
+      }
+
+      print('✅ [BudgetDraftRemoteDataSourceImpl] Parseando orçamento ${budgetId} com sucesso');
+      final dto = BudgetDraftDto.fromJson(Map<String, dynamic>.from(data as Map));
       return dto.toEntity();
-    } on DioException catch (e) {
-      print('❌ [BudgetDraftDataSource] Erro Dio: ${e.message}');
-      throw _handleDioError(e);
     } catch (e) {
-      print('❌ [BudgetDraftDataSource] Erro desconhecido: $e');
+      print('❌ [BudgetDraftRemoteDataSourceImpl] Erro ao buscar orçamento: $e');
       rethrow;
     }
   }
@@ -86,48 +82,9 @@ class BudgetDraftRemoteDataSourceImpl implements BudgetDraftRemoteDataSource {
   @override
   Future<bool> validateBudgetCreation(CreateBudgetDraftParams params) async {
     try {
-      // Por enquanto, retorna true
-      // Futuramente pode ter endpoint de validação específico
-      print('✅ [BudgetDraftDataSource] Validação básica passou');
       return true;
     } catch (e) {
-      print('❌ [BudgetDraftDataSource] Erro na validação: $e');
       return false;
-    }
-  }
-
-  /// Trata erros do Dio e lança exceções apropriadas
-  Exception _handleDioError(DioException error) {
-    switch (error.type) {
-      case DioExceptionType.connectionTimeout:
-      case DioExceptionType.sendTimeout:
-      case DioExceptionType.receiveTimeout:
-        return Exception('Tempo de conexão excedido');
-
-      case DioExceptionType.badResponse:
-        final statusCode = error.response?.statusCode;
-        if (statusCode == 404) {
-          return Exception('Orçamento não encontrado');
-        } else if (statusCode == 401) {
-          return Exception('Não autorizado');
-        } else if (statusCode == 403) {
-          return Exception('Acesso negado');
-        } else if (statusCode == 422) {
-          return Exception(
-              'Dados inválidos: ${error.response?.data?['message'] ?? 'Erro de validação'}');
-        }
-        return Exception(
-          'Erro no servidor: ${error.response?.data?['message'] ?? 'Erro desconhecido'}',
-        );
-
-      case DioExceptionType.cancel:
-        return Exception('Requisição cancelada');
-
-      case DioExceptionType.connectionError:
-        return Exception('Sem conexão com a internet');
-
-      default:
-        return Exception('Erro desconhecido: ${error.message}');
     }
   }
 }

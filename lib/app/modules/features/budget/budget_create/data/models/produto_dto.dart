@@ -2,6 +2,35 @@ import '../../domain/entities/produto_entity.dart';
 import 'indicador_etapa_dto.dart';
 import 'subcategoria_dto.dart';
 
+/// DTO para informações de seleção de um produto no orçamento
+class OrcamentoProdutoInfo {
+  final int id;
+  final double quantidade;
+  final bool selecionado;
+
+  const OrcamentoProdutoInfo({
+    required this.id,
+    required this.quantidade,
+    required this.selecionado,
+  });
+
+  factory OrcamentoProdutoInfo.fromJson(Map<String, dynamic> json) {
+    return OrcamentoProdutoInfo(
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      quantidade: double.tryParse(json['quantidade']?.toString() ?? '0') ?? 0.0,
+      selecionado: json['selecionado'] as bool? ?? false,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'quantidade': quantidade.toString(),
+      'selecionado': selecionado,
+    };
+  }
+}
+
 /// DTO para Produto
 class ProdutoDto {
   final int id;
@@ -12,6 +41,7 @@ class ProdutoDto {
   final String indicacao;
   final List<IndicadorEtapaDto> indicadores;
   final SubcategoriaDto subcategoria;
+  final OrcamentoProdutoInfo? orcamentoProduto;
 
   const ProdutoDto({
     required this.id,
@@ -22,6 +52,7 @@ class ProdutoDto {
     required this.indicacao,
     required this.indicadores,
     required this.subcategoria,
+    this.orcamentoProduto,
   });
 
   factory ProdutoDto.fromJson(Map<String, dynamic> json) {
@@ -34,15 +65,23 @@ class ProdutoDto {
     // Parse subcategoria
     final subcategoriaJson = json['subcategoria'] as Map<String, dynamic>? ?? {};
 
+    // Parse orcamento_produto (novo formato)
+    OrcamentoProdutoInfo? orcamentoProduto;
+    final orcamentoProdutoJson = json['orcamento_produto'] as Map<String, dynamic>?;
+    if (orcamentoProdutoJson != null) {
+      orcamentoProduto = OrcamentoProdutoInfo.fromJson(orcamentoProdutoJson);
+    }
+
     return ProdutoDto(
-      id: (json['pro_produtosId'] as num?)?.toInt() ?? 0,
-      status: json['pro_status'] as bool? ?? false,
-      valor: double.tryParse(json['pro_valor']?.toString() ?? '0') ?? 0.0,
+      id: (json['id'] as num?)?.toInt() ?? (json['pro_produtosId'] as num?)?.toInt() ?? 0,
+      status: json['status'] as bool? ?? json['pro_status'] as bool? ?? false,
+      valor: double.tryParse(json['valor']?.toString() ?? json['pro_valor']?.toString() ?? '0') ?? 0.0,
       subcategoriaId: (json['pro_subcategoria_id'] as num?)?.toInt() ?? 0,
-      solucao: json['pro_solucao'] as String? ?? '',
-      indicacao: json['pro_indicacao'] as String? ?? '',
+      solucao: json['solucao'] as String? ?? json['pro_solucao'] as String? ?? '',
+      indicacao: json['indicacao'] as String? ?? json['pro_indicacao'] as String? ?? '',
       indicadores: indicadores,
       subcategoria: SubcategoriaDto.fromJson(subcategoriaJson),
+      orcamentoProduto: orcamentoProduto,
     );
   }
 
@@ -61,14 +100,20 @@ class ProdutoDto {
 
   Map<String, dynamic> toJson() {
     return {
+      'id': id,
       'pro_produtosId': id,
+      'status': status,
       'pro_status': status,
+      'valor': valor,
       'pro_valor': valor.toString(),
       'pro_subcategoria_id': subcategoriaId,
+      'solucao': solucao,
       'pro_solucao': solucao,
+      'indicacao': indicacao,
       'pro_indicacao': indicacao,
       'indicadores': indicadores.map((dto) => dto.toJson()).toList(),
       'subcategoria': subcategoria.toJson(),
+      if (orcamentoProduto != null) 'orcamento_produto': orcamentoProduto!.toJson(),
     };
   }
 }

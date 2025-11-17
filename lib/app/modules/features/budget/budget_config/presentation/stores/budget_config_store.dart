@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:flutter/foundation.dart';
 import 'package:mobx/mobx.dart';
 
+import '../../../budget_create/domain/entities/budget_draft_entity.dart';
 import '../../../shared/errors/budget_failure.dart';
 import '../../../shared/models/budget_update_dto.dart';
 import '../../../shared/models/product_selection_update_dto.dart';
@@ -148,6 +149,52 @@ abstract class _BudgetConfigStoreBase with Store {
     // Carregar censo se tiver cidade
     if (budgetDetail != null && budgetDetail!.cityIds.isNotEmpty) {
       await loadCensusData(budgetDetail!.cityIds.first);
+    }
+  }
+
+  @action
+  Future<void> initializeWithDraft(BudgetDraftEntity draft) async {
+    isLoading = true;
+    isLoadingProducts = false;
+    error = null;
+
+    try {
+      budgetDetail = BudgetDetailEntity(
+        id: draft.id,
+        name: draft.partnerName,
+        validityDays: draft.validityDays,
+        validityDate: draft.validityDate,
+        creationDate: draft.createdAt,
+        status: draft.status,
+        total: draft.total,
+        userId: draft.createdByUserId,
+        partnerId: draft.partnerId,
+        cityIds: [draft.location.cityCode].map((e) => int.tryParse(e) ?? 0).toList(),
+        products: [],
+        categoryStates: {},
+        categories: draft.categories,
+        citiesData: [],
+      );
+
+      categories.clear();
+      categories.addAll(draft.categories);
+
+      categoryStates.clear();
+
+      validityDate = draft.validityDate ?? DateTime.now().add(const Duration(days: 60));
+      budgetName = draft.partnerName;
+
+      isLoading = false;
+
+      if (draft.location.cityCode.isNotEmpty) {
+        final cityId = int.tryParse(draft.location.cityCode);
+        if (cityId != null && cityId > 0) {
+          await loadCensusData(cityId);
+        }
+      }
+    } catch (e) {
+      error = 'Erro ao inicializar orçamento: $e';
+      isLoading = false;
     }
   }
 

@@ -7,6 +7,7 @@ class CategoryDTO {
   final int id;
   final String nome;
   final int ordem;
+  final bool expandido;
   final List<SubcategoryDTO> subcategorias;
   final StatisticsDTO? estatisticas;
 
@@ -14,6 +15,7 @@ class CategoryDTO {
     required this.id,
     required this.nome,
     required this.ordem,
+    required this.expandido,
     required this.subcategorias,
     this.estatisticas,
   });
@@ -24,6 +26,7 @@ class CategoryDTO {
       final int id = json['id'] as int;
       final String nome = json['nome'] as String;
       final int ordem = json['ordem'] as int? ?? 0;
+      final bool expandido = json['expandido'] as bool? ?? false;
 
       final List<SubcategoryDTO> subcategorias = [];
       if (json['subcategorias'] != null && json['subcategorias'] is List) {
@@ -51,6 +54,7 @@ class CategoryDTO {
         id: id,
         nome: nome,
         ordem: ordem,
+        expandido: expandido,
         subcategorias: subcategorias,
         estatisticas: estatisticas,
       );
@@ -65,6 +69,7 @@ class CategoryDTO {
       id: id,
       nome: nome,
       ordem: ordem,
+      expandido: expandido,
       subcategorias: subcategorias.map((s) => s.toEntity()).toList(),
       estatisticas: estatisticas?.toEntity(),
     );
@@ -76,6 +81,7 @@ class CategoryDTO {
       'id': id,
       'nome': nome,
       'ordem': ordem,
+      'expandido': expandido,
       'subcategorias': subcategorias.map((s) => s.toJson()).toList(),
       if (estatisticas != null) 'estatisticas': estatisticas!.toJson(),
     };
@@ -87,6 +93,7 @@ class CategoryDTO {
       id: entity.id,
       nome: entity.nome,
       ordem: entity.ordem,
+      expandido: entity.expandido,
       subcategorias: entity.subcategorias
           .map((s) => SubcategoryDTO.fromEntity(s))
           .toList(),
