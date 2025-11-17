@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../../../shared/utils/string_utils.dart';
 import '../../../../../../shared/widgets/custom_modal.dart';
+import '../../domain/entities/category_entity.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../domain/entities/subcategory_entity.dart';
 import '../stores/budget_config_store.dart';
@@ -37,15 +38,16 @@ class SubcategoryProductsModal extends StatelessWidget {
   /// Mostra a modal usando showModalBottomSheet
   static Future<void> show({
     required BuildContext context,
+    required CategoryEntity category,
     required SubcategoryEntity subcategory,
-    required int categoryId,
     dynamic store,
   }) {
     return CustomModal.show(
       context: context,
-      title: capitalizeFirstLetter(subcategory.nome),
+      title:
+          '${capitalizeFirstLetter(category.nome)}: ${capitalizeFirstLetter(subcategory.nome)}',
       content: SubcategoryProductsModal(
-        categoryId: categoryId,
+        categoryId: category.id,
         subcategoryId: subcategory.id,
         store: store,
       ),
