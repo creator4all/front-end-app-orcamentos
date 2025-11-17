@@ -19,7 +19,7 @@ class DioInterceptorAdapter extends Interceptor {
   ]) {
     return HttpRequestInfo(
       method: options.method,
-      url: '${options.baseUrl}${options.path}',
+      url: options.uri.toString(),
       data: options.data,
       headers: Map<String, dynamic>.from(options.headers),
       timeout: options.sendTimeout,

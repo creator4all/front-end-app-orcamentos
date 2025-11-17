@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 
+import '../../../budget_config/domain/entities/category_entity.dart';
 import 'cidade_entity.dart';
 import 'location_entity.dart';
 import 'orcamento_produto_entity.dart';
@@ -23,6 +24,7 @@ class BudgetDraftEntity extends Equatable {
   final DateTime dataValidade;
   final CidadeEntity? cidade;
   final List<OrcamentoProdutoEntity> orcamentoProdutos;
+  final List<CategoryEntity> categories;
 
   const BudgetDraftEntity({
     required this.id,
@@ -41,6 +43,7 @@ class BudgetDraftEntity extends Equatable {
     required this.dataValidade,
     this.cidade,
     required this.orcamentoProdutos,
+    this.categories = const [],
   });
 
   /// Verifica se o orçamento está em estado de rascunho
@@ -107,6 +110,7 @@ class BudgetDraftEntity extends Equatable {
     DateTime? dataValidade,
     CidadeEntity? cidade,
     List<OrcamentoProdutoEntity>? orcamentoProdutos,
+    List<CategoryEntity>? categories,
   }) {
     return BudgetDraftEntity(
       id: id ?? this.id,
@@ -125,6 +129,7 @@ class BudgetDraftEntity extends Equatable {
       dataValidade: dataValidade ?? this.dataValidade,
       cidade: cidade ?? this.cidade,
       orcamentoProdutos: orcamentoProdutos ?? this.orcamentoProdutos,
+      categories: categories ?? this.categories,
     );
   }
 }

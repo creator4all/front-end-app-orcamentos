@@ -9,6 +9,7 @@ import '../../../../../../shared/widgets/custom_top_bar.dart';
 import '../../../../../../shared/widgets/product_category.dart';
 import '../../../../../budget/presentation/pages/school_census.dart';
 import '../../../../auth/presentation/stores/auth_store.dart';
+import '../../../budget_create/domain/entities/budget_draft_entity.dart';
 import '../../domain/entities/category_entity.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../domain/entities/subcategory_entity.dart';
@@ -21,10 +22,12 @@ import '../widgets/subcategory_products_modal.dart';
 
 class ConfigNewBudgetPage extends StatefulWidget {
   final int budgetId;
+  final BudgetDraftEntity? initialDraft;
 
   const ConfigNewBudgetPage({
     super.key,
     required this.budgetId,
+    this.initialDraft,
   });
 
   @override
@@ -46,16 +49,21 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     store = Modular.get<BudgetConfigStore>();
     _authStore = Modular.get<AuthStore>();
 
-    // Define a data atual para o campo "Data do orçamento" no formato brasileiro
     _dataOrcamentoController.text =
         DateFormat('dd/MM/yyyy').format(DateTime.now());
 
-    // Define o valor padrão para "Validade do orçamento"
     _validadeOrcamentoController.text = '60';
 
-    // Inicializa a store com o budgetId
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      store.initialize(widget.budgetId);
+      final args = Modular.args.data;
+      final initialDraft =
+          args is BudgetDraftEntity ? args : widget.initialDraft;
+
+      if (initialDraft != null) {
+        store.initializeWithDraft(initialDraft);
+      } else {
+        store.initialize(widget.budgetId);
+      }
     });
   }
 
@@ -248,21 +256,25 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
 
                   SizedBox(height: 12.h),
 
-                  // ✅ Categorias Dinâmicas (Layout Customizado)
+                  // ✅ Categorias Dinâmicas (baseadas no campo "expandido")
                   if (store.hasCategories) ...[
-                    // 1. LIVROS (sempre primeiro, se existir)
-                    if (_getLivrosCategory() != null)
-                      Padding(
-                        padding: EdgeInsets.only(bottom: 12.h),
-                        child: _buildCategoryFromEntity(_getLivrosCategory()!),
-                      ),
-
-                    // 2. TECNOLOGIAS (header + subcategorias expandidas)
-                    if (_getTecnologiasCategory() != null) ...[
-                      _buildTecnologiasHeader(_getTecnologiasCategory()!),
-                      ..._buildTecnologiasSubcategories(
-                          _getTecnologiasCategory()!),
-                    ],
+                    ...store.categories.map((category) {
+                      if (category.expandido) {
+                        // Exibir como categoria expandida (header + subcategorias visíveis)
+                        return [
+                          _buildExpandedCategoryHeader(category),
+                          ..._buildExpandedSubcategories(category),
+                        ];
+                      } else {
+                        // Exibir como card único (abre modal ao clicar)
+                        return [
+                          Padding(
+                            padding: EdgeInsets.only(bottom: 12.h),
+                            child: _buildCategoryFromEntity(category),
+                          ),
+                        ];
+                      }
+                    }).expand((widgets) => widgets),
                   ],
 
                   // Mensagem se não houver categorias
@@ -432,32 +444,8 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
 
   // ========== MÉTODOS AUXILIARES ==========
 
-  /// Busca a categoria "Livros" nas categorias disponíveis
-  CategoryEntity? _getLivrosCategory() {
-    if (!store.hasCategories) return null;
-    try {
-      return store.categories.firstWhere(
-        (cat) => cat.nome.toLowerCase() == 'livros',
-      );
-    } catch (_) {
-      return null;
-    }
-  }
-
-  /// Busca a categoria "Tecnologias" nas categorias disponíveis
-  CategoryEntity? _getTecnologiasCategory() {
-    if (!store.hasCategories) return null;
-    try {
-      return store.categories.firstWhere(
-        (cat) => cat.nome.toLowerCase() == 'tecnologias',
-      );
-    } catch (_) {
-      return null;
-    }
-  }
-
-  /// Constrói o header customizado para Tecnologias
-  Widget _buildTecnologiasHeader(CategoryEntity tecnologias) {
+  /// Constrói o header para categorias expandidas
+  Widget _buildExpandedCategoryHeader(CategoryEntity category) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(0, 0, 0, 10),
       child: Row(
@@ -467,7 +455,7 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Tecnologias',
+                category.nome,
                 style: TextStyle(
                   fontSize: 16.sp,
                   fontWeight: FontWeight.w600,
@@ -480,7 +468,7 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                   locale: 'pt_BR',
                   symbol: 'R\$',
                   decimalDigits: 2,
-                ).format(tecnologias.totalValue),
+                ).format(category.totalValue),
                 style: TextStyle(
                   fontSize: 15.sp,
                   fontWeight: FontWeight.w400,
@@ -494,17 +482,17 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     );
   }
 
-  /// Constrói a lista de subcategorias expandidas para Tecnologias
+  /// Constrói a lista de subcategorias expandidas
   /// Ordena por campo "ordem" do backend
-  List<Widget> _buildTecnologiasSubcategories(CategoryEntity tecnologias) {
+  List<Widget> _buildExpandedSubcategories(CategoryEntity category) {
     // Ordenar subcategorias por ordem
-    final sortedSubcategories = tecnologias.subcategorias.toList()
+    final sortedSubcategories = category.subcategorias.toList()
       ..sort((a, b) => a.ordem.compareTo(b.ordem));
 
     return sortedSubcategories.map((subcategory) {
       return Padding(
         padding: EdgeInsets.only(bottom: 12.h),
-        child: _buildSubcategoryCard(subcategory, tecnologias),
+        child: _buildSubcategoryCard(subcategory, category),
       );
     }).toList();
   }

@@ -1,8 +1,16 @@
 import 'package:flutter_modular/flutter_modular.dart';
 
+import '../../../../config/api_config.dart';
 import '../../../../services/api_service.dart';
+import '../../../shared/core/http/app_http_client.dart';
 import '../../../shared/core/http/dio_client.dart';
+import '../../../shared/core/http/dio_config_factory.dart';
+import '../../../shared/core/http/dio_http_client_impl.dart';
 import '../../budget/external/services/budget_service.dart';
+import 'budget_create/data/datasources/budget_draft_remote_datasource.dart';
+import 'budget_create/data/datasources/budget_draft_remote_datasource_impl.dart';
+import 'budget_create/data/datasources/partner_remote_datasource.dart';
+import 'budget_create/data/datasources/partner_remote_datasource_impl.dart';
 // Budget Config - Clean Architecture
 import 'budget_config/data/datasources/budget_detail_remote_datasource.dart';
 import 'budget_config/data/datasources/budget_detail_remote_datasource_impl.dart';
@@ -23,10 +31,6 @@ import 'budget_config/domain/usecases/toggle_category_usecase.dart';
 import 'budget_config/presentation/pages/config_new_budget_page.dart';
 import 'budget_config/presentation/stores/budget_config_store.dart';
 // Budget Create - Clean Architecture
-import 'budget_create/data/datasources/budget_draft_remote_datasource.dart';
-import 'budget_create/data/datasources/budget_draft_remote_datasource_impl.dart';
-import 'budget_create/data/datasources/partner_remote_datasource.dart';
-import 'budget_create/data/datasources/partner_remote_datasource_impl.dart';
 import 'budget_create/data/repositories/budget_draft_repository_impl.dart';
 import 'budget_create/data/repositories/partner_repository_impl.dart';
 import 'budget_create/domain/repositories/budget_draft_repository.dart';
@@ -66,6 +70,17 @@ class BudgetModuleNew extends Module {
         // ==================== CORE ====================
         Bind.lazySingleton((i) => DioClient()),
         Bind.lazySingleton((i) => ApiService(dio: i.get<DioClient>().dio)),
+
+        // ==================== NEW HTTP CLIENT (AppHttpClient) ====================
+        Bind.lazySingleton<AppHttpClient>(
+          (i) => DioHttpClientImpl(
+            DioConfigFactory.createDefault(
+              baseUrl: ApiConfig.baseUrl,
+              getToken: () => '', // Token será adicionado pelo interceptor
+              enableLogger: true,
+            ),
+          ),
+        ),
 
         // ==================== LEGACY SERVICES (para compatibilidade) ====================
         Bind.lazySingleton((i) => BudgetService(i.get<ApiService>())),
@@ -107,10 +122,10 @@ class BudgetModuleNew extends Module {
         // ==================== BUDGET CREATE ====================
         // DataSources
         Bind.lazySingleton<PartnerRemoteDataSource>(
-          (i) => PartnerRemoteDataSourceImpl(i.get<ApiService>()),
+          (i) => PartnerRemoteDataSourceImpl(i.get<AppHttpClient>()),
         ),
         Bind.lazySingleton<BudgetDraftRemoteDataSource>(
-          (i) => BudgetDraftRemoteDataSourceImpl(i.get<ApiService>()),
+          (i) => BudgetDraftRemoteDataSourceImpl(i.get<AppHttpClient>()),
         ),
 
         // Repositories

@@ -216,7 +216,10 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
         final budgetId = _store.createdDraft!.id;
         print('✅ [NewBudgetPage] Navegando para config/$budgetId');
 
-        await Modular.to.pushNamed('/budget/config/$budgetId');
+        await Modular.to.pushNamed(
+          '/budget/config/$budgetId',
+          arguments: _store.createdDraft,
+        );
 
         // Limpar formulário ao voltar
         if (mounted) {

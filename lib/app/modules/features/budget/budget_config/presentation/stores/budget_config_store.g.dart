@@ -295,6 +295,16 @@ mixin _$BudgetConfigStore on _BudgetConfigStoreBase, Store {
     return _$initializeAsyncAction.run(() => super.initialize(budgetId));
   }
 
+  late final _$initializeWithDraftAsyncAction = AsyncAction(
+      '_BudgetConfigStoreBase.initializeWithDraft',
+      context: context);
+
+  @override
+  Future<void> initializeWithDraft(BudgetDraftEntity draft) {
+    return _$initializeWithDraftAsyncAction
+        .run(() => super.initializeWithDraft(draft));
+  }
+
   late final _$loadBudgetDetailAsyncAction =
       AsyncAction('_BudgetConfigStoreBase.loadBudgetDetail', context: context);
 
