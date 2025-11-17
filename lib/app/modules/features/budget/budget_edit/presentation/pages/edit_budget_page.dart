@@ -645,7 +645,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
       CategoryEntity category, SubcategoryEntity subcategory) {
     SubcategoryProductsModal.show(
       context: context,
-      categoryId: category.id,
+      category: category,
       subcategory: subcategory,
       store: store, // Passa a store do BudgetEdit
     );

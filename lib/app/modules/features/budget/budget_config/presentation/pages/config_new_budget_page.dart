@@ -633,11 +633,11 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     print('   📦 Produtos ativos: ${subcategory.activeProductsCount}');
 
     // Usar o helper estático que encapsula CustomModal.show
-    // Agora recebe categoryId para buscar dados reativos da store
+    // Agora recebe category completa para exibir título composto
     SubcategoryProductsModal.show(
       context: context,
+      category: category,
       subcategory: subcategory,
-      categoryId: category.id,
     );
   }
 
