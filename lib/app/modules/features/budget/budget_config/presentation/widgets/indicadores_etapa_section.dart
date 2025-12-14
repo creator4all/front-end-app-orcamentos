@@ -4,112 +4,105 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../domain/entities/indicador_etapa_entity.dart';
 
 /// Widget que exibe os indicadores de etapa de um produto
+/// Agrupados por Título do Grupo
 class IndicadoresEtapaSection extends StatelessWidget {
   final List<IndicadorEtapaEntity> indicadores;
+  final Function(int indicadorId, bool valor)? onToggle;
 
   const IndicadoresEtapaSection({
     super.key,
     required this.indicadores,
+    this.onToggle,
   });
 
   @override
   Widget build(BuildContext context) {
     if (indicadores.isEmpty) {
-      return Container(
-        width: double.infinity,
-        padding: EdgeInsets.all(16.w),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: const Color(0xFFD9D9D9)),
-          borderRadius: BorderRadius.circular(8.r),
-        ),
-        child: Text(
-          'Nenhum indicador disponível para este produto.',
-          style: TextStyle(
-            fontSize: 14.sp,
-            color: Colors.grey[600],
-          ),
-        ),
-      );
+      return Container();
     }
 
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFD9D9D9)),
-        borderRadius: BorderRadius.circular(8.r),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    // Agrupa indicadores por nome do grupo manualmente
+    final grupos = <String, List<IndicadorEtapaEntity>>{};
+    for (var indicador in indicadores) {
+      if (!grupos.containsKey(indicador.grupoNome)) {
+        grupos[indicador.grupoNome] = [];
+      }
+      grupos[indicador.grupoNome]!.add(indicador);
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: grupos.entries.map((entry) {
+        final grupoNome = entry.key;
+        final listaIndicadores = entry.value;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Título do Grupo
+            if (grupoNome.isNotEmpty)
+              Padding(
+                padding: EdgeInsets.only(bottom: 12.h, top: 8.h),
+                child: Text(
+                  grupoNome,
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.bold, // Bold conforme imagem
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+
+            // Lista de Checkboxes do Grupo
+            ...listaIndicadores
+                .map((indicador) => _buildCheckboxItem(indicador)),
+
+            SizedBox(height: 8.h), // Espaço entre grupos
+          ],
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildCheckboxItem(IndicadorEtapaEntity indicador) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 12.h),
+      child: Row(
         children: [
-          // Título da seção
-          Text(
-            'INDICADORES',
-            style: TextStyle(
-              fontSize: 14.sp,
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF000000),
+          // Checkbox Customizado
+          SizedBox(
+            width: 20.w,
+            height: 20.h,
+            child: Checkbox(
+              value: indicador.selecionado,
+              onChanged: (value) {
+                if (onToggle != null && value != null) {
+                  onToggle!(indicador.produtoIndicadorId, value);
+                }
+              },
+              activeColor: const Color(0xFF2830F2), // Azul quando selecionado
+              checkColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(4.r), // Leve arredondamento
+              ),
+              side: const BorderSide(
+                color:
+                    Color(0xFF8C8C8C), // Cinza na borda quando não selecionado
+                width: 1.5,
+              ),
             ),
           ),
-          SizedBox(height: 12.h),
-
-          // Lista de indicadores com checkboxes
-          ...indicadores.map((indicador) {
-            return Padding(
-              padding: EdgeInsets.only(bottom: 8.h),
-              child: Row(
-                children: [
-                  // Checkbox customizado
-                  SizedBox(
-                    width: 17.w,
-                    height: 17.h,
-                    child: Checkbox(
-                      value: indicador.selecionado,
-                      onChanged: (value) {
-                        // Implementar lógica de atualização se necessário
-                      },
-                      activeColor: const Color(0xFF2830F2),
-                      checkColor: Colors.white,
-                      fillColor: WidgetStateProperty.resolveWith<Color?>(
-                        (Set<WidgetState> states) {
-                          if (states.contains(WidgetState.selected)) {
-                            return const Color(0xFF2830F2);
-                          }
-                          return Colors.white;
-                        },
-                      ),
-                      side: BorderSide(
-                        color: indicador.selecionado
-                            ? const Color(0xFF2830F2)
-                            : const Color(0xFFD9D9D9),
-                        width: 1.0,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(5.r),
-                      ),
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                  ),
-
-                  SizedBox(width: 12.w),
-
-                  // Nome do indicador
-                  Expanded(
-                    child: Text(
-                      indicador.indicadorNome,
-                      style: TextStyle(
-                        fontSize: 14.sp,
-                        color: const Color(0xFF000000),
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                ],
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Text(
+              indicador.indicadorNome, // Usando indicadorNome (ex: 1º Ano)
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: const Color(0xFF484848),
+                fontWeight: FontWeight.w400,
               ),
-            );
-          }),
+            ),
+          ),
         ],
       ),
     );

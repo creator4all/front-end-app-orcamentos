@@ -10,9 +10,9 @@ import '../../modules/budget/presentation/stores/books_subcategory_store.dart';
 import '../../modules/budget/presentation/stores/budget_edit_store.dart';
 import '../../modules/budget/presentation/stores/card_selection_store.dart';
 import '../../modules/budget/presentation/stores/product_store.dart';
+import '../../modules/features/budget/budget_config/presentation/widgets/product_info_modal.dart';
 import 'book_item.dart';
 import 'custom_modal.dart';
-import 'product_info_modal.dart';
 import 'technology_item.dart';
 
 class BooksModal {

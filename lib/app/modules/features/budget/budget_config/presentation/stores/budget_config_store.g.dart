@@ -496,11 +496,33 @@ mixin _$BudgetConfigStore on _BudgetConfigStoreBase, Store {
   }
 
   @override
+  void updateProductValue(int productId, double value) {
+    final _$actionInfo = _$_BudgetConfigStoreBaseActionController.startAction(
+        name: '_BudgetConfigStoreBase.updateProductValue');
+    try {
+      return super.updateProductValue(productId, value);
+    } finally {
+      _$_BudgetConfigStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
   void updateProductObservations(int productId, String? observations) {
     final _$actionInfo = _$_BudgetConfigStoreBaseActionController.startAction(
         name: '_BudgetConfigStoreBase.updateProductObservations');
     try {
       return super.updateProductObservations(productId, observations);
+    } finally {
+      _$_BudgetConfigStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void toggleProductIndicator(int productId, int indicatorId) {
+    final _$actionInfo = _$_BudgetConfigStoreBaseActionController.startAction(
+        name: '_BudgetConfigStoreBase.toggleProductIndicator');
+    try {
+      return super.toggleProductIndicator(productId, indicatorId);
     } finally {
       _$_BudgetConfigStoreBaseActionController.endAction(_$actionInfo);
     }

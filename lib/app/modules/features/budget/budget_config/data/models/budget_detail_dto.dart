@@ -42,7 +42,38 @@ class BudgetDetailDto {
   factory BudgetDetailDto.fromJson(Map<String, dynamic> json) {
     // Parse produtos
     final List<ProductSelectionDto> productsList = [];
-    if (json['produtos'] != null && json['produtos'] is List) {
+
+    // 1. Tenta formato 'orcamentoProdutos' / 'orcamento_produtos' (Estrutura completa do PHP/Eloquent)
+    final orcProdutos = json['orcamentoProdutos'] ?? json['orcamento_produtos'];
+    if (orcProdutos != null && orcProdutos is List) {
+      for (final item in orcProdutos) {
+        if (item is Map<String, dynamic>) {
+          final prod = item['produto'] as Map<String, dynamic>? ?? {};
+          final sub = prod['subcategoria'] as Map<String, dynamic>? ?? {};
+          final cat = sub['categoria'] as Map<String, dynamic>? ?? {};
+
+          // Parse indicadores selecionados do pivô ou do produto se necessário
+          // Por enquanto, deixamos vazio pois o foco aqui é a lista de seleção
+          // A extração completa de indicadores acontece via ProductDTO nas categorias
+
+          productsList.add(ProductSelectionDto(
+            productId: item['op_produto_id'] ??
+                prod['pro_produtosId'] ??
+                item['op_produto_id'] ??
+                0,
+            name: prod['pro_solucao'] ?? prod['solucao'] ?? '',
+            category: cat['cat_nome'] ?? cat['nome'] ?? '',
+            price: (prod['pro_valor'] ?? prod['valor'] ?? 0).toDouble(),
+            isSelected:
+                item['op_selecionado'] == 1 || item['op_selecionado'] == true,
+            quantity: item['op_quantidade'] ?? 0,
+            indicadoresEtapa: [],
+          ));
+        }
+      }
+    }
+    // 2. Formatos simplificados antigos
+    else if (json['produtos'] != null && json['produtos'] is List) {
       productsList.addAll(
         (json['produtos'] as List).map(
           (p) => ProductSelectionDto.fromJson(Map<String, dynamic>.from(p)),
@@ -104,6 +135,45 @@ class BudgetDetailDto {
         }
       }
       print('✅ [BudgetDetailDTO] Total de cidades: ${cities.length}');
+    } else if (json['cidade'] != null && json['cidade'] is Map) {
+      // ✅ Caso de criação/retorno simples onde 'cidade' vem como objeto na raiz
+      final cidadeMap = json['cidade'] as Map<String, dynamic>;
+      final cidadeId = cidadeMap['idCidades'] ?? json['orc_cidade_id'] as int;
+      final cidadeName = cidadeMap['nome_cidade'] ?? 'Cidade $cidadeId';
+
+      cities.add(cidadeId);
+
+      // Extrair indicadores de 'cidades_has_indice_etapa'
+      List<dynamic> indicadoresRaw = [];
+      if (cidadeMap['cidades_has_indice_etapa'] != null) {
+        indicadoresRaw = cidadeMap['cidades_has_indice_etapa'] as List;
+      }
+
+      // Mapear para estrutura simplificada de indicadores esperada pelo app
+      final indicadores = indicadoresRaw.map((ind) {
+        // Tenta extrair grupo
+        final grupoObj = ind['grupo'] as Map<String, dynamic>?;
+        final nomeGrupo = grupoObj?['nome_grupo'] ?? '';
+        final idGrupo = grupoObj?['grupo_id'] ?? 0;
+
+        return {
+          'id': ind['idindice_etapa'],
+          'nome': ind['nome_etapa'],
+          'valor': ind['pivot']?['etapa_valor'] ?? 0,
+          'grupo_id': idGrupo,
+          'grupo_nome': nomeGrupo,
+        };
+      }).toList();
+
+      print(
+          '✅ [BudgetDetailDTO] Cidade extraída do root: $cidadeName (ID: $cidadeId)');
+      print('   📊 Indicadores com grupo: ${indicadores.length}');
+
+      citiesDataList.add({
+        'id': cidadeId,
+        'nome': cidadeName,
+        'indicadores': indicadores,
+      });
     } else if (json['orc_cidade_id'] != null) {
       cities.add(json['orc_cidade_id'] as int);
       citiesDataList.add({
@@ -127,6 +197,38 @@ class BudgetDetailDto {
           '✅ [BudgetDetailDTO] ${categoriesList.length} categorias parseadas');
     } else {
       print('⚠️ [BudgetDetailDTO] Nenhuma categoria encontrada no JSON!');
+    }
+
+    // 🆕 FALLBACK: Se productsList estiver vazia, tentar extrair da árvore de categorias
+    if (productsList.isEmpty && categoriesList.isNotEmpty) {
+      print(
+          '⚠️ [BudgetDetailDTO] Lista de produtos vazia na raiz, extraindo das categorias...');
+      for (final cat in categoriesList) {
+        for (final sub in cat.subcategorias) {
+          for (final prod in sub.produtos) {
+            if (prod.selecionado) {
+              // Converter ProductDTO para ProductSelectionDto
+              productsList.add(ProductSelectionDto(
+                productId: prod.id,
+                name: prod.solucao,
+                category: cat.nome,
+                price: prod.valor,
+                isSelected: true,
+                quantity: prod.quantidade,
+                observacoes: prod.observacoes,
+                indicadoresEtapa: prod.indicadoresEtapa
+                    .map((ind) => ProductIndicatorDto(
+                          produtoIndicadorId: ind.produtoIndicadorId,
+                          selecionado: ind.selecionado,
+                        ))
+                    .toList(),
+              ));
+            }
+          }
+        }
+      }
+      print(
+          '✅ [BudgetDetailDTO] ${productsList.length} produtos extraídos das categorias.');
     }
 
     return BudgetDetailDto(
