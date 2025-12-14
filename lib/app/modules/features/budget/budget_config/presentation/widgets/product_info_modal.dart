@@ -62,6 +62,32 @@ class ProductInfoModal extends StatefulWidget {
 }
 
 class _ProductInfoModalState extends State<ProductInfoModal> {
+  late TextEditingController _valueController;
+
+  @override
+  void initState() {
+    super.initState();
+    // Inicializa o controller quando o produto for carregado
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeValueController();
+    });
+  }
+
+  void _initializeValueController() {
+    final storeInstance = widget.store ?? Modular.get<BudgetConfigStore>();
+    final product = storeInstance.categories
+        .firstWhere((c) => c.id == widget.categoryId)
+        .subcategorias
+        .firstWhere((s) => s.id == widget.subcategoryId)
+        .produtos
+        .firstWhere((p) => p.id == widget.productId);
+
+    setState(() {
+      _valueController =
+          TextEditingController(text: product.valor.toStringAsFixed(2));
+    });
+  }
+
   /// Formata valor para padrão brasileiro
   String _formatCurrency(double value) {
     final formatter = NumberFormat.currency(
@@ -179,6 +205,57 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
               ),
               SizedBox(height: 24.h),
             ],
+
+            // Seção 3: Campo de valor unitário
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(16.w),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: const Color(0xFFD9D9D9)),
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'VALOR UNITÁRIO',
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF000000),
+                    ),
+                  ),
+                  SizedBox(height: 8.h),
+                  TextField(
+                    controller: _valueController,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.r),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.r),
+                        borderSide: const BorderSide(color: Color(0xFF2830F2)),
+                      ),
+                      hintText: '0,00',
+                      hintStyle: TextStyle(
+                        color: Colors.grey[400],
+                        fontSize: 14.sp,
+                      ),
+                    ),
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            SizedBox(height: 24.h),
 
             // Botão Salvar
             SizedBox(

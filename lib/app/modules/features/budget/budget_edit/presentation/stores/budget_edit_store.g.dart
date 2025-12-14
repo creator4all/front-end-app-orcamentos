@@ -56,6 +56,13 @@ mixin _$BudgetEditStore on _BudgetEditStoreBase, Store {
           Computed<int>(() => super.selectedCategoriesCount,
               name: '_BudgetEditStoreBase.selectedCategoriesCount'))
       .value;
+  Computed<int>? _$selectedItemsCountComputed;
+
+  @override
+  int get selectedItemsCount => (_$selectedItemsCountComputed ??= Computed<int>(
+          () => super.selectedItemsCount,
+          name: '_BudgetEditStoreBase.selectedItemsCount'))
+      .value;
   Computed<bool>? _$hasCategoriesComputed;
 
   @override
@@ -571,6 +578,7 @@ totalValue: ${totalValue},
 totalActiveProducts: ${totalActiveProducts},
 totalSelectedProducts: ${totalSelectedProducts},
 selectedCategoriesCount: ${selectedCategoriesCount},
+selectedItemsCount: ${selectedItemsCount},
 hasCategories: ${hasCategories},
 hasCensusData: ${hasCensusData},
 isFullyLoaded: ${isFullyLoaded}

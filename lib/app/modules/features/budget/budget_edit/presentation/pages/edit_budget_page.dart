@@ -259,7 +259,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                   // Resumo do orçamento
                   BudgetSummaryCard(
                     budgetValue: store.totalValue,
-                    selectedProductsCount: store.selectedCategoriesCount,
+                    selectedProductsCount: store.selectedItemsCount,
                   ),
 
                   SizedBox(height: 12.h),
@@ -935,6 +935,16 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                       ),
                     ),
                     items: const [
+                      DropdownMenuItem(
+                        value: 'rascunho',
+                        child: Text(
+                          'Rascunho',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
                       DropdownMenuItem(
                         value: 'pendente',
                         child: Text(

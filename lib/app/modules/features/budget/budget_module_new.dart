@@ -6,11 +6,8 @@ import '../../../shared/core/http/app_http_client.dart';
 import '../../../shared/core/http/dio_client.dart';
 import '../../../shared/core/http/dio_config_factory.dart';
 import '../../../shared/core/http/dio_http_client_impl.dart';
+import '../../../shared/core/utils/token_cache.dart';
 import '../../budget/external/services/budget_service.dart';
-import 'budget_create/data/datasources/budget_draft_remote_datasource.dart';
-import 'budget_create/data/datasources/budget_draft_remote_datasource_impl.dart';
-import 'budget_create/data/datasources/partner_remote_datasource.dart';
-import 'budget_create/data/datasources/partner_remote_datasource_impl.dart';
 // Budget Config - Clean Architecture
 import 'budget_config/data/datasources/budget_detail_remote_datasource.dart';
 import 'budget_config/data/datasources/budget_detail_remote_datasource_impl.dart';
@@ -20,6 +17,7 @@ import 'budget_config/data/repositories/budget_detail_repository_impl.dart';
 import 'budget_config/data/repositories/census_repository_impl.dart';
 import 'budget_config/domain/repositories/budget_detail_repository.dart';
 import 'budget_config/domain/repositories/census_repository.dart';
+import 'budget_config/domain/services/product_calculation_service.dart';
 import 'budget_config/domain/usecases/calculate_totals_usecase.dart';
 import 'budget_config/domain/usecases/finalize_budget_usecase.dart';
 import 'budget_config/domain/usecases/get_all_budget_products_usecase.dart';
@@ -30,6 +28,10 @@ import 'budget_config/domain/usecases/save_budget_usecase.dart';
 import 'budget_config/domain/usecases/toggle_category_usecase.dart';
 import 'budget_config/presentation/pages/config_new_budget_page.dart';
 import 'budget_config/presentation/stores/budget_config_store.dart';
+import 'budget_create/data/datasources/budget_draft_remote_datasource.dart';
+import 'budget_create/data/datasources/budget_draft_remote_datasource_impl.dart';
+import 'budget_create/data/datasources/partner_remote_datasource.dart';
+import 'budget_create/data/datasources/partner_remote_datasource_impl.dart';
 // Budget Create - Clean Architecture
 import 'budget_create/data/repositories/budget_draft_repository_impl.dart';
 import 'budget_create/data/repositories/partner_repository_impl.dart';
@@ -76,7 +78,7 @@ class BudgetModuleNew extends Module {
           (i) => DioHttpClientImpl(
             DioConfigFactory.createDefault(
               baseUrl: ApiConfig.baseUrl,
-              getToken: () => '', // Token será adicionado pelo interceptor
+              getToken: () => TokenCache.instance.getTokenOrEmpty(),
               enableLogger: true,
             ),
           ),
@@ -201,6 +203,11 @@ class BudgetModuleNew extends Module {
           (i) => SaveBudgetUseCase(i.get<BudgetDetailRepository>()),
         ),
 
+        // Services
+        Bind.lazySingleton<ProductCalculationService>(
+          (i) => const ProductCalculationService(),
+        ),
+
         // Stores
         Bind.lazySingleton<BudgetConfigStore>(
           (i) => BudgetConfigStore(
@@ -212,6 +219,7 @@ class BudgetModuleNew extends Module {
             calculateTotalsUseCase: i.get<CalculateTotalsUseCase>(),
             finalizeBudgetUseCase: i.get<FinalizeBudgetUseCase>(),
             saveBudgetUseCase: i.get<SaveBudgetUseCase>(),
+            calculationService: i.get<ProductCalculationService>(),
           ),
         ),
 
@@ -260,7 +268,14 @@ class BudgetModuleNew extends Module {
         // Budget Config
         ChildRoute('/config/:budgetId', child: (context, args) {
           final budgetId = int.parse(args.params['budgetId']);
-          return ConfigNewBudgetPage(budgetId: budgetId);
+          final arguments = args.data as Map<String, dynamic>?;
+          final location = arguments?['location'] as Map<String, dynamic>?;
+
+          return ConfigNewBudgetPage(
+            budgetId: budgetId,
+            cityName: location?['cityName'],
+            stateName: location?['stateName'],
+          );
         }),
 
         // Budget Edit

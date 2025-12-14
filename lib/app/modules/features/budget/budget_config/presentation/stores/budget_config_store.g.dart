@@ -51,6 +51,13 @@ mixin _$BudgetConfigStore on _BudgetConfigStoreBase, Store {
           Computed<int>(() => super.totalSelectedProducts,
               name: '_BudgetConfigStoreBase.totalSelectedProducts'))
       .value;
+  Computed<int>? _$selectedItemsCountComputed;
+
+  @override
+  int get selectedItemsCount => (_$selectedItemsCountComputed ??= Computed<int>(
+          () => super.selectedItemsCount,
+          name: '_BudgetConfigStoreBase.selectedItemsCount'))
+      .value;
   Computed<bool>? _$hasDataComputed;
 
   @override
@@ -188,6 +195,22 @@ mixin _$BudgetConfigStore on _BudgetConfigStoreBase, Store {
   set censusData(CensusDataEntity? value) {
     _$censusDataAtom.reportWrite(value, super.censusData, () {
       super.censusData = value;
+    });
+  }
+
+  late final _$censoEscolarAtom =
+      Atom(name: '_BudgetConfigStoreBase.censoEscolar', context: context);
+
+  @override
+  CensoEscolarEntity? get censoEscolar {
+    _$censoEscolarAtom.reportRead();
+    return super.censoEscolar;
+  }
+
+  @override
+  set censoEscolar(CensoEscolarEntity? value) {
+    _$censoEscolarAtom.reportWrite(value, super.censoEscolar, () {
+      super.censoEscolar = value;
     });
   }
 
@@ -427,6 +450,41 @@ mixin _$BudgetConfigStore on _BudgetConfigStoreBase, Store {
   }
 
   @override
+  void toggleSubcategoryWithCascade(
+      int categoryId, int subcategoryId, bool selected) {
+    final _$actionInfo = _$_BudgetConfigStoreBaseActionController.startAction(
+        name: '_BudgetConfigStoreBase.toggleSubcategoryWithCascade');
+    try {
+      return super
+          .toggleSubcategoryWithCascade(categoryId, subcategoryId, selected);
+    } finally {
+      _$_BudgetConfigStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void toggleCategoryWithCascade(int categoryId, bool selected) {
+    final _$actionInfo = _$_BudgetConfigStoreBaseActionController.startAction(
+        name: '_BudgetConfigStoreBase.toggleCategoryWithCascade');
+    try {
+      return super.toggleCategoryWithCascade(categoryId, selected);
+    } finally {
+      _$_BudgetConfigStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void updateProductFromModal(ProductEntity updatedProduct) {
+    final _$actionInfo = _$_BudgetConfigStoreBaseActionController.startAction(
+        name: '_BudgetConfigStoreBase.updateProductFromModal');
+    try {
+      return super.updateProductFromModal(updatedProduct);
+    } finally {
+      _$_BudgetConfigStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
   void updateProductQuantity(int productId, int quantity) {
     final _$actionInfo = _$_BudgetConfigStoreBaseActionController.startAction(
         name: '_BudgetConfigStoreBase.updateProductQuantity');
@@ -461,30 +519,6 @@ mixin _$BudgetConfigStore on _BudgetConfigStoreBase, Store {
   }
 
   @override
-  void toggleCategoryWithCascade(int categoryId, bool selected) {
-    final _$actionInfo = _$_BudgetConfigStoreBaseActionController.startAction(
-        name: '_BudgetConfigStoreBase.toggleCategoryWithCascade');
-    try {
-      return super.toggleCategoryWithCascade(categoryId, selected);
-    } finally {
-      _$_BudgetConfigStoreBaseActionController.endAction(_$actionInfo);
-    }
-  }
-
-  @override
-  void toggleSubcategoryWithCascade(
-      int categoryId, int subcategoryId, bool selected) {
-    final _$actionInfo = _$_BudgetConfigStoreBaseActionController.startAction(
-        name: '_BudgetConfigStoreBase.toggleSubcategoryWithCascade');
-    try {
-      return super
-          .toggleSubcategoryWithCascade(categoryId, subcategoryId, selected);
-    } finally {
-      _$_BudgetConfigStoreBaseActionController.endAction(_$actionInfo);
-    }
-  }
-
-  @override
   void reset() {
     final _$actionInfo = _$_BudgetConfigStoreBaseActionController.startAction(
         name: '_BudgetConfigStoreBase.reset');
@@ -505,6 +539,7 @@ isSaving: ${isSaving},
 error: ${error},
 budgetDetail: ${budgetDetail},
 censusData: ${censusData},
+censoEscolar: ${censoEscolar},
 categoryStates: ${categoryStates},
 validityDate: ${validityDate},
 budgetName: ${budgetName},
@@ -517,6 +552,7 @@ totalValue: ${totalValue},
 selectedProductsCount: ${selectedProductsCount},
 totalActiveProducts: ${totalActiveProducts},
 totalSelectedProducts: ${totalSelectedProducts},
+selectedItemsCount: ${selectedItemsCount},
 hasData: ${hasData},
 hasCensusData: ${hasCensusData},
 hasCategories: ${hasCategories},

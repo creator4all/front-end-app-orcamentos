@@ -5,6 +5,7 @@ class IndiceEtapaDto {
   final int id;
   final String nome;
   final int grupoId;
+  final String? grupoNome;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -12,15 +13,19 @@ class IndiceEtapaDto {
     required this.id,
     required this.nome,
     required this.grupoId,
+    this.grupoNome,
     required this.createdAt,
     required this.updatedAt,
   });
 
   factory IndiceEtapaDto.fromJson(Map<String, dynamic> json) {
+    final grupoJson = json['grupo'] as Map<String, dynamic>?;
+
     return IndiceEtapaDto(
       id: (json['idindice_etapa'] as num?)?.toInt() ?? 0,
       nome: json['nome_etapa'] as String? ?? '',
       grupoId: (json['grupos_grupo_id'] as num?)?.toInt() ?? 0,
+      grupoNome: grupoJson?['gru_grupo_nome'] as String?,
       createdAt: _parseDate(json['created_at']) ?? DateTime.now(),
       updatedAt: _parseDate(json['updated_at']) ?? DateTime.now(),
     );
@@ -44,6 +49,7 @@ class IndiceEtapaDto {
       id: id,
       nome: nome,
       grupoId: grupoId,
+      grupoNome: grupoNome ?? '',
       createdAt: createdAt,
       updatedAt: updatedAt,
     );

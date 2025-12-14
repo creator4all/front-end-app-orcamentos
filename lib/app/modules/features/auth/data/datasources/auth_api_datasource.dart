@@ -182,13 +182,13 @@ class AuthApiDatasource implements AuthDatasource {
       }
 
       // Se forceRefresh = true OU não houver cache, buscar da API
-      print('🌐 Chamando GET /api/perfil/me...');
-      final response = await dio.get(
-        '${ApiConfig.baseUrl}/api/perfil/me',
-        options: Options(
+      print('🌐 Chamando GET /api/perfil/me via AppHttpClient...');
+      final response = await httpClient.get(
+        '/api/perfil/me',
+        config: HttpRequestConfig(
           headers: {
-            ...ApiConfig.headers,
-            'Authorization': 'Bearer $token',
+            'User-Agent':
+                'App-Orcamentos-V1', // ⚠️ OBRIGATÓRIO para evitar OTP em mobile
           },
         ),
       );
@@ -196,14 +196,10 @@ class AuthApiDatasource implements AuthDatasource {
       print('📡 Status Code: ${response.statusCode}');
 
       if (response.statusCode == 200) {
-        final data = response.data;
+        final data = response.body;
 
         print('📦 Resposta completa da API:');
         print(data);
-
-        if (data is! Map<String, dynamic>) {
-          throw Exception('Resposta da API inválida');
-        }
 
         // A API pode retornar dentro de 'dados' ou diretamente
         final userData = data.containsKey('dados')

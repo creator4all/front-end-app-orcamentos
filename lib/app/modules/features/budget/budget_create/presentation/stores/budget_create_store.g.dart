@@ -303,6 +303,22 @@ mixin _$BudgetCreateStore on _BudgetCreateStoreBase, Store {
     });
   }
 
+  late final _$responsiblePhoneAtom =
+      Atom(name: '_BudgetCreateStoreBase.responsiblePhone', context: context);
+
+  @override
+  String? get responsiblePhone {
+    _$responsiblePhoneAtom.reportRead();
+    return super.responsiblePhone;
+  }
+
+  @override
+  set responsiblePhone(String? value) {
+    _$responsiblePhoneAtom.reportWrite(value, super.responsiblePhone, () {
+      super.responsiblePhone = value;
+    });
+  }
+
   late final _$validityDateAtom =
       Atom(name: '_BudgetCreateStoreBase.validityDate', context: context);
 
@@ -442,6 +458,17 @@ mixin _$BudgetCreateStore on _BudgetCreateStoreBase, Store {
   }
 
   @override
+  void setResponsiblePhone(String? phone) {
+    final _$actionInfo = _$_BudgetCreateStoreBaseActionController.startAction(
+        name: '_BudgetCreateStoreBase.setResponsiblePhone');
+    try {
+      return super.setResponsiblePhone(phone);
+    } finally {
+      _$_BudgetCreateStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
   void setValidityDate(DateTime? date) {
     final _$actionInfo = _$_BudgetCreateStoreBaseActionController.startAction(
         name: '_BudgetCreateStoreBase.setValidityDate');
@@ -504,6 +531,7 @@ selectedCityName: ${selectedCityName},
 selectedCityId: ${selectedCityId},
 responsibleName: ${responsibleName},
 responsibleEmail: ${responsibleEmail},
+responsiblePhone: ${responsiblePhone},
 validityDate: ${validityDate},
 createdDraft: ${createdDraft},
 isFormValid: ${isFormValid},

@@ -57,6 +57,7 @@ class IndicadorEtapaDTO {
       produtoIndicadorId: produtoIndicadorId,
       indicadorId: indicadorId,
       indicadorNome: indicadorNome,
+      nomeEtapa: indicadorNome, // Using indicadorNome as nomeEtapa
       grupoId: grupoId,
       grupoNome: grupoNome,
       selecionado: selecionado,

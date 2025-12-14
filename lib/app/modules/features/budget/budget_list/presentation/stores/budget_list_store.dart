@@ -65,6 +65,20 @@ abstract class _BudgetListStoreBase with Store {
           }
           allItems.clear();
           allItems.addAll(budgets);
+
+          // Ordenar orçamentos por ID (mais novos primeiro) ou por data de validade
+          allItems.sort((a, b) {
+            // Priorizar ID maior (mais novo) - se a API usar ID sequencial
+            int idComparison = b.id.compareTo(a.id);
+            if (idComparison != 0) return idComparison;
+
+            // Se IDs forem iguais, ordenar por data de validade (mais recente primeiro)
+            if (a.dataValidade != null && b.dataValidade != null) {
+              return b.dataValidade!.compareTo(a.dataValidade!);
+            }
+
+            return 0;
+          });
         },
       );
 

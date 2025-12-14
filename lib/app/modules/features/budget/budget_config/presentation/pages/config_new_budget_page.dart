@@ -15,7 +15,7 @@ import '../../domain/entities/product_entity.dart';
 import '../../domain/entities/subcategory_entity.dart';
 import '../stores/budget_config_store.dart';
 import '../widgets/budget_skeleton.dart';
-import '../widgets/product_detail_modal.dart';
+import '../widgets/product_edit_modal.dart';
 import '../widgets/school_census_card.dart';
 import '../widgets/subcategories_modal.dart';
 import '../widgets/subcategory_products_modal.dart';
@@ -23,11 +23,15 @@ import '../widgets/subcategory_products_modal.dart';
 class ConfigNewBudgetPage extends StatefulWidget {
   final int budgetId;
   final BudgetDraftEntity? initialDraft;
+  final String? cityName;
+  final String? stateName;
 
   const ConfigNewBudgetPage({
     super.key,
     required this.budgetId,
     this.initialDraft,
+    this.cityName,
+    this.stateName,
   });
 
   @override
@@ -56,8 +60,16 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final args = Modular.args.data;
-      final initialDraft =
-          args is BudgetDraftEntity ? args : widget.initialDraft;
+      BudgetDraftEntity? initialDraft;
+
+      // Extrair draft do novo formato de arguments
+      if (args is Map<String, dynamic> && args.containsKey('budget')) {
+        initialDraft = args['budget'] as BudgetDraftEntity?;
+      } else if (args is BudgetDraftEntity) {
+        initialDraft = args;
+      } else {
+        initialDraft = widget.initialDraft;
+      }
 
       if (initialDraft != null) {
         store.initializeWithDraft(initialDraft);
@@ -72,6 +84,14 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     _dataOrcamentoController.dispose();
     _validadeOrcamentoController.dispose();
     super.dispose();
+  }
+
+  /// Gera título do header baseado na localização
+  String _getHeaderTitle() {
+    if (widget.cityName != null && widget.stateName != null) {
+      return '${widget.cityName} - ${widget.stateName}';
+    }
+    return 'Configurar Orçamento';
   }
 
   Future<void> _handleSave() async {
@@ -154,7 +174,7 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: CustomTopBar(
-        title: 'Configurar Orçamento',
+        title: _getHeaderTitle(),
         showBackButton: true,
         authStore: _authStore,
       ),
@@ -206,7 +226,7 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                   // Resumo do orçamento
                   BudgetSummaryCard(
                     budgetValue: store.totalValue,
-                    selectedProductsCount: store.selectedCategoriesCount,
+                    selectedProductsCount: store.selectedItemsCount,
                   ),
 
                   SizedBox(height: 12.h),
@@ -644,11 +664,14 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
   void _showProductDetailModal(ProductEntity product) {
     showDialog(
       context: context,
-      builder: (_) => ProductDetailModal(
+      builder: (_) => ProductEditModal(
         product: product,
-        onSave: (quantity, observations) {
-          store.updateProductQuantity(product.id, quantity);
-          store.updateProductObservations(product.id, observations);
+        onSave: (updatedProduct) {
+          // Atualizar produto na store
+          store.updateProductFromModal(updatedProduct);
+        },
+        onClose: () {
+          // Modal fechado sem salvar
         },
       ),
     );

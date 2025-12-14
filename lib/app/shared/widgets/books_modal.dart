@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:multimidiaapp/app/modules/features/budget/budget_config/domain/entities/indicador_etapa_entity.dart';
+import 'package:multimidiaapp/app/modules/features/budget/budget_config/domain/entities/product_entity.dart';
 
-import '../../modules/budget/presentation/stores/books_subcategory_store.dart';
-import '../../modules/budget/presentation/stores/product_store.dart';
-import '../../modules/budget/presentation/stores/card_selection_store.dart';
-import '../../modules/budget/presentation/stores/budget_edit_store.dart';
 import '../../modules/budget/external/services/budget_service.dart';
+import '../../modules/budget/presentation/stores/books_subcategory_store.dart';
+import '../../modules/budget/presentation/stores/budget_edit_store.dart';
+import '../../modules/budget/presentation/stores/card_selection_store.dart';
+import '../../modules/budget/presentation/stores/product_store.dart';
 import 'book_item.dart';
 import 'custom_modal.dart';
 import 'product_info_modal.dart';
@@ -44,13 +46,16 @@ class BooksModal {
                 return Observer(
                   builder: (_) {
                     final prodStore = Modular.get<ProductStore>();
-                    final selectedCount = prodStore.getSelectedCountForSubcategory(sub.id);
-                    final totalCount = prodStore.getTotalCountForSubcategory(sub.id);
-                    final totalValue = prodStore.getTotalValueForSubcategory(sub.id);
-                    
+                    final selectedCount =
+                        prodStore.getSelectedCountForSubcategory(sub.id);
+                    final totalCount =
+                        prodStore.getTotalCountForSubcategory(sub.id);
+                    final totalValue =
+                        prodStore.getTotalValueForSubcategory(sub.id);
+
                     final cardStore = Modular.get<CardSelectionStore>();
                     final isSubcategorySelected = selectedCount > 0;
-                    
+
                     return BookItem(
                       title: sub.nome,
                       value: 'R\$ ${totalValue.toStringAsFixed(2)}',
@@ -58,10 +63,12 @@ class BooksModal {
                       isSelected: isSubcategorySelected,
                       onCheckboxChanged: (value) {
                         // Marcar/desmarcar a subcategoria
-                        cardStore.setSubcategorySelected(sub.id, value ?? false);
-                        
+                        cardStore.setSubcategorySelected(
+                            sub.id, value ?? false);
+
                         // Usar o novo método da ProductStore que garante isolamento por subcategoria
-                        prodStore.selectAllForSubcategory(sub.id, value ?? false);
+                        prodStore.selectAllForSubcategory(
+                            sub.id, value ?? false);
                       },
                       onTap: () => showBookProducts(
                         context: context,
@@ -123,67 +130,66 @@ class BooksModal {
     print('🔍 _showProductInfo chamado para produto: ${produto.id}');
     print('🔍 Produto: ${produto.nome}');
     print('🔍 indicadoresEtapa: ${produto.indicadoresEtapa}');
-    
+
     // Processar indicadores_etapa do produto
     final indicadoresEtapa = produto.indicadoresEtapa ?? [];
-    
+
     print('🔍 Total de indicadores: ${indicadoresEtapa.length}');
-    
-    // Agrupar indicadores por grupo_nome
-    final Map<String, List<Map<String, dynamic>>> indicadoresPorGrupo = {};
-    
-    for (final ind in indicadoresEtapa) {
-      final grupoNome = ind['grupo_nome'] as String? ?? 'Sem Grupo';
-      if (!indicadoresPorGrupo.containsKey(grupoNome)) {
-        indicadoresPorGrupo[grupoNome] = [];
-      }
-      indicadoresPorGrupo[grupoNome]!.add(ind);
-    }
-    
-    // Converter para CheckboxGroups
-    final checkboxGroups = indicadoresPorGrupo.entries.map((entry) {
-      return CheckboxGroup(
-        title: entry.key,
-        items: entry.value.map((ind) {
-          return CheckboxItem(
-            label: ind['indicador_nome'] as String? ?? '',
-            isSelected: ind['selecionado'] as bool? ?? false,
-            data: ind, // Guardar dados completos para salvar depois
-          );
-        }).toList(),
+
+    // Converter para IndicadorEtapaEntity
+    final indicadoresEntities = indicadoresEtapa.map((ind) {
+      return IndicadorEtapaEntity(
+        produtoIndicadorId: ind['produto_indicador_id'] ?? 0,
+        indicadorId: ind['indicador_id'] ?? 0,
+        indicadorNome: ind['indicador_nome'] ?? '',
+        nomeEtapa: ind['nome_etapa'] ?? '',
+        grupoId: ind['grupo_id'] ?? 0,
+        grupoNome: ind['grupo_nome'] ?? '',
+        selecionado: ind['selecionado'] ?? false,
       );
     }).toList();
-    
+
+    // Criar ProductEntity
+    final productEntity = ProductEntity(
+      id: produto.id ?? 0,
+      codigo: produto.codigo ?? '',
+      solucao: produto.nome ?? '',
+      tipo: produto.tipo ?? '',
+      ativo: produto.ativo ?? true,
+      valor: double.tryParse(
+              unitValue.replaceAll('R\$ ', '').replaceAll(',', '.')) ??
+          0.0,
+      indicacao: produto.indicacao ?? '',
+      tipoProduto: produto.tipo_produto ?? '',
+      ordem: produto.ordem ?? 0,
+      subcategoriaId: produto.subcategoria_id ?? 0,
+      selecionado: produto.selecionado ?? false,
+      quantidade: produto.quantidade ?? 0,
+      temOverride: produto.tem_override ?? false,
+      observacoes: produto.observacoes,
+      valorOriginal: produto.valor_original ?? 0.0,
+      ativoOriginal: produto.ativo_original ?? true,
+      indicadoresEtapa: indicadoresEntities,
+    );
+
     ProductInfoModal.show(
       context: context,
-      productInfo: {
-        'Categoria': 'Livros',
-        'Subcategoria': subcategoriaNome,
-        'Tipo': produto.tipo ?? '—',
-        'Código': produto.codigo ?? '—',
-        'ISBN': produto.isbn ?? '—',
-        'Valor Total': unitValue,
-      },
-      checkboxGroups: checkboxGroups,
-      unitValue: unitValue,
+      product: productEntity,
       onSave: () async {
         // Coletar indicadores modificados
         final indicadoresParaSalvar = <Map<String, dynamic>>[];
-        
-        for (final group in checkboxGroups) {
-          for (final item in group.items) {
-            final indData = item.data as Map<String, dynamic>;
-            indicadoresParaSalvar.add({
-              'produto_indicador_id': indData['produto_indicador_id'],
-              'selecionado': item.isSelected,
-            });
-          }
+
+        for (final indicador in indicadoresEntities) {
+          indicadoresParaSalvar.add({
+            'produto_indicador_id': indicador.produtoIndicadorId,
+            'selecionado': indicador.selecionado,
+          });
         }
-        
+
         // Buscar orçamento ID e salvar
         final budgetEditStore = Modular.get<BudgetEditStore>();
         final orcamentoId = budgetEditStore.budgetData?['id'] as int?;
-        
+
         if (orcamentoId != null) {
           try {
             final budgetService = Modular.get<BudgetService>();
@@ -192,12 +198,13 @@ class BooksModal {
               produto.id,
               indicadoresParaSalvar,
             );
-            
+
             if (context.mounted) {
               Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('$subcategoriaNome - Indicadores salvos com sucesso!'),
+                  content: Text(
+                      '$subcategoriaNome - Indicadores salvos com sucesso!'),
                   backgroundColor: const Color(0xFF56B34A),
                 ),
               );
@@ -223,15 +230,19 @@ class BooksModal {
     required String subcategoriaNome,
   }) {
     final prodStore = Modular.get<ProductStore>();
-    
+
     // Não buscar produtos novamente se já existem na subcategoria
     // (evita sobrescrever dados do orçamento que incluem indicadores)
-    final produtosExistentes = prodStore.getProdutosPorSubcategoria(subcategoriaId);
-    if (produtosExistentes.isEmpty && prodStore.lastSubcategoriaId != subcategoriaId && !prodStore.isLoading) {
+    final produtosExistentes =
+        prodStore.getProdutosPorSubcategoria(subcategoriaId);
+    if (produtosExistentes.isEmpty &&
+        prodStore.lastSubcategoriaId != subcategoriaId &&
+        !prodStore.isLoading) {
       print('🔄 Buscando produtos da subcategoria $subcategoriaId...');
       prodStore.fetchProdutos(subcategoriaId);
     } else {
-      print('✅ Usando produtos já carregados da subcategoria $subcategoriaId (${produtosExistentes.length} produtos)');
+      print(
+          '✅ Usando produtos já carregados da subcategoria $subcategoriaId (${produtosExistentes.length} produtos)');
     }
 
     return CustomModal.show<T>(

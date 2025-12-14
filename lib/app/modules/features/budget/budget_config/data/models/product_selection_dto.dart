@@ -9,6 +9,8 @@ class ProductSelectionDto {
   final double price;
   final bool isSelected;
   final int? quantity;
+  final String? observacoes;
+  final List<ProductIndicatorDto> indicadoresEtapa;
 
   ProductSelectionDto({
     required this.productId,
@@ -17,10 +19,19 @@ class ProductSelectionDto {
     required this.price,
     required this.isSelected,
     this.quantity,
+    this.observacoes,
+    this.indicadoresEtapa = const [],
   });
 
   /// Cria DTO a partir do JSON da API
   factory ProductSelectionDto.fromJson(Map<String, dynamic> json) {
+    final List<ProductIndicatorDto> indicadores = [];
+    if (json['indicadores_etapa'] != null &&
+        json['indicadores_etapa'] is List) {
+      indicadores.addAll((json['indicadores_etapa'] as List)
+          .map((i) => ProductIndicatorDto.fromJson(i as Map<String, dynamic>)));
+    }
+
     return ProductSelectionDto(
       productId: json['id'] ?? json['produto_id'] ?? 0,
       name: json['nome'] ?? json['name'] ?? '',
@@ -28,18 +39,19 @@ class ProductSelectionDto {
       price: (json['preco'] ?? json['price'] ?? 0.0).toDouble(),
       isSelected: json['selecionado'] ?? json['is_selected'] ?? false,
       quantity: json['quantidade'] ?? json['quantity'],
+      observacoes: json['observacoes'] ?? '',
+      indicadoresEtapa: indicadores,
     );
   }
 
-  /// Converte DTO para JSON
+  /// Converte DTO para JSON (formato esperado pelo backend)
   Map<String, dynamic> toJson() {
     return {
       'produto_id': productId,
-      'nome': name,
-      'categoria': category,
-      'preco': price,
       'selecionado': isSelected,
-      if (quantity != null) 'quantidade': quantity,
+      'quantidade': quantity ?? 0,
+      'observacoes': observacoes ?? '',
+      'indicadores_etapa': indicadoresEtapa.map((i) => i.toJson()).toList(),
     };
   }
 
@@ -65,5 +77,30 @@ class ProductSelectionDto {
       isSelected: entity.isSelected,
       quantity: entity.quantity,
     );
+  }
+}
+
+/// DTO para indicador de etapa do produto
+class ProductIndicatorDto {
+  final int produtoIndicadorId;
+  final bool selecionado;
+
+  ProductIndicatorDto({
+    required this.produtoIndicadorId,
+    required this.selecionado,
+  });
+
+  factory ProductIndicatorDto.fromJson(Map<String, dynamic> json) {
+    return ProductIndicatorDto(
+      produtoIndicadorId: json['produto_indicador_id'] ?? 0,
+      selecionado: json['selecionado'] ?? false,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'produto_indicador_id': produtoIndicadorId,
+      'selecionado': selecionado,
+    };
   }
 }

@@ -87,6 +87,9 @@ class ProductEntity extends Equatable {
   /// Valor total considerando quantidade
   double get totalValue => valor * quantidade;
 
+  /// Alias para totalValue (compatibilidade)
+  double get valorTotal => totalValue;
+
   /// Verifica se teve alteração de valor
   bool get hasValueOverride => valor != valorOriginal;
 
