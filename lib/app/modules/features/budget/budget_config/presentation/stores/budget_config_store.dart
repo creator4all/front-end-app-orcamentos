@@ -10,6 +10,7 @@ import '../../domain/entities/budget_detail_entity.dart';
 import '../../domain/entities/category_entity.dart';
 import '../../domain/entities/censo_escolar_entity.dart';
 import '../../domain/entities/census_data_entity.dart';
+import '../../domain/entities/indicador_etapa_entity.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../domain/entities/subcategory_entity.dart';
 import '../../domain/services/product_calculation_service.dart';
@@ -281,8 +282,15 @@ abstract class _BudgetConfigStoreBase with Store {
           // ✅ Info básica carregada
           isLoading = false;
 
+          // 🆕 ENRICHMENT: Preencher grupos dos indicadores usando dados da cidade
+          // Isso garante que os grupos apareçam mesmo se os produtos completos ainda não chegaram
+          _enrichCategoriesWithCityData();
+
           // 🚀 EAGER LOAD: Buscar TODOS os produtos do orçamento
           await _loadAllProducts(budgetId);
+
+          // Se o carregamento completo funcionar, ele vai sobrescrever com dados mais ricos.
+          // Mas o enrichment garante a UX imediata.
 
           // ✅ Produtos carregados
           isLoadingProducts = false;
@@ -370,6 +378,75 @@ abstract class _BudgetConfigStoreBase with Store {
       debugPrint('💥 [BudgetConfigStore] EXCEÇÃO ao carregar produtos: $e');
       debugPrint('Stack: $stackTrace');
       // Manter estatísticas se falhar
+    }
+  }
+
+  /// Enriquece os indicadores dos produtos com informações de grupo vindas da cidade
+  void _enrichCategoriesWithCityData() {
+    if (budgetDetail == null || budgetDetail!.citiesData.isEmpty) return;
+
+    try {
+      // Criar mapa de indicadores da cidade para busca rápida
+      // Mapa: nome_indicador -> {grupo_id, grupo_nome}
+      final indicatorMap = <String, Map<String, dynamic>>{};
+
+      // Assumindo que usamos a primeira cidade (principal) para estrutura de indicadores
+      final cityData = budgetDetail!.citiesData.first;
+      final indicadoresCidade = cityData['indicadores'] as List<dynamic>? ?? [];
+
+      for (final ind in indicadoresCidade) {
+        if (ind is Map<String, dynamic>) {
+          final nome = ind['nome'] as String?;
+          if (nome != null) {
+            indicatorMap[nome] = {
+              'grupo_id': ind['grupo_id'],
+              'grupo_nome': ind['grupo_nome'],
+            };
+          }
+        }
+      }
+
+      if (indicatorMap.isEmpty) return;
+
+      // Atualizar categorias com grupos preenchidos
+      final updatedCategories = categories.map((cat) {
+        final updatedSubcategories = cat.subcategorias.map((sub) {
+          final updatedProducts = sub.produtos.map((prod) {
+            // Se produto não tem indicadores, retorna igual
+            if (prod.indicadoresEtapa.isEmpty) return prod;
+
+            // Atualizar indicadores do produto
+            final updatedIndicators = prod.indicadoresEtapa.map((ind) {
+              // Se já tem grupo, mantém
+              if (ind.grupoNome.isNotEmpty) return ind;
+
+              // Busca info do grupo
+              final info = indicatorMap[ind.nomeEtapa] ??
+                  indicatorMap[ind.indicadorNome];
+
+              if (info != null) {
+                return ind.copyWith(
+                  grupoId: info['grupo_id'] as int? ?? 0,
+                  grupoNome: info['grupo_nome'] as String? ?? '',
+                );
+              }
+              return ind;
+            }).toList();
+
+            return prod.copyWith(indicadoresEtapa: updatedIndicators);
+          }).toList();
+
+          return sub.copyWith(produtos: updatedProducts);
+        }).toList();
+
+        return cat.copyWith(subcategorias: updatedSubcategories);
+      }).toList();
+
+      categories = ObservableList.of(updatedCategories);
+      print(
+          '✨ [BudgetConfigStore] Indicadores enriquecidos com dados da cidade: ${indicatorMap.length} tipos de indicadores');
+    } catch (e) {
+      print('❌ [BudgetConfigStore] Erro ao enriquecer indicadores: $e');
     }
   }
 
@@ -724,6 +801,64 @@ abstract class _BudgetConfigStoreBase with Store {
   }
 
   @action
+  void updateProductValue(int productId, double value) {
+    print(
+        '🔄 [BudgetConfigStore] Atualizando valor do produto: $productId para $value');
+
+    // Encontrar o produto em todas as categorias/subcategorias
+    for (var i = 0; i < categories.length; i++) {
+      final category = categories[i];
+
+      for (var j = 0; j < category.subcategorias.length; j++) {
+        final subcategory = category.subcategorias[j];
+
+        final productIndex =
+            subcategory.produtos.indexWhere((p) => p.id == productId);
+
+        if (productIndex != -1) {
+          final product = subcategory.produtos[productIndex];
+
+          // ⚠️ Só permitir se estiver ativo
+          if (!product.ativo) {
+            print('⚠️ [BudgetConfigStore] Produto $productId está inativo');
+            return;
+          }
+
+          // Atualizar valor
+          final updatedProduct = product.copyWith(valor: value);
+
+          // Criar nova lista de produtos
+          final updatedProducts =
+              List<ProductEntity>.from(subcategory.produtos);
+          updatedProducts[productIndex] = updatedProduct;
+
+          // Criar nova subcategoria
+          final updatedSubcategory =
+              subcategory.copyWith(produtos: updatedProducts);
+
+          // Criar nova lista de subcategorias
+          final updatedSubcategories =
+              List<SubcategoryEntity>.from(category.subcategorias);
+          updatedSubcategories[j] = updatedSubcategory;
+
+          // Criar nova categoria
+          final updatedCategory =
+              category.copyWith(subcategorias: updatedSubcategories);
+
+          // Atualizar a categoria na lista
+          categories[i] = updatedCategory;
+
+          print('✅ [BudgetConfigStore] Valor atualizado');
+          print('💰 Total recalculado: R\$ ${totalValue.toStringAsFixed(2)}');
+          return;
+        }
+      }
+    }
+
+    print('⚠️ [BudgetConfigStore] Produto $productId não encontrado');
+  }
+
+  @action
   void updateProductObservations(int productId, String? observations) {
     print(
         '🔄 [BudgetConfigStore] Atualizando observações do produto: $productId');
@@ -772,6 +907,72 @@ abstract class _BudgetConfigStoreBase with Store {
     }
 
     print('⚠️ [BudgetConfigStore] Produto $productId não encontrado');
+  }
+
+  @action
+  void toggleProductIndicator(int productId, int indicatorId) {
+    print(
+        '🔄 [BudgetConfigStore] Alternando indicador $indicatorId do produto $productId');
+
+    // Encontrar o produto
+    for (var i = 0; i < categories.length; i++) {
+      final category = categories[i];
+
+      for (var j = 0; j < category.subcategorias.length; j++) {
+        final subcategory = category.subcategorias[j];
+
+        final productIndex =
+            subcategory.produtos.indexWhere((p) => p.id == productId);
+
+        if (productIndex != -1) {
+          final product = subcategory.produtos[productIndex];
+
+          // Encontrar o indicador na lista do produto
+          final indicatorIndex = product.indicadoresEtapa
+              .indexWhere((ind) => ind.produtoIndicadorId == indicatorId);
+
+          if (indicatorIndex != -1) {
+            final indicator = product.indicadoresEtapa[indicatorIndex];
+            final newSelectedState = !indicator.selecionado;
+
+            // Atualizar o indicador
+            final updatedIndicator =
+                indicator.copyWith(selecionado: newSelectedState);
+
+            // Atualizar lista de indicadores
+            final updatedIndicators =
+                List<IndicadorEtapaEntity>.from(product.indicadoresEtapa);
+            updatedIndicators[indicatorIndex] = updatedIndicator;
+
+            // Atualizar produto
+            final updatedProduct =
+                product.copyWith(indicadoresEtapa: updatedIndicators);
+
+            // Propagar atualização na árvore
+            final updatedProducts =
+                List<ProductEntity>.from(subcategory.produtos);
+            updatedProducts[productIndex] = updatedProduct;
+
+            final updatedSubcategory =
+                subcategory.copyWith(produtos: updatedProducts);
+
+            final updatedSubcategories =
+                List<SubcategoryEntity>.from(category.subcategorias);
+            updatedSubcategories[j] = updatedSubcategory;
+
+            final updatedCategory =
+                category.copyWith(subcategorias: updatedSubcategories);
+
+            categories[i] = updatedCategory;
+
+            print(
+                '✅ [BudgetConfigStore] Indicador atualizado para $newSelectedState');
+            return;
+          }
+        }
+      }
+    }
+    print('⚠️ [BudgetConfigStore] Indicador não encontrado');
   }
 
   @action
