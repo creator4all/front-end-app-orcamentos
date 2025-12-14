@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:multimidiaapp/app/modules/features/budget/budget_config/presentation/widgets/product_item_card.dart';
 
 import '../../../../../../shared/utils/string_utils.dart';
 import '../../../../../../shared/widgets/custom_modal.dart';
@@ -10,7 +11,6 @@ import '../../domain/entities/product_entity.dart';
 import '../../domain/entities/subcategory_entity.dart';
 import '../stores/budget_config_store.dart';
 import 'product_info_modal.dart';
-import 'product_item_card.dart';
 
 /// Modal para exibir os produtos de uma subcategoria
 ///
@@ -54,14 +54,19 @@ class SubcategoryProductsModal extends StatelessWidget {
     );
   }
 
-  void _handleInfoTap(BuildContext context, ProductEntity product) {
+  void _handleInfoTap(
+      BuildContext context,
+      ProductEntity product,
+      dynamic storeInstance,
+      CategoryEntity category,
+      SubcategoryEntity subcategory) {
     // Abre modal de informações do produto
     ProductInfoModal.show(
       context: context,
-      categoryId: categoryId,
-      subcategoryId: subcategoryId,
+      categoryId: category.id,
+      subcategoryId: subcategory.id,
       productId: product.id,
-      store: store, // Passa a mesma store
+      store: storeInstance,
     );
   }
 
@@ -135,7 +140,8 @@ class SubcategoryProductsModal extends StatelessWidget {
                   onToggle: (isSelected) {
                     storeInstance.toggleProduct(product.id, isSelected);
                   },
-                  onInfoTap: () => _handleInfoTap(context, product),
+                  onInfoTap: () => _handleInfoTap(
+                      context, product, storeInstance, category, subcategory),
                 );
               },
             ),

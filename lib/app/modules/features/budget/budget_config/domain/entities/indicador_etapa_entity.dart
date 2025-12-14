@@ -13,6 +13,9 @@ class IndicadorEtapaEntity extends Equatable {
   /// Nome do indicador (ex: "Pré-escola")
   final String indicadorNome;
 
+  /// Nome da etapa (ex: "ef1ano", "ef2anoP")
+  final String nomeEtapa;
+
   /// ID do grupo ao qual o indicador pertence
   final int grupoId;
 
@@ -29,6 +32,7 @@ class IndicadorEtapaEntity extends Equatable {
     required this.produtoIndicadorId,
     required this.indicadorId,
     required this.indicadorNome,
+    required this.nomeEtapa,
     required this.grupoId,
     required this.grupoNome,
     required this.selecionado,
@@ -40,6 +44,7 @@ class IndicadorEtapaEntity extends Equatable {
         produtoIndicadorId,
         indicadorId,
         indicadorNome,
+        nomeEtapa,
         grupoId,
         grupoNome,
         selecionado,
@@ -51,6 +56,7 @@ class IndicadorEtapaEntity extends Equatable {
     int? produtoIndicadorId,
     int? indicadorId,
     String? indicadorNome,
+    String? nomeEtapa,
     int? grupoId,
     String? grupoNome,
     bool? selecionado,
@@ -59,6 +65,7 @@ class IndicadorEtapaEntity extends Equatable {
       produtoIndicadorId: produtoIndicadorId ?? this.produtoIndicadorId,
       indicadorId: indicadorId ?? this.indicadorId,
       indicadorNome: indicadorNome ?? this.indicadorNome,
+      nomeEtapa: nomeEtapa ?? this.nomeEtapa,
       grupoId: grupoId ?? this.grupoId,
       grupoNome: grupoNome ?? this.grupoNome,
       selecionado: selecionado ?? this.selecionado,
@@ -68,6 +75,6 @@ class IndicadorEtapaEntity extends Equatable {
 
   @override
   String toString() {
-    return 'IndicadorEtapaEntity(indicadorNome: $indicadorNome, grupoNome: $grupoNome, selecionado: $selecionado)';
+    return 'IndicadorEtapaEntity(nomeEtapa: $nomeEtapa, grupoNome: $grupoNome, selecionado: $selecionado)';
   }
 }

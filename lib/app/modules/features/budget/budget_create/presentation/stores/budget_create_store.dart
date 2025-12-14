@@ -83,6 +83,9 @@ abstract class _BudgetCreateStoreBase with Store {
   String? responsibleEmail;
 
   @observable
+  String? responsiblePhone;
+
+  @observable
   DateTime? validityDate;
 
   // ========== RESULT ==========
@@ -218,8 +221,10 @@ abstract class _BudgetCreateStoreBase with Store {
   void setSelectedCity(String code, String name, {int? cityId}) {
     selectedCityCode = code;
     selectedCityName = name;
-    selectedCityId = cityId ?? int.tryParse(code); // Usa cityId ou tenta parsear code
-    print('✅ [BudgetCreateStore] Cidade selecionada: $name ($code) - ID: $selectedCityId');
+    selectedCityId =
+        cityId ?? int.tryParse(code); // Usa cityId ou tenta parsear code
+    print(
+        '✅ [BudgetCreateStore] Cidade selecionada: $name ($code) - ID: $selectedCityId');
   }
 
   /// Limpa seleção de localização
@@ -242,6 +247,12 @@ abstract class _BudgetCreateStoreBase with Store {
   @action
   void setResponsibleEmail(String? email) {
     responsibleEmail = email;
+  }
+
+  /// Define o telefone do responsável
+  @action
+  void setResponsiblePhone(String? phone) {
+    responsiblePhone = phone;
   }
 
   /// Define a data de validade

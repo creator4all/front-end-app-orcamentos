@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -27,7 +28,7 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
 
   final TextEditingController _responsibleController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _validityDateController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
 
   @override
   void initState() {
@@ -46,7 +47,13 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
           : _emailController.text.trim());
     });
 
-    // ✅ Resetar e recarregar dados sempre que entrar na página
+    _phoneController.addListener(() {
+      _store.setResponsiblePhone(_phoneController.text.trim().isEmpty
+          ? null
+          : _phoneController.text.trim());
+    });
+
+    // Resetar e recarregar dados sempre que entrar na página
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _refreshPage();
     });
@@ -54,32 +61,32 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
 
   /// Atualiza todos os dados da página
   Future<void> _refreshPage() async {
-    print('🔄 [NewBudgetPage] Atualizando página...');
+    print(' Atualizando página...');
 
     // Resetar store de orçamentos (limpa cache de parceiros)
     _store.reset();
 
     // Recarregar parceiros (apenas para admins)
     if (_authStore.isAdmin) {
-      print('🔄 [NewBudgetPage] Carregando parceiros (Admin)...');
+      print(' Carregando parceiros (Admin)...');
       await _store.loadPartners();
     }
 
     // Recarregar estados se já tiver provider inicializado
     if (mounted && _geo != null) {
-      print('🔄 [NewBudgetPage] Recarregando estados...');
+      print(' Recarregando estados...');
       await _geo.carregarEstados();
       if (mounted) setState(() {});
     }
 
-    print('✅ [NewBudgetPage] Página atualizada');
+    print(' Página atualizada');
   }
 
   @override
   void dispose() {
     _responsibleController.dispose();
     _emailController.dispose();
-    _validityDateController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -93,22 +100,22 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
       _geo = provider.geoStore;
       _censo = provider.censoStore;
 
-      print('🔄 [NewBudgetPage] Stores legadas inicializadas');
+      print(' Stores legadas inicializadas');
     }
   }
 
   /// Sincroniza localização do GeoStore com BudgetCreateStore
   void _syncLocation() {
-    print('🔄 [NewBudgetPage] Sincronizando localização...');
+    print(' Sincronizando localização...');
 
     if (_geo.estadoSelecionado != null && _geo.cidadeSelecionada != null) {
       // Usar ID do estado como código (já que UF não existe no modelo)
       final estadoCodigo = _geo.estadoSelecionado!.id?.toString() ?? '';
 
       print(
-          '   📍 Estado: ${_geo.estadoSelecionado!.nome} (ID: ${_geo.estadoSelecionado!.id})');
+          '   Estado: ${_geo.estadoSelecionado!.nome} (ID: ${_geo.estadoSelecionado!.id})');
       print(
-          '   📍 Cidade: ${_geo.cidadeSelecionada!.nome} (ID: ${_geo.cidadeSelecionada!.id})');
+          '   Cidade: ${_geo.cidadeSelecionada!.nome} (ID: ${_geo.cidadeSelecionada!.id})');
 
       _store.setSelectedState(
         estadoCodigo,
@@ -119,14 +126,14 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
         _geo.cidadeSelecionada!.nome,
       );
 
-      print('   ✅ Store atualizada:');
+      print('   Store atualizada:');
       print('      - selectedStateCode: ${_store.selectedStateCode}');
       print('      - selectedStateName: ${_store.selectedStateName}');
       print('      - selectedCityCode: ${_store.selectedCityCode}');
       print('      - selectedCityName: ${_store.selectedCityName}');
       print('      - isFormValid: ${_store.isFormValid}');
     } else {
-      print('   ⚠️ Estado ou cidade não selecionados');
+      print('   Estado ou cidade não selecionados');
       print('      - estadoSelecionado: ${_geo.estadoSelecionado}');
       print('      - cidadeSelecionada: ${_geo.cidadeSelecionada}');
     }
@@ -134,15 +141,14 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
 
   /// Cria o orçamento em rascunho
   Future<void> _createDraftBudget() async {
-    print('🚀 [NewBudgetPage] Iniciando criação de orçamento...');
+    print(' Iniciando criação de orçamento...');
 
     // Sincronizar localização
     _syncLocation();
 
     // Validar campos obrigatórios
     if (!_store.isFormValid) {
-      print(
-          '❌ [NewBudgetPage] Validação falhou - isFormValid: ${_store.isFormValid}');
+      print(' Validação falhou - isFormValid: ${_store.isFormValid}');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Selecione um estado e uma cidade'),
@@ -152,7 +158,7 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
       return;
     }
 
-    print('✅ [NewBudgetPage] Validação passou');
+    print(' Validação passou');
 
     // Validar email se preenchido
     if (!_store.isEmailValid) {
@@ -194,7 +200,7 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
       }
 
       print(
-          '📦 [NewBudgetPage] Criando orçamento para parceiro ID: $partnerId, usuário ID: $userId');
+          ' Criando orçamento para parceiro ID: $partnerId, usuário ID: $userId');
 
       // Criar orçamento em rascunho via Store
       final success = await _store.createDraft(partnerId, userId);
@@ -214,23 +220,38 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
       // Sucesso - navegar para config
       if (_store.createdDraft != null) {
         final budgetId = _store.createdDraft!.id;
-        print('✅ [NewBudgetPage] Navegando para config/$budgetId');
+        print(' Navegando para config/$budgetId');
+
+        // Preparar dados de localização para o header
+        final locationData = {
+          'cityName': _geo.cidadeSelecionada?.nome ?? '',
+          'stateName': _geo.estadoSelecionado?.nome ?? '',
+        };
 
         await Modular.to.pushNamed(
           '/budget/config/$budgetId',
-          arguments: _store.createdDraft,
+          arguments: {
+            'budget': _store.createdDraft,
+            'location': locationData,
+          },
         );
 
-        // Limpar formulário ao voltar
+        // Limpar formulário e estado ao voltar
         if (mounted) {
           _store.clearForm();
           _responsibleController.clear();
           _emailController.clear();
-          _validityDateController.clear();
+          _phoneController.clear();
+
+          // Resetar estado e cidade no GeoStore
+          if (_geo != null) {
+            _geo.limparSelecao();
+            if (mounted) setState(() {});
+          }
         }
       }
     } catch (e) {
-      print('❌ [NewBudgetPage] Erro ao criar orçamento: $e');
+      print(' Erro ao criar orçamento: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -250,154 +271,206 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
         showBackButton: true,
         authStore: _authStore,
       ),
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _refreshPage,
-          child: Column(
-            children: [
-              // Conteúdo principal
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.all(16.w),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(height: 10.h),
+      body: RefreshIndicator(
+        onRefresh: _refreshPage,
+        child: Column(
+          children: [
+            // Conteúdo principal
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(16.w),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(height: 5.h),
 
-                      // CAMPO PARCEIRO (apenas para admins)
-                      Observer(
-                        builder: (_) {
-                          // ✅ REMOVIDO: Lógica de carregamento movida para initState
-                          // Evita loop infinito quando API retorna lista vazia
+                    // CAMPO PARCEIRO (apenas para admins)
+                    Observer(
+                      builder: (_) {
+                        // ✅ REMOVIDO: Lógica de carregamento movida para initState
+                        // Evita loop infinito quando API retorna lista vazia
 
-                          // Não mostrar campo se não for admin
-                          if (!_authStore.isAdmin) {
-                            return const SizedBox.shrink();
-                          }
+                        // Não mostrar campo se não for admin
+                        if (!_authStore.isAdmin) {
+                          return const SizedBox.shrink();
+                        }
 
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Gerar orçamento para (opcional):',
-                                style: TextStyle(
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.black87,
-                                ),
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Gerar orçamento para (opcional):',
+                              style: TextStyle(
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.black87,
                               ),
-                              SizedBox(height: 10.h),
-                              Container(
-                                width: double.infinity,
-                                height: 35.h,
-                                padding: EdgeInsets.symmetric(horizontal: 16.w),
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey[300]!),
-                                  borderRadius: BorderRadius.circular(8.r),
-                                ),
-                                child: DropdownButtonHideUnderline(
-                                  child: _store.isLoadingPartners
-                                      ? Center(
-                                          child: SizedBox(
-                                            width: 20.w,
-                                            height: 20.h,
-                                            child:
-                                                const CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              color: Color(0xFF117BBD),
-                                            ),
+                            ),
+                            SizedBox(height: 10.h),
+                            Container(
+                              width: double.infinity,
+                              height: 35.h,
+                              padding: EdgeInsets.symmetric(horizontal: 16.w),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey[300]!),
+                                borderRadius: BorderRadius.circular(8.r),
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: _store.isLoadingPartners
+                                    ? Center(
+                                        child: SizedBox(
+                                          width: 20.w,
+                                          height: 20.h,
+                                          child:
+                                              const CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Color(0xFF117BBD),
                                           ),
-                                        )
-                                      : DropdownButton<int>(
-                                          value: _store.selectedPartner?.id,
-                                          hint: Text(
-                                            !_store.hasPartners
-                                                ? 'Nenhum parceiro disponível'
-                                                : 'Selecione um parceiro',
-                                            style: TextStyle(
-                                              fontSize: 16.sp,
-                                              color: Colors.grey[500],
-                                            ),
-                                          ),
-                                          items: _store.partners
-                                              .map((partner) =>
-                                                  DropdownMenuItem<int>(
-                                                    value: partner.id,
-                                                    child: Text(
-                                                      partner.displayName,
-                                                      style: TextStyle(
-                                                          fontSize: 16.sp),
-                                                    ),
-                                                  ))
-                                              .toList(),
-                                          onChanged: !_store.hasPartners
-                                              ? null
-                                              : (value) {
-                                                  final partner = _store
-                                                      .partners
-                                                      .firstWhere(
-                                                          (p) => p.id == value);
-                                                  _store.selectPartner(partner);
-                                                },
                                         ),
-                                ),
+                                      )
+                                    : DropdownButton<int>(
+                                        value: _store.selectedPartner?.id,
+                                        hint: Text(
+                                          !_store.hasPartners
+                                              ? 'Nenhum parceiro disponível'
+                                              : 'Selecione um parceiro',
+                                          style: TextStyle(
+                                            fontSize: 16.sp,
+                                            color: Colors.grey[500],
+                                          ),
+                                        ),
+                                        items: _store.partners
+                                            .map((partner) =>
+                                                DropdownMenuItem<int>(
+                                                  value: partner.id,
+                                                  child: Text(
+                                                    partner.displayName,
+                                                    style: TextStyle(
+                                                        fontSize: 16.sp),
+                                                  ),
+                                                ))
+                                            .toList(),
+                                        onChanged: !_store.hasPartners
+                                            ? null
+                                            : (value) {
+                                                final partner = _store.partners
+                                                    .firstWhere(
+                                                        (p) => p.id == value);
+                                                _store.selectPartner(partner);
+                                              },
+                                      ),
                               ),
-                              SizedBox(height: 10.h),
-                              Container(
-                                width: double.infinity,
-                                height: 1.h,
-                                color: Colors.grey[300],
-                              ),
-                              SizedBox(height: 10.h),
-                            ],
-                          );
-                        },
-                      ),
+                            ),
+                            SizedBox(height: 10.h),
+                            Container(
+                              width: double.infinity,
+                              height: 1.h,
+                              color: Colors.grey[300],
+                            ),
+                            SizedBox(height: 10.h),
+                          ],
+                        );
+                      },
+                    ),
 
-                      // ESTADO
-                      Container(
-                        width: double.infinity,
-                        height: 35.h,
-                        padding: EdgeInsets.symmetric(horizontal: 16.w),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey[300]!),
-                          borderRadius: BorderRadius.circular(8.r),
+                    // ESTADO
+                    Container(
+                      width: double.infinity,
+                      height: 35.h,
+                      padding: EdgeInsets.symmetric(horizontal: 16.w),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey[300]!),
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: Observer(
+                          builder: (_) => DropdownButton<String>(
+                            value: _geo.estadoSelecionado?.nome,
+                            hint: Text(
+                              'Estado',
+                              style: TextStyle(
+                                fontSize: 16.sp,
+                                color: Colors.grey[500],
+                              ),
+                            ),
+                            items: _geo.estados
+                                .map<DropdownMenuItem<String>>(
+                                    (e) => DropdownMenuItem<String>(
+                                          value: e.nome,
+                                          child: Text(e.nome),
+                                        ))
+                                .toList(),
+                            onChanged: (value) async {
+                              final matches =
+                                  _geo.estados.where((e) => e.nome == value);
+                              final estado =
+                                  matches.isNotEmpty ? matches.first : null;
+                              if (estado != null) {
+                                await _geo.selecionarEstado(estado);
+
+                                // ✅ Sincronizar com BudgetCreateStore imediatamente
+                                // Usar ID como código já que UF não existe no modelo
+                                _store.setSelectedState(
+                                  estado.id?.toString() ?? '',
+                                  estado.nome,
+                                );
+
+                                print(
+                                    '📍 Estado sincronizado: ${estado.nome} (ID: ${estado.id})');
+
+                                if (mounted) setState(() {});
+                              }
+                            },
+                          ),
                         ),
-                        child: DropdownButtonHideUnderline(
-                          child: Observer(
-                            builder: (_) => DropdownButton<String>(
-                              value: _geo.estadoSelecionado?.nome,
+                      ),
+                    ),
+
+                    SizedBox(height: 10.h),
+
+                    // CIDADE
+                    if (_geo.estadoSelecionado != null) ...[
+                      Observer(
+                        builder: (_) => Container(
+                          width: double.infinity,
+                          height: 35.h,
+                          padding: EdgeInsets.symmetric(horizontal: 16.w),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey[300]!),
+                            borderRadius: BorderRadius.circular(8.r),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _geo.cidadeSelecionada?.nome,
                               hint: Text(
-                                'Estado',
+                                'Cidade',
                                 style: TextStyle(
                                   fontSize: 16.sp,
                                   color: Colors.grey[500],
                                 ),
                               ),
-                              items: _geo.estados
+                              items: _geo.cidades
                                   .map<DropdownMenuItem<String>>(
-                                      (e) => DropdownMenuItem<String>(
-                                            value: e.nome,
-                                            child: Text(e.nome),
+                                      (c) => DropdownMenuItem<String>(
+                                            value: c.nome,
+                                            child: Text(c.nome),
                                           ))
                                   .toList(),
-                              onChanged: (value) async {
+                              onChanged: (value) {
                                 final matches =
-                                    _geo.estados.where((e) => e.nome == value);
-                                final estado =
+                                    _geo.cidades.where((c) => c.nome == value);
+                                final cidade =
                                     matches.isNotEmpty ? matches.first : null;
-                                if (estado != null) {
-                                  await _geo.selecionarEstado(estado);
+
+                                if (cidade != null) {
+                                  _geo.selecionarCidade(cidade);
 
                                   // ✅ Sincronizar com BudgetCreateStore imediatamente
-                                  // Usar ID como código já que UF não existe no modelo
-                                  _store.setSelectedState(
-                                    estado.id?.toString() ?? '',
-                                    estado.nome,
+                                  _store.setSelectedCity(
+                                    cidade.id.toString(),
+                                    cidade.nome,
+                                    cityId: cidade.id,
                                   );
-
-                                  print(
-                                      '📍 Estado sincronizado: ${estado.nome} (ID: ${estado.id})');
 
                                   if (mounted) setState(() {});
                                 }
@@ -406,93 +479,81 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                           ),
                         ),
                       ),
+                    ],
 
-                      SizedBox(height: 10.h),
+                    SizedBox(height: 20.h),
 
-                      // CIDADE
-                      if (_geo.estadoSelecionado != null) ...[
-                        Observer(
-                          builder: (_) => Container(
-                            width: double.infinity,
-                            height: 35.h,
-                            padding: EdgeInsets.symmetric(horizontal: 16.w),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey[300]!),
-                              borderRadius: BorderRadius.circular(8.r),
-                            ),
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<String>(
-                                value: _geo.cidadeSelecionada?.nome,
-                                hint: Text(
-                                  'Cidade',
-                                  style: TextStyle(
-                                    fontSize: 16.sp,
-                                    color: Colors.grey[500],
-                                  ),
-                                ),
-                                items: _geo.cidades
-                                    .map<DropdownMenuItem<String>>(
-                                        (c) => DropdownMenuItem<String>(
-                                              value: c.nome,
-                                              child: Text(c.nome),
-                                            ))
-                                    .toList(),
-                                onChanged: (value) {
-                                  final matches = _geo.cidades
-                                      .where((c) => c.nome == value);
-                                  final cidade =
-                                      matches.isNotEmpty ? matches.first : null;
+                    // Linha horizontal
+                    Container(
+                      width: double.infinity,
+                      height: 1.h,
+                      color: Colors.grey[300],
+                    ),
 
-                                  if (cidade != null) {
-                                    _geo.selecionarCidade(cidade);
+                    SizedBox(height: 20.h),
 
-                                    // ✅ Sincronizar com BudgetCreateStore imediatamente
-                                    _store.setSelectedCity(
-                                      cidade.id.toString(),
-                                      cidade.nome,
-                                      cityId: cidade.id,
-                                    );
-
-                                    if (mounted) setState(() {});
-                                  }
-                                },
-                              ),
-                            ),
+                    // RESPONSÁVEL
+                    Text(
+                      'Responsável cliente (opcional):',
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    SizedBox(height: 10.h),
+                    SizedBox(
+                      height: 35.h,
+                      child: TextFormField(
+                        controller: _responsibleController,
+                        decoration: InputDecoration(
+                          hintText: 'Informe o nome',
+                          hintStyle: TextStyle(
+                            fontSize: 16.sp,
+                            color: Colors.grey[500],
                           ),
-                        ),
-                      ],
-
-                      SizedBox(height: 20.h),
-
-                      // Linha horizontal
-                      Container(
-                        width: double.infinity,
-                        height: 1.h,
-                        color: Colors.grey[300],
-                      ),
-
-                      SizedBox(height: 20.h),
-
-                      // RESPONSÁVEL
-                      Text(
-                        'Responsável cliente (opcional):',
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.black87,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8.r),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8.r),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
+                          ),
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 16.w, vertical: 8.h),
                         ),
                       ),
-                      SizedBox(height: 10.h),
-                      SizedBox(
+                    ),
+
+                    SizedBox(height: 10.h),
+
+                    // EMAIL
+                    Text(
+                      'Email (opcional):',
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    SizedBox(height: 10.h),
+                    Observer(
+                      builder: (_) => SizedBox(
                         height: 35.h,
                         child: TextFormField(
-                          controller: _responsibleController,
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
                           decoration: InputDecoration(
-                            hintText: 'Informe o nome',
+                            hintText: 'Informe o email',
                             hintStyle: TextStyle(
                               fontSize: 16.sp,
                               color: Colors.grey[500],
                             ),
+                            errorText: _emailController.text.isNotEmpty &&
+                                    !_store.isEmailValid
+                                ? 'Email inválido'
+                                : null,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8.r),
                               borderSide: BorderSide(color: Colors.grey[300]!),
@@ -501,176 +562,166 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                               borderRadius: BorderRadius.circular(8.r),
                               borderSide: BorderSide(color: Colors.grey[300]!),
                             ),
-                            contentPadding: EdgeInsets.symmetric(
-                                horizontal: 16.w, vertical: 8.h),
-                          ),
-                        ),
-                      ),
-
-                      SizedBox(height: 10.h),
-
-                      // EMAIL
-                      Text(
-                        'Email (opcional):',
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      SizedBox(height: 10.h),
-                      Observer(
-                        builder: (_) => SizedBox(
-                          height: 35.h,
-                          child: TextFormField(
-                            controller: _emailController,
-                            keyboardType: TextInputType.emailAddress,
-                            decoration: InputDecoration(
-                              hintText: 'Informe o email',
-                              hintStyle: TextStyle(
-                                fontSize: 16.sp,
-                                color: Colors.grey[500],
-                              ),
-                              errorText: _emailController.text.isNotEmpty &&
-                                      !_store.isEmailValid
-                                  ? 'Email inválido'
-                                  : null,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8.r),
-                                borderSide:
-                                    BorderSide(color: Colors.grey[300]!),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8.r),
-                                borderSide:
-                                    BorderSide(color: Colors.grey[300]!),
-                              ),
-                              errorBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8.r),
-                                borderSide: const BorderSide(color: Colors.red),
-                              ),
-                              contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 16.w, vertical: 8.h),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      SizedBox(height: 10.h),
-
-                      // DATA DE VALIDADE (desabilitado por enquanto)
-                      Text(
-                        'Data de validade (opcional):',
-                        style: TextStyle(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      SizedBox(height: 10.h),
-                      SizedBox(
-                        height: 35.h,
-                        child: TextFormField(
-                          controller: _validityDateController,
-                          enabled: false,
-                          decoration: InputDecoration(
-                            hintText: 'Em breve',
-                            hintStyle: TextStyle(
-                              fontSize: 16.sp,
-                              color: Colors.grey[500],
-                            ),
-                            border: OutlineInputBorder(
+                            errorBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8.r),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
-                            ),
-                            disabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8.r),
-                              borderSide: BorderSide(color: Colors.grey[200]!),
+                              borderSide: const BorderSide(color: Colors.red),
                             ),
                             contentPadding: EdgeInsets.symmetric(
                                 horizontal: 16.w, vertical: 8.h),
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              ),
+                    ),
 
-              // Botões fixos no final
-              Container(
-                padding: EdgeInsets.all(16.w),
-                child: Column(
-                  children: [
-                    // Botão Próximo
-                    Observer(
-                      builder: (_) => SizedBox(
-                        width: double.infinity,
-                        height: 35.h,
-                        child: ElevatedButton(
-                          onPressed: _store.isCreatingDraft
-                              ? null
-                              : _createDraftBudget,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF117BBD),
-                            disabledBackgroundColor: Colors.grey[300],
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8.r),
-                            ),
+                    SizedBox(height: 10.h),
+
+                    // TELEFONE
+                    Text(
+                      'Telefone (opcional):',
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    SizedBox(height: 10.h),
+                    SizedBox(
+                      height: 35.h,
+                      child: TextFormField(
+                        controller: _phoneController,
+                        keyboardType: TextInputType.phone,
+                        inputFormatters: [
+                          // Máscara para telefone brasileiro: (XX) XXXXX-XXXX
+                          TextInputFormatter.withFunction((oldValue, newValue) {
+                            String text =
+                                newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+
+                            if (text.length > 11) {
+                              text = text.substring(0, 11);
+                            }
+
+                            String formatted = '';
+                            if (text.isNotEmpty) {
+                              formatted = '($text';
+                              if (text.length >= 2) {
+                                formatted = '(${text.substring(0, 2)}';
+                                if (text.length > 2) {
+                                  formatted += ') ';
+                                  if (text.length <= 7) {
+                                    formatted += text.substring(2);
+                                  } else {
+                                    formatted += '${text.substring(2, 7)}-';
+                                    if (text.length > 7) {
+                                      formatted += text.substring(7);
+                                    }
+                                  }
+                                }
+                              }
+                            }
+
+                            return TextEditingValue(
+                              text: formatted,
+                              selection: TextSelection.collapsed(
+                                  offset: formatted.length),
+                            );
+                          }),
+                        ],
+                        decoration: InputDecoration(
+                          hintText: '(00) 00000-0000',
+                          hintStyle: TextStyle(
+                            fontSize: 16.sp,
+                            color: Colors.grey[500],
                           ),
-                          child: _store.isCreatingDraft
-                              ? SizedBox(
-                                  width: 20.w,
-                                  height: 20.h,
-                                  child: const CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      'Próximo',
-                                      style: TextStyle(
-                                        fontSize: 13.sp,
-                                        fontWeight: FontWeight.w600,
-                                        color: const Color(0xFFFFFFFF),
-                                      ),
-                                    ),
-                                    SizedBox(width: 8.w),
-                                    Icon(
-                                      Icons.arrow_forward,
-                                      color: const Color(0xFFFFFFFF),
-                                      size: 18.sp,
-                                    ),
-                                  ],
-                                ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8.r),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8.r),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
+                          ),
+                          contentPadding: EdgeInsets.symmetric(
+                              horizontal: 16.w, vertical: 8.h),
                         ),
                       ),
                     ),
-
-                    SizedBox(height: 10.h),
-
-                    // Link Orçamento multi-cidades (desabilitado por enquanto)
-                    Center(
-                      child: Text(
-                        'Orçamento multi-cidades (em breve)',
-                        style: TextStyle(
-                          fontSize: 12.sp,
-                          color: Colors.grey[400],
-                        ),
-                      ),
-                    ),
-
-                    SizedBox(height: 10.h),
                   ],
                 ),
               ),
-            ], // Fim do Column do RefreshIndicator
-          ), // Fim do RefreshIndicator
-        ), // Fim do SafeArea
-      ), // Fim do Scaffold
+            ),
+
+            // Botões fixos no final
+            Container(
+              padding: EdgeInsets.all(16.w),
+              child: Column(
+                children: [
+                  // Botão Próximo
+                  Observer(
+                    builder: (_) => SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed:
+                            _store.isCreatingDraft ? null : _createDraftBudget,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF117BBD),
+                          disabledBackgroundColor: Colors.grey[300],
+                          padding: EdgeInsets.symmetric(vertical: 12.h),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8.r),
+                          ),
+                        ),
+                        child: _store.isCreatingDraft
+                            ? SizedBox(
+                                width: 20.w,
+                                height: 20.h,
+                                child: const CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Próximo',
+                                    style: TextStyle(
+                                      fontSize: 13.sp,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFFFFFFFF),
+                                    ),
+                                  ),
+                                  SizedBox(width: 8.w),
+                                  Icon(
+                                    Icons.arrow_forward,
+                                    color: const Color(0xFFFFFFFF),
+                                    size: 18.sp,
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ),
+                  ),
+
+                  SizedBox(height: 10.h),
+
+                  // Link Orçamento multi-cidades (desabilitado por enquanto)
+                  Center(
+                    child: Text(
+                      'Orçamento multi-cidades (em breve)',
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        color: Colors.grey[400],
+                      ),
+                    ),
+                  ),
+
+                  SizedBox(height: 10.h),
+                ],
+              ),
+            ),
+          ], // Fim do Column do RefreshIndicator
+        ), // Fim do RefreshIndicator
+      ),
     );
   }
 }

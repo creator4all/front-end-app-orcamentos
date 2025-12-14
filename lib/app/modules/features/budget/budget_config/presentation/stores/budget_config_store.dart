@@ -8,9 +8,11 @@ import '../../../shared/models/budget_update_dto.dart';
 import '../../../shared/models/product_selection_update_dto.dart';
 import '../../domain/entities/budget_detail_entity.dart';
 import '../../domain/entities/category_entity.dart';
+import '../../domain/entities/censo_escolar_entity.dart';
 import '../../domain/entities/census_data_entity.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../domain/entities/subcategory_entity.dart';
+import '../../domain/services/product_calculation_service.dart';
 import '../../domain/usecases/calculate_totals_usecase.dart';
 import '../../domain/usecases/finalize_budget_usecase.dart';
 import '../../domain/usecases/get_all_budget_products_usecase.dart';
@@ -33,6 +35,7 @@ abstract class _BudgetConfigStoreBase with Store {
   final CalculateTotalsUseCase calculateTotalsUseCase;
   final FinalizeBudgetUseCase finalizeBudgetUseCase;
   final SaveBudgetUseCase saveBudgetUseCase;
+  final ProductCalculationService calculationService;
 
   _BudgetConfigStoreBase({
     required this.getBudgetDetailUseCase,
@@ -43,6 +46,7 @@ abstract class _BudgetConfigStoreBase with Store {
     required this.calculateTotalsUseCase,
     required this.finalizeBudgetUseCase,
     required this.saveBudgetUseCase,
+    required this.calculationService,
   });
 
   // ========== OBSERVABLES ==========
@@ -67,6 +71,9 @@ abstract class _BudgetConfigStoreBase with Store {
 
   @observable
   CensusDataEntity? censusData;
+
+  @observable
+  CensoEscolarEntity? censoEscolar;
 
   @observable
   ObservableMap<String, bool> categoryStates = ObservableMap<String, bool>();
@@ -127,6 +134,23 @@ abstract class _BudgetConfigStoreBase with Store {
     return categories.fold(0, (sum, c) => sum + c.selectedProductsCount);
   }
 
+  // ✅ Contagem corrigida: expandidas contam subcategorias selecionadas, compactas contam produtos individuais
+  @computed
+  int get selectedItemsCount {
+    return categories.fold(0, (sum, category) {
+      if (category.expandido) {
+        // Categorias expandidas contam SUBCATEGORIAS com produtos selecionados
+        final selectedSubcategories = category.subcategorias
+            .where((subcategory) => subcategory.hasSelectedProducts)
+            .length;
+        return sum + selectedSubcategories;
+      } else {
+        // Categorias compactas contam como 1 categoria se tiverem produtos selecionados
+        return sum + (category.hasSelectedProducts ? 1 : 0);
+      }
+    });
+  }
+
   @computed
   bool get hasData => budgetDetail != null;
 
@@ -169,11 +193,12 @@ abstract class _BudgetConfigStoreBase with Store {
         total: draft.total,
         userId: draft.createdByUserId,
         partnerId: draft.partnerId,
-        cityIds: [draft.location.cityCode].map((e) => int.tryParse(e) ?? 0).toList(),
-        products: [],
-        categoryStates: {},
+        cityIds:
+            [draft.location.cityCode].map((e) => int.tryParse(e) ?? 0).toList(),
+        products: const [],
+        categoryStates: const {},
         categories: draft.categories,
-        citiesData: [],
+        citiesData: _extractCitiesDataFromDraft(draft),
       );
 
       categories.clear();
@@ -181,7 +206,8 @@ abstract class _BudgetConfigStoreBase with Store {
 
       categoryStates.clear();
 
-      validityDate = draft.validityDate ?? DateTime.now().add(const Duration(days: 60));
+      validityDate =
+          draft.validityDate ?? DateTime.now().add(const Duration(days: 60));
       budgetName = draft.partnerName;
 
       isLoading = false;
@@ -196,6 +222,26 @@ abstract class _BudgetConfigStoreBase with Store {
       error = 'Erro ao inicializar orçamento: $e';
       isLoading = false;
     }
+  }
+
+  /// Extrai dados das cidades do draft para formato esperado pelo SchoolCensusCard
+  List<Map<String, dynamic>> _extractCitiesDataFromDraft(
+      BudgetDraftEntity draft) {
+    if (draft.cidade == null) return [];
+
+    final cidade = draft.cidade!;
+    return [
+      {
+        'id': cidade.id,
+        'nome': cidade.nome,
+        'indicadores': cidade.cidadesHasIndiceEtapa
+            .map((etapa) => {
+                  'nome': etapa.nomeEtapa,
+                  'valor': etapa.etapaValor.toInt(),
+                })
+            .toList(),
+      }
+    ];
   }
 
   @action
@@ -449,43 +495,169 @@ abstract class _BudgetConfigStoreBase with Store {
           // ✅ Alternar campo 'selecionado'
           final updatedProduct = product.copyWith(selecionado: selected);
 
-          // Criar nova lista de produtos com imutabilidade
-          final updatedProducts =
-              subcategory.produtos.asMap().entries.map((entry) {
-            return entry.key == productIndex ? updatedProduct : entry.value;
-          }).toList();
+          // 🧮 Recalcular quantidade e valor baseado no censo
+          if (censoEscolar != null && selected) {
+            final quantidade = calculationService.calcularQuantidade(
+              updatedProduct,
+              censoEscolar!,
+            );
+            final valorTotal = calculationService.calcularValorProduto(
+              updatedProduct,
+              censoEscolar!,
+            );
 
-          // Criar nova subcategoria
-          final updatedSubcategory =
-              subcategory.copyWith(produtos: updatedProducts);
+            // Atualizar produto com valores calculados
+            final productWithCalculation = updatedProduct.copyWith(
+              quantidade: quantidade.round(),
+              valor: valorTotal > 0
+                  ? valorTotal / quantidade
+                  : updatedProduct.valor,
+            );
 
-          // Criar nova lista de subcategorias com imutabilidade
-          final updatedSubcategories =
-              category.subcategorias.asMap().entries.map((entry) {
-            return entry.key == j ? updatedSubcategory : entry.value;
-          }).toList();
+            // Atualizar na subcategoria
+            final updatedProducts =
+                subcategory.produtos.asMap().entries.map((entry) {
+              return entry.key == productIndex
+                  ? productWithCalculation
+                  : entry.value;
+            }).toList();
 
-          // Criar nova categoria
-          final updatedCategory =
-              category.copyWith(subcategorias: updatedSubcategories);
+            final updatedSubcategory =
+                subcategory.copyWith(produtos: updatedProducts);
+            final updatedSubcategories =
+                category.subcategorias.asMap().entries.map((entry) {
+              return entry.key == j ? updatedSubcategory : entry.value;
+            }).toList();
 
-          // ⚠️ CORREÇÃO: Substituir categoria na lista observável
-          // Criar NOVA lista para forçar notificação do MobX
-          categories = ObservableList.of(
-            categories.asMap().entries.map((entry) {
-              return entry.key == i ? updatedCategory : entry.value;
-            }).toList(),
-          );
+            categories[i] =
+                category.copyWith(subcategorias: updatedSubcategories);
+          } else {
+            // Criar nova lista de produtos com imutabilidade
+            final updatedProducts =
+                subcategory.produtos.asMap().entries.map((entry) {
+              return entry.key == productIndex ? updatedProduct : entry.value;
+            }).toList();
 
-          print('✅ [BudgetConfigStore] Produto $productId agora: $selected');
-          print('💰 Total recalculado: R\$ ${totalValue.toStringAsFixed(2)}');
-          print('📦 Produtos selecionados: $totalSelectedProducts');
+            final updatedSubcategory =
+                subcategory.copyWith(produtos: updatedProducts);
+            final updatedSubcategories =
+                category.subcategorias.asMap().entries.map((entry) {
+              return entry.key == j ? updatedSubcategory : entry.value;
+            }).toList();
+
+            categories[i] =
+                category.copyWith(subcategorias: updatedSubcategories);
+          }
+
+          print(
+              '✅ [BudgetConfigStore] Produto $productId atualizado com sucesso');
           return;
         }
       }
     }
 
     print('⚠️ [BudgetConfigStore] Produto $productId não encontrado');
+  }
+
+  @action
+  void toggleSubcategoryWithCascade(
+      int categoryId, int subcategoryId, bool selected) {
+    print(
+        '🔄 [BudgetConfigStore] Alternando subcategoria $subcategoryId: $selected');
+
+    // Encontrar a categoria
+    final categoryIndex = categories.indexWhere((c) => c.id == categoryId);
+    if (categoryIndex == -1) return;
+
+    final category = categories[categoryIndex];
+
+    // Encontrar a subcategoria
+    final subcategoryIndex =
+        category.subcategorias.indexWhere((s) => s.id == subcategoryId);
+    if (subcategoryIndex == -1) return;
+
+    final subcategory = category.subcategorias[subcategoryIndex];
+
+    // Alternar todos os produtos da subcategoria
+    final updatedProducts = subcategory.produtos.map((product) {
+      if (!product.ativo) return product;
+      return product.copyWith(selecionado: selected);
+    }).toList();
+
+    // Atualizar subcategoria
+    final updatedSubcategory = subcategory.copyWith(produtos: updatedProducts);
+    final updatedSubcategories =
+        category.subcategorias.asMap().entries.map((entry) {
+      return entry.key == subcategoryIndex ? updatedSubcategory : entry.value;
+    }).toList();
+
+    categories[categoryIndex] =
+        category.copyWith(subcategorias: updatedSubcategories);
+  }
+
+  @action
+  void toggleCategoryWithCascade(int categoryId, bool selected) {
+    print('🔄 [BudgetConfigStore] Alternando categoria $categoryId: $selected');
+
+    // Encontrar a categoria
+    final categoryIndex = categories.indexWhere((c) => c.id == categoryId);
+    if (categoryIndex == -1) return;
+
+    final category = categories[categoryIndex];
+
+    // Alternar todos os produtos de todas as subcategorias
+    final updatedSubcategories = category.subcategorias.map((subcategory) {
+      final updatedProducts = subcategory.produtos.map((product) {
+        if (!product.ativo) return product;
+        return product.copyWith(selecionado: selected);
+      }).toList();
+      return subcategory.copyWith(produtos: updatedProducts);
+    }).toList();
+
+    categories[categoryIndex] =
+        category.copyWith(subcategorias: updatedSubcategories);
+  }
+
+  @action
+  void updateProductFromModal(ProductEntity updatedProduct) {
+    print(
+        '🔄 [BudgetConfigStore] Atualizando produto do modal: ${updatedProduct.id}');
+
+    // Encontrar o produto em todas as categorias/subcategorias
+    for (var i = 0; i < categories.length; i++) {
+      final category = categories[i];
+
+      for (var j = 0; j < category.subcategorias.length; j++) {
+        final subcategory = category.subcategorias[j];
+
+        final productIndex =
+            subcategory.produtos.indexWhere((p) => p.id == updatedProduct.id);
+
+        if (productIndex != -1) {
+          // Atualizar produto completo
+          final updatedProducts =
+              subcategory.produtos.asMap().entries.map((entry) {
+            return entry.key == productIndex ? updatedProduct : entry.value;
+          }).toList();
+
+          final updatedSubcategory =
+              subcategory.copyWith(produtos: updatedProducts);
+          final updatedSubcategories =
+              category.subcategorias.asMap().entries.map((entry) {
+            return entry.key == j ? updatedSubcategory : entry.value;
+          }).toList();
+
+          categories[i] =
+              category.copyWith(subcategorias: updatedSubcategories);
+
+          print(
+              '✅ [BudgetConfigStore] Produto ${updatedProduct.id} atualizado com sucesso');
+          return;
+        }
+      }
+    }
+
+    print('⚠️ [BudgetConfigStore] Produto ${updatedProduct.id} não encontrado');
   }
 
   @action
@@ -662,133 +834,6 @@ abstract class _BudgetConfigStoreBase with Store {
     }
 
     print('⚠️ [BudgetConfigStore] Produto $productId não encontrado');
-  }
-
-  /// Toggle de categoria com marcação/desmarcação em cascata
-  /// SIMPLIFICADO: Produtos já estão carregados (EAGER LOAD)
-  /// Apenas marca/desmarca produtos que já estão na memória
-  @action
-  void toggleCategoryWithCascade(int categoryId, bool selected) {
-    print(
-        '🔄 [BudgetConfigStore] Toggle categoria $categoryId: ${selected ? "MARCAR" : "DESMARCAR"}');
-
-    // Encontrar a categoria
-    final categoryIndex = categories.indexWhere((c) => c.id == categoryId);
-    if (categoryIndex == -1) {
-      print('⚠️ [BudgetConfigStore] Categoria $categoryId não encontrada');
-      return;
-    }
-
-    final category = categories[categoryIndex];
-
-    print('   📦 Categoria: ${category.nome}');
-    print(
-        '   📊 Produtos ANTES: ${category.selectedProductsCount} selecionados');
-
-    // Atualizar todas as subcategorias da categoria
-    final updatedSubcategories = category.subcategorias.map((subcategory) {
-      // Marcar/desmarcar todos os produtos da subcategoria
-      final updatedProducts = subcategory.produtos.map((product) {
-        return product.copyWith(
-          selecionado: selected,
-          quantidade: 1, // Manter quantidade padrão
-        );
-      }).toList();
-
-      // Remover estatísticas (agora tem produtos reais)
-      return subcategory.copyWith(
-        produtos: updatedProducts,
-        estatisticas: null,
-      );
-    }).toList();
-
-    // Criar nova categoria com subcategorias atualizadas
-    final updatedCategory = category.copyWith(
-      subcategorias: updatedSubcategories,
-    );
-
-    // ⚠️ CORREÇÃO: Substituir categoria na lista observável
-    // Criar NOVA lista para forçar notificação do MobX
-    categories = ObservableList.of(
-      categories.asMap().entries.map((entry) {
-        return entry.key == categoryIndex ? updatedCategory : entry.value;
-      }).toList(),
-    );
-
-    print(
-        '   ✅ Categoria ${selected ? "marcada" : "desmarcada"}: ${updatedCategory.selectedProductsCount} produtos');
-    print('   💰 Total recalculado: R\$ ${totalValue.toStringAsFixed(2)}');
-    print('   📦 Produtos selecionados no orçamento: $totalSelectedProducts');
-  }
-
-  /// Marca/desmarca todos os produtos de uma SUBCATEGORIA específica
-  @action
-  void toggleSubcategoryWithCascade(
-      int categoryId, int subcategoryId, bool selected) {
-    print(
-        '🔄 [BudgetConfigStore] Toggle subcategoria $subcategoryId da categoria $categoryId: ${selected ? "MARCAR" : "DESMARCAR"}');
-
-    // Encontrar a categoria
-    final categoryIndex = categories.indexWhere((c) => c.id == categoryId);
-    if (categoryIndex == -1) {
-      print('⚠️ [BudgetConfigStore] Categoria $categoryId não encontrada');
-      return;
-    }
-
-    final category = categories[categoryIndex];
-
-    // Encontrar a subcategoria
-    final subcategoryIndex =
-        category.subcategorias.indexWhere((s) => s.id == subcategoryId);
-    if (subcategoryIndex == -1) {
-      print(
-          '⚠️ [BudgetConfigStore] Subcategoria $subcategoryId não encontrada');
-      return;
-    }
-
-    final subcategory = category.subcategorias[subcategoryIndex];
-
-    print('   📦 Subcategoria: ${subcategory.nome}');
-    print(
-        '   📊 Produtos ANTES: ${subcategory.selectedProductsCount} selecionados');
-
-    // Marcar/desmarcar todos os produtos da subcategoria
-    final updatedProducts = subcategory.produtos.map((product) {
-      return product.copyWith(
-        selecionado: selected,
-        quantidade: 1, // Manter quantidade padrão
-      );
-    }).toList();
-
-    // Criar nova subcategoria com produtos atualizados
-    final updatedSubcategory = subcategory.copyWith(
-      produtos: updatedProducts,
-      estatisticas: null,
-    );
-
-    // Atualizar lista de subcategorias na categoria
-    final updatedSubcategories =
-        category.subcategorias.asMap().entries.map((entry) {
-      return entry.key == subcategoryIndex ? updatedSubcategory : entry.value;
-    }).toList();
-
-    // Criar nova categoria com subcategorias atualizadas
-    final updatedCategory = category.copyWith(
-      subcategorias: updatedSubcategories,
-    );
-
-    // ⚠️ CORREÇÃO: Substituir categoria na lista observável
-    // Criar NOVA lista para forçar notificação do MobX
-    categories = ObservableList.of(
-      categories.asMap().entries.map((entry) {
-        return entry.key == categoryIndex ? updatedCategory : entry.value;
-      }).toList(),
-    );
-
-    print(
-        '   ✅ Subcategoria ${selected ? "marcada" : "desmarcada"}: ${updatedSubcategory.selectedProductsCount} produtos');
-    print('   💰 Total recalculado: R\$ ${totalValue.toStringAsFixed(2)}');
-    print('   📦 Produtos selecionados no orçamento: $totalSelectedProducts');
   }
 
   /// Atualiza categoria com produtos carregados e marca/desmarca todos

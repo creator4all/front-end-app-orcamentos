@@ -11,7 +11,6 @@ class BudgetEditEntity extends Equatable {
   final DateTime? validityDate;
   final DateTime? creationDate;
   final String status;
-  final bool isArchived;
   final double total;
   final int userId;
   final int? partnerId;
@@ -29,7 +28,6 @@ class BudgetEditEntity extends Equatable {
     this.validityDate,
     this.creationDate,
     required this.status,
-    this.isArchived = false,
     required this.total,
     required this.userId,
     this.partnerId,
@@ -55,6 +53,9 @@ class BudgetEditEntity extends Equatable {
       .where((p) => p.isSelected)
       .fold(0.0, (sum, p) => sum + p.totalPrice);
 
+  /// Computed property para compatibilidade com código existente
+  bool get isArchived => status.toLowerCase() == 'arquivado';
+
   @override
   List<Object?> get props => [
         id,
@@ -63,7 +64,6 @@ class BudgetEditEntity extends Equatable {
         validityDate,
         creationDate,
         status,
-        isArchived,
         total,
         userId,
         partnerId,
@@ -81,7 +81,6 @@ class BudgetEditEntity extends Equatable {
     DateTime? validityDate,
     DateTime? creationDate,
     String? status,
-    bool? isArchived,
     double? total,
     int? userId,
     int? partnerId,
@@ -98,7 +97,6 @@ class BudgetEditEntity extends Equatable {
       validityDate: validityDate ?? this.validityDate,
       creationDate: creationDate ?? this.creationDate,
       status: status ?? this.status,
-      isArchived: isArchived ?? this.isArchived,
       total: total ?? this.total,
       userId: userId ?? this.userId,
       partnerId: partnerId ?? this.partnerId,

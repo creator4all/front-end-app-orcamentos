@@ -10,7 +10,6 @@ class BudgetEditDto {
   final DateTime? validityDate;
   final DateTime? creationDate;
   final String status;
-  final bool isArchived;
   final double total;
   final int userId;
   final int? partnerId;
@@ -28,7 +27,6 @@ class BudgetEditDto {
     this.validityDate,
     this.creationDate,
     required this.status,
-    this.isArchived = false,
     required this.total,
     required this.userId,
     this.partnerId,
@@ -84,10 +82,6 @@ class BudgetEditDto {
               ? DateTime.tryParse(json['created_at'])
               : null),
       status: json['orc_status'] ?? json['status'] ?? 'pendente',
-      isArchived: (json['orc_status'] ?? json['status'] ?? '')
-              .toString()
-              .toLowerCase() ==
-          'arquivado',
       total: (json['orc_total'] ?? json['total'] ?? 0.0).toDouble(),
       userId: json['orc_usuario_id'] ?? json['usuario_id'] ?? 0,
       partnerId: json['orc_partner_destino_id'] ?? json['partner_id'],
@@ -111,8 +105,7 @@ class BudgetEditDto {
       'orc_usuario_id': userId,
       if (partnerId != null) 'orc_partner_destino_id': partnerId,
       'cidades': cityIds,
-      'produtos_selecionados':
-          products.where((p) => p.isSelected).map((p) => p.productId).toList(),
+      'produtos': products.map((p) => p.toJson()).toList(),
     };
   }
 
@@ -124,7 +117,6 @@ class BudgetEditDto {
       validityDate: validityDate,
       creationDate: creationDate,
       status: status,
-      isArchived: isArchived,
       total: total,
       userId: userId,
       partnerId: partnerId,
@@ -135,4 +127,7 @@ class BudgetEditDto {
       censusData: censusData?.toEntity(),
     );
   }
+
+  /// Computed property para compatibilidade com código existente
+  bool get isArchived => status.toLowerCase() == 'arquivado';
 }

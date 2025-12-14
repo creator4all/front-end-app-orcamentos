@@ -43,35 +43,70 @@ class ProductDTO {
   });
 
   /// Cria um DTO a partir do JSON da API
+  /// Suporta tanto formato completo quanto simplificado (criação de orçamento)
   factory ProductDTO.fromJson(Map<String, dynamic> json) {
     try {
-      // Parse cada campo individualmente com tratamento de erro
+      // Parse cada campo com fallbacks para formato simplificado
       final int id = json['id'] as int;
-      final String codigo = json['codigo'] as String;
+      final String codigo = (json['codigo'] as String?) ?? '';
       final String solucao = json['solucao'] as String;
       final String tipo = (json['tipo'] as String?) ?? '';
-      final bool ativo = json['ativo'] as bool;
+
+      // 'ativo' pode vir como 'ativo' ou 'status' dependendo do endpoint
+      final bool ativo = (json['ativo'] ?? json['status']) as bool? ?? true;
       final double valor = (json['valor'] as num).toDouble();
       final String indicacao = (json['indicacao'] as String?) ?? '';
-      final String tipoProduto = json['tipo_produto'] as String;
+      final String tipoProduto = (json['tipo_produto'] as String?) ?? '';
+
       // Parse defensivo: ordem pode vir null, vazio ou 0
       final int ordem = (json['ordem'] as int?) ?? 0;
-      final int subcategoriaId = json['subcategoria_id'] as int;
-      final bool selecionado = json['selecionado'] as bool;
-      final int quantidade = (json['quantidade'] as num).toInt();
-      final bool temOverride = json['tem_override'] as bool;
-      final String? observacoes = json['observacoes'] as String?;
-      final double valorOriginal = (json['valor_original'] as num).toDouble();
-      final bool ativoOriginal = json['ativo_original'] as bool;
+      final int subcategoriaId = (json['subcategoria_id'] as int?) ?? 0;
 
-      // Parse indicadores de etapa
-      final List<IndicadorEtapaEntity> indicadoresEtapa =
-          (json['indicadores_etapa'] as List<dynamic>?)
-                  ?.map((item) =>
-                      IndicadorEtapaDTO.fromJson(item as Map<String, dynamic>)
-                          .toEntity())
-                  .toList() ??
-              [];
+      // Extrair selecionado/quantidade de 'orcamento_produto' ou diretamente
+      final orcProduto = json['orcamento_produto'] as Map<String, dynamic>?;
+      final bool selecionado =
+          (orcProduto?['selecionado'] ?? json['selecionado']) as bool? ?? true;
+      final int quantidade =
+          ((orcProduto?['quantidade'] ?? json['quantidade']) as num?)
+                  ?.toInt() ??
+              0;
+
+      final bool temOverride = (json['tem_override'] as bool?) ?? false;
+      final String? observacoes = json['observacoes'] as String?;
+
+      // Valores originais com fallback para valores atuais
+      final double valorOriginal =
+          (json['valor_original'] as num?)?.toDouble() ?? valor;
+      final bool ativoOriginal = (json['ativo_original'] as bool?) ?? ativo;
+
+      // Parse indicadores - suporta 'indicadores_etapa' ou 'indicadores'
+      List<IndicadorEtapaEntity> indicadoresEtapa = [];
+
+      // Primeiro tenta formato completo 'indicadores_etapa'
+      if (json['indicadores_etapa'] != null &&
+          json['indicadores_etapa'] is List) {
+        indicadoresEtapa = (json['indicadores_etapa'] as List<dynamic>)
+            .map((item) =>
+                IndicadorEtapaDTO.fromJson(item as Map<String, dynamic>)
+                    .toEntity())
+            .toList();
+      }
+      // Depois tenta formato simplificado 'indicadores' (retorno da criação)
+      else if (json['indicadores'] != null && json['indicadores'] is List) {
+        indicadoresEtapa = (json['indicadores'] as List<dynamic>).map((item) {
+          final ind = item as Map<String, dynamic>;
+          final indEtapa = ind['indicador_etapa'] as Map<String, dynamic>?;
+          return IndicadorEtapaEntity(
+            produtoIndicadorId: (ind['id'] as int?) ?? 0,
+            indicadorId: (indEtapa?['id'] as int?) ?? 0,
+            indicadorNome: (indEtapa?['nome'] as String?) ?? '',
+            nomeEtapa: (indEtapa?['nome'] as String?) ?? '', // Added nomeEtapa
+            grupoId: 0, // Não disponível no formato simplificado
+            grupoNome: '', // Não disponível no formato simplificado
+            selecionado: (ind['valor'] as bool?) ?? false,
+          );
+        }).toList();
+      }
 
       return ProductDTO(
         id: id,

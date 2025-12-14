@@ -105,99 +105,117 @@ class _BudgetListPageState extends State<BudgetListPage> {
         showBackButton: false,
         authStore: _authStore,
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
+      body: RefreshIndicator(
+        onRefresh: () => _store.refresh(),
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
             // Componente de filtros
-            BudgetFilterWidget(
-              onSearchChanged: _handleSearchChanged,
-              onFiltersChanged: _handleFiltersChanged,
-              onReset: _handleReset,
+            SliverToBoxAdapter(
+              child: BudgetFilterWidget(
+                onSearchChanged: _handleSearchChanged,
+                onFiltersChanged: _handleFiltersChanged,
+                onReset: _handleReset,
+              ),
             ),
 
             // Seção Realizados/Arquivados
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
-              child: Observer(
-                builder: (_) => Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      _store.selectedFilters.contains('arquivado')
-                          ? 'Arquivados'
-                          : 'Realizados',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18.sp,
-                        color: const Color(0xFF484848),
-                      ),
-                    ),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        Modular.to.pushNamed('/budget/new');
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF117BBD),
-                        foregroundColor: const Color(0xFFFFFFFF),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.r),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+                child: Observer(
+                  builder: (_) => Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        _store.selectedFilters.contains('arquivado')
+                            ? 'Arquivados'
+                            : 'Realizados',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18.sp,
+                          color: const Color(0xFF484848),
                         ),
-                        padding: EdgeInsets.symmetric(
-                            horizontal: 16.w, vertical: 10.h),
                       ),
-                      icon: Icon(
-                        Icons.add,
-                        size: 16.sp,
-                        color: const Color(0xFFFFFFFF),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          Modular.to.pushNamed('/budget/new');
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF117BBD),
+                          foregroundColor: const Color(0xFFFFFFFF),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8.r),
+                          ),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 16.w, vertical: 10.h),
+                        ),
+                        icon: Icon(
+                          Icons.add,
+                          size: 16.sp,
+                          color: const Color(0xFFFFFFFF),
+                        ),
+                        label: const Text('Novo Orç.'),
                       ),
-                      label: const Text('Novo Orç.'),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
 
-            Expanded(
-              child: Observer(
-                builder: (_) {
-                  if (_store.isLoading && _store.items.isEmpty) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (_store.error != null && _store.items.isEmpty) {
-                    return Center(
+            // Lista de orçamentos
+            Observer(
+              builder: (_) {
+                if (_store.isLoading && _store.items.isEmpty) {
+                  return SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.6,
+                      child: const Center(child: CircularProgressIndicator()),
+                    ),
+                  );
+                }
+                if (_store.error != null && _store.items.isEmpty) {
+                  return SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.6,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text('Erro: ${_store.error}'),
+                            SizedBox(height: 16.h),
+                            ElevatedButton(
+                              onPressed: () => _store.refresh(),
+                              child: const Text('Tentar novamente'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }
+                if (_store.items.isEmpty) {
+                  return SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.6,
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text('Erro: ${_store.error}'),
-                          SizedBox(height: 16.h),
-                          ElevatedButton(
-                            onPressed: () => _store.refresh(),
-                            child: const Text('Tentar novamente'),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-                  if (_store.items.isEmpty) {
-                    return RefreshIndicator(
-                      onRefresh: () => _store.refresh(),
-                      child: ListView(
                         children: [
                           SizedBox(height: 200.h),
                           const Center(
                               child: Text('Nenhum orçamento encontrado')),
                         ],
                       ),
-                    );
-                  }
-                  return RefreshIndicator(
-                    onRefresh: () => _store.refresh(),
-                    child: ListView.builder(
-                      padding: EdgeInsets.symmetric(
-                          horizontal: 10.w, vertical: 10.h),
-                      itemCount: _store.items.length,
-                      itemBuilder: (context, index) {
+                    ),
+                  );
+                }
+                return SliverPadding(
+                  padding:
+                      EdgeInsets.symmetric(horizontal: 10.w, vertical: 10.h),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
                         final b = _store.items[index];
 
                         // Mapear status da API para enum
@@ -258,10 +276,11 @@ class _BudgetListPageState extends State<BudgetListPage> {
                           ),
                         );
                       },
+                      childCount: _store.items.length,
                     ),
-                  );
-                },
-              ),
+                  ),
+                );
+              },
             ),
           ],
         ),

@@ -117,6 +117,23 @@ abstract class _BudgetEditStoreBase with Store {
     return categories.where((c) => c.hasSelectedProducts).length;
   }
 
+  // ✅ Contagem corrigida: expandidas contam subcategorias selecionadas, compactas contam produtos individuais
+  @computed
+  int get selectedItemsCount {
+    return categories.fold(0, (sum, category) {
+      if (category.expandido) {
+        // Categorias expandidas contam SUBCATEGORIAS com produtos selecionados
+        final selectedSubcategories = category.subcategorias
+            .where((subcategory) => subcategory.hasSelectedProducts)
+            .length;
+        return sum + selectedSubcategories;
+      } else {
+        // Categorias compactas contam como 1 categoria se tiverem produtos selecionados
+        return sum + (category.hasSelectedProducts ? 1 : 0);
+      }
+    });
+  }
+
   @computed
   bool get hasCategories => categories.isNotEmpty;
 
@@ -440,8 +457,8 @@ abstract class _BudgetEditStoreBase with Store {
 
   @action
   Future<Either<BudgetFailure, BudgetEditEntity>> saveBudget() async {
-    // Alias para updateBudget para manter compatibilidade
-    return updateBudget();
+    // Usar sempre o método completo com DTO
+    return saveBudgetWithDto();
   }
 
   @action
