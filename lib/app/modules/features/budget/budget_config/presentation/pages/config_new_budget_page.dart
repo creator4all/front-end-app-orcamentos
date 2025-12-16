@@ -16,6 +16,7 @@ import '../../domain/entities/subcategory_entity.dart';
 import '../stores/budget_config_store.dart';
 import '../widgets/budget_skeleton.dart';
 import '../widgets/product_edit_modal.dart';
+import '../widgets/product_remark_confirmation_modal.dart';
 import '../widgets/school_census_card.dart';
 import '../widgets/subcategories_modal.dart';
 import '../widgets/subcategory_products_modal.dart';
@@ -266,6 +267,24 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
 
                             // Recarregar produtos com quantidades recalculadas
                             await store.reloadProductsAfterCensusEdit();
+
+                            // Verificar se há produtos que precisam de remarcação
+                            if (store.productsNeedingRemark.isNotEmpty) {
+                              print(
+                                  '🔔 [ConfigPage] ${store.productsNeedingRemark.length} produtos precisam de remarcação');
+
+                              // Mostrar modal de confirmação
+                              await ProductRemarkConfirmationModal.show(
+                                context: context,
+                                productsToRemark: store.productsNeedingRemark,
+                                onConfirm: () {
+                                  store.confirmProductRemark();
+                                },
+                                onCancel: () {
+                                  store.rejectProductRemark();
+                                },
+                              );
+                            }
 
                             print(
                                 '✅ [ConfigPage] Produtos atualizados com sucesso!');

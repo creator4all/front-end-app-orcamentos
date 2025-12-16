@@ -310,6 +310,23 @@ mixin _$BudgetConfigStore on _BudgetConfigStoreBase, Store {
     });
   }
 
+  late final _$productsNeedingRemarkAtom = Atom(
+      name: '_BudgetConfigStoreBase.productsNeedingRemark', context: context);
+
+  @override
+  List<ProductEntity> get productsNeedingRemark {
+    _$productsNeedingRemarkAtom.reportRead();
+    return super.productsNeedingRemark;
+  }
+
+  @override
+  set productsNeedingRemark(List<ProductEntity> value) {
+    _$productsNeedingRemarkAtom.reportWrite(value, super.productsNeedingRemark,
+        () {
+      super.productsNeedingRemark = value;
+    });
+  }
+
   late final _$initializeAsyncAction =
       AsyncAction('_BudgetConfigStoreBase.initialize', context: context);
 
@@ -382,6 +399,51 @@ mixin _$BudgetConfigStore on _BudgetConfigStoreBase, Store {
 
   late final _$_BudgetConfigStoreBaseActionController =
       ActionController(name: '_BudgetConfigStoreBase', context: context);
+
+  @override
+  void _checkForProductsToRemark(
+      CensoEscolarEntity oldCenso, CensoEscolarEntity newCenso) {
+    final _$actionInfo = _$_BudgetConfigStoreBaseActionController.startAction(
+        name: '_BudgetConfigStoreBase._checkForProductsToRemark');
+    try {
+      return super._checkForProductsToRemark(oldCenso, newCenso);
+    } finally {
+      _$_BudgetConfigStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void confirmProductRemark() {
+    final _$actionInfo = _$_BudgetConfigStoreBaseActionController.startAction(
+        name: '_BudgetConfigStoreBase.confirmProductRemark');
+    try {
+      return super.confirmProductRemark();
+    } finally {
+      _$_BudgetConfigStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void rejectProductRemark() {
+    final _$actionInfo = _$_BudgetConfigStoreBaseActionController.startAction(
+        name: '_BudgetConfigStoreBase.rejectProductRemark');
+    try {
+      return super.rejectProductRemark();
+    } finally {
+      _$_BudgetConfigStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void _remarkProducts(List<ProductEntity> productsToRemark) {
+    final _$actionInfo = _$_BudgetConfigStoreBaseActionController.startAction(
+        name: '_BudgetConfigStoreBase._remarkProducts');
+    try {
+      return super._remarkProducts(productsToRemark);
+    } finally {
+      _$_BudgetConfigStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
 
   @override
   void toggleCategory(String categoryKey) {
@@ -568,6 +630,7 @@ budgetName: ${budgetName},
 categories: ${categories},
 selectedCategory: ${selectedCategory},
 selectedSubcategory: ${selectedSubcategory},
+productsNeedingRemark: ${productsNeedingRemark},
 canFinalize: ${canFinalize},
 selectedCategoriesCount: ${selectedCategoriesCount},
 totalValue: ${totalValue},

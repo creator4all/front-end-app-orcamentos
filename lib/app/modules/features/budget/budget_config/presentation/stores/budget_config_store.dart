@@ -3,12 +3,15 @@ import 'package:flutter/foundation.dart';
 import 'package:mobx/mobx.dart';
 
 import '../../../budget_create/domain/entities/budget_draft_entity.dart';
+import '../../../budget_create/domain/entities/cidade_entity.dart';
 import '../../../shared/errors/budget_failure.dart';
 import '../../../shared/models/budget_update_dto.dart';
 import '../../../shared/models/product_selection_update_dto.dart';
 import '../../domain/entities/budget_detail_entity.dart';
 import '../../domain/entities/category_entity.dart';
 import '../../domain/entities/censo_escolar_entity.dart';
+import '../../domain/entities/censo_group_entity.dart';
+import '../../domain/entities/censo_title_entity.dart';
 import '../../domain/entities/census_data_entity.dart';
 import '../../domain/entities/indicador_etapa_entity.dart';
 import '../../domain/entities/product_entity.dart';
@@ -94,6 +97,10 @@ abstract class _BudgetConfigStoreBase with Store {
 
   @observable
   SubcategoryEntity? selectedSubcategory;
+
+  // ✅ Produtos que precisam de remarcação após mudança no censo
+  @observable
+  List<ProductEntity> productsNeedingRemark = [];
 
   // ========== COMPUTED ==========
 
@@ -211,6 +218,15 @@ abstract class _BudgetConfigStoreBase with Store {
           draft.validityDate ?? DateTime.now().add(const Duration(days: 60));
       budgetName = draft.partnerName;
 
+      // 🧮 Preencher censoEscolar a partir dos dados da cidade
+      final oldCensoEscolar = censoEscolar;
+      censoEscolar = _convertCidadeToCensoEscolar(draft.cidade);
+
+      // 🔄 Verificar se houve mudança no censo que afeta produtos
+      if (oldCensoEscolar != null && censoEscolar != null) {
+        _checkForProductsToRemark(oldCensoEscolar, censoEscolar!);
+      }
+
       isLoading = false;
 
       if (draft.location.cityCode.isNotEmpty) {
@@ -243,6 +259,200 @@ abstract class _BudgetConfigStoreBase with Store {
             .toList(),
       }
     ];
+  }
+
+  /// Sincroniza o estado de seleção do produto com base na quantidade
+  /// Se quantidade = 0 → selecionado = false
+  /// Se quantidade > 0 → selecionado = true
+  ProductEntity _synchronizeProductSelection(ProductEntity product) {
+    final shouldBeSelected = product.quantidade > 0;
+
+    if (product.selecionado != shouldBeSelected) {
+      print(
+          '🔄 [BudgetConfigStore] Sincronizando produto "${product.solucao}": '
+          'quantidade=${product.quantidade}, selecionado=${product.selecionado} → $shouldBeSelected');
+
+      return product.copyWith(selecionado: shouldBeSelected);
+    }
+
+    return product;
+  }
+
+  /// Converte CidadeEntity para CensoEscolarEntity
+  /// Necessário para o cálculo de quantidades baseado nos indicadores selecionados
+  CensoEscolarEntity? _convertCidadeToCensoEscolar(CidadeEntity? cidade) {
+    if (cidade == null) return null;
+
+    try {
+      // Criar mapa de valores por etapa para lookup rápido
+      final valoresPorEtapa = <String, double>{};
+
+      // Agrupar por grupos
+      final gruposMap = <int, List<CensoTitleEntity>>{};
+      final grupoNomes = <int, String>{};
+
+      for (final etapa in cidade.cidadesHasIndiceEtapa) {
+        final nomeEtapa = etapa.nomeEtapa;
+        final valor = etapa.etapaValor;
+        final grupoId = etapa.grupoId;
+        final grupoNome = etapa.indiceEtapa.grupoNome;
+
+        // Adicionar ao mapa de valores
+        valoresPorEtapa[nomeEtapa] = valor;
+
+        // Guardar nome do grupo
+        grupoNomes[grupoId] = grupoNome;
+
+        // Criar título para este indicador
+        final titulo = CensoTitleEntity(
+          id: etapa.indiceEtapaId,
+          nomeEtapa: nomeEtapa,
+          tituloExibicao:
+              etapa.indiceEtapa.nome, // Usa nome como título de exibição
+          valor: valor,
+          isProfessores: nomeEtapa == 'professores',
+          grupoId: grupoId,
+        );
+
+        // Agrupar por grupo
+        gruposMap.putIfAbsent(grupoId, () => []);
+        gruposMap[grupoId]!.add(titulo);
+      }
+
+      // Converter grupos map para entidades
+      final grupos = gruposMap.entries.map((entry) {
+        return CensoGroupEntity(
+          id: entry.key,
+          nome: grupoNomes[entry.key] ?? '',
+          titulos: entry.value,
+        );
+      }).toList();
+
+      final censoEscolarEntity = CensoEscolarEntity(
+        cidadeId: cidade.id,
+        cidadeNome: cidade.nome,
+        grupos: grupos,
+        valoresPorEtapa: valoresPorEtapa,
+      );
+
+      print(
+          '✅ [BudgetConfigStore] CensoEscolar criado: ${valoresPorEtapa.length} etapas');
+      return censoEscolarEntity;
+    } catch (e) {
+      print('❌ [BudgetConfigStore] Erro ao converter cidade para censo: $e');
+      return null;
+    }
+  }
+
+  /// Verifica produtos que precisam ser remarcação após mudança no censo
+  @action
+  void _checkForProductsToRemark(
+    CensoEscolarEntity oldCenso,
+    CensoEscolarEntity newCenso,
+  ) {
+    final productsToRemark = <ProductEntity>[];
+
+    // Percorrer todos os produtos para verificar mudanças
+    for (final category in categories) {
+      for (final subcategory in category.subcategorias) {
+        for (final product in subcategory.produtos) {
+          // Calcular quantidade antiga e nova
+          final oldQuantity = calculationService.calcularQuantidade(
+            product,
+            oldCenso,
+          );
+          final newQuantity = calculationService.calcularQuantidade(
+            product,
+            newCenso,
+          );
+
+          // Se era 0 e agora > 0, adicionar à lista
+          if (oldQuantity == 0 && newQuantity > 0 && !product.selecionado) {
+            final updatedProduct =
+                product.copyWith(quantidade: newQuantity.round());
+            productsToRemark.add(updatedProduct);
+          }
+        }
+      }
+    }
+
+    // Atualizar observable com produtos que precisam de remarcação
+    productsNeedingRemark = productsToRemark;
+
+    if (productsToRemark.isNotEmpty) {
+      print(
+          '🔔 [BudgetConfigStore] ${productsToRemark.length} produtos agora têm disponibilidade');
+      print(
+          '   📋 Produtos: ${productsToRemark.map((p) => p.solucao).join(', ')}');
+    }
+  }
+
+  /// Marca os produtos como selecionados (chamado pela UI após confirmação)
+  @action
+  void confirmProductRemark() {
+    if (productsNeedingRemark.isEmpty) return;
+
+    print(
+        '✅ [BudgetConfigStore] Confirmando remarcação de ${productsNeedingRemark.length} produtos');
+    _remarkProducts(productsNeedingRemark);
+
+    // Limpar lista após confirmação
+    productsNeedingRemark = [];
+  }
+
+  /// Rejeita remarcação dos produtos (chamado pela UI)
+  @action
+  void rejectProductRemark() {
+    if (productsNeedingRemark.isEmpty) return;
+
+    print(
+        '❌ [BudgetConfigStore] Rejeitando remarcação de ${productsNeedingRemark.length} produtos');
+
+    // Limpar lista após rejeição
+    productsNeedingRemark = [];
+  }
+
+  /// Marca os produtos como selecionados
+  @action
+  void _remarkProducts(List<ProductEntity> productsToRemark) {
+    for (final product in productsToRemark) {
+      // Encontrar e atualizar o produto na árvore
+      for (var i = 0; i < categories.length; i++) {
+        final category = categories[i];
+
+        for (var j = 0; j < category.subcategorias.length; j++) {
+          final subcategory = category.subcategorias[j];
+
+          final productIndex =
+              subcategory.produtos.indexWhere((p) => p.id == product.id);
+
+          if (productIndex != -1) {
+            final updatedProduct = subcategory.produtos[productIndex]
+                .copyWith(selecionado: true, quantidade: product.quantidade);
+
+            final updatedProducts =
+                List<ProductEntity>.from(subcategory.produtos);
+            updatedProducts[productIndex] = updatedProduct;
+
+            final updatedSubcategory =
+                subcategory.copyWith(produtos: updatedProducts);
+
+            final updatedSubcategories =
+                List<SubcategoryEntity>.from(category.subcategorias);
+            updatedSubcategories[j] = updatedSubcategory;
+
+            final updatedCategory =
+                category.copyWith(subcategorias: updatedSubcategories);
+
+            categories[i] = updatedCategory;
+
+            print(
+                '✅ [BudgetConfigStore] Produto "${product.solucao}" marcado automaticamente');
+            break;
+          }
+        }
+      }
+    }
   }
 
   @action
@@ -944,9 +1154,28 @@ abstract class _BudgetConfigStoreBase with Store {
                 List<IndicadorEtapaEntity>.from(product.indicadoresEtapa);
             updatedIndicators[indicatorIndex] = updatedIndicator;
 
-            // Atualizar produto
-            final updatedProduct =
+            // Atualizar produto com novos indicadores
+            var updatedProduct =
                 product.copyWith(indicadoresEtapa: updatedIndicators);
+
+            // 🧮 RECALCULAR quantidade baseado nos indicadores selecionados
+            if (censoEscolar != null) {
+              final novaQuantidade = calculationService.calcularQuantidade(
+                updatedProduct,
+                censoEscolar!,
+              );
+
+              // Atualiza o produto com a quantidade recalculada
+              updatedProduct = updatedProduct.copyWith(
+                quantidade: novaQuantidade.round(),
+              );
+
+              print(
+                  '🧮 [BudgetConfigStore] Recálculo: Qtd ${product.quantidade} -> ${updatedProduct.quantidade}');
+            } else {
+              print(
+                  '⚠️ [BudgetConfigStore] censoEscolar é null, quantidade não recalculada');
+            }
 
             // Propagar atualização na árvore
             final updatedProducts =
