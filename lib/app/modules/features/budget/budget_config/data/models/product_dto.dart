@@ -115,6 +115,8 @@ class ProductDTO {
 
           final indId = indEtapa?['id'] ?? indEtapa?['ine_indicadoresId'] ?? 0;
           final indNome = indEtapa?['nome'] ?? indEtapa?['ine_nome'] ?? '';
+          final indTitulo =
+              indEtapa?['titulo'] ?? indEtapa?['ine_titulo'] ?? indNome;
 
           // Tenta extrair ID do grupo do objeto grupo ou diretamente do indicadorEtapa (FK)
           final grpId = grupo?['id'] ??
@@ -140,7 +142,7 @@ class ProductDTO {
                 : int.tryParse(prodIndId.toString()) ?? 0,
             indicadorId:
                 indId is int ? indId : int.tryParse(indId.toString()) ?? 0,
-            indicadorNome: indNome.toString(),
+            indicadorNome: indTitulo.toString(),
             nomeEtapa: indNome.toString(),
             grupoId: grpId is int ? grpId : int.tryParse(grpId.toString()) ?? 0,
             grupoNome: grpNome.toString(),
@@ -186,7 +188,9 @@ class ProductDTO {
       tipoProduto: tipoProduto,
       ordem: ordem,
       subcategoriaId: subcategoriaId,
-      selecionado: selecionado,
+      selecionado: quantidade > 0
+          ? selecionado
+          : false, // Sincroniza: quantidade 0 = desmarcado
       quantidade: quantidade,
       temOverride: temOverride,
       observacoes: observacoes,

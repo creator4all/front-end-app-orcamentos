@@ -96,7 +96,9 @@ class CidadeData {
   factory CidadeData.fromJson(Map<String, dynamic> json) {
     final indices = (json['indices_etapa'] ?? []) as List;
     return CidadeData(
-      id: json['id'] is int ? json['id'] as int : int.tryParse('${json['id']}') ?? 0,
+      id: json['id'] is int
+          ? json['id'] as int
+          : int.tryParse('${json['id']}') ?? 0,
       nome: (json['nome'] ?? '').toString(),
       estadoId: json['estado_id'] is int
           ? json['estado_id'] as int
@@ -108,7 +110,8 @@ class CidadeData {
     );
   }
 
-  int get totalEstudantes => indicesEtapa.fold(0, (sum, item) => sum + item.valor.toInt());
+  int get totalEstudantes =>
+      indicesEtapa.fold(0, (sum, item) => sum + item.valor.toInt());
   int get quantidadeTurmas => indicesEtapa.length;
 }
 

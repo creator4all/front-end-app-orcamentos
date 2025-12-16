@@ -14,7 +14,8 @@ class SchoolCensusPage extends StatefulWidget {
   State<SchoolCensusPage> createState() => _SchoolCensusPageState();
 }
 
-class _SchoolCensusPageState extends State<SchoolCensusPage> with WidgetsBindingObserver {
+class _SchoolCensusPageState extends State<SchoolCensusPage>
+    with WidgetsBindingObserver {
   bool _isEditMode = false;
   CensoData? _censo;
   bool _isSaving = false;
@@ -31,18 +32,18 @@ class _SchoolCensusPageState extends State<SchoolCensusPage> with WidgetsBinding
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    
+
     // Set up focus node listener to detect when page gets focus again
     _pageFocusNode.addListener(_onFocusChange);
   }
-  
+
   void _onFocusChange() {
     if (_pageFocusNode.hasFocus && _needsReload) {
       _reloadCensoData();
       _needsReload = false;
     }
   }
-  
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // When app resumes from background, mark for reload
@@ -54,13 +55,14 @@ class _SchoolCensusPageState extends State<SchoolCensusPage> with WidgetsBinding
       }
     }
   }
-  
+
   /// Reload data directly from API
   Future<void> _reloadCensoData() async {
     if (_censo?.cidadeData?.id == null) return;
-    
+
     try {
-      final updatedCenso = await _censoService.censoPorCidade(_censo!.cidadeData!.id);
+      final updatedCenso =
+          await _censoService.censoPorCidade(_censo!.cidadeData!.id);
       if (mounted) {
         setState(() {
           _censo = updatedCenso;
@@ -71,35 +73,36 @@ class _SchoolCensusPageState extends State<SchoolCensusPage> with WidgetsBinding
       developer.log('Erro ao recarregar dados do censo: ${e.toString()}');
     }
   }
-  
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _loadCensoData();
   }
-  
+
   /// Load or refresh censo data from arguments
   void _loadCensoData() {
     final args =
         ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     if (args != null && args['censo'] is CensoData) {
       _censo = args['censo'] as CensoData;
-      
+
       // Always clear and recreate controllers to ensure fresh values
       _clearAndRecreateControllers();
       setState(() {});
     }
   }
-  
+
   void _clearAndRecreateControllers() {
     // First dispose existing controllers
     for (var controller in _controllers.values) {
       controller.dispose();
     }
     _controllers.clear();
-    
+
     // Then recreate with fresh values
-    for (final indice in _censo?.cidadeData?.indicesEtapa ?? const <CidadeIndice>[]) {
+    for (final indice
+        in _censo?.cidadeData?.indicesEtapa ?? const <CidadeIndice>[]) {
       final key = 'indice_${indice.indiceEtapaId}';
       _controllers.putIfAbsent(
           key, () => TextEditingController(text: indice.valor.toString()));
@@ -112,12 +115,12 @@ class _SchoolCensusPageState extends State<SchoolCensusPage> with WidgetsBinding
     for (var controller in _controllers.values) {
       controller.dispose();
     }
-    
+
     // Remove observers and listeners
     _pageFocusNode.removeListener(_onFocusChange);
     _pageFocusNode.dispose();
     WidgetsBinding.instance.removeObserver(this);
-    
+
     super.dispose();
   }
 
@@ -140,7 +143,7 @@ class _SchoolCensusPageState extends State<SchoolCensusPage> with WidgetsBinding
               setState(() {
                 _isEditMode = !_isEditMode;
               });
-              
+
               // Force rebuild the indices section when toggling edit mode
               setState(() {});
             },
@@ -289,10 +292,10 @@ class _SchoolCensusPageState extends State<SchoolCensusPage> with WidgetsBinding
   Widget _buildIndicesSection() {
     // Get all indices from censo data
     final allIndices = _censo?.cidadeData?.indicesEtapa ?? <CidadeIndice>[];
-    
+
     // Group indices by grupo_id
     final Map<int, List<CidadeIndice>> groupedIndices = {};
-    
+
     for (var indice in allIndices) {
       final grupoId = indice.grupo?.grupoId ?? 0;
       if (!groupedIndices.containsKey(grupoId)) {
@@ -300,7 +303,7 @@ class _SchoolCensusPageState extends State<SchoolCensusPage> with WidgetsBinding
       }
       groupedIndices[grupoId]!.add(indice);
     }
-    
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: Column(
@@ -312,18 +315,19 @@ class _SchoolCensusPageState extends State<SchoolCensusPage> with WidgetsBinding
             final grupoName = indices.isNotEmpty && indices.first.grupo != null
                 ? indices.first.grupo!.nomeGrupo
                 : 'Outros Índices';
-                
+
             // Format the group name with prefix if it doesn't already have one
-            final displayName = grupoName.toLowerCase().contains('grupo') 
-                ? grupoName 
+            final displayName = grupoName.toLowerCase().contains('grupo')
+                ? grupoName
                 : 'Grupo: $grupoName';
-            
+
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
                   width: double.infinity,
-                  padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 12.w),
+                  padding:
+                      EdgeInsets.symmetric(vertical: 8.h, horizontal: 12.w),
                   margin: EdgeInsets.only(bottom: 8.h),
                   decoration: BoxDecoration(
                     color: const Color(0xFF117BBD).withOpacity(0.1),
@@ -359,14 +363,18 @@ class _SchoolCensusPageState extends State<SchoolCensusPage> with WidgetsBinding
                           flex: 2,
                           child: AnimatedSwitcher(
                             duration: const Duration(milliseconds: 300),
-                            transitionBuilder: (Widget child, Animation<double> animation) {
-                              return FadeTransition(opacity: animation, child: child);
+                            transitionBuilder:
+                                (Widget child, Animation<double> animation) {
+                              return FadeTransition(
+                                  opacity: animation, child: child);
                             },
                             child: _isEditMode
                                 ? TextField(
                                     key: ValueKey('edit_$key'),
                                     controller: _controllers[key],
-                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                            decimal: true),
                                     textAlign: TextAlign.right,
                                     decoration: InputDecoration(
                                       isDense: true,
@@ -375,19 +383,22 @@ class _SchoolCensusPageState extends State<SchoolCensusPage> with WidgetsBinding
                                         vertical: 6.h,
                                       ),
                                       border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(4.r),
-                                        borderSide:
-                                            BorderSide(color: Colors.grey[300]!),
+                                        borderRadius:
+                                            BorderRadius.circular(4.r),
+                                        borderSide: BorderSide(
+                                            color: Colors.grey[300]!),
                                       ),
                                       enabledBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(4.r),
-                                        borderSide:
-                                            BorderSide(color: Colors.grey[300]!),
+                                        borderRadius:
+                                            BorderRadius.circular(4.r),
+                                        borderSide: BorderSide(
+                                            color: Colors.grey[300]!),
                                       ),
                                       focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(4.r),
-                                        borderSide:
-                                            const BorderSide(color: Color(0xFF117BBD)),
+                                        borderRadius:
+                                            BorderRadius.circular(4.r),
+                                        borderSide: const BorderSide(
+                                            color: Color(0xFF117BBD)),
                                       ),
                                     ),
                                     style: TextStyle(
@@ -411,11 +422,11 @@ class _SchoolCensusPageState extends State<SchoolCensusPage> with WidgetsBinding
                       ],
                     ),
                   );
-                }).toList(),
-                SizedBox(height: 16.h),  // Add spacing between groups
+                }),
+                SizedBox(height: 16.h), // Add spacing between groups
               ],
             );
-          }).toList(),
+          }),
         ],
       ),
     );
@@ -424,7 +435,7 @@ class _SchoolCensusPageState extends State<SchoolCensusPage> with WidgetsBinding
   /// Coleta os valores atualizados dos índices a partir dos controllers
   Map<int, double> _getUpdatedIndices() {
     final Map<int, double> updatedIndices = {};
-    
+
     for (final entry in _controllers.entries) {
       // Extrai o ID do índice da chave (formato: 'indice_ID')
       final id = int.tryParse(entry.key.split('_')[1]);
@@ -436,7 +447,7 @@ class _SchoolCensusPageState extends State<SchoolCensusPage> with WidgetsBinding
         }
       }
     }
-    
+
     return updatedIndices;
   }
 
@@ -451,10 +462,10 @@ class _SchoolCensusPageState extends State<SchoolCensusPage> with WidgetsBinding
       );
       return;
     }
-    
+
     final cidadeId = _censo!.cidadeData!.id;
     final updatedIndices = _getUpdatedIndices();
-    
+
     if (updatedIndices.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -464,14 +475,14 @@ class _SchoolCensusPageState extends State<SchoolCensusPage> with WidgetsBinding
       );
       return;
     }
-    
+
     setState(() {
       _isSaving = true;
     });
-    
+
     try {
       await _censoService.atualizarIndicesCidade(cidadeId, updatedIndices);
-      
+
       // Depois de salvar com sucesso, recarrega os dados do censo para ter os valores atualizados
       try {
         final updatedCenso = await _censoService.censoPorCidade(cidadeId);
@@ -480,7 +491,7 @@ class _SchoolCensusPageState extends State<SchoolCensusPage> with WidgetsBinding
           _isEditMode = false; // Desativa modo edição
           _clearAndRecreateControllers(); // Recria os controllers com valores atualizados
         });
-        
+
         // Store the updated censo to return when navigating back
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
@@ -489,13 +500,14 @@ class _SchoolCensusPageState extends State<SchoolCensusPage> with WidgetsBinding
           }
         });
       } catch (e) {
-        developer.log('Aviso: Não foi possível recarregar os dados do censo após salvar: ${e.toString()}');
+        developer.log(
+            'Aviso: Não foi possível recarregar os dados do censo após salvar: ${e.toString()}');
         // Mesmo com erro de recarga, desativamos o modo edição
         setState(() {
           _isEditMode = false;
         });
       }
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Censo escolar salvo com sucesso!'),
@@ -533,20 +545,20 @@ class _SchoolCensusPageState extends State<SchoolCensusPage> with WidgetsBinding
             ),
             disabledBackgroundColor: Colors.grey,
           ),
-          icon: _isSaving 
-            ? SizedBox(
-                width: 18.sp,
-                height: 18.sp,
-                child: const CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+          icon: _isSaving
+              ? SizedBox(
+                  width: 18.sp,
+                  height: 18.sp,
+                  child: const CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+              : Icon(
+                  Icons.save,
+                  size: 18.sp,
+                  color: Colors.white,
                 ),
-              )
-            : Icon(
-                Icons.save,
-                size: 18.sp,
-                color: Colors.white,
-              ),
           label: Text(
             _isSaving ? 'Salvando...' : 'Salvar',
             style: TextStyle(
@@ -574,37 +586,37 @@ class _SchoolCensusPageState extends State<SchoolCensusPage> with WidgetsBinding
       child: Focus(
         focusNode: _pageFocusNode,
         child: Scaffold(
-      appBar: const CustomTopBar(
-        title: 'Censo Escolar',
-        showBackButton: true,
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: _reloadCensoData,
-                color: const Color(0xFF117BBD),
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: EdgeInsets.only(bottom: 16.h),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildEditModeToggle(),
-                      const SizedBox(height: 8),
-                      _buildCensusInfo(),
-                      _buildIndicesSection(),
-                    ],
+          appBar: const CustomTopBar(
+            title: 'Censo Escolar',
+            showBackButton: true,
+          ),
+          body: SafeArea(
+            child: Column(
+              children: [
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: _reloadCensoData,
+                    color: const Color(0xFF117BBD),
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: EdgeInsets.only(bottom: 16.h),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildEditModeToggle(),
+                          const SizedBox(height: 8),
+                          _buildCensusInfo(),
+                          _buildIndicesSection(),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                _buildSaveButton(),
+              ],
             ),
-            _buildSaveButton(),
-          ],
+          ),
         ),
-      ),
-    ),
       ),
     );
   }
