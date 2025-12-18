@@ -5,11 +5,12 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:multimidiaapp/app/modules/features/budget/budget_config/domain/entities/indicador_etapa_entity.dart';
 import 'package:multimidiaapp/app/modules/features/budget/budget_config/domain/entities/product_entity.dart';
 
-import '../../modules/budget/external/services/budget_service.dart';
 import '../../modules/budget/presentation/stores/budget_edit_store.dart';
 import '../../modules/budget/presentation/stores/card_selection_store.dart';
 import '../../modules/budget/presentation/stores/product_store.dart';
 import '../../modules/features/budget/budget_config/presentation/widgets/product_info_modal.dart';
+import '../../modules/features/budget/budget_edit/domain/repositories/indicators_repository.dart';
+import '../../modules/features/budget/budget_edit/domain/usecases/save_indicators_usecase.dart';
 import 'custom_modal.dart';
 import 'technology_item.dart';
 
@@ -84,34 +85,40 @@ class TechnologyProductsModal {
         final orcamentoId = budgetEditStore.budgetData?['id'] as int?;
 
         if (orcamentoId != null) {
-          try {
-            final budgetService = Modular.get<BudgetService>();
-            await budgetService.salvarIndicadoresProduto(
-              orcamentoId,
-              produto.id,
-              indicadoresParaSalvar,
-            );
+          final saveIndicatorsUseCase = Modular.get<SaveIndicatorsUseCase>();
+          final params = SaveIndicatorsParams(
+            orcamentoId: orcamentoId,
+            produtoId: produto.id,
+            indicadores: indicadoresParaSalvar,
+          );
 
-            if (context.mounted) {
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                      '$subcategoriaNome - Indicadores salvos com sucesso!'),
-                  backgroundColor: const Color(0xFF56B34A),
-                ),
-              );
-            }
-          } catch (e) {
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Erro ao salvar indicadores: $e'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            }
-          }
+          final result = await saveIndicatorsUseCase(params);
+
+          result.fold(
+            (failure) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content:
+                        Text('Erro ao salvar indicadores: ${failure.message}'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            (_) {
+              if (context.mounted) {
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                        '$subcategoriaNome - Indicadores salvos com sucesso!'),
+                    backgroundColor: const Color(0xFF56B34A),
+                  ),
+                );
+              }
+            },
+          );
         }
       },
     );

@@ -1,31 +1,35 @@
 import 'package:dartz/dartz.dart';
 
 import '../../../shared/errors/budget_failure.dart';
+import '../../domain/entities/censo_escolar_entity.dart';
 import '../../domain/entities/census_data_entity.dart';
 import '../../domain/repositories/census_repository.dart';
 import '../datasources/census_remote_datasource.dart';
 
-/// Implementação concreta do CensusRepository
 class CensusRepositoryImpl implements CensusRepository {
-  final CensusRemoteDataSource remoteDataSource;
+  final CensusRemoteDataSource datasource;
 
-  CensusRepositoryImpl(this.remoteDataSource);
+  CensusRepositoryImpl(this.datasource);
 
   @override
   Future<Either<BudgetFailure, CensusDataEntity>> getCensusData(
       int cityId) async {
     try {
-      print('📦 [Repository] Buscando censo para cidade: $cityId');
+      final result = await datasource.getCensusData(cityId);
+      return Right(result.toEntity());
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
 
-      final dto = await remoteDataSource.getCensusData(cityId);
-      final entity = dto.toEntity();
-
-      print('✅ [Repository] Censo convertido para entidade');
-
-      return Right(entity);
-    } on Exception catch (e) {
-      print('❌ [Repository] Erro: $e');
-      return Left(_mapExceptionToFailure(e));
+  @override
+  Future<Either<BudgetFailure, CensoEscolarEntity>> getCensusByCity(
+      int cityId) async {
+    try {
+      final result = await datasource.getCensusByCity(cityId);
+      return Right(result);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
     }
   }
 
@@ -33,42 +37,22 @@ class CensusRepositoryImpl implements CensusRepository {
   Future<Either<BudgetFailure, List<CensusDataEntity>>>
       getMultipleCitiesCensusData(List<int> cityIds) async {
     try {
-      print('📦 [Repository] Buscando censo para ${cityIds.length} cidades');
-
-      final dtos = await remoteDataSource.getMultipleCitiesCensusData(cityIds);
-      final entities = dtos.map((dto) => dto.toEntity()).toList();
-
-      print('✅ [Repository] ${entities.length} censos convertidos');
-
-      return Right(entities);
-    } on Exception catch (e) {
-      print('❌ [Repository] Erro: $e');
-      return Left(_mapExceptionToFailure(e));
+      final result = await datasource.getMultipleCitiesCensusData(cityIds);
+      return Right(result.map((e) => e.toEntity()).toList());
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
     }
   }
 
-  /// Mapeia exceções para failures
-  BudgetFailure _mapExceptionToFailure(Exception exception) {
-    final message = exception.toString().replaceAll('Exception: ', '');
-
-    if (message.contains('Timeout') || message.contains('timeout')) {
-      return ServerFailure(message);
+  @override
+  Future<Either<BudgetFailure, CensoEscolarEntity>> updateCensusIndices(
+      int cityId, Map<int, double> updatedIndices) async {
+    try {
+      final result =
+          await datasource.updateCensusIndices(cityId, updatedIndices);
+      return Right(result);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
     }
-
-    if (message.contains('não encontrado') || message.contains('404')) {
-      return const NotFoundFailure('Dados do censo não encontrados');
-    }
-
-    if (message.contains('Não autorizado') ||
-        message.contains('401') ||
-        message.contains('403')) {
-      return const UnauthorizedFailure('Acesso negado');
-    }
-
-    if (message.contains('internet') || message.contains('conexão')) {
-      return ConnectionFailure(message);
-    }
-
-    return UnknownFailure(message);
   }
 }

@@ -7,7 +7,6 @@ import 'package:intl/intl.dart';
 import '../../../../../../shared/widgets/budget_summary_card.dart';
 import '../../../../../../shared/widgets/custom_top_bar.dart';
 import '../../../../../../shared/widgets/product_category.dart';
-import '../../../../../budget/presentation/pages/school_census.dart';
 import '../../../../auth/presentation/stores/auth_store.dart';
 import '../../../budget_create/domain/entities/budget_draft_entity.dart';
 import '../../domain/entities/category_entity.dart';
@@ -243,25 +242,14 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                           print(
                               '👆 [ConfigPage] Navegando para edição do Censo Escolar');
 
-                          // Navegar para tela de edição do censo usando Navigator.push
-                          // A tela SchoolCensusPage espera argumentos via ModalRoute
-                          final result = await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const SchoolCensusPage(),
-                              settings: RouteSettings(
-                                arguments: {
-                                  'censo': store
-                                      .censusData, // Passar dados do censo da store
-                                },
-                              ),
-                            ),
-                          );
+                          final cityId = store.budgetDetail?.cityIds.firstOrNull;
+                          if (cityId == null) return;
 
-                          // Ao retornar da tela, verificar se houve atualização
-                          if (result != null &&
-                              result is Map &&
-                              result.containsKey('updatedCenso')) {
+                          // Navegar para tela de edição do censo usando Modular
+                          final result = await Modular.to.pushNamed('/budget/census/$cityId');
+
+                          // Ao retornar da tela, verificar se houve atualização (retorna true)
+                          if (result == true) {
                             print(
                                 '✅ [ConfigPage] Censo editado, recarregando produtos...');
 
