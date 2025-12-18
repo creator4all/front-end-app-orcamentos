@@ -10,8 +10,6 @@ import '../../../../../../shared/widgets/custom_top_bar.dart';
 import '../../../../../../shared/widgets/export_pdf_modal.dart';
 import '../../../../../../shared/widgets/product_category.dart';
 import '../../../../../../shared/widgets/status_tag_widget.dart';
-// Imports de serviços
-import '../../../../../budget/external/services/budget_service.dart';
 // Imports de auth
 import '../../../../auth/presentation/stores/auth_store.dart';
 // Imports da feature
@@ -1078,30 +1076,11 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
   Future<void> _handleShare() async {
     if (store.budgetData == null) return;
 
-    try {
-      // Obter BudgetService do Modular
-      final budgetService = Modular.get<BudgetService>();
-      print('✅ BudgetService obtido via Modular');
-
-      // Abrir modal de exportação de PDF
-      await ExportPdfModal.show(
-        context: context,
-        orcamentoId: widget.budgetId,
-        budgetService: budgetService,
-      );
-    } catch (e) {
-      print('❌ Erro ao abrir modal de compartilhamento: $e');
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao abrir modal de compartilhamento: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
-    }
+    // Abrir modal de exportação de PDF (UseCase será obtido via Modular dentro do modal)
+    await ExportPdfModal.show(
+      context: context,
+      orcamentoId: widget.budgetId,
+    );
   }
 
   /// 🏷️ Retorna label legível para o status

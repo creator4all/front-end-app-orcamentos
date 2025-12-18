@@ -8,33 +8,34 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../../modules/budget/external/services/budget_service.dart';
 import '../../modules/features/auth/presentation/stores/auth_store.dart';
+import '../../modules/features/budget/budget_edit/domain/repositories/budget_pdf_repository.dart';
+import '../../modules/features/budget/budget_edit/domain/usecases/generate_pdf_usecase.dart';
 import 'custom_modal.dart';
 
 /// Modal para exportar PDF com informações do vendedor e logo personalizada
 class ExportPdfModal extends StatefulWidget {
   final int orcamentoId;
-  final BudgetService? budgetService;
+  final GeneratePdfUseCase? generatePdfUseCase;
 
   const ExportPdfModal({
     super.key,
     required this.orcamentoId,
-    this.budgetService,
+    this.generatePdfUseCase,
   });
 
   /// Método estático para mostrar o modal
   static Future<T?> show<T>({
     required BuildContext context,
     required int orcamentoId,
-    BudgetService? budgetService,
+    GeneratePdfUseCase? generatePdfUseCase,
   }) {
     return CustomModal.show<T>(
       context: context,
       title: 'Exportar PDF',
       content: _ExportPdfContent(
         orcamentoId: orcamentoId,
-        budgetService: budgetService,
+        generatePdfUseCase: generatePdfUseCase,
       ),
     );
   }
@@ -48,18 +49,18 @@ class _ExportPdfModalState extends State<ExportPdfModal> {
   Widget build(BuildContext context) {
     return _ExportPdfContent(
       orcamentoId: widget.orcamentoId,
-      budgetService: widget.budgetService,
+      generatePdfUseCase: widget.generatePdfUseCase,
     );
   }
 }
 
 class _ExportPdfContent extends StatefulWidget {
   final int orcamentoId;
-  final BudgetService? budgetService;
+  final GeneratePdfUseCase? generatePdfUseCase;
 
   const _ExportPdfContent({
     required this.orcamentoId,
-    this.budgetService,
+    this.generatePdfUseCase,
   });
 
   @override
@@ -459,11 +460,11 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
     });
 
     try {
-      print('🔧 [Modal] Buscando BudgetService...');
-      // Usar BudgetService passado como parâmetro ou buscar via Modular
-      final budgetService =
-          widget.budgetService ?? Modular.get<BudgetService>();
-      print('✅ [Modal] BudgetService obtido');
+      print('🔧 [Modal] Buscando GeneratePdfUseCase...');
+      // Usar UseCase passado como parâmetro ou buscar via Modular
+      final generatePdfUseCase =
+          widget.generatePdfUseCase ?? Modular.get<GeneratePdfUseCase>();
+      print('✅ [Modal] GeneratePdfUseCase obtido');
 
       // Converter logo para base64 se existir
       String? logoBase64;
@@ -474,9 +475,9 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
         print('✅ [Modal] Logo convertida');
       }
 
-      print('📡 [Modal] Chamando API para gerar PDF...');
-      // Chamar API para gerar PDF
-      final result = await budgetService.gerarPdf(
+      print('📡 [Modal] Chamando UseCase para gerar PDF...');
+      // Chamar UseCase para gerar PDF
+      final params = GeneratePdfParams(
         orcamentoId: widget.orcamentoId,
         nomeVendedor: _nomeVendedorController.text.trim(),
         cargo: _cargoController.text.trim(),
@@ -487,32 +488,21 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
         logoBase64: logoBase64,
       );
 
-      print('✅ [Modal] API retornou dados');
-      print('🔍 [Modal] Resposta da API: $result');
-      print('🔍 [Modal] Tipo do result: ${result.runtimeType}');
-      print('🔍 [Modal] Keys do result: ${result.keys.toList()}');
+      final result = await generatePdfUseCase(params);
 
-      // Extrair dados do envelope da API
-      // A resposta vem como: {sucesso: true, dados: {pdf: "...", nome_arquivo: "..."}, statusCodeHttp: 200}
-      final dados = result['dados'] as Map<String, dynamic>?;
+      // Processar resultado com Either (dartz)
+      final pdfResult = result.fold(
+        (failure) {
+          print('❌ [Modal] Falha: ${failure.message}');
+          throw Exception(failure.message);
+        },
+        (success) => success,
+      );
 
-      if (dados == null) {
-        print('❌ [Modal] Campo dados é null!');
-        throw Exception('Resposta da API não contém dados');
-      }
+      print('✅ [Modal] UseCase retornou dados');
 
-      print('🔍 [Modal] Dados extraídos, keys: ${dados.keys.toList()}');
-
-      // Extrair PDF em base64 com tratamento de erro
-      print('🔍 [Modal] Verificando campo pdf...');
-      if (dados['pdf'] == null) {
-        print('❌ [Modal] Campo pdf é null!');
-        throw Exception('PDF não foi gerado pela API');
-      }
-
-      print('✅ [Modal] Campo pdf existe, extraindo...');
-      final pdfBase64 = dados['pdf'] as String;
-      final nomeArquivo = dados['nome_arquivo'] as String? ?? 'orcamento.pdf';
+      final pdfBase64 = pdfResult.pdfBase64;
+      final nomeArquivo = pdfResult.nomeArquivo ?? 'orcamento.pdf';
       print('✅ [Modal] PDF extraído: ${pdfBase64.substring(0, 50)}...');
 
       print('📄 [Modal] PDF recebido, tamanho: ${pdfBase64.length} caracteres');

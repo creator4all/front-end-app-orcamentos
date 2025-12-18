@@ -1,3 +1,4 @@
+import '../../domain/entities/censo_escolar_entity.dart';
 import '../models/census_data_dto.dart';
 
 /// Interface abstrata para operações remotas de dados do Censo Escolar
@@ -7,4 +8,13 @@ abstract class CensusRemoteDataSource {
 
   /// Busca dados do censo para múltiplas cidades
   Future<List<CensusDataDto>> getMultipleCitiesCensusData(List<int> cityIds);
+
+  /// Busca o censo escolar completo (detalhado) para uma cidade
+  Future<CensoEscolarEntity> getCensusByCity(int cityId);
+
+  /// Atualiza os índices do censo escolar para uma cidade
+  Future<CensoEscolarEntity> updateCensusIndices(
+    int cityId,
+    Map<int, double> indices,
+  );
 }

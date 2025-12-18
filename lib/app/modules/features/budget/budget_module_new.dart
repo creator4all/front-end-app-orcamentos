@@ -7,7 +7,6 @@ import '../../../shared/core/http/dio_client.dart';
 import '../../../shared/core/http/dio_config_factory.dart';
 import '../../../shared/core/http/dio_http_client_impl.dart';
 import '../../../shared/core/utils/token_cache.dart';
-import '../../budget/external/services/budget_service.dart';
 // Budget Config - Clean Architecture
 import 'budget_config/data/datasources/budget_detail_remote_datasource.dart';
 import 'budget_config/data/datasources/budget_detail_remote_datasource_impl.dart';
@@ -24,10 +23,14 @@ import 'budget_config/domain/usecases/get_all_budget_products_usecase.dart';
 import 'budget_config/domain/usecases/get_budget_detail_usecase.dart';
 import 'budget_config/domain/usecases/get_category_products_usecase.dart';
 import 'budget_config/domain/usecases/get_census_data_usecase.dart';
+import 'budget_config/domain/usecases/get_census_usecase.dart';
 import 'budget_config/domain/usecases/save_budget_usecase.dart';
 import 'budget_config/domain/usecases/toggle_category_usecase.dart';
+import 'budget_config/domain/usecases/update_census_usecase.dart';
 import 'budget_config/presentation/pages/config_new_budget_page.dart';
+import 'budget_config/presentation/pages/school_census_page.dart';
 import 'budget_config/presentation/stores/budget_config_store.dart';
+import 'budget_config/presentation/stores/school_census_store.dart';
 import 'budget_create/data/datasources/budget_draft_remote_datasource.dart';
 import 'budget_create/data/datasources/budget_draft_remote_datasource_impl.dart';
 import 'budget_create/data/datasources/partner_remote_datasource.dart';
@@ -45,10 +48,20 @@ import 'budget_create/presentation/stores/budget_create_store.dart';
 // Budget Edit - Clean Architecture
 import 'budget_edit/data/datasources/budget_edit_remote_datasource.dart';
 import 'budget_edit/data/datasources/budget_edit_remote_datasource_impl.dart';
+import 'budget_edit/data/datasources/budget_pdf_remote_datasource.dart';
+import 'budget_edit/data/datasources/budget_pdf_remote_datasource_impl.dart';
+import 'budget_edit/data/datasources/indicators_remote_datasource.dart';
+import 'budget_edit/data/datasources/indicators_remote_datasource_impl.dart';
 import 'budget_edit/data/repositories/budget_edit_repository_impl.dart';
+import 'budget_edit/data/repositories/budget_pdf_repository_impl.dart';
+import 'budget_edit/data/repositories/indicators_repository_impl.dart';
 import 'budget_edit/domain/repositories/budget_edit_repository.dart';
+import 'budget_edit/domain/repositories/budget_pdf_repository.dart';
+import 'budget_edit/domain/repositories/indicators_repository.dart';
+import 'budget_edit/domain/usecases/generate_pdf_usecase.dart';
 import 'budget_edit/domain/usecases/get_all_budget_products_for_edit_usecase.dart';
 import 'budget_edit/domain/usecases/get_budget_for_edit_usecase.dart';
+import 'budget_edit/domain/usecases/save_indicators_usecase.dart';
 import 'budget_edit/domain/usecases/update_budget_usecase.dart';
 import 'budget_edit/presentation/pages/edit_budget_page.dart';
 import 'budget_edit/presentation/stores/budget_edit_store.dart';
@@ -83,9 +96,6 @@ class BudgetModuleNew extends Module {
             ),
           ),
         ),
-
-        // ==================== LEGACY SERVICES (para compatibilidade) ====================
-        Bind.lazySingleton((i) => BudgetService(i.get<ApiService>())),
 
         // ==================== BUDGET LIST ====================
         // DataSources
@@ -202,6 +212,12 @@ class BudgetModuleNew extends Module {
         Bind.lazySingleton<SaveBudgetUseCase>(
           (i) => SaveBudgetUseCase(i.get<BudgetDetailRepository>()),
         ),
+        Bind.lazySingleton(
+          (i) => GetCensusUseCase(i.get<CensusRepository>()),
+        ),
+        Bind.lazySingleton(
+          (i) => UpdateCensusUseCase(i.get<CensusRepository>()),
+        ),
 
         // Services
         Bind.lazySingleton<ProductCalculationService>(
@@ -223,15 +239,34 @@ class BudgetModuleNew extends Module {
           ),
         ),
 
+        Bind.lazySingleton(
+          (i) => SchoolCensusStore(
+            i.get<GetCensusUseCase>(),
+            i.get<UpdateCensusUseCase>(),
+          ),
+        ),
+
         // ==================== BUDGET EDIT ====================
         // DataSources
         Bind.lazySingleton<BudgetEditRemoteDataSource>(
           (i) => BudgetEditRemoteDataSourceImpl(i.get<ApiService>()),
         ),
+        Bind.lazySingleton<BudgetPdfRemoteDataSource>(
+          (i) => BudgetPdfRemoteDataSourceImpl(i.get<AppHttpClient>()),
+        ),
+        Bind.lazySingleton<IndicatorsRemoteDataSource>(
+          (i) => IndicatorsRemoteDataSourceImpl(i.get<AppHttpClient>()),
+        ),
 
         // Repositories
         Bind.lazySingleton<BudgetEditRepository>(
           (i) => BudgetEditRepositoryImpl(i.get<BudgetEditRemoteDataSource>()),
+        ),
+        Bind.lazySingleton<BudgetPdfRepository>(
+          (i) => BudgetPdfRepositoryImpl(i.get<BudgetPdfRemoteDataSource>()),
+        ),
+        Bind.lazySingleton<IndicatorsRepository>(
+          (i) => IndicatorsRepositoryImpl(i.get<IndicatorsRemoteDataSource>()),
         ),
 
         // UseCases
@@ -244,6 +279,12 @@ class BudgetModuleNew extends Module {
         ),
         Bind.lazySingleton<UpdateBudgetUseCase>(
           (i) => UpdateBudgetUseCase(i.get<BudgetEditRepository>()),
+        ),
+        Bind.lazySingleton<GeneratePdfUseCase>(
+          (i) => GeneratePdfUseCase(i.get<BudgetPdfRepository>()),
+        ),
+        Bind.lazySingleton<SaveIndicatorsUseCase>(
+          (i) => SaveIndicatorsUseCase(i.get<IndicatorsRepository>()),
         ),
 
         // Stores
@@ -276,6 +317,12 @@ class BudgetModuleNew extends Module {
             cityName: location?['cityName'],
             stateName: location?['stateName'],
           );
+        }),
+
+        // School Census
+        ChildRoute('/census/:cityId', child: (context, args) {
+          final cityId = int.parse(args.params['cityId']);
+          return SchoolCensusPage(cityId: cityId);
         }),
 
         // Budget Edit
