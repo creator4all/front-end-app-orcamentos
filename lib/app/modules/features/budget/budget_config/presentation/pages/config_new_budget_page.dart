@@ -245,8 +245,11 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                           final cityId = store.budgetDetail?.cityIds.firstOrNull;
                           if (cityId == null) return;
 
-                          // Navegar para tela de edição do censo usando Modular
-                          final result = await Modular.to.pushNamed('/budget/census/$cityId');
+                          // Navegar para tela de edição do censo passando dados
+                          final result = await Modular.to.pushNamed(
+                            '/budget/census/$cityId',
+                            arguments: {'censoEscolar': store.censoEscolar},
+                          );
 
                           // Ao retornar da tela, verificar se houve atualização (retorna true)
                           if (result == true) {

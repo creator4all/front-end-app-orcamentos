@@ -4,6 +4,7 @@ import '../../domain/entities/indice_etapa_entity.dart';
 class IndiceEtapaDto {
   final int id;
   final String nome;
+  final String titulo;
   final int grupoId;
   final String? grupoNome;
   final DateTime createdAt;
@@ -12,6 +13,7 @@ class IndiceEtapaDto {
   const IndiceEtapaDto({
     required this.id,
     required this.nome,
+    required this.titulo,
     required this.grupoId,
     this.grupoNome,
     required this.createdAt,
@@ -24,8 +26,9 @@ class IndiceEtapaDto {
     return IndiceEtapaDto(
       id: (json['idindice_etapa'] as num?)?.toInt() ?? 0,
       nome: json['nome_etapa'] as String? ?? '',
+      titulo: json['titulo_etapa'] as String? ?? json['nome_etapa'] as String? ?? '',
       grupoId: (json['grupos_grupo_id'] as num?)?.toInt() ?? 0,
-      grupoNome: grupoJson?['gru_grupo_nome'] as String?,
+      grupoNome: grupoJson?['nome_grupo'] as String?,
       createdAt: _parseDate(json['created_at']) ?? DateTime.now(),
       updatedAt: _parseDate(json['updated_at']) ?? DateTime.now(),
     );
@@ -48,6 +51,7 @@ class IndiceEtapaDto {
     return IndiceEtapaEntity(
       id: id,
       nome: nome,
+      titulo: titulo,
       grupoId: grupoId,
       grupoNome: grupoNome ?? '',
       createdAt: createdAt,

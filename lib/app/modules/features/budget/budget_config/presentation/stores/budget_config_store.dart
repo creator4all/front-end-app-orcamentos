@@ -253,7 +253,7 @@ abstract class _BudgetConfigStoreBase with Store {
         'nome': cidade.nome,
         'indicadores': cidade.cidadesHasIndiceEtapa
             .map((etapa) => {
-                  'nome': etapa.nomeEtapa,
+                  'nome': etapa.tituloEtapa,
                   'valor': etapa.etapaValor.toInt(),
                 })
             .toList(),
@@ -308,7 +308,7 @@ abstract class _BudgetConfigStoreBase with Store {
           id: etapa.indiceEtapaId,
           nomeEtapa: nomeEtapa,
           tituloExibicao:
-              etapa.indiceEtapa.nome, // Usa nome como título de exibição
+              etapa.indiceEtapa.titulo, // Usa titulo para exibição amigável
           valor: valor,
           isProfessores: nomeEtapa == 'professores',
           grupoId: grupoId,

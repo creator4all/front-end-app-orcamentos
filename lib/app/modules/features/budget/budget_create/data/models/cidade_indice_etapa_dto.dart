@@ -5,6 +5,7 @@ import 'indice_etapa_dto.dart';
 class CidadeIndiceEtapaDto {
   final int indiceEtapaId;
   final String nomeEtapa;
+  final String tituloEtapa;
   final int grupoId;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -14,6 +15,7 @@ class CidadeIndiceEtapaDto {
   const CidadeIndiceEtapaDto({
     required this.indiceEtapaId,
     required this.nomeEtapa,
+    required this.tituloEtapa,
     required this.grupoId,
     required this.createdAt,
     required this.updatedAt,
@@ -28,6 +30,7 @@ class CidadeIndiceEtapaDto {
     return CidadeIndiceEtapaDto(
       indiceEtapaId: (indiceEtapaJson['idindice_etapa'] as num?)?.toInt() ?? 0,
       nomeEtapa: indiceEtapaJson['nome_etapa'] as String? ?? '',
+      tituloEtapa: indiceEtapaJson['titulo_etapa'] as String? ?? indiceEtapaJson['nome_etapa'] as String? ?? '',
       grupoId: (indiceEtapaJson['grupos_grupo_id'] as num?)?.toInt() ?? 0,
       createdAt: _parseDate(indiceEtapaJson['created_at']) ?? DateTime.now(),
       updatedAt: _parseDate(indiceEtapaJson['updated_at']) ?? DateTime.now(),
@@ -53,6 +56,7 @@ class CidadeIndiceEtapaDto {
     return CidadeIndiceEtapaEntity(
       indiceEtapaId: indiceEtapaId,
       nomeEtapa: nomeEtapa,
+      tituloEtapa: tituloEtapa,
       grupoId: grupoId,
       createdAt: createdAt,
       updatedAt: updatedAt,

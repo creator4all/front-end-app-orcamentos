@@ -4,16 +4,19 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../../../shared/widgets/custom_top_bar.dart';
+import '../../domain/entities/censo_escolar_entity.dart';
 import '../../domain/entities/censo_group_entity.dart';
 import '../stores/school_census_store.dart';
 import '../widgets/census_data_section_widget.dart';
 
 class SchoolCensusPage extends StatefulWidget {
   final int cityId;
+  final CensoEscolarEntity? censoInicial;
 
   const SchoolCensusPage({
     super.key,
     required this.cityId,
+    this.censoInicial,
   });
 
   @override
@@ -31,7 +34,13 @@ class _SchoolCensusPageState
   @override
   void initState() {
     super.initState();
-    store.loadCensus(widget.cityId);
+    // Se recebeu dados do censo, usar diretamente
+    if (widget.censoInicial != null) {
+      store.setCensoEscolar(widget.censoInicial!);
+    } else {
+      // Caso contrário, carregar da API
+      store.loadCensus(widget.cityId);
+    }
   }
 
   @override

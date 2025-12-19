@@ -30,6 +30,7 @@ import 'budget_config/domain/usecases/update_census_usecase.dart';
 import 'budget_config/presentation/pages/config_new_budget_page.dart';
 import 'budget_config/presentation/pages/school_census_page.dart';
 import 'budget_config/presentation/stores/budget_config_store.dart';
+import 'budget_config/domain/entities/censo_escolar_entity.dart';
 import 'budget_config/presentation/stores/school_census_store.dart';
 import 'budget_create/data/datasources/budget_draft_remote_datasource.dart';
 import 'budget_create/data/datasources/budget_draft_remote_datasource_impl.dart';
@@ -322,7 +323,10 @@ class BudgetModuleNew extends Module {
         // School Census
         ChildRoute('/census/:cityId', child: (context, args) {
           final cityId = int.parse(args.params['cityId']);
-          return SchoolCensusPage(cityId: cityId);
+          // Extrai censoEscolar dos argumentos, se disponível
+          final argsData = args.data as Map<String, dynamic>?;
+          final censoEscolar = argsData?['censoEscolar'] as CensoEscolarEntity?;
+          return SchoolCensusPage(cityId: cityId, censoInicial: censoEscolar);
         }),
 
         // Budget Edit
