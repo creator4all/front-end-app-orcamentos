@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:multimidiaapp/app/shared/widgets/searchable_dropdown_widget.dart';
 
 // Importações temporárias para GeoStore e CensoStore (não migramos ainda)
 import '../../../../../../../stores/store_provider.dart';
@@ -374,110 +375,86 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                     ),
 
                     // ESTADO
-                    Container(
-                      width: double.infinity,
-                      height: 35.h,
-                      padding: EdgeInsets.symmetric(horizontal: 16.w),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey[300]!),
-                        borderRadius: BorderRadius.circular(8.r),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: Observer(
-                          builder: (_) => DropdownButton<String>(
-                            value: _geo.estadoSelecionado?.nome,
-                            hint: Text(
-                              'Estado',
-                              style: TextStyle(
-                                fontSize: 16.sp,
-                                color: Colors.grey[500],
-                              ),
-                            ),
-                            items: _geo.estados
-                                .map<DropdownMenuItem<String>>(
-                                    (e) => DropdownMenuItem<String>(
-                                          value: e.nome,
-                                          child: Text(e.nome),
-                                        ))
-                                .toList(),
-                            onChanged: (value) async {
+                    Observer(
+                      builder: (_) {
+                        final List<String> estadosNomes = _geo.estados
+                            .map((dynamic e) => e.nome as String)
+                            .cast<String>()
+                            .toList();
+
+                        return SearchableDropdownWidget(
+                          label: 'Selecione o Estado',
+                          hint: 'Estado',
+                          searchHint: 'Pesquisar estado...',
+                          items: estadosNomes,
+                          value: _geo.estadoSelecionado?.nome,
+                          onChanged: (value) async {
+                            if (value == null) return;
+
+                            final matches =
+                                _geo.estados.where((e) => e.nome == value);
+                            final estado =
+                                matches.isNotEmpty ? matches.first : null;
+
+                            if (estado != null) {
+                              await _geo.selecionarEstado(estado);
+
+                              // ✅ Sincronizar com BudgetCreateStore imediatamente
+                              // Usar ID como código já que UF não existe no modelo
+                              _store.setSelectedState(
+                                estado.id?.toString() ?? '',
+                                estado.nome,
+                              );
+
+                              print(
+                                  '📍 Estado sincronizado: ${estado.nome} (ID: ${estado.id})');
+
+                              if (mounted) setState(() {});
+                            }
+                          },
+                        );
+                      },
+                    ),
+
+                    // CIDADE
+                    if (_geo.estadoSelecionado != null) ...[
+                      SizedBox(height: 10.h),
+                      Observer(
+                        builder: (_) {
+                          final List<String> cidadesNomes = _geo.cidades
+                              .map((dynamic c) => c.nome as String)
+                              .cast<String>()
+                              .toList();
+
+                          return SearchableDropdownWidget(
+                            label: 'Selecione a Cidade',
+                            hint: 'Cidade',
+                            searchHint: 'Pesquisar cidade...',
+                            items: cidadesNomes,
+                            value: _geo.cidadeSelecionada?.nome,
+                            onChanged: (value) {
+                              if (value == null) return;
+
                               final matches =
-                                  _geo.estados.where((e) => e.nome == value);
-                              final estado =
+                                  _geo.cidades.where((c) => c.nome == value);
+                              final cidade =
                                   matches.isNotEmpty ? matches.first : null;
-                              if (estado != null) {
-                                await _geo.selecionarEstado(estado);
+
+                              if (cidade != null) {
+                                _geo.selecionarCidade(cidade);
 
                                 // ✅ Sincronizar com BudgetCreateStore imediatamente
-                                // Usar ID como código já que UF não existe no modelo
-                                _store.setSelectedState(
-                                  estado.id?.toString() ?? '',
-                                  estado.nome,
+                                _store.setSelectedCity(
+                                  cidade.id.toString(),
+                                  cidade.nome,
+                                  cityId: cidade.id,
                                 );
-
-                                print(
-                                    '📍 Estado sincronizado: ${estado.nome} (ID: ${estado.id})');
 
                                 if (mounted) setState(() {});
                               }
                             },
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    SizedBox(height: 10.h),
-
-                    // CIDADE
-                    if (_geo.estadoSelecionado != null) ...[
-                      Observer(
-                        builder: (_) => Container(
-                          width: double.infinity,
-                          height: 35.h,
-                          padding: EdgeInsets.symmetric(horizontal: 16.w),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey[300]!),
-                            borderRadius: BorderRadius.circular(8.r),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: _geo.cidadeSelecionada?.nome,
-                              hint: Text(
-                                'Cidade',
-                                style: TextStyle(
-                                  fontSize: 16.sp,
-                                  color: Colors.grey[500],
-                                ),
-                              ),
-                              items: _geo.cidades
-                                  .map<DropdownMenuItem<String>>(
-                                      (c) => DropdownMenuItem<String>(
-                                            value: c.nome,
-                                            child: Text(c.nome),
-                                          ))
-                                  .toList(),
-                              onChanged: (value) {
-                                final matches =
-                                    _geo.cidades.where((c) => c.nome == value);
-                                final cidade =
-                                    matches.isNotEmpty ? matches.first : null;
-
-                                if (cidade != null) {
-                                  _geo.selecionarCidade(cidade);
-
-                                  // ✅ Sincronizar com BudgetCreateStore imediatamente
-                                  _store.setSelectedCity(
-                                    cidade.id.toString(),
-                                    cidade.nome,
-                                    cityId: cidade.id,
-                                  );
-
-                                  if (mounted) setState(() {});
-                                }
-                              },
-                            ),
-                          ),
-                        ),
+                          );
+                        },
                       ),
                     ],
 
