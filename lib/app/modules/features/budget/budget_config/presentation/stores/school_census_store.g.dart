@@ -140,6 +140,17 @@ mixin _$SchoolCensusStore on _SchoolCensusStoreBase, Store {
       ActionController(name: '_SchoolCensusStoreBase', context: context);
 
   @override
+  void setCensoEscolar(CensoEscolarEntity censo) {
+    final _$actionInfo = _$_SchoolCensusStoreBaseActionController.startAction(
+        name: '_SchoolCensusStoreBase.setCensoEscolar');
+    try {
+      return super.setCensoEscolar(censo);
+    } finally {
+      _$_SchoolCensusStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
   void toggleEditMode() {
     final _$actionInfo = _$_SchoolCensusStoreBaseActionController.startAction(
         name: '_SchoolCensusStoreBase.toggleEditMode');

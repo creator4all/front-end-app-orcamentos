@@ -6,6 +6,7 @@ import 'indice_etapa_entity.dart';
 class CidadeIndiceEtapaEntity extends Equatable {
   final int indiceEtapaId;
   final String nomeEtapa;
+  final String tituloEtapa; // Título para exibição (Berçário, Maternal, etc)
   final int grupoId;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -15,6 +16,7 @@ class CidadeIndiceEtapaEntity extends Equatable {
   const CidadeIndiceEtapaEntity({
     required this.indiceEtapaId,
     required this.nomeEtapa,
+    required this.tituloEtapa,
     required this.grupoId,
     required this.createdAt,
     required this.updatedAt,
@@ -26,6 +28,7 @@ class CidadeIndiceEtapaEntity extends Equatable {
   List<Object?> get props => [
         indiceEtapaId,
         nomeEtapa,
+        tituloEtapa,
         grupoId,
         createdAt,
         updatedAt,

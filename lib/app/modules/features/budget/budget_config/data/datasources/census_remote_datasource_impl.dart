@@ -111,6 +111,7 @@ class CensusRemoteDataSourceImpl implements CensusRemoteDataSource {
           : int.tryParse('${item['indice_etapa_id']}') ?? 0;
 
       final String nomeEtapa = (item['nome_etapa'] ?? '').toString();
+      final String tituloEtapa = (item['titulo_etapa'] ?? '').toString();
 
       final double valor = item['valor'] is double
           ? item['valor']
@@ -138,7 +139,7 @@ class CensusRemoteDataSourceImpl implements CensusRemoteDataSource {
         final title = CensoTitleEntity(
           id: indiceId,
           nomeEtapa: nomeEtapa,
-          tituloExibicao: nomeEtapa,
+          tituloExibicao: tituloEtapa,  // Usa titulo_etapa da API
           valor: valor,
           isProfessores: isProfessores,
           grupoId: groupId,

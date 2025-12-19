@@ -65,6 +65,14 @@ abstract class _SchoolCensusStoreBase with Store {
     isLoading = false;
   }
 
+  /// Define o censo diretamente (sem chamar API)
+  @action
+  void setCensoEscolar(CensoEscolarEntity censo) {
+    censoEscolar = censo;
+    error = null;
+    _initEditedValues();
+  }
+
   @action
   void toggleEditMode() {
     isEditMode = !isEditMode;
