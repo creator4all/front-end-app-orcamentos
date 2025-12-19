@@ -19,6 +19,7 @@ class CensoEscolarDto {
 
     for (final item in cidadesHasIndiceEtapa) {
       final etapa = item['nome_etapa'] as String;
+      final tituloEtapa = item['titulo_etapa'] as String;
       final valor = double.parse(item['pivot']['etapa_valor'].toString());
       final grupo = item['grupo'];
       final grupoId = grupo['grupo_id'] as int;
@@ -34,6 +35,7 @@ class CensoEscolarDto {
       gruposMap[grupoId]!.add({
         'id': item['idindice_etapa'],
         'nomeEtapa': etapa,
+        'tituloEtapa': tituloEtapa,
         'grupoId': grupoId,
         'grupoNome': grupoNome,
         'valor': valor,
@@ -49,12 +51,13 @@ class CensoEscolarDto {
       // Criar títulos para este grupo
       final titulos = itens.map((item) {
         final nomeEtapa = item['nomeEtapa'] as String;
+        final tituloEtapa = item['tituloEtapa'] as String;
         final isProfessores = nomeEtapa.endsWith('P');
 
         return CensoTitleEntity(
           id: item['id'],
           nomeEtapa: nomeEtapa,
-          tituloExibicao: _formatarTituloExibicao(nomeEtapa),
+          tituloExibicao: tituloEtapa,
           valor: item['valor'],
           isProfessores: isProfessores,
           grupoId: grupoId,
@@ -74,40 +77,5 @@ class CensoEscolarDto {
       grupos: grupos,
       valoresPorEtapa: valoresPorEtapa,
     );
-  }
-
-  /// Formata o nome da etapa para exibição amigável
-  static String _formatarTituloExibicao(String nomeEtapa) {
-    final Map<String, String> titulos = {
-      'bercario': 'Berçário',
-      'maternal': 'Maternal',
-      'in4ano': 'Infantil - 4 anos',
-      'in5ano': 'Infantil - 5 anos',
-      'ef1ano': '1º Ano',
-      'ef2ano': '2º Ano',
-      'ef3ano': '3º Ano',
-      'ef4ano': '4º Ano',
-      'ef5ano': '5º Ano',
-      'ef6ano': '6º Ano',
-      'ef7ano': '7º Ano',
-      'ef8ano': '8º Ano',
-      'ef9ano': '9º Ano',
-      'em1ano': '1º Ano - EM',
-      'em2ano': '2º Ano - EM',
-      'em3ano': '3º Ano - EM',
-      'efEja': 'EJA - EF',
-      'emEja': 'EJA - EM',
-      'professores': 'Professores',
-      'cursistas': 'Cursistas',
-    };
-
-    // Adicionar sufixo P para professores
-    if (nomeEtapa.endsWith('P')) {
-      final baseNome = nomeEtapa.substring(0, nomeEtapa.length - 1);
-      final tituloBase = titulos[baseNome] ?? baseNome;
-      return '$tituloBase - Professores';
-    }
-
-    return titulos[nomeEtapa] ?? nomeEtapa;
   }
 }
