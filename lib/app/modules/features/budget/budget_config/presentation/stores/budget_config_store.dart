@@ -1435,11 +1435,10 @@ abstract class _BudgetConfigStoreBase with Store {
       for (final category in categories) {
         for (final subcategory in category.subcategorias) {
           for (final product in subcategory.produtos) {
-            produtosParaSalvar.add(ProductSelectionUpdateDto(
-              productId: product.id,
-              selecionado: product.selecionado,
-              quantidade: product.quantidade,
-            ));
+            // Usar factory que inclui indicadores e valor automaticamente
+            produtosParaSalvar.add(
+              ProductSelectionUpdateDto.fromEntity(product),
+            );
           }
         }
       }
