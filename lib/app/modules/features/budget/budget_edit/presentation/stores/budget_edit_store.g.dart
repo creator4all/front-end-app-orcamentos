@@ -325,6 +325,22 @@ mixin _$BudgetEditStore on _BudgetEditStoreBase, Store {
     });
   }
 
+  late final _$censoEscolarAtom =
+      Atom(name: '_BudgetEditStoreBase.censoEscolar', context: context);
+
+  @override
+  CensoEscolarEntity? get censoEscolar {
+    _$censoEscolarAtom.reportRead();
+    return super.censoEscolar;
+  }
+
+  @override
+  set censoEscolar(CensoEscolarEntity? value) {
+    _$censoEscolarAtom.reportWrite(value, super.censoEscolar, () {
+      super.censoEscolar = value;
+    });
+  }
+
   late final _$initializeAsyncAction =
       AsyncAction('_BudgetEditStoreBase.initialize', context: context);
 
@@ -571,6 +587,7 @@ categories: ${categories},
 selectedCategory: ${selectedCategory},
 selectedSubcategory: ${selectedSubcategory},
 censusData: ${censusData},
+censoEscolar: ${censoEscolar},
 hasData: ${hasData},
 canSave: ${canSave},
 selectedProductsCount: ${selectedProductsCount},

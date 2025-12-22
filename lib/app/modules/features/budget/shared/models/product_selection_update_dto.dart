@@ -14,7 +14,7 @@ import 'indicador_produto_update_dto.dart';
 /// {
 ///   "produto_id": 123,
 ///   "selecionado": true,
-///   "quantidade": 5,
+///   "quantidade": 5,           // Apenas para serviços
 ///   "indicadores": [
 ///     {"produto_indicador_id": 12, "selecionado": true},
 ///     {"produto_indicador_id": 15, "selecionado": false}
@@ -32,6 +32,10 @@ class ProductSelectionUpdateDto extends Equatable {
   /// Quantidade do produto no orçamento
   final int quantidade;
 
+  /// Tipo do produto (livro, tecnologia, servico)
+  /// Usado para determinar se quantidade deve ser enviada
+  final String tipoProduto;
+
   /// Indicadores de etapa com status explícito (Opção B)
   /// Todos os indicadores são enviados com seu estado atual
   final List<IndicadorProdutoUpdateDto>? indicadores;
@@ -43,9 +47,16 @@ class ProductSelectionUpdateDto extends Equatable {
     required this.productId,
     required this.selecionado,
     required this.quantidade,
+    required this.tipoProduto,
     this.indicadores,
     this.valor,
   });
+
+  /// Verifica se é um serviço
+  bool get isServico {
+    final tipo = tipoProduto.toLowerCase();
+    return tipo == 'servico' || tipo == 'serviço';
+  }
 
   /// Factory para criar a partir de ProductEntity
   ///
@@ -69,25 +80,31 @@ class ProductSelectionUpdateDto extends Equatable {
       productId: entity.id,
       selecionado: entity.selecionado,
       quantidade: entity.quantidade,
+      tipoProduto: entity.tipoProduto,
       indicadores: indicadoresDto.isNotEmpty ? indicadoresDto : null,
       valor: valorAlterado,
     );
   }
 
   /// Converte para Map para envio via API
+  ///
+  /// - 'quantidade' é enviada APENAS para serviços
+  /// - Para livros/tecnologias, o backend calcula a partir dos indicadores
   Map<String, dynamic> toJson() => {
         'produto_id': productId,
         'selecionado': selecionado,
-        'quantidade': quantidade,
+        // ✅ Quantidade apenas para serviços
+        if (isServico) 'quantidade': quantidade,
         if (indicadores != null)
           'indicadores_etapa': indicadores!.map((i) => i.toJson()).toList(),
         if (valor != null) 'valor': valor,
       };
 
   @override
-  List<Object?> get props => [productId, selecionado, quantidade, indicadores, valor];
+  List<Object?> get props =>
+      [productId, selecionado, quantidade, tipoProduto, indicadores, valor];
 
   @override
   String toString() =>
-      'ProductSelectionUpdateDto(productId: $productId, selecionado: $selecionado, quantidade: $quantidade, indicadores: ${indicadores?.length ?? 0}, valor: $valor)';
+      'ProductSelectionUpdateDto(productId: $productId, selecionado: $selecionado, quantidade: $quantidade, tipoProduto: $tipoProduto, indicadores: ${indicadores?.length ?? 0}, valor: $valor)';
 }

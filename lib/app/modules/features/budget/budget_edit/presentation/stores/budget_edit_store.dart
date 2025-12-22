@@ -3,10 +3,14 @@ import 'package:mobx/mobx.dart';
 
 import '../../../budget_config/data/models/category_dto.dart';
 import '../../../budget_config/domain/entities/category_entity.dart';
+import '../../../budget_config/domain/entities/censo_escolar_entity.dart';
+import '../../../budget_config/domain/entities/censo_group_entity.dart';
+import '../../../budget_config/domain/entities/censo_title_entity.dart';
 import '../../../budget_config/domain/entities/census_data_entity.dart';
 import '../../../budget_config/domain/entities/product_entity.dart';
 import '../../../budget_config/domain/entities/subcategory_entity.dart';
 import '../../../budget_config/domain/usecases/get_census_data_usecase.dart';
+import '../../../budget_create/data/models/cidade_dto.dart';
 import '../../../shared/errors/budget_failure.dart';
 import '../../../shared/models/budget_update_dto.dart';
 import '../../../shared/models/product_selection_update_dto.dart';
@@ -79,6 +83,10 @@ abstract class _BudgetEditStoreBase with Store {
   @observable
   CensusDataEntity? censusData;
 
+  /// Censo escolar para edição (usado pelo SchoolCensusCard)
+  @observable
+  CensoEscolarEntity? censoEscolar;
+
   // ========== COMPUTED ==========
 
   @computed
@@ -147,16 +155,12 @@ abstract class _BudgetEditStoreBase with Store {
 
   @action
   Future<void> initialize(int budgetId) async {
-    // 1. Carregar estrutura (categorias/subcategorias com estatísticas)
+    // Carrega estrutura completa (categorias, subcategorias, produtos e cidade)
+    // A API /api/orcamentos/{id} já retorna TODOS os dados necessários
     await loadBudgetForEdit(budgetId);
 
-    // 2. Carregar TODOS os produtos com estados reais do banco
-    await _loadAllProducts(budgetId);
-
-    // 3. Carregar censo se tiver cidade
-    if (budgetData != null && budgetData!.cityIds.isNotEmpty) {
-      await loadCensusData(budgetData!.cityIds.first);
-    }
+    // Nota: Não é mais necessário chamar _loadAllProducts() ou loadCensusData()
+    // pois loadBudgetForEdit() já traz todos os dados da API
   }
 
   @action
@@ -193,6 +197,9 @@ abstract class _BudgetEditStoreBase with Store {
           selectedProductIds.addAll(
             budget.products.where((p) => p.isSelected).map((p) => p.productId),
           );
+
+          // Parsear censo escolar a partir dos dados da cidade
+          _parseCensoEscolarFromCitiesData();
 
           isLoading = false;
           isLoadingProducts = false;
@@ -720,11 +727,8 @@ abstract class _BudgetEditStoreBase with Store {
       for (final category in categories) {
         for (final subcategory in category.subcategorias) {
           for (final product in subcategory.produtos) {
-            produtosParaSalvar.add(ProductSelectionUpdateDto(
-              productId: product.id,
-              selecionado: product.selecionado,
-              quantidade: product.quantidade,
-            ));
+            produtosParaSalvar
+                .add(ProductSelectionUpdateDto.fromEntity(product));
           }
         }
       }
@@ -767,6 +771,99 @@ abstract class _BudgetEditStoreBase with Store {
       error = 'Erro ao salvar orçamento: $e';
       isSaving = false;
       return Left(UnknownFailure(e.toString()));
+    }
+  }
+
+  // ========== METHODS CENSO ESCOLAR ==========
+
+  /// Converte os dados brutos de cidades (citiesDataRaw) em CensoEscolarEntity
+  /// Usa CidadeDto para parsing tipado, igual ao BudgetConfigStore
+  void _parseCensoEscolarFromCitiesData() {
+    if (budgetData == null || budgetData!.citiesDataRaw.isEmpty) {
+      censoEscolar = null;
+      return;
+    }
+
+    try {
+      final cityData = budgetData!.citiesDataRaw.first;
+
+      // ✅ Usar CidadeDto para parsing tipado (igual ao BudgetConfigStore)
+      final cidadeDto = CidadeDto.fromJson(cityData);
+      final cidade = cidadeDto.toEntity();
+
+      // ✅ Converter CidadeEntity para CensoEscolarEntity
+      censoEscolar = _convertCidadeToCensoEscolar(cidade);
+
+      if (censoEscolar != null) {
+        print(
+            '✅ [BudgetEditStore] CensoEscolar parseado: ${censoEscolar!.grupos.length} grupos, ${censoEscolar!.valoresPorEtapa.length} etapas');
+      }
+    } catch (e) {
+      print('❌ [BudgetEditStore] Erro ao parsear censo: $e');
+      censoEscolar = null;
+    }
+  }
+
+  /// Converte CidadeEntity para CensoEscolarEntity
+  /// Método idêntico ao BudgetConfigStore para garantir consistência
+  CensoEscolarEntity? _convertCidadeToCensoEscolar(dynamic cidade) {
+    if (cidade == null) return null;
+
+    try {
+      // Criar mapa de valores por etapa para lookup rápido
+      final valoresPorEtapa = <String, double>{};
+
+      // Agrupar por grupos
+      final gruposMap = <int, List<CensoTitleEntity>>{};
+      final grupoNomes = <int, String>{};
+
+      for (final etapa in cidade.cidadesHasIndiceEtapa) {
+        final nomeEtapa = etapa.nomeEtapa;
+        final valor = etapa.etapaValor;
+        final grupoId = etapa.grupoId;
+        final grupoNome = etapa.indiceEtapa.grupoNome;
+
+        // Adicionar ao mapa de valores
+        valoresPorEtapa[nomeEtapa] = valor;
+
+        // Guardar nome do grupo
+        grupoNomes[grupoId] = grupoNome;
+
+        // Criar título para este indicador
+        // ✅ Usa etapa.indiceEtapa.titulo para exibição amigável
+        final titulo = CensoTitleEntity(
+          id: etapa.indiceEtapaId,
+          nomeEtapa: nomeEtapa,
+          tituloExibicao:
+              etapa.indiceEtapa.titulo, // Usa titulo para exibição amigável
+          valor: valor,
+          isProfessores: nomeEtapa == 'professores',
+          grupoId: grupoId,
+        );
+
+        // Agrupar por grupo
+        gruposMap.putIfAbsent(grupoId, () => []);
+        gruposMap[grupoId]!.add(titulo);
+      }
+
+      // Converter grupos map para entidades
+      final grupos = gruposMap.entries.map((entry) {
+        return CensoGroupEntity(
+          id: entry.key,
+          nome: grupoNomes[entry.key] ?? '',
+          titulos: entry.value,
+        );
+      }).toList();
+
+      return CensoEscolarEntity(
+        cidadeId: cidade.id,
+        cidadeNome: cidade.nome,
+        grupos: grupos,
+        valoresPorEtapa: valoresPorEtapa,
+      );
+    } catch (e) {
+      print('❌ [BudgetEditStore] Erro ao converter cidade para censo: $e');
+      return null;
     }
   }
 }

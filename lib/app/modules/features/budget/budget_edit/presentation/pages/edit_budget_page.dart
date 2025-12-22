@@ -269,6 +269,19 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                       child: SchoolCensusCard(
                         numberOfCities: store.budgetData?.cityIds.length ?? 0,
                         citiesData: _extractCitiesData(),
+                        onTap: () async {
+                          print(
+                              '👆 [EditPage] Navegando para edição do Censo Escolar');
+
+                          final cityId = store.budgetData?.cityIds.firstOrNull;
+                          if (cityId == null) return;
+
+                          // Navegar para tela de edição do censo passando dados
+                          await Modular.to.pushNamed(
+                            '/budget/census/$cityId',
+                            arguments: {'censoEscolar': store.censoEscolar},
+                          );
+                        },
                       ),
                     ),
 
@@ -584,13 +597,56 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
   }
 
   /// Extrai dados das cidades para o card do Censo Escolar
+  /// Transforma citiesDataRaw no mesmo formato que config_new_budget_page usa
   List<Map<String, dynamic>> _extractCitiesData() {
-    if (store.budgetData == null) {
+    if (store.budgetData == null || store.budgetData!.citiesDataRaw.isEmpty) {
       return [];
     }
 
-    // Retorna os dados completos das cidades (com indicadores) que vêm da API
-    return store.budgetData!.citiesDataRaw;
+    // ✅ Transformar dados brutos para formato esperado pelo SchoolCensusCard
+    // (igual ao BudgetDetailDto.fromJson faz para config_new_budget_page)
+    final result = <Map<String, dynamic>>[];
+
+    for (final cityData in store.budgetData!.citiesDataRaw) {
+      final cityId = cityData['idCidades'] ?? cityData['id'] ?? 0;
+      final cityName = cityData['nome_cidade'] ?? cityData['nome'] ?? '';
+
+      // Extrair indicadores de 'cidades_has_indice_etapa'
+      final indicadoresRaw =
+          cityData['cidades_has_indice_etapa'] as List? ?? [];
+
+      // Mapear para estrutura simplificada de indicadores esperada pelo SchoolCensusCard
+      final indicadores = indicadoresRaw.map((ind) {
+        if (ind is! Map<String, dynamic>) return <String, dynamic>{};
+
+        final grupoObj = ind['grupo'] as Map<String, dynamic>?;
+        final nomeGrupo = grupoObj?['nome_grupo'] ?? '';
+        final idGrupo = grupoObj?['grupo_id'] ?? 0;
+        final pivot = ind['pivot'] as Map<String, dynamic>?;
+
+        // ✅ Garantir que valor seja numérico (não String)
+        final valorRaw = pivot?['etapa_valor'] ?? ind['etapa_valor'] ?? 0;
+        final valor = valorRaw is num
+            ? valorRaw
+            : double.tryParse(valorRaw.toString()) ?? 0;
+
+        return {
+          'id': ind['idindice_etapa'],
+          'nome': ind['nome_etapa'],
+          'valor': valor,
+          'grupo_id': idGrupo,
+          'grupo_nome': nomeGrupo,
+        };
+      }).toList();
+
+      result.add({
+        'id': cityId,
+        'nome': cityName,
+        'indicadores': indicadores,
+      });
+    }
+
+    return result;
   }
 
   // ========== MÉTODOS PARA MODAIS ==========

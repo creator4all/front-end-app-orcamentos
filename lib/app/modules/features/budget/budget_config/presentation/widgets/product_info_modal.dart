@@ -76,6 +76,7 @@ class ProductInfoModal extends StatefulWidget {
 
 class _ProductInfoModalState extends State<ProductInfoModal> {
   late TextEditingController _valueController;
+  late TextEditingController _horasController;
 
   bool get _isStoreMode =>
       widget.categoryId != null &&
@@ -93,9 +94,15 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
 
   void _initializeValueController() {
     setState(() {
-      _valueController =
-          TextEditingController(); // Inicia vazio para mostrar o hint
+      _valueController = TextEditingController();
+      _horasController = TextEditingController();
     });
+  }
+
+  /// Verifica se o produto é do tipo serviço
+  bool _isServico(ProductEntity product) {
+    final tipo = product.tipoProduto.toLowerCase();
+    return tipo == 'servico' || tipo == 'serviço';
   }
 
   /// Formata valor para padrão brasileiro
@@ -310,8 +317,13 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
 
             SizedBox(height: 24.h),
 
-            // Seção 2: Indicadores de Etapa
-            if (product.indicadoresEtapa.isNotEmpty) ...[
+            // Seção 2: Indicadores de Etapa OU Campo de Horas (dependendo do tipo)
+            if (_isServico(product)) ...[
+              // Serviço: Mostrar campo de horas
+              _buildHorasField(product, storeInstance),
+              SizedBox(height: 24.h),
+            ] else if (product.indicadoresEtapa.isNotEmpty) ...[
+              // Livro/Tecnologia: Mostrar indicadores de etapa
               IndicadoresEtapaSection(
                 indicadores: product.indicadoresEtapa,
                 onToggle: (indicadorId, valor) {
@@ -333,6 +345,80 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
           ],
         );
       },
+    );
+  }
+
+  /// Constrói campo de horas para serviços
+  Widget _buildHorasField(ProductEntity product, dynamic storeInstance) {
+    // Inicializa com a quantidade atual se não estiver preenchido
+    if (_horasController.text.isEmpty && product.quantidade > 0) {
+      _horasController.text = product.quantidade.toString();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        RichText(
+          text: TextSpan(
+            children: [
+              TextSpan(
+                text: 'Horas de Serviço: ',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                  fontFamily: 'Roboto',
+                ),
+              ),
+              TextSpan(
+                text: '${product.quantidade} hora(s)',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w400,
+                  color: Colors.black,
+                  fontFamily: 'Roboto',
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: 8.h),
+        TextField(
+          controller: _horasController,
+          keyboardType: TextInputType.number,
+          onChanged: (value) {
+            final horas = int.tryParse(value) ?? 0;
+            if (horas > 0) {
+              storeInstance.updateProductQuantity(product.id, horas);
+            }
+          },
+          decoration: InputDecoration(
+            hintText: 'Insira a quantidade de horas',
+            hintStyle: TextStyle(
+              color: const Color(0xFF8C8C8C),
+              fontSize: 14.sp,
+            ),
+            contentPadding:
+                EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8.r),
+              borderSide: const BorderSide(color: Color(0xFFD9D9D9)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8.r),
+              borderSide: const BorderSide(color: Color(0xFFD9D9D9)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8.r),
+              borderSide: const BorderSide(color: Color(0xFF2830F2)),
+            ),
+          ),
+          style: TextStyle(
+            fontSize: 14.sp,
+            color: Colors.black,
+          ),
+        ),
+      ],
     );
   }
 
