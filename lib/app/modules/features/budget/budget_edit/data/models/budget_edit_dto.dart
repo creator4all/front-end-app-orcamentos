@@ -59,6 +59,44 @@ class BudgetEditDto {
           cities.add(cidade);
         }
       }
+    } 
+    // ✅ Caso de criação/retorno onde 'cidade' vem como objeto na raiz (singular)
+    else if (json['cidade'] != null && json['cidade'] is Map) {
+      final cidadeMap = json['cidade'] as Map<String, dynamic>;
+      final cidadeId = cidadeMap['idCidades'] ?? json['orc_cidade_id'] as int;
+      final cidadeName = cidadeMap['nome_cidade'] ?? 'Cidade $cidadeId';
+
+      cities.add(cidadeId);
+
+      // Extrair indicadores de 'cidades_has_indice_etapa'
+      List<dynamic> indicadoresRaw = [];
+      if (cidadeMap['cidades_has_indice_etapa'] != null) {
+        indicadoresRaw = cidadeMap['cidades_has_indice_etapa'] as List;
+      }
+
+      // Mapear para estrutura simplificada de indicadores esperada pelo app
+      final indicadores = indicadoresRaw.map((ind) {
+        final grupoObj = ind['grupo'] as Map<String, dynamic>?;
+        final nomeGrupo = grupoObj?['nome_grupo'] ?? '';
+        final idGrupo = grupoObj?['grupo_id'] ?? 0;
+
+        return {
+          'id': ind['idindice_etapa'],
+          'nome': ind['nome_etapa'],
+          'titulo': ind['titulo_etapa'],
+          'valor': ind['pivot']?['etapa_valor'] ?? 0,
+          'grupo_id': idGrupo,
+          'grupo_nome': nomeGrupo,
+        };
+      }).toList();
+
+      // Armazenar dados completos da cidade com ambos formatos (raw e simplificado)
+      citiesData.add({
+        ...cidadeMap, // Dados completos para _parseCensoEscolarFromCitiesData
+        'id': cidadeId,
+        'nome': cidadeName,
+        'indicadores': indicadores, // Formato simplificado para SchoolCensusCard
+      });
     } else if (json['orc_cidade_id'] != null) {
       cities.add(json['orc_cidade_id'] as int);
     }

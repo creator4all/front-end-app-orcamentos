@@ -21,7 +21,9 @@ class SchoolCensusCard extends StatelessWidget {
   int _calculateTotalClasses() {
     int totalClasses = 0;
     for (final city in citiesData) {
-      final indicadores = city['indicadores'] as List? ?? [];
+      // Dados vêm em 'cidades_has_indice_etapa' ao invés de 'indicadores'
+      final indicadores = city['cidades_has_indice_etapa'] as List? ?? 
+                          city['indicadores'] as List? ?? [];
       totalClasses += indicadores.length;
     }
     return totalClasses;
@@ -31,12 +33,18 @@ class SchoolCensusCard extends StatelessWidget {
   int _calculateTotalStudents() {
     int totalStudents = 0;
     for (final city in citiesData) {
-      final indicadores = city['indicadores'] as List? ?? [];
+      // Dados vêm em 'cidades_has_indice_etapa' ao invés de 'indicadores'
+      final indicadores = city['cidades_has_indice_etapa'] as List? ?? 
+                          city['indicadores'] as List? ?? [];
       for (final indicador in indicadores) {
         if (indicador is Map<String, dynamic>) {
-          final valor = indicador['valor'] ?? 0;
+          // Valor pode estar em 'pivot.etapa_valor' ou 'valor' ou 'etapa_valor'
+          final pivot = indicador['pivot'] as Map<String, dynamic>?;
+          final valor = pivot?['etapa_valor'] ?? 
+                        indicador['etapa_valor'] ?? 
+                        indicador['valor'] ?? 0;
           totalStudents +=
-              (valor is int ? valor : int.tryParse(valor.toString()) ?? 0);
+              (valor is int ? valor : (valor is double ? valor.toInt() : int.tryParse(valor.toString()) ?? 0));
         }
       }
     }
@@ -70,59 +78,63 @@ class SchoolCensusCard extends StatelessWidget {
     final classesAndCitiesText =
         _formatClassesAndCities(totalClasses, numberOfCities);
 
-    return CardLayout(
-      showCheckbox: false,
-      icon: Icon(
-        Icons.people,
-        color: const Color(0xFF484848),
-        size: 24.sp,
+    // Envolver em GestureDetector para card inteiro ser clicável
+    return GestureDetector(
+      onTap: onTap,
+      child: CardLayout(
+        showCheckbox: false,
+        icon: Icon(
+          Icons.people,
+          color: const Color(0xFF484848),
+          size: 24.sp,
+        ),
+        secondColumn: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Título
+            Text(
+              'Censo Escolar',
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF484848),
+              ),
+            ),
+
+            SizedBox(height: 2.h),
+
+            // Turmas e Municípios
+            Text(
+              classesAndCitiesText,
+              style: TextStyle(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w400,
+                color: const Color(0xFF000000),
+                height: 1.3,
+              ),
+            ),
+
+            SizedBox(height: 2.h),
+
+            // Total de Estudantes
+            Text(
+              '${_formatNumber(totalStudents)} Estudantes',
+              style: TextStyle(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w400,
+                color: const Color(0xFF000000),
+              ),
+            ),
+          ],
+        ),
+        showBorder: false,
+        showShadow: true,
+        shadowColor: const Color(0xFF6A6F72),
+        showActionButton: true,
+        onActionTap: onTap,
       ),
-      secondColumn: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Título
-          Text(
-            'Censo Escolar',
-            style: TextStyle(
-              fontSize: 14.sp,
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF484848),
-            ),
-          ),
-
-          SizedBox(height: 2.h),
-
-          // Turmas e Municípios
-          Text(
-            classesAndCitiesText,
-            style: TextStyle(
-              fontSize: 12.sp,
-              fontWeight: FontWeight.w400,
-              color: const Color(0xFF000000),
-              height: 1.3,
-            ),
-          ),
-
-          SizedBox(height: 2.h),
-
-          // Total de Estudantes
-          Text(
-            '${_formatNumber(totalStudents)} Estudantes',
-            style: TextStyle(
-              fontSize: 12.sp,
-              fontWeight: FontWeight.w400,
-              color: const Color(0xFF000000),
-            ),
-          ),
-        ],
-      ),
-      showBorder: false,
-      showShadow: true,
-      shadowColor: const Color(0xFF6A6F72),
-      showActionButton: true,
-      onActionTap: onTap,
     );
   }
 }
