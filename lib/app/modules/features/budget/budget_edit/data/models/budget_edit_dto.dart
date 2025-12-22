@@ -59,7 +59,7 @@ class BudgetEditDto {
           cities.add(cidade);
         }
       }
-    } 
+    }
     // ✅ Caso de criação/retorno onde 'cidade' vem como objeto na raiz (singular)
     else if (json['cidade'] != null && json['cidade'] is Map) {
       final cidadeMap = json['cidade'] as Map<String, dynamic>;
@@ -95,7 +95,8 @@ class BudgetEditDto {
         ...cidadeMap, // Dados completos para _parseCensoEscolarFromCitiesData
         'id': cidadeId,
         'nome': cidadeName,
-        'indicadores': indicadores, // Formato simplificado para SchoolCensusCard
+        'indicadores':
+            indicadores, // Formato simplificado para SchoolCensusCard
       });
     } else if (json['orc_cidade_id'] != null) {
       cities.add(json['orc_cidade_id'] as int);
@@ -108,7 +109,7 @@ class BudgetEditDto {
     }
 
     return BudgetEditDto(
-      id: json['id'] ?? 0,
+      id: json['orc_orcamentoId'] ?? 0,
       name: json['nome'] ?? json['orc_nome'],
       validityDays: json['orc_dias_validade'] ?? json['dias_validade'] ?? 30,
       validityDate: json['orc_data_validade'] != null

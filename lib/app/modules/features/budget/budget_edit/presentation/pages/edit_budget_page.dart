@@ -144,8 +144,8 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
       return;
     }
 
-    // 3️⃣ Validar produtos selecionados
-    if (store.selectedProductsCount == 0) {
+    // 3️⃣ Validar produtos selecionados (usa totalSelectedProducts que conta da hierarquia de categorias)
+    if (store.totalSelectedProducts == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Selecione pelo menos um produto para o orçamento'),
@@ -407,32 +407,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                       ),
                     ],
                   ),
-
-                  SizedBox(height: 4.h),
-
-                  // Mensagem de erro
-                  if (store.error != null)
-                    Container(
-                      padding: EdgeInsets.all(12.w),
-                      margin: EdgeInsets.only(bottom: 16.h),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(8.r),
-                        border: Border.all(color: Colors.red),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.error, color: Colors.red),
-                          SizedBox(width: 8.w),
-                          Expanded(
-                            child: Text(
-                              store.error!,
-                              style: const TextStyle(color: Colors.red),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
 
                   // 🎛️ Controles de Status e Arquivamento
                   _buildStatusControls(),
