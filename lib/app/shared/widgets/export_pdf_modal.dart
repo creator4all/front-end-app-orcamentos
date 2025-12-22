@@ -144,32 +144,35 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
         // Campo Nome do Vendedor
         _buildTextField(
           controller: _nomeVendedorController,
-          label: 'Nome vendedor:',
+          label: 'Nome vendedor',
           hintText: 'Digite o nome do vendedor',
+          isRequired: true,
         ),
         SizedBox(height: 16.h),
 
         // Campo Cargo
         _buildTextField(
           controller: _cargoController,
-          label: 'Cargo:',
+          label: 'Cargo',
           hintText: 'Digite o cargo',
+          isRequired: true,
         ),
         SizedBox(height: 16.h),
 
         // Campo Telefone
         _buildTextField(
           controller: _telefoneController,
-          label: 'Telefone:',
+          label: 'Telefone',
           hintText: 'Digite o telefone',
           keyboardType: TextInputType.phone,
+          isRequired: true,
         ),
         SizedBox(height: 16.h),
 
         // Campo URL
         _buildTextField(
           controller: _urlController,
-          label: 'URL:',
+          label: 'URL',
           hintText: 'Digite a URL',
           keyboardType: TextInputType.url,
         ),
@@ -191,16 +194,31 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
     required String label,
     required String hintText,
     TextInputType? keyboardType,
+    bool isRequired = false,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w500,
-            color: Colors.black87,
+        RichText(
+          text: TextSpan(
+            text: '$label:',
+            style: TextStyle(
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w500,
+              color: Colors.black87,
+            ),
+            children: isRequired
+                ? [
+                    TextSpan(
+                      text: ' *',
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ]
+                : null,
           ),
         ),
         SizedBox(height: 8.h),
@@ -572,11 +590,26 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
   }
 
   void _showErrorMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.error_outline, color: Colors.red, size: 24.sp),
+            SizedBox(width: 8.w),
+            const Text('Atenção'),
+          ],
+        ),
         content: Text(message),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 2),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('OK'),
+          ),
+        ],
       ),
     );
   }
