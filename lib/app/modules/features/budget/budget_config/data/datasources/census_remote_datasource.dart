@@ -17,4 +17,11 @@ abstract class CensusRemoteDataSource {
     int cityId,
     Map<int, double> indices,
   );
+
+  /// Atualiza os índices do censo escolar via endpoint de orçamento
+  Future<CensoEscolarEntity> updateBudgetCensusIndices({
+    required int budgetId,
+    required int cityId,
+    required Map<int, double> indices,
+  });
 }

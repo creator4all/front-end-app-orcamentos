@@ -1,8 +1,4 @@
-import 'dart:convert';
-import 'dart:typed_data';
-
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
 
 import '../config/api_config.dart';
 
@@ -76,6 +72,32 @@ class ApiService {
       );
 
       final response = await _dio.put(
+        endpoint,
+        data: data,
+        options: options,
+      );
+
+      return _processResponse(response);
+    } catch (e) {
+      return {
+        'success': false,
+        'error': 'Erro de conexão: ${e.toString()}',
+      };
+    }
+  }
+
+  // Generic PATCH request
+  Future<Map<String, dynamic>> patch(String endpoint, Map<String, dynamic> data,
+      {String? token}) async {
+    try {
+      final options = Options(
+        headers: token != null
+            ? ApiConfig.headersWithToken(token)
+            : ApiConfig.headers,
+        responseType: ResponseType.json,
+      );
+
+      final response = await _dio.patch(
         endpoint,
         data: data,
         options: options,

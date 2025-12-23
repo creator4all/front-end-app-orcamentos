@@ -14,6 +14,7 @@ abstract class CensusRepository {
       getMultipleCitiesCensusData(
     List<int> cityIds,
   );
+
   /// Busca o censo escolar completo (detalhado) para uma cidade
   Future<Either<BudgetFailure, CensoEscolarEntity>> getCensusByCity(int cityId);
 
@@ -22,4 +23,11 @@ abstract class CensusRepository {
     int cityId,
     Map<int, double> updatedIndices,
   );
+
+  /// Atualiza os índices do censo escolar via endpoint de orçamento
+  Future<Either<BudgetFailure, CensoEscolarEntity>> updateBudgetCensusIndices({
+    required int budgetId,
+    required int cityId,
+    required Map<int, double> updatedIndices,
+  });
 }

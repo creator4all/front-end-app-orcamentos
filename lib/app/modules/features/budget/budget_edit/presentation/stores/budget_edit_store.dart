@@ -811,6 +811,64 @@ abstract class _BudgetEditStoreBase with Store {
     }
   }
 
+  /// Atualiza o censo escolar após edição na página de censo
+  /// Também atualiza os dados raw da cidade no budgetData
+  @action
+  void updateCensoEscolar(CensoEscolarEntity updatedCenso) {
+    censoEscolar = updatedCenso;
+
+    // Atualizar também os dados raw da cidade no budgetData
+    if (budgetData != null && budgetData!.citiesDataRaw.isNotEmpty) {
+      final updatedCitiesData = budgetData!.citiesDataRaw.map((cityData) {
+        final cityId = cityData['idCidades'] ?? cityData['id'];
+        if (cityId == updatedCenso.cidadeId) {
+          // Atualizar indicadores com novos valores
+          return _updateCityDataWithCenso(cityData, updatedCenso);
+        }
+        return cityData;
+      }).toList();
+
+      // Atualizar citiesDataRaw no budgetData
+      budgetData = budgetData!.copyWith(citiesDataRaw: updatedCitiesData);
+    }
+
+    print(
+        '✅ [BudgetEditStore] CensoEscolar atualizado: ${censoEscolar!.grupos.length} grupos');
+  }
+
+  /// Cria um novo Map de dados da cidade com os valores atualizados do censo
+  Map<String, dynamic> _updateCityDataWithCenso(
+    Map<String, dynamic> cityData,
+    CensoEscolarEntity updatedCenso,
+  ) {
+    final indicadores = <Map<String, dynamic>>[];
+
+    for (final grupo in updatedCenso.grupos) {
+      for (final titulo in grupo.titulos) {
+        indicadores.add({
+          'idindice_etapa': titulo.id,
+          'nome_etapa': titulo.nomeEtapa,
+          'titulo_etapa': titulo.tituloExibicao,
+          'grupos_grupo_id': grupo.id,
+          'grupo': {
+            'grupo_id': grupo.id,
+            'nome_grupo': grupo.nome,
+          },
+          'pivot': {
+            'cidades_idCidades': updatedCenso.cidadeId,
+            'indice_etapa_idindice_etapa': titulo.id,
+            'etapa_valor': titulo.valor.toString(),
+          },
+        });
+      }
+    }
+
+    return {
+      ...cityData,
+      'cidades_has_indice_etapa': indicadores,
+    };
+  }
+
   /// Converte CidadeEntity para CensoEscolarEntity
   /// Método idêntico ao BudgetConfigStore para garantir consistência
   CensoEscolarEntity? _convertCidadeToCensoEscolar(dynamic cidade) {

@@ -412,6 +412,21 @@ abstract class _BudgetConfigStoreBase with Store {
     productsNeedingRemark = [];
   }
 
+  /// Atualiza o censo escolar após edição na página de censo
+  @action
+  void updateCensoEscolar(CensoEscolarEntity updatedCenso) {
+    final oldCenso = censoEscolar;
+    censoEscolar = updatedCenso;
+
+    print(
+        '✅ [BudgetConfigStore] CensoEscolar atualizado: ${censoEscolar!.grupos.length} grupos');
+
+    // Verificar se houve mudança que afeta produtos
+    if (oldCenso != null) {
+      _checkForProductsToRemark(oldCenso, updatedCenso);
+    }
+  }
+
   /// Marca os produtos como selecionados
   @action
   void _remarkProducts(List<ProductEntity> productsToRemark) {
