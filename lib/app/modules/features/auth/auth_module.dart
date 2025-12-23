@@ -1,5 +1,6 @@
 import 'package:flutter_modular/flutter_modular.dart';
 
+import '../registration/registration_module.dart';
 import 'presentation/pages/login_page.dart';
 
 /// Módulo de autenticação seguindo Clean Architecture
@@ -21,6 +22,9 @@ class AuthModule extends Module {
           '/login',
           child: (context, args) => const LoginPage(),
         ),
+
+        // Rota de cadastro/registro
+        ModuleRoute('/register', module: RegistrationModule()),
 
         // Rota padrão redireciona para login
         RedirectRoute('/', to: '/login'),

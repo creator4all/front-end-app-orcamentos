@@ -8,8 +8,10 @@ import '../../../budget_config/domain/entities/censo_escolar_entity.dart';
 import '../../../budget_config/domain/entities/censo_group_entity.dart';
 import '../../../budget_config/domain/entities/censo_title_entity.dart';
 import '../../../budget_config/domain/entities/census_data_entity.dart';
+import '../../../budget_config/domain/entities/indicador_etapa_entity.dart';
 import '../../../budget_config/domain/entities/product_entity.dart';
 import '../../../budget_config/domain/entities/subcategory_entity.dart';
+import '../../../budget_config/domain/services/product_calculation_service.dart';
 import '../../../budget_config/domain/usecases/get_census_data_usecase.dart';
 import '../../../budget_create/data/models/cidade_dto.dart';
 import '../../../shared/errors/budget_failure.dart';
@@ -30,6 +32,7 @@ abstract class _BudgetEditStoreBase with Store {
   final GetCensusDataUseCase getCensusDataUseCase;
   final GetAllBudgetProductsForEditUseCase getAllProductsUseCase;
   final AuthStore authStore;
+  final ProductCalculationService calculationService;
 
   _BudgetEditStoreBase({
     required this.getBudgetForEditUseCase,
@@ -37,6 +40,7 @@ abstract class _BudgetEditStoreBase with Store {
     required this.getCensusDataUseCase,
     required this.getAllProductsUseCase,
     required this.authStore,
+    required this.calculationService,
   });
 
   // ========== OBSERVABLES ==========
@@ -584,7 +588,20 @@ abstract class _BudgetEditStoreBase with Store {
 
         if (prodIndex != -1) {
           final product = subcategory.produtos[prodIndex];
-          final updatedProduct = product.copyWith(selecionado: selected);
+          var updatedProduct = product.copyWith(selecionado: selected);
+
+          // 🧮 Recalcular quantidade baseado no censo quando selecionado
+          if (selected && censoEscolar != null) {
+            final novaQuantidade = calculationService.calcularQuantidade(
+              updatedProduct,
+              censoEscolar,
+            );
+            updatedProduct = updatedProduct.copyWith(
+              quantidade: novaQuantidade.round(),
+            );
+            print(
+                '🧮 [BudgetEditStore] Recalculado: ${product.solucao} -> Qtd: ${novaQuantidade.round()}');
+          }
 
           // Atualizar lista de produtos (com tipo explícito)
           final updatedProducts =
@@ -694,6 +711,94 @@ abstract class _BudgetEditStoreBase with Store {
         }
       }
     }
+  }
+
+  /// 🔄 Alterna estado de um indicador do produto e recalcula quantidade
+  @action
+  void toggleProductIndicator(int productId, int indicatorId) {
+    print(
+        '🔄 [BudgetEditStore] Alternando indicador $indicatorId do produto $productId');
+
+    // Encontrar o produto
+    for (var i = 0; i < categories.length; i++) {
+      final category = categories[i];
+
+      for (var j = 0; j < category.subcategorias.length; j++) {
+        final subcategory = category.subcategorias[j];
+
+        final productIndex =
+            subcategory.produtos.indexWhere((p) => p.id == productId);
+
+        if (productIndex != -1) {
+          final product = subcategory.produtos[productIndex];
+
+          // Encontrar o indicador na lista do produto
+          final indicatorIndex = product.indicadoresEtapa
+              .indexWhere((ind) => ind.produtoIndicadorId == indicatorId);
+
+          if (indicatorIndex != -1) {
+            final indicator = product.indicadoresEtapa[indicatorIndex];
+            final newSelectedState = !indicator.selecionado;
+
+            // Atualizar o indicador
+            final updatedIndicator =
+                indicator.copyWith(selecionado: newSelectedState);
+
+            // Atualizar lista de indicadores
+            final updatedIndicators =
+                List<IndicadorEtapaEntity>.from(product.indicadoresEtapa);
+            updatedIndicators[indicatorIndex] = updatedIndicator;
+
+            // Atualizar produto com novos indicadores
+            var updatedProduct =
+                product.copyWith(indicadoresEtapa: updatedIndicators);
+
+            // 🧮 RECALCULAR quantidade baseado nos indicadores selecionados
+            if (censoEscolar != null) {
+              final novaQuantidade = calculationService.calcularQuantidade(
+                updatedProduct,
+                censoEscolar,
+              );
+
+              // Atualiza o produto com a quantidade recalculada
+              updatedProduct = updatedProduct.copyWith(
+                quantidade: novaQuantidade.round(),
+              );
+
+              print(
+                  '🧮 [BudgetEditStore] Recálculo: Qtd ${product.quantidade} -> ${updatedProduct.quantidade}');
+            } else {
+              print(
+                  '⚠️ [BudgetEditStore] censoEscolar é null, quantidade não recalculada');
+            }
+
+            // Propagar atualização na árvore
+            final updatedProducts =
+                List<ProductEntity>.from(subcategory.produtos);
+            updatedProducts[productIndex] = updatedProduct;
+
+            final updatedSubcategory =
+                subcategory.copyWith(produtos: updatedProducts);
+
+            final updatedSubcategories =
+                List<SubcategoryEntity>.from(category.subcategorias);
+            updatedSubcategories[j] = updatedSubcategory;
+
+            final updatedCategory =
+                category.copyWith(subcategorias: updatedSubcategories);
+
+            categories[i] = updatedCategory;
+
+            print(
+                '✅ [BudgetEditStore] Indicador $indicatorId atualizado: $newSelectedState');
+            return;
+          }
+        }
+      }
+    }
+
+    print(
+        '⚠️ [BudgetEditStore] Produto $productId ou indicador $indicatorId não encontrado');
   }
 
   /// 💾 Salva orçamento editado usando DTO completo

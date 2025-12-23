@@ -302,6 +302,7 @@ class BudgetModuleNew extends Module {
             updateBudgetUseCase: i.get<UpdateBudgetUseCase>(),
             getCensusDataUseCase: i.get<GetCensusDataUseCase>(),
             authStore: Modular.get<AuthStore>(),
+            calculationService: i.get<ProductCalculationService>(),
           ),
         ),
       ];
