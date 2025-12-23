@@ -570,6 +570,17 @@ mixin _$BudgetEditStore on _BudgetEditStoreBase, Store {
   }
 
   @override
+  void toggleProductIndicator(int productId, int indicatorId) {
+    final _$actionInfo = _$_BudgetEditStoreBaseActionController.startAction(
+        name: '_BudgetEditStoreBase.toggleProductIndicator');
+    try {
+      return super.toggleProductIndicator(productId, indicatorId);
+    } finally {
+      _$_BudgetEditStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
   void updateCensoEscolar(CensoEscolarEntity updatedCenso) {
     final _$actionInfo = _$_BudgetEditStoreBaseActionController.startAction(
         name: '_BudgetEditStoreBase.updateCensoEscolar');

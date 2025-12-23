@@ -262,7 +262,7 @@ class _LoginPageState extends State<LoginPage> {
                     height: 39.h,
                     child: OutlinedButton(
                       onPressed: () {
-                        // TODO: Navegar para tela de cadastro
+                        Modular.to.pushNamed('/auth/register/');
                       },
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.grey[600],
