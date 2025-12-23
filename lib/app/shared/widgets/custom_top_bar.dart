@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../modules/features/auth/presentation/stores/auth_store.dart';
+import '../../modules/profile/external/services/profile_service.dart';
+import '../core/utils/token_cache.dart';
+import 'delete_account_modal.dart';
 import 'profile_modal.dart';
 
 class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
@@ -215,10 +219,58 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
           },
           onDeleteAccount: () {
             Navigator.of(context).pop();
-            // TODO: Implementar deletar conta
+            _handleDeleteAccount(context);
           },
         );
       },
+    );
+  }
+
+  Future<void> _handleDeleteAccount(BuildContext context) async {
+    final profileService = Modular.get<ProfileService>();
+    const secureStorage = FlutterSecureStorage();
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => DeleteAccountModal(
+        userName: authStore?.userDisplayName ?? 'Usuário',
+        onConfirmDelete: () async {
+          try {
+            // Chamar API para deletar conta
+            final mensagem = await profileService.deletarConta();
+            print('✅ Conta deletada: $mensagem');
+
+            // Limpar tokens
+            await secureStorage.delete(key: 'auth_token');
+            await secureStorage.delete(key: 'user_data');
+            TokenCache.instance.clearToken();
+            print('✅ Tokens limpos');
+
+            // Fechar modal
+            if (dialogContext.mounted) {
+              Navigator.of(dialogContext).pop();
+            }
+
+            // Mostrar mensagem de sucesso
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(mensagem),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
+
+            // Redirecionar para login
+            Modular.to.pushReplacementNamed('/auth/login');
+          } catch (e) {
+            print('❌ Erro ao deletar conta: $e');
+            rethrow;
+          }
+        },
+        onCancel: () => Navigator.of(dialogContext).pop(),
+      ),
     );
   }
 
