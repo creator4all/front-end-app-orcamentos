@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:mobx/mobx.dart';
 
+import '../../../../auth/presentation/stores/auth_store.dart';
 import '../../../budget_config/data/models/category_dto.dart';
 import '../../../budget_config/domain/entities/category_entity.dart';
 import '../../../budget_config/domain/entities/censo_escolar_entity.dart';
@@ -28,12 +29,14 @@ abstract class _BudgetEditStoreBase with Store {
   final UpdateBudgetUseCase updateBudgetUseCase;
   final GetCensusDataUseCase getCensusDataUseCase;
   final GetAllBudgetProductsForEditUseCase getAllProductsUseCase;
+  final AuthStore authStore;
 
   _BudgetEditStoreBase({
     required this.getBudgetForEditUseCase,
     required this.updateBudgetUseCase,
     required this.getCensusDataUseCase,
     required this.getAllProductsUseCase,
+    required this.authStore,
   });
 
   // ========== OBSERVABLES ==========
@@ -739,18 +742,22 @@ abstract class _BudgetEditStoreBase with Store {
       // 3. Calcular dias de validade
       final diasValidade = validityDate!.difference(DateTime.now()).inDays;
 
-      // 4. Criar DTO de atualização
+      // 4. Criar DTO de atualização (com dados obrigatórios para versionamento)
       final updateDto = BudgetUpdateDto(
         nome: budgetName,
         diasValidade: diasValidade > 0 ? diasValidade : 1,
         status: selectedStatus, // ⚠️ Pode ser qualquer status no budget_edit
         isArchived: isArchived, // 📦 Envia estado de arquivamento
         total: totalCalculado,
+        // 🔑 Campos obrigatórios para rota de versionamento
+        usuarioId: authStore.currentUser?.id ?? budgetData!.userId,
+        cidadeId:
+            budgetData!.cityIds.isNotEmpty ? budgetData!.cityIds.first : null,
         produtos: produtosParaSalvar,
       );
 
-      // 5. Chamar UseCase com DTO
-      final result = await updateBudgetUseCase.callWithDto(
+      // 5. Chamar UseCase com DTO (agora versiona em vez de atualizar)
+      final result = await updateBudgetUseCase.versionWithDto(
         budgetId: budgetData!.id,
         updateData: updateDto,
       );

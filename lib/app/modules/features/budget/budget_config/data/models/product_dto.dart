@@ -111,7 +111,7 @@ class ProductDTO {
 
           // Extração de IDs e Valores com fallback para nomes de colunas do banco (que aparecem no select)
           final prodIndId = ind['id'] ?? ind['prd_produtos_indicadoresId'] ?? 0;
-          final valor = ind['valor'] ?? ind['prd_valor'] ?? false;
+          final valor = ind['selecionado'] ?? false;
 
           final indId = indEtapa?['id'] ?? indEtapa?['ine_indicadoresId'] ?? 0;
           final indNome = indEtapa?['nome'] ?? indEtapa?['ine_nome'] ?? '';

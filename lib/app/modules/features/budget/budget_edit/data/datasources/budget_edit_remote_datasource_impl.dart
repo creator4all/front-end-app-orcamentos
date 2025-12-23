@@ -218,6 +218,47 @@ class BudgetEditRemoteDataSourceImpl implements BudgetEditRemoteDataSource {
     }
   }
 
+  @override
+  Future<BudgetEditDto> versionBudgetWithDto({
+    required int budgetId,
+    required BudgetUpdateDto updateData,
+  }) async {
+    try {
+      // Converter DTO para JSON (apenas campos não-nulos)
+      final body = updateData.toJson();
+
+      debugPrint(
+          '🔄 [BudgetEdit-DataSource] POST /api/orcamentos/$budgetId/versionar');
+      debugPrint('📦 [BudgetEdit-DataSource] Payload: $body');
+
+      final response =
+          await apiService.post('/api/orcamentos/$budgetId/versionar', body);
+
+      // Extrair dados da resposta (mesmo parsing do updateBudgetWithDto)
+      Map<String, dynamic> data;
+
+      if (response.containsKey('dados')) {
+        data = response['dados'] as Map<String, dynamic>;
+      } else if (response.containsKey('data')) {
+        final dataField = response['data'];
+        if (dataField is Map && dataField.containsKey('dados')) {
+          data = dataField['dados'] as Map<String, dynamic>;
+        } else {
+          data = dataField as Map<String, dynamic>;
+        }
+      } else {
+        data = response;
+      }
+
+      debugPrint('✅ [BudgetEdit-DataSource] Nova versão criada com sucesso');
+
+      return BudgetEditDto.fromJson(data);
+    } on DioException catch (e) {
+      debugPrint('❌ [BudgetEdit-DataSource] Erro ao versionar: ${e.message}');
+      throw _handleDioError(e);
+    }
+  }
+
   Exception _handleDioError(DioException error) {
     switch (error.type) {
       case DioExceptionType.connectionTimeout:

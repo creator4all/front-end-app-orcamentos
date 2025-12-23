@@ -84,8 +84,50 @@ class UpdateBudgetUseCase {
         );
       }
 
-
       return await repository.updateBudgetWithDto(
+        budgetId: budgetId,
+        updateData: updateData,
+      );
+    } catch (e) {
+      return Left(UnknownFailure(e.toString()));
+    }
+  }
+
+  /// Cria nova versão do orçamento com as alterações
+  ///
+  /// O orçamento original permanece inalterado e uma nova versão
+  /// é criada com as alterações fornecidas.
+  ///
+  /// [budgetId] ID do orçamento a versionar
+  /// [updateData] DTO com dados da nova versão
+  ///
+  /// Retorna a nova versão do orçamento ou falha
+  Future<Either<BudgetFailure, BudgetEditEntity>> versionWithDto({
+    required int budgetId,
+    required BudgetUpdateDto updateData,
+  }) async {
+    try {
+      // Validação: ID válido
+      if (budgetId <= 0) {
+        return const Left(ValidationFailure('ID do orçamento inválido'));
+      }
+
+      // Validação: Dias de validade se fornecido
+      if (updateData.diasValidade != null &&
+          (updateData.diasValidade! < 1 || updateData.diasValidade! > 365)) {
+        return const Left(
+          ValidationFailure('Validade deve estar entre 1 e 365 dias'),
+        );
+      }
+
+      // Validação: Total se fornecido
+      if (updateData.total != null && updateData.total! < 0) {
+        return const Left(
+          ValidationFailure('O valor total não pode ser negativo'),
+        );
+      }
+
+      return await repository.versionBudgetWithDto(
         budgetId: budgetId,
         updateData: updateData,
       );

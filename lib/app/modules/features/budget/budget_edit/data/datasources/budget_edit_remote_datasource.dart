@@ -35,4 +35,20 @@ abstract class BudgetEditRemoteDataSource {
     required int budgetId,
     required BudgetUpdateDto updateData,
   });
+
+  /// Cria nova versão do orçamento com as alterações
+  ///
+  /// Endpoint: POST /api/orcamentos/{id}/versionar
+  ///
+  /// O orçamento original permanece inalterado e uma nova versão
+  /// é criada com as alterações fornecidas.
+  ///
+  /// [budgetId] ID do orçamento a versionar
+  /// [updateData] DTO com dados da nova versão
+  ///
+  /// Retorna a nova versão do orçamento criada
+  Future<BudgetEditDto> versionBudgetWithDto({
+    required int budgetId,
+    required BudgetUpdateDto updateData,
+  });
 }

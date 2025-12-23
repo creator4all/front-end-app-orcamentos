@@ -41,4 +41,18 @@ abstract class BudgetEditRepository {
     required int budgetId,
     required BudgetUpdateDto updateData,
   });
+
+  /// Cria nova versão do orçamento com as alterações
+  ///
+  /// O orçamento original permanece inalterado e uma nova versão
+  /// é criada com as alterações fornecidas.
+  ///
+  /// [budgetId] ID do orçamento a versionar
+  /// [updateData] DTO com dados da nova versão
+  ///
+  /// Retorna a nova versão do orçamento ou falha
+  Future<Either<BudgetFailure, BudgetEditEntity>> versionBudgetWithDto({
+    required int budgetId,
+    required BudgetUpdateDto updateData,
+  });
 }
