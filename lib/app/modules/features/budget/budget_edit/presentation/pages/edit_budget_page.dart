@@ -287,21 +287,25 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
 
                   SizedBox(height: 12.h),
 
-                  // Categorias Dinâmicas
+                  // ✅ Categorias Dinâmicas (baseadas no campo "expandido")
                   if (store.hasCategories) ...[
-                    // 1. LIVROS (sempre primeiro, se existir)
-                    if (_getLivrosCategory() != null)
-                      Padding(
-                        padding: EdgeInsets.only(bottom: 12.h),
-                        child: _buildCategoryFromEntity(_getLivrosCategory()!),
-                      ),
-
-                    // 2. TECNOLOGIAS (header + subcategorias expandidas)
-                    if (_getTecnologiasCategory() != null) ...[
-                      _buildTecnologiasHeader(_getTecnologiasCategory()!),
-                      ..._buildTecnologiasSubcategories(
-                          _getTecnologiasCategory()!),
-                    ],
+                    ...store.categories.map((category) {
+                      if (category.expandido) {
+                        // Exibir como categoria expandida (header + subcategorias visíveis)
+                        return [
+                          _buildExpandedCategoryHeader(category),
+                          ..._buildExpandedSubcategories(category),
+                        ];
+                      } else {
+                        // Exibir como card único (abre modal ao clicar)
+                        return [
+                          Padding(
+                            padding: EdgeInsets.only(bottom: 12.h),
+                            child: _buildCategoryFromEntity(category),
+                          ),
+                        ];
+                      }
+                    }).expand((widgets) => widgets),
                   ],
 
                   // Mensagem se não houver categorias
@@ -448,32 +452,8 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
 
   // ========== MÉTODOS AUXILIARES ==========
 
-  /// Busca a categoria "Livros" nas categorias disponíveis
-  CategoryEntity? _getLivrosCategory() {
-    if (!store.hasCategories) return null;
-    try {
-      return store.categories.firstWhere(
-        (cat) => cat.nome.toLowerCase() == 'livros',
-      );
-    } catch (_) {
-      return null;
-    }
-  }
-
-  /// Busca a categoria "Tecnologias" nas categorias disponíveis
-  CategoryEntity? _getTecnologiasCategory() {
-    if (!store.hasCategories) return null;
-    try {
-      return store.categories.firstWhere(
-        (cat) => cat.nome.toLowerCase() == 'tecnologias',
-      );
-    } catch (_) {
-      return null;
-    }
-  }
-
-  /// Constrói o header customizado para Tecnologias
-  Widget _buildTecnologiasHeader(CategoryEntity tecnologias) {
+  /// Constrói o header para categorias expandidas
+  Widget _buildExpandedCategoryHeader(CategoryEntity category) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(0, 0, 0, 10),
       child: Row(
@@ -483,7 +463,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Tecnologias',
+                category.nome,
                 style: TextStyle(
                   fontSize: 16.sp,
                   fontWeight: FontWeight.w600,
@@ -496,7 +476,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                   locale: 'pt_BR',
                   symbol: 'R\$',
                   decimalDigits: 2,
-                ).format(tecnologias.totalValue),
+                ).format(category.totalValue),
                 style: TextStyle(
                   fontSize: 15.sp,
                   fontWeight: FontWeight.w400,
@@ -510,16 +490,17 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     );
   }
 
-  /// Constrói a lista de subcategorias de Tecnologias
-  List<Widget> _buildTecnologiasSubcategories(CategoryEntity tecnologias) {
-    final sortedSubcategories =
-        List<SubcategoryEntity>.from(tecnologias.subcategorias)
-          ..sort((a, b) => a.ordem.compareTo(b.ordem));
+  /// Constrói a lista de subcategorias expandidas
+  /// Ordena por campo "ordem" do backend
+  List<Widget> _buildExpandedSubcategories(CategoryEntity category) {
+    // Ordenar subcategorias por ordem
+    final sortedSubcategories = category.subcategorias.toList()
+      ..sort((a, b) => a.ordem.compareTo(b.ordem));
 
     return sortedSubcategories.map((subcategory) {
       return Padding(
         padding: EdgeInsets.only(bottom: 12.h),
-        child: _buildSubcategoryCard(subcategory, tecnologias),
+        child: _buildSubcategoryCard(subcategory, category),
       );
     }).toList();
   }
