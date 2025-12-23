@@ -18,6 +18,7 @@ import 'app/modules/features/budget/budget_module_new.dart'; // NOVO - Clean Arc
 import 'app/modules/features/new_drive/new_drive_module.dart'; // NOVO - Clean Architecture
 import 'app/modules/partner/external/services/partner_service.dart';
 import 'app/modules/partner/partner_module.dart';
+import 'app/modules/profile/external/services/profile_service.dart';
 import 'app/modules/profile/profile_module.dart';
 import 'app/shared/core/http/app_http_client.dart'; // ✅ IMPORT NOVO HTTP CLIENT
 import 'app/shared/core/http/dio_client.dart';
@@ -104,6 +105,13 @@ class AppModule extends Module {
         // Partner Service (compartilhado globalmente)
         Bind.singleton<PartnerService>(
           (i) => PartnerService(i<ApiService>(), i<FlutterSecureStorage>()),
+        ),
+
+        // ==================== PROFILE SERVICE ====================
+
+        // Profile Service (compartilhado globalmente para deletar conta)
+        Bind.singleton<ProfileService>(
+          (i) => ProfileService(i<ApiService>()),
         ),
       ];
 
