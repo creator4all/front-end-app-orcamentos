@@ -7,6 +7,7 @@ import '../../../shared/core/http/dio_client.dart';
 import '../../../shared/core/http/dio_config_factory.dart';
 import '../../../shared/core/http/dio_http_client_impl.dart';
 import '../../../shared/core/utils/token_cache.dart';
+import '../auth/presentation/stores/auth_store.dart';
 // Budget Config - Clean Architecture
 import 'budget_config/data/datasources/budget_detail_remote_datasource.dart';
 import 'budget_config/data/datasources/budget_detail_remote_datasource_impl.dart';
@@ -14,6 +15,7 @@ import 'budget_config/data/datasources/census_remote_datasource.dart';
 import 'budget_config/data/datasources/census_remote_datasource_impl.dart';
 import 'budget_config/data/repositories/budget_detail_repository_impl.dart';
 import 'budget_config/data/repositories/census_repository_impl.dart';
+import 'budget_config/domain/entities/censo_escolar_entity.dart';
 import 'budget_config/domain/repositories/budget_detail_repository.dart';
 import 'budget_config/domain/repositories/census_repository.dart';
 import 'budget_config/domain/services/product_calculation_service.dart';
@@ -30,7 +32,6 @@ import 'budget_config/domain/usecases/update_census_usecase.dart';
 import 'budget_config/presentation/pages/config_new_budget_page.dart';
 import 'budget_config/presentation/pages/school_census_page.dart';
 import 'budget_config/presentation/stores/budget_config_store.dart';
-import 'budget_config/domain/entities/censo_escolar_entity.dart';
 import 'budget_config/presentation/stores/school_census_store.dart';
 import 'budget_create/data/datasources/budget_draft_remote_datasource.dart';
 import 'budget_create/data/datasources/budget_draft_remote_datasource_impl.dart';
@@ -295,6 +296,7 @@ class BudgetModuleNew extends Module {
             getAllProductsUseCase: i.get<GetAllBudgetProductsForEditUseCase>(),
             updateBudgetUseCase: i.get<UpdateBudgetUseCase>(),
             getCensusDataUseCase: i.get<GetCensusDataUseCase>(),
+            authStore: Modular.get<AuthStore>(),
           ),
         ),
       ];

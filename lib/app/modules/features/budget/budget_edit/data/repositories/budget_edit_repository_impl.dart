@@ -17,10 +17,8 @@ class BudgetEditRepositoryImpl implements BudgetEditRepository {
   Future<Either<BudgetFailure, BudgetEditEntity>> getBudgetForEdit(
       int id) async {
     try {
-
       final dto = await remoteDataSource.getBudgetForEdit(id);
       final entity = dto.toEntity();
-
 
       return Right(entity);
     } on Exception catch (e) {
@@ -33,20 +31,17 @@ class BudgetEditRepositoryImpl implements BudgetEditRepository {
     required int budgetId,
   }) async {
     try {
-
       final productsData =
           await remoteDataSource.getBudgetProductsComplete(budgetId);
 
       // Extrair array de produtos
       final produtosJson = productsData['produtos'] as List<dynamic>? ?? [];
 
-
       // Parsear cada produto usando ProductDTO
       final produtos = produtosJson
           .map((json) => ProductDTO.fromJson(json as Map<String, dynamic>))
           .map((dto) => dto.toEntity())
           .toList();
-
 
       return Right(produtos);
     } on Exception catch (e) {
@@ -65,7 +60,6 @@ class BudgetEditRepositoryImpl implements BudgetEditRepository {
     List<int>? selectedProductIds,
   }) async {
     try {
-
       final dto = await remoteDataSource.updateBudget(
         id: id,
         name: name,
@@ -77,7 +71,6 @@ class BudgetEditRepositoryImpl implements BudgetEditRepository {
       );
 
       final entity = dto.toEntity();
-
 
       return Right(entity);
     } on Exception catch (e) {
@@ -91,7 +84,6 @@ class BudgetEditRepositoryImpl implements BudgetEditRepository {
     required BudgetUpdateDto updateData,
   }) async {
     try {
-
       final dto = await remoteDataSource.updateBudgetWithDto(
         budgetId: budgetId,
         updateData: updateData,
@@ -99,6 +91,24 @@ class BudgetEditRepositoryImpl implements BudgetEditRepository {
 
       final entity = dto.toEntity();
 
+      return Right(entity);
+    } on Exception catch (e) {
+      return Left(_mapExceptionToFailure(e));
+    }
+  }
+
+  @override
+  Future<Either<BudgetFailure, BudgetEditEntity>> versionBudgetWithDto({
+    required int budgetId,
+    required BudgetUpdateDto updateData,
+  }) async {
+    try {
+      final dto = await remoteDataSource.versionBudgetWithDto(
+        budgetId: budgetId,
+        updateData: updateData,
+      );
+
+      final entity = dto.toEntity();
 
       return Right(entity);
     } on Exception catch (e) {

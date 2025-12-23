@@ -56,6 +56,14 @@ class BudgetUpdateDto extends Equatable {
   /// Total calculado do orçamento
   final double? total;
 
+  /// ID do usuário proprietário do orçamento
+  /// **Obrigatório para versionamento** (POST /api/orcamentos/{id}/versionar)
+  final int? usuarioId;
+
+  /// ID da cidade principal do orçamento
+  /// **Obrigatório para versionamento** (POST /api/orcamentos/{id}/versionar)
+  final int? cidadeId;
+
   /// Array de IDs de cidades (relação N:N)
   ///
   /// **Importante**: Usado para adicionar/remover cidades via tabela pivô.
@@ -83,6 +91,8 @@ class BudgetUpdateDto extends Equatable {
     this.status,
     this.isArchived,
     this.total,
+    this.usuarioId,
+    this.cidadeId,
     this.cidades,
     this.indicadores,
     this.produtos,
@@ -100,6 +110,8 @@ class BudgetUpdateDto extends Equatable {
     if (status != null) map['orc_status'] = status;
     if (isArchived != null) map['orc_arquivado'] = isArchived;
     if (total != null) map['orc_total'] = total;
+    if (usuarioId != null) map['orc_usuario_id'] = usuarioId;
+    if (cidadeId != null) map['orc_cidade_id'] = cidadeId;
     if (cidades != null) map['cidades'] = cidades;
     if (indicadores != null) {
       map['indicadores'] = indicadores!.map((i) => i.toJson()).toList();
@@ -121,6 +133,8 @@ class BudgetUpdateDto extends Equatable {
         status,
         isArchived,
         total,
+        usuarioId,
+        cidadeId,
         cidades,
         indicadores,
         produtos,
