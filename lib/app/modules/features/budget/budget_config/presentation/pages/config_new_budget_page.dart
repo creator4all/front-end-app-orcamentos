@@ -242,13 +242,21 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                           print(
                               '👆 [ConfigPage] Navegando para edição do Censo Escolar');
 
-                          final cityId = store.budgetDetail?.cityIds.firstOrNull;
+                          final cityId =
+                              store.budgetDetail?.cityIds.firstOrNull;
                           if (cityId == null) return;
 
-                          // Navegar para tela de edição do censo passando dados
+                          // Navegar para tela de edição do censo passando budgetId e callback
                           final result = await Modular.to.pushNamed(
                             '/budget/census/$cityId',
-                            arguments: {'censoEscolar': store.censoEscolar},
+                            arguments: {
+                              'censoEscolar': store.censoEscolar,
+                              'budgetId': widget.budgetId,
+                              'onCensusUpdated': (updatedCenso) {
+                                // Atualizar censo no store local
+                                store.updateCensoEscolar(updatedCenso);
+                              },
+                            },
                           );
 
                           // Ao retornar da tela, verificar se houve atualização (retorna true)

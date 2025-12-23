@@ -570,6 +570,17 @@ mixin _$BudgetEditStore on _BudgetEditStoreBase, Store {
   }
 
   @override
+  void updateCensoEscolar(CensoEscolarEntity updatedCenso) {
+    final _$actionInfo = _$_BudgetEditStoreBaseActionController.startAction(
+        name: '_BudgetEditStoreBase.updateCensoEscolar');
+    try {
+      return super.updateCensoEscolar(updatedCenso);
+    } finally {
+      _$_BudgetEditStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
   String toString() {
     return '''
 isLoading: ${isLoading},

@@ -28,6 +28,7 @@ import 'budget_config/domain/usecases/get_census_data_usecase.dart';
 import 'budget_config/domain/usecases/get_census_usecase.dart';
 import 'budget_config/domain/usecases/save_budget_usecase.dart';
 import 'budget_config/domain/usecases/toggle_category_usecase.dart';
+import 'budget_config/domain/usecases/update_budget_census_usecase.dart';
 import 'budget_config/domain/usecases/update_census_usecase.dart';
 import 'budget_config/presentation/pages/config_new_budget_page.dart';
 import 'budget_config/presentation/pages/school_census_page.dart';
@@ -220,6 +221,9 @@ class BudgetModuleNew extends Module {
         Bind.lazySingleton(
           (i) => UpdateCensusUseCase(i.get<CensusRepository>()),
         ),
+        Bind.lazySingleton(
+          (i) => UpdateBudgetCensusUseCase(i.get<CensusRepository>()),
+        ),
 
         // Services
         Bind.lazySingleton<ProductCalculationService>(
@@ -245,6 +249,7 @@ class BudgetModuleNew extends Module {
           (i) => SchoolCensusStore(
             i.get<GetCensusUseCase>(),
             i.get<UpdateCensusUseCase>(),
+            i.get<UpdateBudgetCensusUseCase>(),
           ),
         ),
 
@@ -325,10 +330,19 @@ class BudgetModuleNew extends Module {
         // School Census
         ChildRoute('/census/:cityId', child: (context, args) {
           final cityId = int.parse(args.params['cityId']);
-          // Extrai censoEscolar dos argumentos, se disponível
+          // Extrai argumentos
           final argsData = args.data as Map<String, dynamic>?;
           final censoEscolar = argsData?['censoEscolar'] as CensoEscolarEntity?;
-          return SchoolCensusPage(cityId: cityId, censoInicial: censoEscolar);
+          final budgetId = argsData?['budgetId'] as int?;
+          final onCensusUpdated =
+              argsData?['onCensusUpdated'] as Function(CensoEscolarEntity)?;
+
+          return SchoolCensusPage(
+            cityId: cityId,
+            budgetId: budgetId,
+            censoInicial: censoEscolar,
+            onCensusUpdated: onCensusUpdated,
+          );
         }),
 
         // Budget Edit

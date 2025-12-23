@@ -55,4 +55,22 @@ class CensusRepositoryImpl implements CensusRepository {
       return Left(ServerFailure(e.toString()));
     }
   }
+
+  @override
+  Future<Either<BudgetFailure, CensoEscolarEntity>> updateBudgetCensusIndices({
+    required int budgetId,
+    required int cityId,
+    required Map<int, double> updatedIndices,
+  }) async {
+    try {
+      final result = await datasource.updateBudgetCensusIndices(
+        budgetId: budgetId,
+        cityId: cityId,
+        indices: updatedIndices,
+      );
+      return Right(result);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
 }

@@ -11,12 +11,16 @@ import '../widgets/census_data_section_widget.dart';
 
 class SchoolCensusPage extends StatefulWidget {
   final int cityId;
+  final int? budgetId;
   final CensoEscolarEntity? censoInicial;
+  final Function(CensoEscolarEntity)? onCensusUpdated;
 
   const SchoolCensusPage({
     super.key,
     required this.cityId,
+    this.budgetId,
     this.censoInicial,
+    this.onCensusUpdated,
   });
 
   @override
@@ -34,6 +38,12 @@ class _SchoolCensusPageState
   @override
   void initState() {
     super.initState();
+
+    // Definir budgetId para usar endpoint budget-scoped
+    if (widget.budgetId != null) {
+      store.setBudgetId(widget.budgetId);
+    }
+
     // Se recebeu dados do censo, usar diretamente
     if (widget.censoInicial != null) {
       store.setCensoEscolar(widget.censoInicial!);
@@ -73,16 +83,19 @@ class _SchoolCensusPageState
     final censo = store.censoEscolar;
     if (censo == null) return [];
 
-    return censo.grupos.map((group) {
-      final studentTitles = group.titulos
-          .where((title) => !title.nomeEtapa.endsWith('P'))
-          .toList();
-      return CensoGroupEntity(
-        id: group.id,
-        nome: group.nome,
-        titulos: studentTitles,
-      );
-    }).where((group) => group.titulos.isNotEmpty).toList();
+    return censo.grupos
+        .map((group) {
+          final studentTitles = group.titulos
+              .where((title) => !title.nomeEtapa.endsWith('P'))
+              .toList();
+          return CensoGroupEntity(
+            id: group.id,
+            nome: group.nome,
+            titulos: studentTitles,
+          );
+        })
+        .where((group) => group.titulos.isNotEmpty)
+        .toList();
   }
 
   /// Filtra grupos para mostrar apenas dados de PROFESSORES (com sufixo P)
@@ -90,16 +103,19 @@ class _SchoolCensusPageState
     final censo = store.censoEscolar;
     if (censo == null) return [];
 
-    return censo.grupos.map((group) {
-      final professorTitles = group.titulos
-          .where((title) => title.nomeEtapa.endsWith('P'))
-          .toList();
-      return CensoGroupEntity(
-        id: group.id,
-        nome: group.nome,
-        titulos: professorTitles,
-      );
-    }).where((group) => group.titulos.isNotEmpty).toList();
+    return censo.grupos
+        .map((group) {
+          final professorTitles = group.titulos
+              .where((title) => title.nomeEtapa.endsWith('P'))
+              .toList();
+          return CensoGroupEntity(
+            id: group.id,
+            nome: group.nome,
+            titulos: professorTitles,
+          );
+        })
+        .where((group) => group.titulos.isNotEmpty)
+        .toList();
   }
 
   @override
@@ -343,6 +359,12 @@ class _SchoolCensusPageState
     await store.saveCensus();
     if (store.error == null) {
       _hasSavedChanges = true;
+
+      // Notificar parent sobre atualização do censo
+      if (store.censoEscolar != null) {
+        widget.onCensusUpdated?.call(store.censoEscolar!);
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

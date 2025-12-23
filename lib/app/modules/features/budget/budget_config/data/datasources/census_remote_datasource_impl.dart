@@ -130,7 +130,7 @@ class CensusRemoteDataSourceImpl implements CensusRemoteDataSource {
           groupsMap[groupId] = CensoGroupEntity(
             id: groupId,
             nome: groupName,
-            titulos: [],
+            titulos: const [],
           );
         }
 
@@ -139,7 +139,7 @@ class CensusRemoteDataSourceImpl implements CensusRemoteDataSource {
         final title = CensoTitleEntity(
           id: indiceId,
           nomeEtapa: nomeEtapa,
-          tituloExibicao: tituloEtapa,  // Usa titulo_etapa da API
+          tituloExibicao: tituloEtapa, // Usa titulo_etapa da API
           valor: valor,
           isProfessores: isProfessores,
           grupoId: groupId,
@@ -154,6 +154,141 @@ class CensusRemoteDataSourceImpl implements CensusRemoteDataSource {
       cidadeId: cidadeId,
       cidadeNome: cidadeNome,
       grupos: groupsMap.values.toList(),
+      valoresPorEtapa: valoresPorEtapa,
+    );
+  }
+
+  @override
+  Future<CensoEscolarEntity> updateBudgetCensusIndices({
+    required int budgetId,
+    required int cityId,
+    required Map<int, double> indices,
+  }) async {
+    final List<Map<String, dynamic>> indicesArray = [];
+    indices.forEach((indiceEtapaId, valor) {
+      indicesArray.add({
+        'cidade_id': cityId,
+        'indice_etapa_id': indiceEtapaId,
+        'valor': valor,
+      });
+    });
+
+    final payload = {'indices': indicesArray};
+
+    final response = await _apiService.patch(
+      '${ApiConfig.baseUrl}/api/orcamentos/$budgetId/censo',
+      payload,
+    );
+
+    if (response['success'] == true) {
+      // O response real vem em response['data']['dados'] (API usa 'dados' não 'data')
+      final responseData = response['data'] as Map<String, dynamic>? ?? {};
+      final dados =
+          responseData['dados'] as Map<String, dynamic>? ?? responseData;
+
+      // Extrair dados da cidade do response completo do orçamento
+      final cidadeData = _extractCityWithCensusFromResponse(dados, cityId);
+      return _mapCidadeDataToCensoEntity(cidadeData, cityId);
+    } else {
+      throw Exception(
+          response['error'] ?? 'Erro ao atualizar censo do orçamento');
+    }
+  }
+
+  Map<String, dynamic> _extractCityWithCensusFromResponse(
+    Map<String, dynamic> data,
+    int cityId,
+  ) {
+    // Tentar extrair cidade do response
+    final cidade = data['cidade'] as Map<String, dynamic>?;
+    if (cidade != null) {
+      return cidade;
+    }
+
+    // Caso a estrutura seja diferente, tentar cidades (plural)
+    final cidades = data['cidades'] as List?;
+    if (cidades != null && cidades.isNotEmpty) {
+      return cidades.first as Map<String, dynamic>;
+    }
+
+    // Fallback: retornar dados vazios
+    throw Exception('Dados da cidade não encontrados no response');
+  }
+
+  CensoEscolarEntity _mapCidadeDataToCensoEntity(
+    Map<String, dynamic> cidadeData,
+    int cityId,
+  ) {
+    final int cidadeId = cidadeData['idCidades'] ?? cityId;
+    final String cidadeNome =
+        cidadeData['nome_cidade']?.toString() ?? 'Cidade $cidadeId';
+
+    final List<dynamic> indicesList =
+        cidadeData['cidades_has_indice_etapa'] as List? ?? [];
+
+    // Preparar mapa de valores por etapa
+    final Map<String, double> valoresPorEtapa = {};
+
+    // Agrupar títulos por grupo (usando listas mutáveis)
+    final Map<int, List<CensoTitleEntity>> titlesPerGroup = {};
+    final Map<int, String> groupNames = {};
+
+    for (var item in indicesList) {
+      final int indiceId = item['idindice_etapa'] is int
+          ? item['idindice_etapa']
+          : int.tryParse('${item['idindice_etapa']}') ?? 0;
+
+      final String nomeEtapa = (item['nome_etapa'] ?? '').toString();
+      final String tituloEtapa = (item['titulo_etapa'] ?? '').toString();
+
+      // Ler valor de pivot.etapa_valor
+      final pivot = item['pivot'] as Map<String, dynamic>?;
+      final double valor =
+          double.tryParse(pivot?['etapa_valor']?.toString() ?? '0') ?? 0.0;
+
+      valoresPorEtapa[nomeEtapa] = valor;
+
+      final groupJson = item['grupo'] as Map<String, dynamic>?;
+      if (groupJson != null) {
+        final int groupId = groupJson['grupo_id'] is int
+            ? groupJson['grupo_id']
+            : int.tryParse('${groupJson['grupo_id']}') ?? 0;
+        final String groupName = (groupJson['nome_grupo'] ?? '').toString();
+
+        // Guardar nome do grupo
+        groupNames[groupId] = groupName;
+
+        // Inicializar lista se não existir
+        titlesPerGroup.putIfAbsent(groupId, () => []);
+
+        // Criar e adicionar título ao grupo
+        final bool isProfessores = nomeEtapa.endsWith('P');
+        final title = CensoTitleEntity(
+          id: indiceId,
+          nomeEtapa: nomeEtapa,
+          tituloExibicao: tituloEtapa,
+          valor: valor,
+          isProfessores: isProfessores,
+          grupoId: groupId,
+        );
+
+        titlesPerGroup[groupId]!.add(title);
+      }
+    }
+
+    // Criar entidades de grupo com todas as suas títulos
+    final List<CensoGroupEntity> grupos = titlesPerGroup.entries.map((entry) {
+      return CensoGroupEntity(
+        id: entry.key,
+        nome: groupNames[entry.key] ?? '',
+        titulos: entry.value,
+      );
+    }).toList();
+
+    return CensoEscolarEntity(
+      cidadeId: cidadeId,
+      cidadeNome: cidadeNome,
+      grupos: grupos,
       valoresPorEtapa: valoresPorEtapa,
     );
   }

@@ -120,6 +120,22 @@ mixin _$SchoolCensusStore on _SchoolCensusStoreBase, Store {
     });
   }
 
+  late final _$budgetIdAtom =
+      Atom(name: '_SchoolCensusStoreBase.budgetId', context: context);
+
+  @override
+  int? get budgetId {
+    _$budgetIdAtom.reportRead();
+    return super.budgetId;
+  }
+
+  @override
+  set budgetId(int? value) {
+    _$budgetIdAtom.reportWrite(value, super.budgetId, () {
+      super.budgetId = value;
+    });
+  }
+
   late final _$loadCensusAsyncAction =
       AsyncAction('_SchoolCensusStoreBase.loadCensus', context: context);
 
@@ -138,6 +154,17 @@ mixin _$SchoolCensusStore on _SchoolCensusStoreBase, Store {
 
   late final _$_SchoolCensusStoreBaseActionController =
       ActionController(name: '_SchoolCensusStoreBase', context: context);
+
+  @override
+  void setBudgetId(int? id) {
+    final _$actionInfo = _$_SchoolCensusStoreBaseActionController.startAction(
+        name: '_SchoolCensusStoreBase.setBudgetId');
+    try {
+      return super.setBudgetId(id);
+    } finally {
+      _$_SchoolCensusStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
 
   @override
   void setCensoEscolar(CensoEscolarEntity censo) {
@@ -181,6 +208,7 @@ isSaving: ${isSaving},
 isEditMode: ${isEditMode},
 error: ${error},
 editedValues: ${editedValues},
+budgetId: ${budgetId},
 totalStudents: ${totalStudents},
 hasChanges: ${hasChanges}
     ''';

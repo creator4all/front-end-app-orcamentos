@@ -435,6 +435,17 @@ mixin _$BudgetConfigStore on _BudgetConfigStoreBase, Store {
   }
 
   @override
+  void updateCensoEscolar(CensoEscolarEntity updatedCenso) {
+    final _$actionInfo = _$_BudgetConfigStoreBaseActionController.startAction(
+        name: '_BudgetConfigStoreBase.updateCensoEscolar');
+    try {
+      return super.updateCensoEscolar(updatedCenso);
+    } finally {
+      _$_BudgetConfigStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
   void _remarkProducts(List<ProductEntity> productsToRemark) {
     final _$actionInfo = _$_BudgetConfigStoreBaseActionController.startAction(
         name: '_BudgetConfigStoreBase._remarkProducts');
