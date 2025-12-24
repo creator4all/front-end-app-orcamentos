@@ -1,0 +1,66 @@
+import '../../../../../shared/core/http/app_http_client.dart';
+import '../models/managed_user_dto.dart';
+import '../models/user_update_dto.dart';
+import 'user_management_datasource.dart';
+
+/// Implementação do datasource usando API HTTP
+class UserManagementApiDatasource implements UserManagementDatasource {
+  final AppHttpClient httpClient;
+
+  UserManagementApiDatasource({required this.httpClient});
+
+  @override
+  Future<PaginatedUsersDto> listUsers({
+    required int page,
+    required int perPage,
+  }) async {
+    try {
+      print(
+          '📋 [UserManagementApiDatasource] Listando usuários página $page...');
+
+      final response = await httpClient.get(
+        '/api/parceiro/usuarios?page=$page&per_page=$perPage',
+      );
+
+      if (response.statusCode == 200) {
+        print(
+            '✅ [UserManagementApiDatasource] Usuários carregados com sucesso');
+        return PaginatedUsersDto.fromJson(response.body);
+      }
+
+      throw Exception('Erro ao listar usuários: ${response.statusCode}');
+    } catch (e) {
+      print('❌ [UserManagementApiDatasource] Erro ao listar usuários: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<UpdateUsersResponseDto> updateUsers(
+      List<UserUpdateDto> updates) async {
+    try {
+      print(
+          '💾 [UserManagementApiDatasource] Atualizando ${updates.length} usuários...');
+
+      final payload = {
+        'usuarios': updates.map((u) => u.toJson()).toList(),
+      };
+
+      final response = await httpClient.patch(
+        '/api/parceiro/usuarios',
+        data: payload,
+      );
+
+      if (response.statusCode == 200) {
+        print(
+            '✅ [UserManagementApiDatasource] Usuários atualizados com sucesso');
+        return UpdateUsersResponseDto.fromJson(response.body);
+      }
+
+      throw Exception('Erro ao atualizar usuários: ${response.statusCode}');
+    } catch (e) {
+      print('❌ [UserManagementApiDatasource] Erro ao atualizar usuários: $e');
+      rethrow;
+    }
+  }
+}
