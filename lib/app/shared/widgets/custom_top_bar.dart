@@ -203,7 +203,7 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
           },
           onAdministrativeManagement: () {
             Navigator.of(context).pop();
-            // TODO: Implementar navegação para gestão administrativa
+            Modular.to.pushNamed('/user-management/');
           },
           onWiki: () {
             Navigator.of(context).pop();

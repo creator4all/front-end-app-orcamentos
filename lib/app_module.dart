@@ -16,6 +16,7 @@ import 'app/modules/features/auth/presentation/stores/auth_store.dart';
 import 'app/modules/features/budget/budget_module_new.dart'; // NOVO - Clean Architecture
 // import 'app/modules/drive/drive_module.dart'; // ANTIGO - Legacy
 import 'app/modules/features/new_drive/new_drive_module.dart'; // NOVO - Clean Architecture
+import 'app/modules/features/user_management/user_management_module.dart';
 import 'app/modules/partner/external/services/partner_service.dart';
 import 'app/modules/partner/partner_module.dart';
 import 'app/modules/profile/external/services/profile_service.dart';
@@ -131,6 +132,9 @@ class AppModule extends Module {
 
         // Drive Module - Clean Architecture
         ModuleRoute('/drive', module: NewDriveModule()),
+
+        // User Management Module - Gestão de Usuários
+        ModuleRoute('/user-management', module: UserManagementModule()),
 
         // Redirect to auth by default
         RedirectRoute('/', to: '/auth/login'),
