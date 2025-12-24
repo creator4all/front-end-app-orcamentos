@@ -199,7 +199,7 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
           },
           onPartnerProspecting: () {
             Navigator.of(context).pop();
-            // TODO: Implementar navegação para prospecção de parceiros
+            Modular.to.pushNamed('/prospect/');
           },
           onAdministrativeManagement: () {
             Navigator.of(context).pop();
