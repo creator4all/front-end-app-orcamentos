@@ -2,8 +2,8 @@ import 'package:equatable/equatable.dart';
 
 /// Enum para experiência em vendas no setor público
 enum PublicSectorExperience {
-  never('nunca'), // Não, nunca atuei
-  past('passado'), // Sim, atuei no passado
+  never('nao_atuo'), // Não, nunca atuei
+  past('atuei_passado'), // Sim, atuei no passado
   current('atuando'); // Sim, estou atuando
 
   final String value;

@@ -38,10 +38,8 @@ class LoggerInterceptor extends HttpInterceptor {
       if (logHeaders && request.headers.isNotEmpty) {
         debugPrint('├─ Headers:');
         request.headers.forEach((key, value) {
-          // Oculta tokens sensíveis nos logs
-          final displayValue = key.toLowerCase() == 'authorization'
-              ? '***TOKEN***'
-              : value.toString();
+          // DEBUG: Expondo token temporariamente para diagnóstico
+          final displayValue = value.toString();
           debugPrint('│   $key: $displayValue');
         });
       }

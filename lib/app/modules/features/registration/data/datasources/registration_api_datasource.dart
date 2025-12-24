@@ -50,7 +50,7 @@ class RegistrationApiDatasource implements RegistrationDatasource {
   Future<void> requestPartner(PartnerRequestDto dto) async {
     try {
       final response = await httpClient.post(
-        '/api/prospeccao-parceiros',
+        '/api/prospeccao-parceiros/',
         data: dto.toJson(),
       );
 
