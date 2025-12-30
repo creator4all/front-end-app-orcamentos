@@ -159,6 +159,17 @@ mixin _$GeoStore on _GeoStore, Store {
   }
 
   @override
+  void limparSelecao() {
+    final _$actionInfo = _$_GeoStoreActionController.startAction(
+        name: '_GeoStore.limparSelecao');
+    try {
+      return super.limparSelecao();
+    } finally {
+      _$_GeoStoreActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
   String toString() {
     return '''
 isLoadingEstados: ${isLoadingEstados},

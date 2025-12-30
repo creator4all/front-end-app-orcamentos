@@ -5,9 +5,10 @@
     
     <application
         android:usesCleartextTraffic="true"
-        android:label="(NOVO) Multimídia: Parceiro (B2B)"
+        android:label="Multimídia B2B"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:extractNativeLibs="false">
         <activity
             android:name=".MainActivity"
             android:exported="true"

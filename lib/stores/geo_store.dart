@@ -1,6 +1,7 @@
 import 'package:mobx/mobx.dart';
-import '../entities/estado_entity.dart';
+
 import '../entities/cidade_entity.dart';
+import '../entities/estado_entity.dart';
 import '../services/geo_service.dart';
 
 part 'geo_store.g.dart';
@@ -73,5 +74,12 @@ abstract class _GeoStore with Store {
   @action
   void selecionarCidade(CidadeEntity? c) {
     cidadeSelecionada = c;
+  }
+
+  @action
+  void limparSelecao() {
+    estadoSelecionado = null;
+    cidadeSelecionada = null;
+    cidades.clear();
   }
 }

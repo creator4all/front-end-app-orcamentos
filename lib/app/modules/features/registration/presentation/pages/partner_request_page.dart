@@ -3,6 +3,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:video_player/video_player.dart';
 
 import '../../../../../../theme/app_theme.dart';
 import '../../../../../../widgets/index.dart';
@@ -29,15 +30,27 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
   PublicSectorExperience _publicSectorExperience = PublicSectorExperience.never;
 
   late final RegistrationStore store;
+  late VideoPlayerController _videoController;
+  bool _isVideoInitialized = false;
 
   @override
   void initState() {
     super.initState();
     store = Modular.get<RegistrationStore>();
+
+    // Inicializar player de vídeo
+    _videoController = VideoPlayerController.asset(
+      'assets/videos/oportunidade_de_vendas.mp4',
+    )..initialize().then((_) {
+        if (mounted) {
+          setState(() => _isVideoInitialized = true);
+        }
+      });
   }
 
   @override
   void dispose() {
+    _videoController.dispose();
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
@@ -250,19 +263,45 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
                 ),
                 SizedBox(height: 16.h),
 
-                // Placeholder do vídeo
-                Container(
-                  height: 180.h,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(8.r),
-                  ),
-                  child: Center(
-                    child: Icon(
-                      Icons.play_circle_outline,
-                      size: 64.w,
-                      color: Colors.grey[400],
-                    ),
+                // Player de Vídeo
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8.r),
+                  child: AspectRatio(
+                    aspectRatio: 16 / 9,
+                    child: _isVideoInitialized
+                        ? GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _videoController.value.isPlaying
+                                    ? _videoController.pause()
+                                    : _videoController.play();
+                              });
+                            },
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                VideoPlayer(_videoController),
+                                if (!_videoController.value.isPlaying)
+                                  Container(
+                                    decoration: const BoxDecoration(
+                                      color: Colors.black26,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    padding: EdgeInsets.all(12.w),
+                                    child: Icon(
+                                      Icons.play_arrow,
+                                      color: Colors.white,
+                                      size: 48.sp,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          )
+                        : Container(
+                            color: Colors.grey[200],
+                            child: const Center(
+                                child: CircularProgressIndicator()),
+                          ),
                   ),
                 ),
                 SizedBox(height: 32.h),
