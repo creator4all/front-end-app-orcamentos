@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../../../../../theme/app_theme.dart';
 import '../../../../../../widgets/index.dart';
@@ -358,25 +359,10 @@ class _CnpjSearchPageState extends State<CnpjSearchPage> {
               children: [
                 // Ilustração
                 Center(
-                  child: Image.asset(
-                    'assets/images/search_company.png',
+                  child: SvgPicture.asset(
+                    'assets/images/undraw_agreement_re_d4dv.svg',
                     width: 180.w,
                     height: 180.h,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: 180.w,
-                        height: 180.h,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(12.r),
-                        ),
-                        child: Icon(
-                          Icons.business,
-                          size: 80.w,
-                          color: AppTheme.primaryColor,
-                        ),
-                      );
-                    },
                   ),
                 ),
                 SizedBox(height: 24.h),

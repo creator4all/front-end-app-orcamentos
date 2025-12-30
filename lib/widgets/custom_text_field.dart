@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../theme/app_theme.dart';
 
 class CustomTextField extends StatelessWidget {
@@ -17,7 +18,7 @@ class CustomTextField extends StatelessWidget {
   final void Function(String)? onSubmitted;
 
   const CustomTextField({
-    Key? key,
+    super.key,
     required this.controller,
     required this.label,
     required this.hintText,
@@ -31,7 +32,7 @@ class CustomTextField extends StatelessWidget {
     this.focusNode,
     this.onChanged,
     this.onSubmitted,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -59,10 +60,13 @@ class CustomTextField extends StatelessWidget {
           onFieldSubmitted: onSubmitted,
           decoration: InputDecoration(
             hintText: hintText,
-            border: const OutlineInputBorder(),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
             suffixIcon: suffixIcon,
-            focusedBorder: const OutlineInputBorder(
-              borderSide: BorderSide(color: AppTheme.primaryColor),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: AppTheme.primaryColor),
             ),
           ),
         ),
