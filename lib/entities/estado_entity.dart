@@ -11,7 +11,7 @@ class EstadoEntity {
           ? json['id_estado'] as int
           : int.tryParse('${json['id_estado']}') ?? 0,
       nome: (json['nome_estado'] ?? json['nome'] ?? '').toString(),
-      uf: (json['uf'] ?? '').toString(),
+      uf: (json['uf'] ?? json['sigla'] ?? '').toString(),
     );
   }
 }
