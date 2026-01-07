@@ -1,0 +1,370 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:flutter_modular/flutter_modular.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:multimidiaapp/app/shared/widgets/city_badge_widget.dart';
+import 'package:multimidiaapp/app/shared/widgets/city_selection_modal.dart';
+import 'package:multimidiaapp/app/shared/widgets/custom_top_bar.dart';
+import 'package:multimidiaapp/stores/store_provider.dart';
+
+import '../../../budget_config/presentation/widgets/census_data_section_widget.dart';
+import '../stores/multi_city_census_store.dart';
+import '../widgets/city_selector_dropdown.dart';
+
+/// Página de censo escolar multi-cidades
+/// Permite selecionar múltiplas cidades e editar valores do censo
+class MultiCityCensusPage extends StatefulWidget {
+  /// Nome do orçamento recebido via navegação
+  final String budgetName;
+
+  /// ID do orçamento para modo edição (null para criação)
+  final int? budgetId;
+
+  const MultiCityCensusPage({
+    super.key,
+    required this.budgetName,
+    this.budgetId,
+  });
+
+  @override
+  State<MultiCityCensusPage> createState() => _MultiCityCensusPageState();
+}
+
+class _MultiCityCensusPageState
+    extends ModularState<MultiCityCensusPage, MultiCityCensusStore> {
+  final Map<int, TextEditingController> _controllers = {};
+  late dynamic _geoStore;
+
+  @override
+  void initState() {
+    super.initState();
+    store.setBudgetName(widget.budgetName);
+
+    // Abrir modal de cidades após build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (store.shouldOpenCityModal) {
+        _showCitySelectionModal();
+        store.markModalOpened();
+      }
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _geoStore = StoreProvider.of(context).geoStore;
+  }
+
+  @override
+  void dispose() {
+    for (var controller in _controllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _showCitySelectionModal() async {
+    // Carregar estados se necessário
+    if (_geoStore.estados.isEmpty && !_geoStore.isLoadingEstados) {
+      await _geoStore.carregarEstados();
+    }
+
+    if (!mounted) return;
+
+    final result = await CitySelectionModal.show(
+      context: context,
+      geo: _geoStore,
+      initialSelectedCities: store.selectedCities.toList(),
+    );
+
+    if (result != null && result.isNotEmpty) {
+      store.setSelectedCities(result);
+      await store.loadCensusForCities();
+      _syncControllersWithStore();
+    }
+  }
+
+  void _syncControllersWithStore() {
+    final census = store.currentCensus;
+    if (census == null) return;
+
+    for (var group in census.grupos) {
+      for (var title in group.titulos) {
+        if (!_controllers.containsKey(title.id)) {
+          _controllers[title.id] = TextEditingController(
+            text: title.valor.toStringAsFixed(0),
+          );
+        }
+      }
+    }
+  }
+
+  void _onValueChanged(int cityId, int indiceId, double value) {
+    store.updateValue(cityId, indiceId, value);
+  }
+
+  Future<void> _handleNext() async {
+    if (!store.hasCities) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selecione ao menos uma cidade')),
+      );
+      return;
+    }
+
+    // Criar orçamento
+    final budgetId = await store.createBudget();
+
+    if (budgetId != null) {
+      // Navegar para configuração do orçamento
+      Modular.to.pushReplacementNamed('/budget/config/$budgetId');
+    } else if (store.error != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(store.error!),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: CustomTopBar(
+        title: 'Censo escolar',
+        showBackButton: true,
+        actionButton: GestureDetector(
+          onTap: _showCitySelectionModal,
+          child: Container(
+            width: 36.w,
+            height: 36.w,
+            decoration: BoxDecoration(
+              color: const Color(0xFF117BBD),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: const Color(0xFF117BBD),
+                width: 2,
+              ),
+            ),
+            child: Icon(
+              Icons.add,
+              size: 20.sp,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ),
+      body: SafeArea(
+        child: Observer(
+          builder: (context) {
+            if (store.isLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            return Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.only(bottom: 16.h),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // City badges
+                        _buildCityBadges(),
+
+                        // City selector dropdown
+                        if (store.quantidadeCidades > 1) ...[
+                          SizedBox(height: 16.h),
+                          CitySelectorDropdown(
+                            cities: store.selectedCities.toList(),
+                            selectedCityId: store.selectedCityId,
+                            onCitySelected: store.selectCity,
+                          ),
+                        ],
+
+                        SizedBox(height: 16.h),
+
+                        // Info text
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16.w),
+                          child: Text(
+                            'Informe os valores nos campos designados ou escolha cidades para buscar valores',
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: const Color(0xFF828282),
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 8.h),
+
+                        // Census data sections
+                        _buildCensusSections(),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Next button
+                _buildNextButton(),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCityBadges() {
+    return Observer(
+      builder: (context) {
+        if (store.selectedCities.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return Container(
+          padding: EdgeInsets.symmetric(vertical: 12.h),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: EdgeInsets.symmetric(horizontal: 16.w),
+            child: Row(
+              children: store.selectedCities.map((cityData) {
+                return Padding(
+                  padding: EdgeInsets.only(right: 8.w),
+                  child: CityBadgeWidget(
+                    city: cityData['nome'] ?? '',
+                    state: cityData['uf'] ?? '',
+                    onRemove: () {
+                      store.removeCity(cityData['id'] as int);
+                      // Recarregar se ainda houver cidades
+                      if (store.hasCities) {
+                        store.loadCensusForCities();
+                      }
+                    },
+                    showIcon: true,
+                    backgroundColor: const Color(0xFF00364D),
+                    textColor: const Color(0xFFEBF9FF),
+                    iconBackgroundColor: const Color(0xFFEBF9FF),
+                    iconColor: const Color(0xFF00364D),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCensusSections() {
+    return Observer(
+      builder: (context) {
+        final census = store.currentCensus;
+
+        if (census == null) {
+          return Center(
+            child: Padding(
+              padding: EdgeInsets.all(32.h),
+              child: Text(
+                'Adicione cidades para visualizar os dados do censo',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  color: Colors.grey[600],
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          );
+        }
+
+        // Filtrar grupos de alunos (sem sufixo P)
+        final studentGroups = census.grupos
+            .map((group) {
+              final studentTitles = group.titulos
+                  .where((title) => !title.nomeEtapa.endsWith('P'))
+                  .toList();
+              return group.titulos.isEmpty
+                  ? null
+                  : group.copyWith(titulos: studentTitles);
+            })
+            .whereType<dynamic>()
+            .where((g) => g.titulos.isNotEmpty)
+            .toList();
+
+        return Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ...studentGroups.map((group) {
+                _syncControllersWithStore();
+                return CensusDataSectionWidget(
+                  group: group,
+                  isEditMode: true,
+                  controllers: _controllers,
+                  onItemChanged: (entry) {
+                    final cityId = store.selectedCityId ??
+                        (store.cidadeIds.isNotEmpty
+                            ? store.cidadeIds.first
+                            : 0);
+                    _onValueChanged(cityId, entry.key, entry.value);
+                  },
+                );
+              }),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildNextButton() {
+    return Observer(
+      builder: (context) {
+        return Container(
+          width: double.infinity,
+          padding: EdgeInsets.all(16.w),
+          child: ElevatedButton(
+            onPressed: store.hasCities && !store.isSaving ? _handleNext : null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0E3562),
+              disabledBackgroundColor: Colors.grey[300],
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              padding: EdgeInsets.symmetric(vertical: 14.h),
+            ),
+            child: store.isSaving
+                ? SizedBox(
+                    width: 20.sp,
+                    height: 20.sp,
+                    child: const CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Próximo',
+                        style: TextStyle(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w600,
+                          color: store.hasCities ? Colors.white : Colors.grey,
+                        ),
+                      ),
+                      SizedBox(width: 8.w),
+                      Icon(
+                        Icons.arrow_forward,
+                        color: store.hasCities ? Colors.white : Colors.grey,
+                        size: 18.sp,
+                      ),
+                    ],
+                  ),
+          ),
+        );
+      },
+    );
+  }
+}

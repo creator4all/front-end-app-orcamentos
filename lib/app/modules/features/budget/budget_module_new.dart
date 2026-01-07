@@ -79,6 +79,15 @@ import 'budget_list/domain/usecases/get_budgets_usecase.dart';
 import 'budget_list/domain/usecases/rename_budget_usecase.dart';
 import 'budget_list/presentation/pages/budget_list_page.dart';
 import 'budget_list/presentation/stores/budget_list_store.dart';
+// Budget Multi-City - Clean Architecture
+import 'budget_multi_city/data/datasources/multi_city_budget_remote_datasource.dart';
+import 'budget_multi_city/data/datasources/multi_city_budget_remote_datasource_impl.dart';
+import 'budget_multi_city/data/repositories/multi_city_budget_repository_impl.dart';
+import 'budget_multi_city/domain/repositories/multi_city_budget_repository.dart';
+import 'budget_multi_city/domain/usecases/create_multi_city_budget_usecase.dart';
+import 'budget_multi_city/domain/usecases/get_multi_city_census_usecase.dart';
+import 'budget_multi_city/presentation/pages/multi_city_census_page.dart';
+import 'budget_multi_city/presentation/stores/multi_city_census_store.dart';
 
 // TODO: Imports para Budget Edit (a implementar)
 
@@ -305,6 +314,35 @@ class BudgetModuleNew extends Module {
             calculationService: i.get<ProductCalculationService>(),
           ),
         ),
+
+        // ==================== BUDGET MULTI-CITY ====================
+        // DataSources
+        Bind.lazySingleton<MultiCityBudgetRemoteDataSource>(
+          (i) => MultiCityBudgetRemoteDataSourceImpl(i.get<ApiService>()),
+        ),
+
+        // Repositories
+        Bind.lazySingleton<MultiCityBudgetRepository>(
+          (i) => MultiCityBudgetRepositoryImpl(
+              i.get<MultiCityBudgetRemoteDataSource>()),
+        ),
+
+        // UseCases
+        Bind.lazySingleton<GetMultiCityCensusUseCase>(
+          (i) => GetMultiCityCensusUseCase(i.get<MultiCityBudgetRepository>()),
+        ),
+        Bind.lazySingleton<CreateMultiCityBudgetUseCase>(
+          (i) =>
+              CreateMultiCityBudgetUseCase(i.get<MultiCityBudgetRepository>()),
+        ),
+
+        // Stores
+        Bind.lazySingleton<MultiCityCensusStore>(
+          (i) => MultiCityCensusStore(
+            i.get<GetMultiCityCensusUseCase>(),
+            i.get<CreateMultiCityBudgetUseCase>(),
+          ),
+        ),
       ];
 
   @override
@@ -350,6 +388,17 @@ class BudgetModuleNew extends Module {
         ChildRoute('/edit/:budgetId', child: (context, args) {
           final budgetId = int.parse(args.params['budgetId']);
           return EditBudgetPage(budgetId: budgetId);
+        }),
+
+        // Multi-City Census
+        ChildRoute('/multi-city/census', child: (context, args) {
+          final argsData = args.data as Map<String, dynamic>?;
+          final budgetName = argsData?['budgetName'] as String? ?? 'Orçamento';
+          final budgetId = argsData?['budgetId'] as int?;
+          return MultiCityCensusPage(
+            budgetName: budgetName,
+            budgetId: budgetId,
+          );
         }),
       ];
 }

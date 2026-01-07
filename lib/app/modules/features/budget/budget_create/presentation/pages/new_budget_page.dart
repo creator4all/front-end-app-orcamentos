@@ -681,13 +681,34 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
 
                   SizedBox(height: 10.h),
 
-                  // Link Orçamento multi-cidades (desabilitado por enquanto)
+                  // Link Orçamento multi-cidades
                   Center(
-                    child: Text(
-                      'Orçamento multi-cidades (em breve)',
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color: Colors.grey[400],
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () async {
+                        // Navegar para tela de orçamento multi-cidades
+                        await Modular.to.pushNamed(
+                          '/budget/multi-city/census',
+                          arguments: {
+                            'budgetName': '',
+                            'budgetId': null,
+                          },
+                        );
+                      },
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          vertical: 16.h,
+                          horizontal: 24.w,
+                        ),
+                        child: Text(
+                          'Orçamento multi-cidades',
+                          style: TextStyle(
+                            fontSize: 16.sp,
+                            color: const Color(0xFF117BBD),
+                            decoration: TextDecoration.underline,
+                            decorationColor: const Color(0xFF117BBD),
+                          ),
+                        ),
                       ),
                     ),
                   ),

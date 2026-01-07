@@ -1,0 +1,2 @@
+C:/multimidia/front-end-app-orcamentos/android/app/.cxx/Debug/86c272as/x86_64/CMakeFiles/edit_cache.dir
+C:/multimidia/front-end-app-orcamentos/android/app/.cxx/Debug/86c272as/x86_64/CMakeFiles/rebuild_cache.dir

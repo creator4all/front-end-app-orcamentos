@@ -35,4 +35,17 @@ class CensoGroupEntity extends Equatable {
   String toString() {
     return 'CensoGroupEntity(id: $id, nome: $nome, titulos: $quantidadeTitulos, valor: R\$ $valorTotal)';
   }
+
+  /// Cria uma cópia do grupo com os campos especificados alterados
+  CensoGroupEntity copyWith({
+    int? id,
+    String? nome,
+    List<CensoTitleEntity>? titulos,
+  }) {
+    return CensoGroupEntity(
+      id: id ?? this.id,
+      nome: nome ?? this.nome,
+      titulos: titulos ?? this.titulos,
+    );
+  }
 }
