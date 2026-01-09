@@ -40,10 +40,10 @@ abstract class _MultiCityCensusStoreBase with Store {
   @observable
   int? selectedCityId;
 
-  /// Valores editados por cidade: cidadeId -> { indiceId -> valor }
+  /// Valores editados por cidade: cidadeId -> { nomeEtapa -> valor }
   @observable
-  ObservableMap<int, ObservableMap<int, double>> editedValuesPerCity =
-      ObservableMap<int, ObservableMap<int, double>>();
+  ObservableMap<int, ObservableMap<String, double>> editedValuesPerCity =
+      ObservableMap<int, ObservableMap<String, double>>();
 
   /// Flag se deve abrir modal na primeira renderização
   @observable
@@ -78,7 +78,7 @@ abstract class _MultiCityCensusStoreBase with Store {
 
   /// Retorna os valores editados da cidade selecionada
   @computed
-  Map<int, double> get currentEditedValues {
+  Map<String, double> get currentEditedValues {
     if (selectedCityId != null) {
       return editedValuesPerCity[selectedCityId!] ?? {};
     }
@@ -101,6 +101,31 @@ abstract class _MultiCityCensusStoreBase with Store {
   @computed
   double get valorTotalAgregado {
     return censusPerCity.values.fold(0.0, (sum, c) => sum + c.valorTotal);
+  }
+
+  /// Verifica se está em modo agregado (todas as cidades)
+  @computed
+  bool get isAggregateMode => selectedCityId == null;
+
+  /// Valores agregados por nomeEtapa (soma de todas as cidades)
+  @computed
+  Map<String, double> get aggregatedValues {
+    final result = <String, double>{};
+    for (final values in editedValuesPerCity.values) {
+      for (final entry in values.entries) {
+        result[entry.key] = (result[entry.key] ?? 0) + entry.value;
+      }
+    }
+    return result;
+  }
+
+  /// Retorna os valores a exibir (agregados ou da cidade selecionada)
+  @computed
+  Map<String, double> get displayValues {
+    if (isAggregateMode) {
+      return aggregatedValues;
+    }
+    return editedValuesPerCity[selectedCityId] ?? {};
   }
 
   // =========================
@@ -177,13 +202,13 @@ abstract class _MultiCityCensusStoreBase with Store {
     isLoading = false;
   }
 
-  /// Atualiza um valor de índice para uma cidade específica
+  /// Atualiza um valor de etapa para uma cidade específica
   @action
-  void updateValue(int cityId, int indiceId, double value) {
+  void updateValue(int cityId, String nomeEtapa, double value) {
     if (!editedValuesPerCity.containsKey(cityId)) {
-      editedValuesPerCity[cityId] = ObservableMap<int, double>();
+      editedValuesPerCity[cityId] = ObservableMap<String, double>();
     }
-    editedValuesPerCity[cityId]![indiceId] = value;
+    editedValuesPerCity[cityId]![nomeEtapa] = value;
   }
 
   /// Cria o orçamento e retorna o ID
@@ -234,11 +259,11 @@ abstract class _MultiCityCensusStoreBase with Store {
       final cityId = entry.key;
       final census = entry.value;
 
-      editedValuesPerCity[cityId] = ObservableMap<int, double>();
+      editedValuesPerCity[cityId] = ObservableMap<String, double>();
 
       for (final group in census.grupos) {
         for (final title in group.titulos) {
-          editedValuesPerCity[cityId]![title.id] = title.valor;
+          editedValuesPerCity[cityId]![title.nomeEtapa] = title.valor;
         }
       }
     }

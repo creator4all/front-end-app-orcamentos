@@ -275,7 +275,7 @@ class _SchoolCensusPageState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: studentGroups
-          .map((group) => CensusDataSectionWidget(
+          .map((group) => CensusDataSectionWidget.withId(
                 group: group,
                 isEditMode: store.isEditMode,
                 controllers: _controllers,
@@ -308,7 +308,7 @@ class _SchoolCensusPageState
           ),
         ),
         SizedBox(height: 8.h),
-        ...professorGroups.map((group) => CensusDataSectionWidget(
+        ...professorGroups.map((group) => CensusDataSectionWidget.withId(
               group: group,
               isEditMode: store.isEditMode,
               controllers: _controllers,

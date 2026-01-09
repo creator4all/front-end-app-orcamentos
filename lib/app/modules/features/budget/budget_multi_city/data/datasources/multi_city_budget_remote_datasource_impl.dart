@@ -178,7 +178,11 @@ class MultiCityBudgetRemoteDataSourceImpl
           : int.tryParse('${item['indice_etapa_id']}') ?? 0;
 
       final String nomeEtapa = (item['nome_etapa'] ?? '').toString();
-      final String tituloEtapa = (item['titulo_etapa'] ?? '').toString();
+      // Fallback: usar nome_etapa se titulo_etapa estiver vazio
+      String tituloEtapa = (item['titulo_etapa'] ?? '').toString();
+      if (tituloEtapa.isEmpty) {
+        tituloEtapa = nomeEtapa;
+      }
 
       final double valor = item['valor'] is double
           ? item['valor']

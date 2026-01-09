@@ -8,19 +8,59 @@ import 'census_section_header_widget.dart';
 
 /// Widget que renderiza uma seção completa do censo escolar
 /// Inclui o header com título sublinhado e lista de itens
-class CensusDataSectionWidget extends StatelessWidget {
+///
+/// Versão genérica que pode usar int (id) ou String (nomeEtapa) como chave
+class CensusDataSectionWidget<K> extends StatelessWidget {
   final CensoGroupEntity group;
   final bool isEditMode;
-  final Map<int, TextEditingController> controllers;
-  final ValueChanged<MapEntry<int, double>>? onItemChanged;
+  final Map<K, TextEditingController> controllers;
+  final ValueChanged<MapEntry<K, double>>? onItemChanged;
+  final K Function(CensoTitleEntity title) keySelector;
 
   const CensusDataSectionWidget({
     super.key,
     required this.group,
     required this.isEditMode,
     required this.controllers,
+    required this.keySelector,
     this.onItemChanged,
   });
+
+  /// Factory para usar com id (int) - compatível com SchoolCensusPage
+  static CensusDataSectionWidget<int> withId({
+    Key? key,
+    required CensoGroupEntity group,
+    required bool isEditMode,
+    required Map<int, TextEditingController> controllers,
+    ValueChanged<MapEntry<int, double>>? onItemChanged,
+  }) {
+    return CensusDataSectionWidget<int>(
+      key: key,
+      group: group,
+      isEditMode: isEditMode,
+      controllers: controllers,
+      keySelector: (title) => title.id,
+      onItemChanged: onItemChanged,
+    );
+  }
+
+  /// Factory para usar com nomeEtapa (String) - compatível com MultiCityCensusPage
+  static CensusDataSectionWidget<String> withNomeEtapa({
+    Key? key,
+    required CensoGroupEntity group,
+    required bool isEditMode,
+    required Map<String, TextEditingController> controllers,
+    ValueChanged<MapEntry<String, double>>? onItemChanged,
+  }) {
+    return CensusDataSectionWidget<String>(
+      key: key,
+      group: group,
+      isEditMode: isEditMode,
+      controllers: controllers,
+      keySelector: (title) => title.nomeEtapa,
+      onItemChanged: onItemChanged,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,21 +79,25 @@ class CensusDataSectionWidget extends StatelessWidget {
   }
 
   Widget _buildItem(CensoTitleEntity title) {
-    // Garantir que o controller existe
-    if (!controllers.containsKey(title.id)) {
-      controllers[title.id] = TextEditingController(
-        text: title.valor.toStringAsFixed(0),
-      );
-    }
+    final key = keySelector(title);
+
+    // Usar controller existente (page é responsável por criar)
+    final controller = controllers[key];
+
+    // Pegar valor do controller (que já tem displayValues correto)
+    // Fallback para title.valor apenas se controller não existir
+    final displayValue = controller != null
+        ? (double.tryParse(controller.text) ?? title.valor)
+        : title.valor;
 
     return CensusInputRowWidget(
       label: title.tituloExibicao,
-      value: title.valor,
+      value: displayValue, // Usa valor do controller, não title.valor
       isEditMode: isEditMode,
-      controller: controllers[title.id],
+      controller: controller,
       onChanged: (value) {
         if (onItemChanged != null) {
-          onItemChanged!(MapEntry(title.id, value));
+          onItemChanged!(MapEntry(key, value));
         }
       },
     );

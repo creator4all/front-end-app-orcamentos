@@ -20,10 +20,14 @@ class MultiCityCensusPage extends StatefulWidget {
   /// ID do orçamento para modo edição (null para criação)
   final int? budgetId;
 
+  /// Cidades já selecionadas (recebidas da NewBudgetPage)
+  final List<Map<String, dynamic>> selectedCities;
+
   const MultiCityCensusPage({
     super.key,
     required this.budgetName,
     this.budgetId,
+    required this.selectedCities,
   });
 
   @override
@@ -32,7 +36,7 @@ class MultiCityCensusPage extends StatefulWidget {
 
 class _MultiCityCensusPageState
     extends ModularState<MultiCityCensusPage, MultiCityCensusStore> {
-  final Map<int, TextEditingController> _controllers = {};
+  final Map<String, TextEditingController> _controllers = {};
   late dynamic _geoStore;
 
   @override
@@ -40,11 +44,14 @@ class _MultiCityCensusPageState
     super.initState();
     store.setBudgetName(widget.budgetName);
 
-    // Abrir modal de cidades após build
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (store.shouldOpenCityModal) {
-        _showCitySelectionModal();
-        store.markModalOpened();
+    // Usar cidades recebidas via parâmetro e carregar censo
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (widget.selectedCities.isNotEmpty) {
+        store.setSelectedCities(widget.selectedCities);
+        await store.loadCensusForCities();
+        if (mounted) {
+          _syncControllersWithStore();
+        }
       }
     });
   }
@@ -88,19 +95,28 @@ class _MultiCityCensusPageState
     final census = store.currentCensus;
     if (census == null) return;
 
+    final displayValues = store.displayValues;
+
     for (var group in census.grupos) {
       for (var title in group.titulos) {
-        if (!_controllers.containsKey(title.id)) {
-          _controllers[title.id] = TextEditingController(
-            text: title.valor.toStringAsFixed(0),
-          );
+        // Usar displayValues por nomeEtapa para obter valor correto (agregado ou individual)
+        final value = displayValues[title.nomeEtapa] ?? title.valor;
+        final newValue = value.toStringAsFixed(0);
+        if (_controllers.containsKey(title.nomeEtapa)) {
+          // Atualizar valor existente se diferente
+          if (_controllers[title.nomeEtapa]!.text != newValue) {
+            _controllers[title.nomeEtapa]!.text = newValue;
+          }
+        } else {
+          // Criar novo controller
+          _controllers[title.nomeEtapa] = TextEditingController(text: newValue);
         }
       }
     }
   }
 
-  void _onValueChanged(int cityId, int indiceId, double value) {
-    store.updateValue(cityId, indiceId, value);
+  void _onValueChanged(int cityId, String nomeEtapa, double value) {
+    store.updateValue(cityId, nomeEtapa, value);
   }
 
   Future<void> _handleNext() async {
@@ -298,9 +314,10 @@ class _MultiCityCensusPageState
             children: [
               ...studentGroups.map((group) {
                 _syncControllersWithStore();
-                return CensusDataSectionWidget(
+                return CensusDataSectionWidget.withNomeEtapa(
                   group: group,
-                  isEditMode: true,
+                  isEditMode: !store
+                      .isAggregateMode, // Desabilitar edição no modo agregado
                   controllers: _controllers,
                   onItemChanged: (entry) {
                     final cityId = store.selectedCityId ??

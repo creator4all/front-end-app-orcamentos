@@ -9,6 +9,7 @@ class SearchableDropdownWidget extends StatefulWidget {
   final Function(String?) onChanged;
   final bool enabled;
   final String searchHint;
+  final bool sortItems;
 
   const SearchableDropdownWidget({
     super.key,
@@ -19,6 +20,7 @@ class SearchableDropdownWidget extends StatefulWidget {
     required this.onChanged,
     this.enabled = true,
     this.searchHint = 'Pesquisar...',
+    this.sortItems = true,
   });
 
   @override
@@ -27,216 +29,244 @@ class SearchableDropdownWidget extends StatefulWidget {
 }
 
 class _SearchableDropdownWidgetState extends State<SearchableDropdownWidget> {
-  final TextEditingController _controller = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
+
   late List<String> _sortedItems;
+  bool _isOpen = false;
 
   @override
   void initState() {
     super.initState();
     _sortedItems = _sortItems(widget.items);
-
-    if (widget.value != null) {
-      _controller.text = widget.value!;
-    }
+    _focusNode.addListener(_onFocusChange);
   }
 
   @override
   void didUpdateWidget(SearchableDropdownWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    if (oldWidget.items != widget.items) {
+    if (!_listEquals(oldWidget.items, widget.items)) {
       _sortedItems = _sortItems(widget.items);
     }
+  }
 
-    if (oldWidget.value != widget.value) {
-      _controller.text = widget.value ?? '';
+  bool _listEquals(List<String> a, List<String> b) {
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
     }
+    return true;
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _searchController.dispose();
+    _focusNode.removeListener(_onFocusChange);
     _focusNode.dispose();
     super.dispose();
   }
 
   List<String> _sortItems(List<String> items) {
+    if (!widget.sortItems) return List<String>.from(items);
     final sorted = List<String>.from(items);
     sorted.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
     return sorted;
   }
 
+  void _onFocusChange() {
+    if (!_focusNode.hasFocus && _isOpen) {
+      _closeDropdown();
+    }
+  }
+
+  void _openDropdown() {
+    if (_isOpen || !widget.enabled) return;
+
+    setState(() {
+      _isOpen = true;
+      _searchController.clear();
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _focusNode.requestFocus();
+    });
+  }
+
+  void _closeDropdown() {
+    if (!_isOpen) return;
+
+    setState(() {
+      _isOpen = false;
+      _searchController.clear();
+    });
+  }
+
+  void _selectItem(String item) {
+    widget.onChanged(item);
+    _closeDropdown();
+  }
+
+  List<String> _getFilteredItems() {
+    final searchText = _searchController.text.toLowerCase();
+    if (searchText.isEmpty) {
+      return _sortedItems;
+    }
+    return _sortedItems
+        .where((item) => item.toLowerCase().contains(searchText))
+        .toList();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Autocomplete<String>(
-      optionsBuilder: (TextEditingValue textEditingValue) {
-        if (textEditingValue.text.isEmpty) {
-          return _sortedItems;
+    return TapRegion(
+      onTapOutside: (_) {
+        if (_isOpen) {
+          _closeDropdown();
         }
-
-        final filtered = _sortedItems.where((String option) {
-          return option
-              .toLowerCase()
-              .contains(textEditingValue.text.toLowerCase());
-        }).toList();
-
-        return filtered;
       },
-      onSelected: (String selection) {
-        widget.onChanged(selection);
-        _controller.text = selection;
-      },
-      fieldViewBuilder: (
-        BuildContext context,
-        TextEditingController textEditingController,
-        FocusNode focusNode,
-        VoidCallback onFieldSubmitted,
-      ) {
-        textEditingController.text = _controller.text;
-
-        return TextField(
-          controller: textEditingController,
-          focusNode: focusNode,
-          enabled: widget.enabled,
-          decoration: InputDecoration(
-            hintText: widget.hint,
-            hintStyle: TextStyle(
-              fontSize: 16.sp,
-              color: Colors.grey[500],
-            ),
-            prefixIcon: Icon(
-              Icons.search,
-              color: Colors.grey[600],
-              size: 18.sp,
-            ),
-            suffixIcon: textEditingController.text.isNotEmpty
-                ? IconButton(
-                    icon: Icon(
-                      Icons.clear,
-                      color: Colors.grey[600],
-                      size: 18.sp,
-                    ),
-                    onPressed: () {
-                      textEditingController.clear();
-                      _controller.clear();
-                      widget.onChanged(null);
-                    },
-                  )
-                : Icon(
-                    Icons.arrow_drop_down,
-                    color: Colors.grey[600],
-                    size: 24.sp,
-                  ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8.r),
-              borderSide: BorderSide(color: Colors.grey[300]!),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8.r),
-              borderSide: BorderSide(color: Colors.grey[300]!),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8.r),
-              borderSide: const BorderSide(color: Color(0xFF117BBD), width: 2),
-            ),
-            disabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8.r),
-              borderSide: BorderSide(color: Colors.grey[200]!),
-            ),
-            filled: true,
-            fillColor: widget.enabled ? Colors.white : Colors.grey[50],
-            contentPadding:
-                EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      child: Container(
+        decoration: BoxDecoration(
+          color: widget.enabled ? Colors.white : Colors.grey[50],
+          borderRadius: BorderRadius.circular(8.r),
+          border: Border.all(
+            color: Colors.grey[300]!,
+            width: 1,
           ),
-          style: TextStyle(
-            fontSize: 16.sp,
-            color: Colors.black87,
-          ),
-        );
-      },
-      optionsViewBuilder: (
-        BuildContext context,
-        AutocompleteOnSelected<String> onSelected,
-        Iterable<String> options,
-      ) {
-        return Align(
-          alignment: Alignment.topLeft,
-          child: Material(
-            elevation: 4.0,
-            borderRadius: BorderRadius.circular(8.r),
-            child: Container(
-              constraints: BoxConstraints(
-                maxHeight: 200.h,
-              ),
-              width: MediaQuery.of(context).size.width - 32.w,
-              child: options.isEmpty
-                  ? Padding(
-                      padding: EdgeInsets.all(16.w),
-                      child: Text(
-                        'Nenhum resultado encontrado',
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          color: Colors.grey[500],
-                        ),
-                      ),
-                    )
-                  : ListView.builder(
-                      padding: EdgeInsets.zero,
-                      shrinkWrap: true,
-                      itemCount: options.length,
-                      itemBuilder: (BuildContext context, int index) {
-                        final String option = options.elementAt(index);
-                        final bool isSelected = option == widget.value;
-
-                        return InkWell(
-                          onTap: () {
-                            onSelected(option);
-                          },
-                          child: Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 16.w,
-                              vertical: 12.h,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? const Color(0xFF117BBD).withOpacity(0.1)
-                                  : Colors.transparent,
-                              border: Border(
-                                bottom: BorderSide(
-                                  color: Colors.grey[200]!,
-                                  width: 1,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Campo principal (transforma entre texto e input)
+            GestureDetector(
+              onTap: _isOpen ? null : _openDropdown,
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _isOpen
+                          ? TextField(
+                              controller: _searchController,
+                              focusNode: _focusNode,
+                              autofocus: true,
+                              decoration: InputDecoration(
+                                hintText: widget.searchHint,
+                                hintStyle: TextStyle(
+                                  fontSize: 14.sp,
+                                  color: Colors.grey[500],
                                 ),
+                                border: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                errorBorder: InputBorder.none,
+                                isDense: true,
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                              style: TextStyle(
+                                fontSize: 14.sp,
+                                color: Colors.black87,
+                              ),
+                              onChanged: (_) => setState(() {}),
+                            )
+                          : Text(
+                              widget.value ?? widget.hint,
+                              style: TextStyle(
+                                fontSize: 14.sp,
+                                color: widget.value != null
+                                    ? Colors.black87
+                                    : Colors.grey[500],
                               ),
                             ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    option,
-                                    style: TextStyle(
-                                      fontSize: 14.sp,
-                                      color: isSelected
-                                          ? const Color(0xFF117BBD)
-                                          : Colors.black87,
-                                      fontWeight: isSelected
-                                          ? FontWeight.w600
-                                          : FontWeight.normal,
-                                    ),
-                                  ),
-                                ),
-                                if (isSelected)
-                                  Icon(
-                                    Icons.check,
-                                    color: const Color(0xFF117BBD),
-                                    size: 18.sp,
-                                  ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
                     ),
+                    Icon(
+                      _isOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                      size: 24.sp,
+                      color: Colors.grey[600],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Lista inline quando aberto
+            if (_isOpen) ...[
+              Divider(height: 1, color: Colors.grey[300]),
+              ConstrainedBox(
+                constraints: BoxConstraints(maxHeight: 200.h),
+                child: _buildOptionsList(),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOptionsList() {
+    final filteredItems = _getFilteredItems();
+
+    if (filteredItems.isEmpty) {
+      return Padding(
+        padding: EdgeInsets.all(16.w),
+        child: Text(
+          'Nenhum resultado encontrado',
+          style: TextStyle(
+            fontSize: 14.sp,
+            color: Colors.grey[500],
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      shrinkWrap: true,
+      padding: EdgeInsets.zero,
+      itemCount: filteredItems.length,
+      itemBuilder: (context, index) {
+        final item = filteredItems[index];
+        final isSelected = item == widget.value;
+
+        return InkWell(
+          onTap: () => _selectItem(item),
+          child: Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: 12.w,
+              vertical: 12.h,
+            ),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? const Color(0xFF117BBD).withOpacity(0.1)
+                  : Colors.transparent,
+              border: Border(
+                bottom: BorderSide(
+                  color: Colors.grey[200]!,
+                  width: 1,
+                ),
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    item,
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      color:
+                          isSelected ? const Color(0xFF117BBD) : Colors.black87,
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                  ),
+                ),
+                if (isSelected)
+                  Icon(
+                    Icons.check,
+                    size: 18.sp,
+                    color: const Color(0xFF117BBD),
+                  ),
+              ],
             ),
           ),
         );
