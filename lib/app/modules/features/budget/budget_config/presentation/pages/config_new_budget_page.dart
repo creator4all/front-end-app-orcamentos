@@ -231,12 +231,31 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
 
                   SizedBox(height: 12.h),
 
+                  // DEBUG: Verificar dados de cidades
+                  Builder(
+                    builder: (context) {
+                      final detail = store.budgetDetail;
+                      print('🔍 [ConfigPage] Debug Cidades:');
+                      print('   - cityIds: ${detail?.cityIds}');
+                      print(
+                          '   - citiesData (len): ${detail?.citiesData.length}');
+                      if (detail?.citiesData.isNotEmpty ?? false) {
+                        print(
+                            '   - citiesData[0]: ${detail?.citiesData.first}');
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
+
                   // ✅ Card do Censo Escolar
-                  if (store.budgetDetail?.cityIds.isNotEmpty ?? false)
+                  if ((store.budgetDetail?.cityIds.isNotEmpty ?? false) ||
+                      (store.budgetDetail?.citiesData.isNotEmpty ?? false))
                     Padding(
                       padding: EdgeInsets.only(bottom: 12.h),
                       child: SchoolCensusCard(
-                        numberOfCities: store.budgetDetail?.cityIds.length ?? 0,
+                        numberOfCities: store.budgetDetail?.citiesData.length ??
+                            store.budgetDetail?.cityIds.length ??
+                            0,
                         citiesData: _extractCitiesData(),
                         onTap: () async {
                           print(

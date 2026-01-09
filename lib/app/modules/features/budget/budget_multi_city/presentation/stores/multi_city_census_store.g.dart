@@ -16,14 +16,13 @@ mixin _$MultiCityCensusStore on _MultiCityCensusStoreBase, Store {
           Computed<CensoEscolarEntity?>(() => super.currentCensus,
               name: '_MultiCityCensusStoreBase.currentCensus'))
       .value;
-  Computed<Map<String, double>>? _$currentEditedValuesComputed;
+  Computed<Map<int, double>>? _$currentEditedValuesComputed;
 
   @override
-  Map<String, double> get currentEditedValues =>
-      (_$currentEditedValuesComputed ??= Computed<Map<String, double>>(
-              () => super.currentEditedValues,
+  Map<int, double> get currentEditedValues => (_$currentEditedValuesComputed ??=
+          Computed<Map<int, double>>(() => super.currentEditedValues,
               name: '_MultiCityCensusStoreBase.currentEditedValues'))
-          .value;
+      .value;
   Computed<List<int>>? _$cidadeIdsComputed;
 
   @override
@@ -59,11 +58,11 @@ mixin _$MultiCityCensusStore on _MultiCityCensusStoreBase, Store {
       (_$isAggregateModeComputed ??= Computed<bool>(() => super.isAggregateMode,
               name: '_MultiCityCensusStoreBase.isAggregateMode'))
           .value;
-  Computed<Map<String, double>>? _$aggregatedValuesComputed;
+  Computed<Map<int, double>>? _$aggregatedValuesComputed;
 
   @override
-  Map<String, double> get aggregatedValues => (_$aggregatedValuesComputed ??=
-          Computed<Map<String, double>>(() => super.aggregatedValues,
+  Map<int, double> get aggregatedValues => (_$aggregatedValuesComputed ??=
+          Computed<Map<int, double>>(() => super.aggregatedValues,
               name: '_MultiCityCensusStoreBase.aggregatedValues'))
       .value;
   Computed<Map<String, double>>? _$displayValuesComputed;
@@ -142,14 +141,14 @@ mixin _$MultiCityCensusStore on _MultiCityCensusStoreBase, Store {
       name: '_MultiCityCensusStoreBase.editedValuesPerCity', context: context);
 
   @override
-  ObservableMap<int, ObservableMap<String, double>> get editedValuesPerCity {
+  ObservableMap<int, ObservableMap<int, double>> get editedValuesPerCity {
     _$editedValuesPerCityAtom.reportRead();
     return super.editedValuesPerCity;
   }
 
   @override
   set editedValuesPerCity(
-      ObservableMap<int, ObservableMap<String, double>> value) {
+      ObservableMap<int, ObservableMap<int, double>> value) {
     _$editedValuesPerCityAtom.reportWrite(value, super.editedValuesPerCity, () {
       super.editedValuesPerCity = value;
     });
