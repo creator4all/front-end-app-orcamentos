@@ -16,13 +16,14 @@ mixin _$MultiCityCensusStore on _MultiCityCensusStoreBase, Store {
           Computed<CensoEscolarEntity?>(() => super.currentCensus,
               name: '_MultiCityCensusStoreBase.currentCensus'))
       .value;
-  Computed<Map<int, double>>? _$currentEditedValuesComputed;
+  Computed<Map<String, double>>? _$currentEditedValuesComputed;
 
   @override
-  Map<int, double> get currentEditedValues => (_$currentEditedValuesComputed ??=
-          Computed<Map<int, double>>(() => super.currentEditedValues,
+  Map<String, double> get currentEditedValues =>
+      (_$currentEditedValuesComputed ??= Computed<Map<String, double>>(
+              () => super.currentEditedValues,
               name: '_MultiCityCensusStoreBase.currentEditedValues'))
-      .value;
+          .value;
   Computed<List<int>>? _$cidadeIdsComputed;
 
   @override
@@ -50,6 +51,27 @@ mixin _$MultiCityCensusStore on _MultiCityCensusStoreBase, Store {
   double get valorTotalAgregado => (_$valorTotalAgregadoComputed ??=
           Computed<double>(() => super.valorTotalAgregado,
               name: '_MultiCityCensusStoreBase.valorTotalAgregado'))
+      .value;
+  Computed<bool>? _$isAggregateModeComputed;
+
+  @override
+  bool get isAggregateMode =>
+      (_$isAggregateModeComputed ??= Computed<bool>(() => super.isAggregateMode,
+              name: '_MultiCityCensusStoreBase.isAggregateMode'))
+          .value;
+  Computed<Map<String, double>>? _$aggregatedValuesComputed;
+
+  @override
+  Map<String, double> get aggregatedValues => (_$aggregatedValuesComputed ??=
+          Computed<Map<String, double>>(() => super.aggregatedValues,
+              name: '_MultiCityCensusStoreBase.aggregatedValues'))
+      .value;
+  Computed<Map<String, double>>? _$displayValuesComputed;
+
+  @override
+  Map<String, double> get displayValues => (_$displayValuesComputed ??=
+          Computed<Map<String, double>>(() => super.displayValues,
+              name: '_MultiCityCensusStoreBase.displayValues'))
       .value;
 
   late final _$budgetNameAtom =
@@ -120,14 +142,14 @@ mixin _$MultiCityCensusStore on _MultiCityCensusStoreBase, Store {
       name: '_MultiCityCensusStoreBase.editedValuesPerCity', context: context);
 
   @override
-  ObservableMap<int, ObservableMap<int, double>> get editedValuesPerCity {
+  ObservableMap<int, ObservableMap<String, double>> get editedValuesPerCity {
     _$editedValuesPerCityAtom.reportRead();
     return super.editedValuesPerCity;
   }
 
   @override
   set editedValuesPerCity(
-      ObservableMap<int, ObservableMap<int, double>> value) {
+      ObservableMap<int, ObservableMap<String, double>> value) {
     _$editedValuesPerCityAtom.reportWrite(value, super.editedValuesPerCity, () {
       super.editedValuesPerCity = value;
     });
@@ -285,11 +307,11 @@ mixin _$MultiCityCensusStore on _MultiCityCensusStoreBase, Store {
   }
 
   @override
-  void updateValue(int cityId, int indiceId, double value) {
+  void updateValue(int cityId, String nomeEtapa, double value) {
     final _$actionInfo = _$_MultiCityCensusStoreBaseActionController
         .startAction(name: '_MultiCityCensusStoreBase.updateValue');
     try {
-      return super.updateValue(cityId, indiceId, value);
+      return super.updateValue(cityId, nomeEtapa, value);
     } finally {
       _$_MultiCityCensusStoreBaseActionController.endAction(_$actionInfo);
     }
@@ -323,7 +345,10 @@ currentEditedValues: ${currentEditedValues},
 cidadeIds: ${cidadeIds},
 quantidadeCidades: ${quantidadeCidades},
 hasCities: ${hasCities},
-valorTotalAgregado: ${valorTotalAgregado}
+valorTotalAgregado: ${valorTotalAgregado},
+isAggregateMode: ${isAggregateMode},
+aggregatedValues: ${aggregatedValues},
+displayValues: ${displayValues}
     ''';
   }
 }

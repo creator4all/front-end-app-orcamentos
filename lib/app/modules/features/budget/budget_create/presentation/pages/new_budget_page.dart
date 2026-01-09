@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:multimidiaapp/app/shared/widgets/city_selection_modal.dart';
+import 'package:multimidiaapp/app/shared/widgets/custom_modal.dart';
 import 'package:multimidiaapp/app/shared/widgets/searchable_dropdown_widget.dart';
 
 // Importações temporárias para GeoStore e CensoStore (não migramos ainda)
@@ -81,6 +83,77 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
     }
 
     print(' Página atualizada');
+  }
+
+  /// Modal para inserir nome do orçamento multi-cidades
+  Future<String?> _showMultiCityBudgetNameModal() async {
+    final controller = TextEditingController();
+
+    return CustomModal.show<String>(
+      context: context,
+      title: 'Nome do Orçamento',
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: InputDecoration(
+              hintText: 'Ex: Projeto Educação 2024',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 16.w,
+                vertical: 14.h,
+              ),
+            ),
+          ),
+          SizedBox(height: 24.h),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                if (controller.text.isNotEmpty) {
+                  Navigator.pop(context, controller.text);
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF117BBD),
+                padding: EdgeInsets.symmetric(vertical: 14.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+              ),
+              child: Text(
+                'Próximo',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Modal para seleção de cidades multi-cidades
+  Future<List<Map<String, dynamic>>?> _showMultiCityCitySelectionModal() async {
+    // Carregar estados se necessário
+    if (_geo.estados.isEmpty && !_geo.isLoadingEstados) {
+      await _geo.carregarEstados();
+    }
+
+    if (!mounted) return null;
+
+    return CitySelectionModal.show(
+      context: context,
+      geo: _geo,
+      initialSelectedCities: [],
+    );
   }
 
   @override
@@ -686,12 +759,26 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onTap: () async {
-                        // Navegar para tela de orçamento multi-cidades
+                        // 1. Modal de nome do orçamento
+                        final budgetName =
+                            await _showMultiCityBudgetNameModal();
+                        if (budgetName == null || budgetName.isEmpty) return;
+
+                        // 2. Modal de seleção de cidades
+                        if (!mounted) return;
+                        final selectedCities =
+                            await _showMultiCityCitySelectionModal();
+                        if (selectedCities == null || selectedCities.isEmpty)
+                          return;
+
+                        // 3. Navegar para tela de orçamento multi-cidades
+                        if (!mounted) return;
                         await Modular.to.pushNamed(
                           '/budget/multi-city/census',
                           arguments: {
-                            'budgetName': '',
+                            'budgetName': budgetName,
                             'budgetId': null,
+                            'selectedCities': selectedCities,
                           },
                         );
                       },

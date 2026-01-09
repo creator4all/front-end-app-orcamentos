@@ -395,9 +395,13 @@ class BudgetModuleNew extends Module {
           final argsData = args.data as Map<String, dynamic>?;
           final budgetName = argsData?['budgetName'] as String? ?? 'Orçamento';
           final budgetId = argsData?['budgetId'] as int?;
+          final selectedCities = (argsData?['selectedCities'] as List<dynamic>?)
+                  ?.cast<Map<String, dynamic>>() ??
+              [];
           return MultiCityCensusPage(
             budgetName: budgetName,
             budgetId: budgetId,
+            selectedCities: selectedCities,
           );
         }),
       ];
