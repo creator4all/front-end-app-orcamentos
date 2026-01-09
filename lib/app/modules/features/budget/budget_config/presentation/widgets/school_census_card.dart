@@ -22,8 +22,9 @@ class SchoolCensusCard extends StatelessWidget {
     int totalClasses = 0;
     for (final city in citiesData) {
       // Dados vêm em 'cidades_has_indice_etapa' ao invés de 'indicadores'
-      final indicadores = city['cidades_has_indice_etapa'] as List? ?? 
-                          city['indicadores'] as List? ?? [];
+      final indicadores = city['cidades_has_indice_etapa'] as List? ??
+          city['indicadores'] as List? ??
+          [];
       totalClasses += indicadores.length;
     }
     return totalClasses;
@@ -34,33 +35,26 @@ class SchoolCensusCard extends StatelessWidget {
     int totalStudents = 0;
     for (final city in citiesData) {
       // Dados vêm em 'cidades_has_indice_etapa' ao invés de 'indicadores'
-      final indicadores = city['cidades_has_indice_etapa'] as List? ?? 
-                          city['indicadores'] as List? ?? [];
+      final indicadores = city['cidades_has_indice_etapa'] as List? ??
+          city['indicadores'] as List? ??
+          [];
       for (final indicador in indicadores) {
         if (indicador is Map<String, dynamic>) {
           // Valor pode estar em 'pivot.etapa_valor' ou 'valor' ou 'etapa_valor'
           final pivot = indicador['pivot'] as Map<String, dynamic>?;
-          final valor = pivot?['etapa_valor'] ?? 
-                        indicador['etapa_valor'] ?? 
-                        indicador['valor'] ?? 0;
-          totalStudents +=
-              (valor is int ? valor : (valor is double ? valor.toInt() : int.tryParse(valor.toString()) ?? 0));
+          final valor = pivot?['etapa_valor'] ??
+              indicador['etapa_valor'] ??
+              indicador['valor'] ??
+              0;
+          totalStudents += (valor is int
+              ? valor
+              : (valor is double
+                  ? valor.toInt()
+                  : int.tryParse(valor.toString()) ?? 0));
         }
       }
     }
     return totalStudents;
-  }
-
-  /// Formata o texto de quantidade de turmas e municípios
-  String _formatClassesAndCities(int classes, int cities) {
-    if (cities > 1) {
-      final classesText = '$classes Turmas';
-      final citiesText = '$cities Municípios';
-      return '$classesText\n$citiesText';
-    } else {
-      final classesText = '$classes Turmas';
-      return classesText;
-    }
   }
 
   /// Formata número com separadores
@@ -75,8 +69,6 @@ class SchoolCensusCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final totalClasses = _calculateTotalClasses();
     final totalStudents = _calculateTotalStudents();
-    final classesAndCitiesText =
-        _formatClassesAndCities(totalClasses, numberOfCities);
 
     // Envolver em GestureDetector para card inteiro ser clicável
     return GestureDetector(
@@ -88,53 +80,118 @@ class SchoolCensusCard extends StatelessWidget {
           color: const Color(0xFF484848),
           size: 24.sp,
         ),
-        secondColumn: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Título
-            Text(
-              'Censo Escolar',
-              style: TextStyle(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF484848),
-              ),
-            ),
-
-            SizedBox(height: 2.h),
-
-            // Turmas e Municípios
-            Text(
-              classesAndCitiesText,
-              style: TextStyle(
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w400,
-                color: const Color(0xFF000000),
-                height: 1.3,
-              ),
-            ),
-
-            SizedBox(height: 2.h),
-
-            // Total de Estudantes
-            Text(
-              '${_formatNumber(totalStudents)} Estudantes',
-              style: TextStyle(
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w400,
-                color: const Color(0xFF000000),
-              ),
-            ),
-          ],
-        ),
+        secondColumn: numberOfCities > 1
+            ? _buildMultiCityContent(totalClasses, totalStudents)
+            : _buildSingleCityContent(totalClasses, totalStudents),
         showBorder: false,
         showShadow: true,
         shadowColor: const Color(0xFF6A6F72),
         showActionButton: true,
         onActionTap: onTap,
       ),
+    );
+  }
+
+  /// Constrói o conteúdo para múltiplas cidades (Layout Horizontal)
+  Widget _buildMultiCityContent(int totalClasses, int totalStudents) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Título
+        Text(
+          'Censo Escolar',
+          style: TextStyle(
+            fontSize: 12.sp,
+            fontWeight: FontWeight.w400,
+            color: const Color(0xFF828282), // Cor mais suave para o título
+          ),
+        ),
+
+        SizedBox(height: 4.h),
+
+        // Linha com Turmas e Municípios
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 12.w, // Espaço entre os itens
+          children: [
+            Text(
+              '$totalClasses Turmas',
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w600, // Bold
+                color: const Color(0xFF484848),
+              ),
+            ),
+            Text(
+              '$numberOfCities Municípios selecionados',
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w600, // Bold
+                color: const Color(0xFF484848),
+              ),
+            ),
+          ],
+        ),
+
+        SizedBox(height: 4.h),
+
+        // Total de Estudantes
+        Text(
+          '${_formatNumber(totalStudents)} Estudantes',
+          style: TextStyle(
+            fontSize: 12.sp,
+            fontWeight: FontWeight.w400,
+            color: const Color(0xFF000000),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Constrói o conteúdo para cidade única (Layout Vertical Padrão)
+  Widget _buildSingleCityContent(int totalClasses, int totalStudents) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Título
+        Text(
+          'Censo Escolar',
+          style: TextStyle(
+            fontSize: 14.sp,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF484848),
+          ),
+        ),
+
+        SizedBox(height: 2.h),
+
+        // Turmas
+        Text(
+          '$totalClasses Turmas',
+          style: TextStyle(
+            fontSize: 12.sp,
+            fontWeight: FontWeight.w400,
+            color: const Color(0xFF000000),
+            height: 1.3,
+          ),
+        ),
+
+        SizedBox(height: 2.h),
+
+        // Total de Estudantes
+        Text(
+          '${_formatNumber(totalStudents)} Estudantes',
+          style: TextStyle(
+            fontSize: 12.sp,
+            fontWeight: FontWeight.w400,
+            color: const Color(0xFF000000),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -40,10 +40,16 @@ abstract class _MultiCityCensusStoreBase with Store {
   @observable
   int? selectedCityId;
 
-  /// Valores editados por cidade: cidadeId -> { nomeEtapa -> valor }
+  /// Valores editados por cidade: cidadeId -> { indice_etapa_id -> valor }
   @observable
-  ObservableMap<int, ObservableMap<String, double>> editedValuesPerCity =
-      ObservableMap<int, ObservableMap<String, double>>();
+  ObservableMap<int, ObservableMap<int, double>> editedValuesPerCity =
+      ObservableMap<int, ObservableMap<int, double>>();
+
+  /// Mapa de lookup: nomeEtapa -> indice_etapa_id (para conversão UI -> API)
+  final Map<String, int> _nomeEtapaToId = {};
+
+  /// Mapa de lookup inverso: indice_etapa_id -> nomeEtapa (para exibição)
+  final Map<int, String> _idToNomeEtapa = {};
 
   /// Flag se deve abrir modal na primeira renderização
   @observable
@@ -76,9 +82,9 @@ abstract class _MultiCityCensusStoreBase with Store {
     return null;
   }
 
-  /// Retorna os valores editados da cidade selecionada
+  /// Retorna os valores editados da cidade selecionada (por indice_etapa_id)
   @computed
-  Map<String, double> get currentEditedValues {
+  Map<int, double> get currentEditedValues {
     if (selectedCityId != null) {
       return editedValuesPerCity[selectedCityId!] ?? {};
     }
@@ -107,10 +113,10 @@ abstract class _MultiCityCensusStoreBase with Store {
   @computed
   bool get isAggregateMode => selectedCityId == null;
 
-  /// Valores agregados por nomeEtapa (soma de todas as cidades)
+  /// Valores agregados por indice_etapa_id (soma de todas as cidades)
   @computed
-  Map<String, double> get aggregatedValues {
-    final result = <String, double>{};
+  Map<int, double> get aggregatedValues {
+    final result = <int, double>{};
     for (final values in editedValuesPerCity.values) {
       for (final entry in values.entries) {
         result[entry.key] = (result[entry.key] ?? 0) + entry.value;
@@ -119,13 +125,26 @@ abstract class _MultiCityCensusStoreBase with Store {
     return result;
   }
 
-  /// Retorna os valores a exibir (agregados ou da cidade selecionada)
+  /// Retorna os valores a exibir por nomeEtapa (para UI)
+  /// Converte de indice_etapa_id para nomeEtapa
   @computed
   Map<String, double> get displayValues {
+    final Map<int, double> sourceValues;
     if (isAggregateMode) {
-      return aggregatedValues;
+      sourceValues = aggregatedValues;
+    } else {
+      sourceValues = editedValuesPerCity[selectedCityId] ?? {};
     }
-    return editedValuesPerCity[selectedCityId] ?? {};
+
+    // Converter de int (id) para String (nomeEtapa) para a UI
+    final result = <String, double>{};
+    for (final entry in sourceValues.entries) {
+      final nomeEtapa = _idToNomeEtapa[entry.key];
+      if (nomeEtapa != null) {
+        result[nomeEtapa] = entry.value;
+      }
+    }
+    return result;
   }
 
   // =========================
@@ -203,12 +222,19 @@ abstract class _MultiCityCensusStoreBase with Store {
   }
 
   /// Atualiza um valor de etapa para uma cidade específica
+  /// Aceita nomeEtapa (String) para compatibilidade com UI e converte para id
   @action
   void updateValue(int cityId, String nomeEtapa, double value) {
-    if (!editedValuesPerCity.containsKey(cityId)) {
-      editedValuesPerCity[cityId] = ObservableMap<String, double>();
+    final indiceEtapaId = _nomeEtapaToId[nomeEtapa];
+    if (indiceEtapaId == null) {
+      // Se não encontrar o ID, não faz nada (não deveria acontecer)
+      return;
     }
-    editedValuesPerCity[cityId]![nomeEtapa] = value;
+
+    if (!editedValuesPerCity.containsKey(cityId)) {
+      editedValuesPerCity[cityId] = ObservableMap<int, double>();
+    }
+    editedValuesPerCity[cityId]![indiceEtapaId] = value;
   }
 
   /// Cria o orçamento e retorna o ID
@@ -227,7 +253,7 @@ abstract class _MultiCityCensusStoreBase with Store {
     isSaving = true;
     error = null;
 
-    // Converter editedValuesPerCity para Map<int, Map<int, double>>
+    // editedValuesPerCity já usa int como chave, apenas converter para Map regular
     final Map<int, Map<int, double>> overrides = {};
     editedValuesPerCity.forEach((cidadeId, values) {
       overrides[cidadeId] = Map<int, double>.from(values);
@@ -251,19 +277,26 @@ abstract class _MultiCityCensusStoreBase with Store {
     );
   }
 
-  /// Inicializa valores editados a partir dos censos carregados
+  /// Inicializa valores editados e mapas de lookup a partir dos censos carregados
   void _initializeEditedValues() {
     editedValuesPerCity.clear();
+    _nomeEtapaToId.clear();
+    _idToNomeEtapa.clear();
 
     for (final entry in censusPerCity.entries) {
       final cityId = entry.key;
       final census = entry.value;
 
-      editedValuesPerCity[cityId] = ObservableMap<String, double>();
+      editedValuesPerCity[cityId] = ObservableMap<int, double>();
 
       for (final group in census.grupos) {
         for (final title in group.titulos) {
-          editedValuesPerCity[cityId]![title.nomeEtapa] = title.valor;
+          // Armazenar usando indice_etapa_id (int)
+          editedValuesPerCity[cityId]![title.id] = title.valor;
+
+          // Preencher mapas de lookup (uma vez por etapa)
+          _nomeEtapaToId[title.nomeEtapa] = title.id;
+          _idToNomeEtapa[title.id] = title.nomeEtapa;
         }
       }
     }
