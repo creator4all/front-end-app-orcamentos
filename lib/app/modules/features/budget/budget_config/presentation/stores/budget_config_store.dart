@@ -261,6 +261,171 @@ abstract class _BudgetConfigStoreBase with Store {
     ];
   }
 
+  /// Inicializa o store diretamente com a resposta do POST multi-cidade
+  /// Evita chamadas extras de GET /api/orcamentos/{id} e /produtos-completos
+  @action
+  Future<void> initializeWithMultiCityResponse(
+      Map<String, dynamic> response) async {
+    isLoading = true;
+    isLoadingProducts = false;
+    error = null;
+
+    try {
+      debugPrint(
+          '🚀 [BudgetConfigStore] Inicializando com resposta multi-cidade');
+
+      // Extrair dados básicos
+      final id = response['orc_orcamentoId'] ?? response['id'];
+      final nome = response['orc_nome'] ?? '';
+      final status = response['orc_status'] ?? 'rascunho';
+      final diasValidade = response['orc_dias_validade'] ?? 60;
+      final dataValidade = response['orc_data_validade'] != null
+          ? DateTime.parse(response['orc_data_validade'].toString())
+          : DateTime.now().add(const Duration(days: 60));
+
+      // Extrair cidades
+      final cidadesJson = response['cidades'] as List<dynamic>? ?? [];
+      final cityIds = cidadesJson.map((c) => c['id'] as int? ?? 0).toList();
+      final citiesData = cidadesJson
+          .map((c) => <String, dynamic>{
+                'id': c['id'],
+                'nome': c['nome'],
+                'indices': c['indices'],
+              })
+          .toList();
+
+      // Extrair e parsear categorias com produtos já calculados
+      final categoriasJson = response['categorias'] as List<dynamic>? ?? [];
+      final categoriasParsed =
+          _parseCategoriasFromMultiCityResponse(categoriasJson);
+
+      // Extrair censo_agregado para cálculos de quantidade
+      final censoAgregado =
+          response['censo_agregado'] as Map<String, dynamic>? ?? {};
+
+      // Criar BudgetDetailEntity
+      budgetDetail = BudgetDetailEntity(
+        id: id is int ? id : int.tryParse(id.toString()) ?? 0,
+        name: nome,
+        status: status,
+        validityDays: diasValidade,
+        validityDate: dataValidade,
+        creationDate: DateTime.now(),
+        total: 0.0,
+        userId: response['orc_usuario_id'] as int? ?? 0,
+        partnerId: response['orc_partner_destino_id'] as int?,
+        cityIds: cityIds,
+        products: const [],
+        categoryStates: const {},
+        categories: categoriasParsed,
+        citiesData: citiesData,
+      );
+
+      // Popular categorias já com produtos
+      categories.clear();
+      categories.addAll(categoriasParsed);
+
+      // Armazenar censo_agregado para cálculos
+      final valoresPorEtapa = <String, double>{};
+      censoAgregado.forEach((key, value) {
+        valoresPorEtapa[key] = (value as num).toDouble();
+      });
+
+      // Criar CensoEscolarEntity básico a partir do censo_agregado
+      censoEscolar = CensoEscolarEntity(
+        cidadeId: 0,
+        cidadeNome: 'Agregado',
+        grupos: const [],
+        valoresPorEtapa: valoresPorEtapa,
+      );
+
+      validityDate = dataValidade;
+      budgetName = nome;
+
+      isLoading = false;
+      isLoadingProducts = false;
+
+      debugPrint(
+          '✅ [BudgetConfigStore] Inicializado com ${categories.length} categorias');
+    } catch (e, stackTrace) {
+      debugPrint('❌ [BudgetConfigStore] Erro ao inicializar: $e');
+      debugPrint('Stack: $stackTrace');
+      error = 'Erro ao inicializar orçamento: $e';
+      isLoading = false;
+    }
+  }
+
+  /// Parseia categorias do JSON de resposta do POST multi-cidade
+  List<CategoryEntity> _parseCategoriasFromMultiCityResponse(
+      List<dynamic> categoriasJson) {
+    return categoriasJson.map((catJson) {
+      final subcategoriasJson =
+          catJson['subcategorias'] as List<dynamic>? ?? [];
+
+      final subcategorias = subcategoriasJson.map((subJson) {
+        final produtosJson = subJson['produtos'] as List<dynamic>? ?? [];
+
+        final produtos = produtosJson.map((prodJson) {
+          final indicadoresJson =
+              prodJson['indicadores'] as List<dynamic>? ?? [];
+          final indicadores = indicadoresJson.map((indJson) {
+            final etapaJson =
+                indJson['indicador_etapa'] as Map<String, dynamic>? ?? {};
+            final grupoJson = etapaJson['grupo'] as Map<String, dynamic>? ?? {};
+
+            return IndicadorEtapaEntity(
+              produtoIndicadorId: indJson['id'] as int? ?? 0,
+              indicadorId: etapaJson['id'] as int? ?? 0,
+              indicadorNome: etapaJson['titulo'] as String? ?? '',
+              nomeEtapa: etapaJson['nome'] as String? ?? '',
+              grupoId: grupoJson['id'] as int? ?? 0,
+              grupoNome: grupoJson['nome'] as String? ?? '',
+              selecionado: indJson['selecionado'] as bool? ?? false,
+            );
+          }).toList();
+
+          final orcProdJson =
+              prodJson['orcamento_produto'] as Map<String, dynamic>? ?? {};
+          final valor = (prodJson['valor'] as num?)?.toDouble() ?? 0.0;
+
+          return ProductEntity(
+            id: prodJson['id'] as int? ?? 0,
+            codigo: prodJson['codigo'] as String? ?? '',
+            solucao: prodJson['solucao'] as String? ?? '',
+            tipo: prodJson['tipo'] as String? ?? '',
+            ativo: prodJson['status'] as bool? ?? true,
+            valor: valor,
+            indicacao: prodJson['indicacao'] as String? ?? '',
+            tipoProduto: prodJson['tipo_produto'] as String? ?? '',
+            ordem: prodJson['ordem'] as int? ?? 0,
+            subcategoriaId: subJson['id'] as int? ?? 0,
+            selecionado: orcProdJson['selecionado'] as bool? ?? false,
+            quantidade: orcProdJson['quantidade'] as int? ?? 0,
+            temOverride: false,
+            valorOriginal: valor,
+            ativoOriginal: prodJson['status'] as bool? ?? true,
+            indicadoresEtapa: indicadores,
+          );
+        }).toList();
+
+        return SubcategoryEntity(
+          id: subJson['id'] as int? ?? 0,
+          nome: subJson['nome'] as String? ?? '',
+          ordem: subJson['ordem'] as int? ?? 0,
+          produtos: produtos,
+        );
+      }).toList();
+
+      return CategoryEntity(
+        id: catJson['id'] as int? ?? 0,
+        nome: catJson['nome'] as String? ?? '',
+        ordem: catJson['ordem'] as int? ?? 0,
+        expandido: catJson['expandido'] as bool? ?? false,
+        subcategorias: subcategorias,
+      );
+    }).toList();
+  }
+
   /// Sincroniza o estado de seleção do produto com base na quantidade
   /// Se quantidade = 0 → selecionado = false
   /// Se quantidade > 0 → selecionado = true

@@ -11,8 +11,8 @@ class CreateMultiCityBudgetUseCase {
 
   /// Executa a criação do orçamento multi-cidades
   ///
-  /// Retorna o ID do orçamento criado ou um erro
-  Future<Either<BudgetFailure, int>> call({
+  /// Retorna os dados completos do orçamento criado (categorias, cidades, censo_agregado)
+  Future<Either<BudgetFailure, Map<String, dynamic>>> call({
     required String nome,
     required int diasValidade,
     required List<int> cidadeIds,

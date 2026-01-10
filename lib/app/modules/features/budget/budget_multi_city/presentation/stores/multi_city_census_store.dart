@@ -237,9 +237,9 @@ abstract class _MultiCityCensusStoreBase with Store {
     editedValuesPerCity[cityId]![indiceEtapaId] = value;
   }
 
-  /// Cria o orçamento e retorna o ID
+  /// Cria o orçamento e retorna os dados completos (categorias, cidades, censo_agregado)
   @action
-  Future<int?> createBudget() async {
+  Future<Map<String, dynamic>?> createBudget() async {
     if (budgetName.isEmpty) {
       error = 'Nome do orçamento é obrigatório';
       return null;
@@ -273,7 +273,7 @@ abstract class _MultiCityCensusStoreBase with Store {
         error = failure.message;
         return null;
       },
-      (budgetId) => budgetId,
+      (budgetData) => budgetData,
     );
   }
 

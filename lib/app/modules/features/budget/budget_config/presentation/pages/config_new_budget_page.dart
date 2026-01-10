@@ -60,6 +60,16 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final args = Modular.args.data;
+
+      // ✅ OTIMIZAÇÃO: Verificar se veio resposta multi-cidade completa
+      // Isso evita chamadas extras de GET /api/orcamentos/{id} e /produtos-completos
+      if (args is Map<String, dynamic> &&
+          args.containsKey('multiCityResponse')) {
+        final multiCityData = args['multiCityResponse'] as Map<String, dynamic>;
+        store.initializeWithMultiCityResponse(multiCityData);
+        return;
+      }
+
       BudgetDraftEntity? initialDraft;
 
       // Extrair draft do novo formato de arguments
@@ -257,20 +267,24 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                             store.budgetDetail?.cityIds.length ??
                             0,
                         citiesData: _extractCitiesData(),
+                        censoAgregado: store.censoEscolar?.valoresPorEtapa,
                         onTap: () async {
                           print(
                               '👆 [ConfigPage] Navegando para edição do Censo Escolar');
 
+                          // Verificar se é multi-cidade
+                          final isMultiCity =
+                              (store.budgetDetail?.cityIds.length ?? 0) > 1;
                           final cityId =
-                              store.budgetDetail?.cityIds.firstOrNull;
-                          if (cityId == null) return;
+                              store.budgetDetail?.cityIds.firstOrNull ?? 0;
 
-                          // Navegar para tela de edição do censo passando budgetId e callback
+                          // Navegar para tela de edição do censo
                           final result = await Modular.to.pushNamed(
                             '/budget/census/$cityId',
                             arguments: {
                               'censoEscolar': store.censoEscolar,
                               'budgetId': widget.budgetId,
+                              'isMultiCityMode': isMultiCity,
                               'onCensusUpdated': (updatedCenso) {
                                 // Atualizar censo no store local
                                 store.updateCensoEscolar(updatedCenso);

@@ -22,6 +22,7 @@ import 'budget_config/domain/services/product_calculation_service.dart';
 import 'budget_config/domain/usecases/calculate_totals_usecase.dart';
 import 'budget_config/domain/usecases/finalize_budget_usecase.dart';
 import 'budget_config/domain/usecases/get_all_budget_products_usecase.dart';
+import 'budget_config/domain/usecases/get_budget_census_usecase.dart';
 import 'budget_config/domain/usecases/get_budget_detail_usecase.dart';
 import 'budget_config/domain/usecases/get_category_products_usecase.dart';
 import 'budget_config/domain/usecases/get_census_data_usecase.dart';
@@ -233,6 +234,9 @@ class BudgetModuleNew extends Module {
         Bind.lazySingleton(
           (i) => UpdateBudgetCensusUseCase(i.get<CensusRepository>()),
         ),
+        Bind.lazySingleton(
+          (i) => GetBudgetCensusUseCase(i.get<CensusRemoteDataSource>()),
+        ),
 
         // Services
         Bind.lazySingleton<ProductCalculationService>(
@@ -259,6 +263,7 @@ class BudgetModuleNew extends Module {
             i.get<GetCensusUseCase>(),
             i.get<UpdateCensusUseCase>(),
             i.get<UpdateBudgetCensusUseCase>(),
+            i.get<GetBudgetCensusUseCase>(),
           ),
         ),
 
@@ -366,13 +371,15 @@ class BudgetModuleNew extends Module {
           );
         }),
 
-        // School Census
+        // School Census (suporta single e multi-city)
         ChildRoute('/census/:cityId', child: (context, args) {
           final cityId = int.parse(args.params['cityId']);
           // Extrai argumentos
           final argsData = args.data as Map<String, dynamic>?;
           final censoEscolar = argsData?['censoEscolar'] as CensoEscolarEntity?;
           final budgetId = argsData?['budgetId'] as int?;
+          final isMultiCityMode =
+              argsData?['isMultiCityMode'] as bool? ?? false;
           final onCensusUpdated =
               argsData?['onCensusUpdated'] as Function(CensoEscolarEntity)?;
 
@@ -381,6 +388,7 @@ class BudgetModuleNew extends Module {
             budgetId: budgetId,
             censoInicial: censoEscolar,
             onCensusUpdated: onCensusUpdated,
+            isMultiCityMode: isMultiCityMode,
           );
         }),
 

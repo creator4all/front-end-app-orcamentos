@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:multimidiaapp/app/shared/widgets/custom_info_dialog.dart';
 
 import '../../../../../../shared/widgets/custom_top_bar.dart';
+import '../../../../../../shared/widgets/searchable_dropdown_widget.dart';
 import '../../domain/entities/censo_escolar_entity.dart';
 import '../../domain/entities/censo_group_entity.dart';
 import '../stores/school_census_store.dart';
@@ -15,12 +17,16 @@ class SchoolCensusPage extends StatefulWidget {
   final CensoEscolarEntity? censoInicial;
   final Function(CensoEscolarEntity)? onCensusUpdated;
 
+  /// Indica se deve usar modo multi-cidade (carregar via loadBudgetCensus)
+  final bool isMultiCityMode;
+
   const SchoolCensusPage({
     super.key,
     required this.cityId,
     this.budgetId,
     this.censoInicial,
     this.onCensusUpdated,
+    this.isMultiCityMode = false,
   });
 
   @override
@@ -44,11 +50,21 @@ class _SchoolCensusPageState
       store.setBudgetId(widget.budgetId);
     }
 
-    // Se recebeu dados do censo, usar diretamente
-    if (widget.censoInicial != null) {
+    // Se é modo multi-cidade, carregar via endpoint de orçamento
+    if (widget.isMultiCityMode && widget.budgetId != null) {
+      store.loadBudgetCensus(widget.budgetId!).then((_) {
+        // Mostrar dialog informativo se estiver em modo multi-cidade e visualização agregada
+        if (store.isMultiCity && store.isAggregatedView) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _showInfoDialog();
+          });
+        }
+      });
+    } else if (widget.censoInicial != null) {
+      // Se recebeu dados do censo, usar diretamente
       store.setCensoEscolar(widget.censoInicial!);
     } else {
-      // Caso contrário, carregar da API
+      // Caso contrário, carregar da API por cidade
       store.loadCensus(widget.cityId);
     }
   }
@@ -118,6 +134,16 @@ class _SchoolCensusPageState
         .toList();
   }
 
+  void _showInfoDialog() {
+    CustomInfoDialog.show(
+      context: context,
+      type: DialogType.info,
+      title: 'Informação sobre o Censo',
+      message:
+          'Você está visualizando a soma dos alunos de todas as cidades selecionadas.\n\nPara editar os valores, selecione uma cidade específica no menu acima.',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return PopScope(
@@ -128,9 +154,19 @@ class _SchoolCensusPageState
         }
       },
       child: Scaffold(
-        appBar: const CustomTopBar(
+        appBar: CustomTopBar(
           title: 'Censo escolar',
           showBackButton: true,
+          actionButton: store.isMultiCity
+              ? IconButton(
+                  onPressed: _showInfoDialog,
+                  icon: Icon(
+                    Icons.info_outline,
+                    color: const Color(0xFF117BBD),
+                    size: 24.sp,
+                  ),
+                )
+              : null,
         ),
         body: SafeArea(
           child: Observer(
@@ -146,7 +182,7 @@ class _SchoolCensusPageState
                     children: [
                       Text('Erro: ${store.error}'),
                       ElevatedButton(
-                        onPressed: () => store.loadCensus(widget.cityId),
+                        onPressed: () => _retryLoad(),
                         child: const Text('Tentar novamente'),
                       ),
                     ],
@@ -165,7 +201,7 @@ class _SchoolCensusPageState
                 children: [
                   Expanded(
                     child: RefreshIndicator(
-                      onRefresh: () => store.loadCensus(widget.cityId),
+                      onRefresh: () => _retryLoad(),
                       color: const Color(0xFF117BBD),
                       child: SingleChildScrollView(
                         physics: const AlwaysScrollableScrollPhysics(),
@@ -173,8 +209,18 @@ class _SchoolCensusPageState
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildEditModeToggle(),
+                            // Seletor de cidade (só para multi-cidade)
+                            if (store.isMultiCity) _buildCitySelector(),
+
+                            // Toggle de edição (oculto no modo agregado)
+                            if (!store.isAggregatedView) _buildEditModeToggle(),
+
+                            // Informação do censo
                             _buildCensusInfo(),
+
+                            // Aviso de modo agregado (REMOVIDO EM FAVOR DO DIALOG)
+                            // if (store.isAggregatedView) _buildAggregatedModeWarning(),
+
                             SizedBox(height: 16.h),
                             _buildStudentsSections(),
                             _buildProfessorsSections(),
@@ -184,12 +230,39 @@ class _SchoolCensusPageState
                       ),
                     ),
                   ),
-                  if (store.isEditMode) _buildSaveButton(),
+                  if (store.isEditMode && !store.isAggregatedView)
+                    _buildSaveButton(),
                 ],
               );
             },
           ),
         ),
+      ),
+    );
+  }
+
+  /// Dropdown pesquisável para selecionar cidade (apenas multi-cidade)
+  Widget _buildCitySelector() {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 12.h),
+      child: SearchableDropdownWidget(
+        label: 'Cidade',
+        hint: 'Selecione uma cidade',
+        searchHint: 'Pesquisar cidade...',
+        value: store.selectedCityName,
+        items: store.cityOptions.map((e) => e.name).toList(),
+        onChanged: (cityName) {
+          if (cityName == null) return;
+
+          final selectedOption = store.cityOptions.firstWhere(
+            (option) => option.name == cityName,
+            orElse: () => store.cityOptions.first,
+          );
+
+          store.selectCity(selectedOption.id);
+          // Limpar controllers ao trocar de cidade
+          _controllers.clear();
+        },
       ),
     );
   }
@@ -277,7 +350,7 @@ class _SchoolCensusPageState
       children: studentGroups
           .map((group) => CensusDataSectionWidget.withId(
                 group: group,
-                isEditMode: store.isEditMode,
+                isEditMode: store.isEditMode && !store.isAggregatedView,
                 controllers: _controllers,
                 onItemChanged: (entry) {
                   store.updateValue(entry.key, entry.value);
@@ -310,7 +383,7 @@ class _SchoolCensusPageState
         SizedBox(height: 8.h),
         ...professorGroups.map((group) => CensusDataSectionWidget.withId(
               group: group,
-              isEditMode: store.isEditMode,
+              isEditMode: store.isEditMode && !store.isAggregatedView,
               controllers: _controllers,
               onItemChanged: (entry) {
                 store.updateValue(entry.key, entry.value);
@@ -353,6 +426,14 @@ class _SchoolCensusPageState
               ),
       ),
     );
+  }
+
+  Future<void> _retryLoad() async {
+    if (widget.isMultiCityMode && widget.budgetId != null) {
+      await store.loadBudgetCensus(widget.budgetId!);
+    } else {
+      await store.loadCensus(widget.cityId);
+    }
   }
 
   Future<void> _handleSave() async {

@@ -15,7 +15,8 @@ abstract class MultiCityBudgetRemoteDataSource {
   });
 
   /// Cria um novo orçamento multi-cidades
-  Future<int> criarMultiCidade({
+  /// Retorna os dados completos do orçamento criado (categorias, cidades, censo_agregado)
+  Future<Map<String, dynamic>> criarMultiCidade({
     required String nome,
     required int diasValidade,
     required int usuarioId,
