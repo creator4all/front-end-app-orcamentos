@@ -23,6 +23,27 @@ mixin _$SchoolCensusStore on _SchoolCensusStoreBase, Store {
       (_$hasChangesComputed ??= Computed<bool>(() => super.hasChanges,
               name: '_SchoolCensusStoreBase.hasChanges'))
           .value;
+  Computed<bool>? _$isAggregatedViewComputed;
+
+  @override
+  bool get isAggregatedView => (_$isAggregatedViewComputed ??= Computed<bool>(
+          () => super.isAggregatedView,
+          name: '_SchoolCensusStoreBase.isAggregatedView'))
+      .value;
+  Computed<String>? _$selectedCityNameComputed;
+
+  @override
+  String get selectedCityName => (_$selectedCityNameComputed ??=
+          Computed<String>(() => super.selectedCityName,
+              name: '_SchoolCensusStoreBase.selectedCityName'))
+      .value;
+  Computed<List<DropdownCityOption>>? _$cityOptionsComputed;
+
+  @override
+  List<DropdownCityOption> get cityOptions => (_$cityOptionsComputed ??=
+          Computed<List<DropdownCityOption>>(() => super.cityOptions,
+              name: '_SchoolCensusStoreBase.cityOptions'))
+      .value;
 
   late final _$censoEscolarAtom =
       Atom(name: '_SchoolCensusStoreBase.censoEscolar', context: context);
@@ -136,6 +157,70 @@ mixin _$SchoolCensusStore on _SchoolCensusStoreBase, Store {
     });
   }
 
+  late final _$isMultiCityAtom =
+      Atom(name: '_SchoolCensusStoreBase.isMultiCity', context: context);
+
+  @override
+  bool get isMultiCity {
+    _$isMultiCityAtom.reportRead();
+    return super.isMultiCity;
+  }
+
+  @override
+  set isMultiCity(bool value) {
+    _$isMultiCityAtom.reportWrite(value, super.isMultiCity, () {
+      super.isMultiCity = value;
+    });
+  }
+
+  late final _$cidadesAtom =
+      Atom(name: '_SchoolCensusStoreBase.cidades', context: context);
+
+  @override
+  ObservableList<CidadeCensoDto> get cidades {
+    _$cidadesAtom.reportRead();
+    return super.cidades;
+  }
+
+  @override
+  set cidades(ObservableList<CidadeCensoDto> value) {
+    _$cidadesAtom.reportWrite(value, super.cidades, () {
+      super.cidades = value;
+    });
+  }
+
+  late final _$censoAgregadoAtom =
+      Atom(name: '_SchoolCensusStoreBase.censoAgregado', context: context);
+
+  @override
+  ObservableMap<String, double> get censoAgregado {
+    _$censoAgregadoAtom.reportRead();
+    return super.censoAgregado;
+  }
+
+  @override
+  set censoAgregado(ObservableMap<String, double> value) {
+    _$censoAgregadoAtom.reportWrite(value, super.censoAgregado, () {
+      super.censoAgregado = value;
+    });
+  }
+
+  late final _$selectedCityIdAtom =
+      Atom(name: '_SchoolCensusStoreBase.selectedCityId', context: context);
+
+  @override
+  int? get selectedCityId {
+    _$selectedCityIdAtom.reportRead();
+    return super.selectedCityId;
+  }
+
+  @override
+  set selectedCityId(int? value) {
+    _$selectedCityIdAtom.reportWrite(value, super.selectedCityId, () {
+      super.selectedCityId = value;
+    });
+  }
+
   late final _$loadCensusAsyncAction =
       AsyncAction('_SchoolCensusStoreBase.loadCensus', context: context);
 
@@ -150,6 +235,15 @@ mixin _$SchoolCensusStore on _SchoolCensusStoreBase, Store {
   @override
   Future<void> saveCensus() {
     return _$saveCensusAsyncAction.run(() => super.saveCensus());
+  }
+
+  late final _$loadBudgetCensusAsyncAction =
+      AsyncAction('_SchoolCensusStoreBase.loadBudgetCensus', context: context);
+
+  @override
+  Future<void> loadBudgetCensus(int budgetIdParam) {
+    return _$loadBudgetCensusAsyncAction
+        .run(() => super.loadBudgetCensus(budgetIdParam));
   }
 
   late final _$_SchoolCensusStoreBaseActionController =
@@ -200,6 +294,17 @@ mixin _$SchoolCensusStore on _SchoolCensusStoreBase, Store {
   }
 
   @override
+  void selectCity(int? cityId) {
+    final _$actionInfo = _$_SchoolCensusStoreBaseActionController.startAction(
+        name: '_SchoolCensusStoreBase.selectCity');
+    try {
+      return super.selectCity(cityId);
+    } finally {
+      _$_SchoolCensusStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
   String toString() {
     return '''
 censoEscolar: ${censoEscolar},
@@ -209,8 +314,15 @@ isEditMode: ${isEditMode},
 error: ${error},
 editedValues: ${editedValues},
 budgetId: ${budgetId},
+isMultiCity: ${isMultiCity},
+cidades: ${cidades},
+censoAgregado: ${censoAgregado},
+selectedCityId: ${selectedCityId},
 totalStudents: ${totalStudents},
-hasChanges: ${hasChanges}
+hasChanges: ${hasChanges},
+isAggregatedView: ${isAggregatedView},
+selectedCityName: ${selectedCityName},
+cityOptions: ${cityOptions}
     ''';
   }
 }

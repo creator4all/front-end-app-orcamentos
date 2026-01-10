@@ -42,6 +42,25 @@ class CensoTitleEntity extends Equatable {
   List<Object?> get props =>
       [id, nomeEtapa, tituloExibicao, valor, isProfessores, grupoId];
 
+  /// Cria uma cópia com valores modificados
+  CensoTitleEntity copyWith({
+    int? id,
+    String? nomeEtapa,
+    String? tituloExibicao,
+    double? valor,
+    bool? isProfessores,
+    int? grupoId,
+  }) {
+    return CensoTitleEntity(
+      id: id ?? this.id,
+      nomeEtapa: nomeEtapa ?? this.nomeEtapa,
+      tituloExibicao: tituloExibicao ?? this.tituloExibicao,
+      valor: valor ?? this.valor,
+      isProfessores: isProfessores ?? this.isProfessores,
+      grupoId: grupoId ?? this.grupoId,
+    );
+  }
+
   @override
   String toString() {
     return 'CensoTitleEntity(id: $id, nome: $tituloExibicao, valor: $valor, professores: $isProfessores)';

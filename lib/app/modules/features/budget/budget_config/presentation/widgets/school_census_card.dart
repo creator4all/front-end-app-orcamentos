@@ -8,39 +8,59 @@ import '../../../../../../shared/widgets/card_layout.dart';
 class SchoolCensusCard extends StatelessWidget {
   final int numberOfCities;
   final List<Map<String, dynamic>> citiesData;
+
+  /// Censo agregado para orçamentos multi-cidade
+  /// Usado para calcular turmas (count > 0) e estudantes (soma)
+  final Map<String, double>? censoAgregado;
   final VoidCallback? onTap;
 
   const SchoolCensusCard({
     super.key,
     required this.numberOfCities,
     required this.citiesData,
+    this.censoAgregado,
     this.onTap,
   });
 
-  /// Calcula o total de turmas (quantidade de indices_etapa)
+  /// Calcula o total de turmas
+  /// Para multi-cidade: conta quantos itens em censoAgregado têm valor > 0
+  /// Para cidade única: conta indices_etapa
   int _calculateTotalClasses() {
+    // Se temos censo agregado, usar ele
+    if (censoAgregado != null && censoAgregado!.isNotEmpty) {
+      return censoAgregado!.values.where((v) => v > 0).length;
+    }
+
+    // Fallback para formato antigo
     int totalClasses = 0;
     for (final city in citiesData) {
-      // Dados vêm em 'cidades_has_indice_etapa' ao invés de 'indicadores'
       final indicadores = city['cidades_has_indice_etapa'] as List? ??
           city['indicadores'] as List? ??
+          city['indices'] as List? ??
           [];
       totalClasses += indicadores.length;
     }
     return totalClasses;
   }
 
-  /// Calcula o total de estudantes (soma dos valores de indices_etapa)
+  /// Calcula o total de estudantes
+  /// Para multi-cidade: soma todos os valores em censoAgregado
+  /// Para cidade única: soma valores de indices_etapa
   int _calculateTotalStudents() {
+    // Se temos censo agregado, usar ele
+    if (censoAgregado != null && censoAgregado!.isNotEmpty) {
+      return censoAgregado!.values.fold(0.0, (sum, v) => sum + v).round();
+    }
+
+    // Fallback para formato antigo
     int totalStudents = 0;
     for (final city in citiesData) {
-      // Dados vêm em 'cidades_has_indice_etapa' ao invés de 'indicadores'
       final indicadores = city['cidades_has_indice_etapa'] as List? ??
           city['indicadores'] as List? ??
+          city['indices'] as List? ??
           [];
       for (final indicador in indicadores) {
         if (indicador is Map<String, dynamic>) {
-          // Valor pode estar em 'pivot.etapa_valor' ou 'valor' ou 'etapa_valor'
           final pivot = indicador['pivot'] as Map<String, dynamic>?;
           final valor = pivot?['etapa_valor'] ??
               indicador['etapa_valor'] ??
@@ -105,31 +125,33 @@ class SchoolCensusCard extends StatelessWidget {
           style: TextStyle(
             fontSize: 12.sp,
             fontWeight: FontWeight.w400,
-            color: const Color(0xFF828282), // Cor mais suave para o título
+            color: const Color(0xFF828282),
           ),
         ),
 
         SizedBox(height: 4.h),
 
-        // Linha com Turmas e Municípios
-        Wrap(
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 12.w, // Espaço entre os itens
+        // Linha com Turmas e Municípios (mesma linha, bold)
+        Row(
           children: [
             Text(
               '$totalClasses Turmas',
               style: TextStyle(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w600, // Bold
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w400,
                 color: const Color(0xFF484848),
               ),
             ),
-            Text(
-              '$numberOfCities Municípios selecionados',
-              style: TextStyle(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w600, // Bold
-                color: const Color(0xFF484848),
+            SizedBox(width: 12.w),
+            Flexible(
+              child: Text(
+                '$numberOfCities Municípios selecionados',
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w400,
+                  color: const Color(0xFF484848),
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -143,7 +165,7 @@ class SchoolCensusCard extends StatelessWidget {
           style: TextStyle(
             fontSize: 12.sp,
             fontWeight: FontWeight.w400,
-            color: const Color(0xFF000000),
+            color: const Color(0xFF484848),
           ),
         ),
       ],

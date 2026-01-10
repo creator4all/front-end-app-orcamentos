@@ -75,7 +75,7 @@ class MultiCityBudgetRemoteDataSourceImpl
   }
 
   @override
-  Future<int> criarMultiCidade({
+  Future<Map<String, dynamic>> criarMultiCidade({
     required String nome,
     required int diasValidade,
     required int usuarioId,
@@ -113,13 +113,15 @@ class MultiCityBudgetRemoteDataSourceImpl
     if (response['success'] == true) {
       final data = response['data'];
       final dados = data['dados'] as Map<String, dynamic>? ?? data;
-      final id = dados['id'] ?? dados['orc_orcamentoId'];
 
+      // Validar que temos o ID
+      final id = dados['id'] ?? dados['orc_orcamentoId'];
       if (id == null) {
         throw Exception('ID do orçamento não retornado');
       }
 
-      return id is int ? id : int.parse(id.toString());
+      // Retornar dados completos (categorias, cidades, censo_agregado)
+      return dados;
     } else {
       throw Exception(
           response['error'] ?? 'Erro ao criar orçamento multi-cidade');

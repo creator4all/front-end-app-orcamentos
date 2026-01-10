@@ -19,7 +19,8 @@ abstract class MultiCityBudgetRepository {
   });
 
   /// Cria um novo orçamento multi-cidades
-  Future<Either<BudgetFailure, int>> criarMultiCidade({
+  /// Retorna os dados completos do orçamento criado (categorias, cidades, censo_agregado)
+  Future<Either<BudgetFailure, Map<String, dynamic>>> criarMultiCidade({
     required String nome,
     required int diasValidade,
     required List<int> cidadeIds,

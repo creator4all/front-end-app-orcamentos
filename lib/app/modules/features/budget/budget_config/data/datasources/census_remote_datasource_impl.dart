@@ -4,6 +4,7 @@ import 'package:multimidiaapp/services/api_service.dart';
 import '../../domain/entities/censo_escolar_entity.dart';
 import '../../domain/entities/censo_group_entity.dart';
 import '../../domain/entities/censo_title_entity.dart';
+import '../models/budget_census_dto.dart';
 import '../models/census_data_dto.dart';
 import 'census_remote_datasource.dart';
 
@@ -291,5 +292,19 @@ class CensusRemoteDataSourceImpl implements CensusRemoteDataSource {
       grupos: grupos,
       valoresPorEtapa: valoresPorEtapa,
     );
+  }
+
+  @override
+  Future<BudgetCensusDto> getBudgetCensus(int budgetId) async {
+    final response = await _apiService.get(
+      '${ApiConfig.baseUrl}/api/orcamentos/$budgetId/censo',
+    );
+
+    if (response['success'] == true) {
+      final data = response['data'] as Map<String, dynamic>? ?? response;
+      return BudgetCensusDto.fromJson(data);
+    } else {
+      throw Exception(response['error'] ?? 'Erro ao buscar censo do orçamento');
+    }
   }
 }

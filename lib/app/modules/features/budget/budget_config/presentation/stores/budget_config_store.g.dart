@@ -345,6 +345,16 @@ mixin _$BudgetConfigStore on _BudgetConfigStoreBase, Store {
         .run(() => super.initializeWithDraft(draft));
   }
 
+  late final _$initializeWithMultiCityResponseAsyncAction = AsyncAction(
+      '_BudgetConfigStoreBase.initializeWithMultiCityResponse',
+      context: context);
+
+  @override
+  Future<void> initializeWithMultiCityResponse(Map<String, dynamic> response) {
+    return _$initializeWithMultiCityResponseAsyncAction
+        .run(() => super.initializeWithMultiCityResponse(response));
+  }
+
   late final _$loadBudgetDetailAsyncAction =
       AsyncAction('_BudgetConfigStoreBase.loadBudgetDetail', context: context);
 

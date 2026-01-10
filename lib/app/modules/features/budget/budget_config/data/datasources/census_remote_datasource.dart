@@ -1,4 +1,5 @@
 import '../../domain/entities/censo_escolar_entity.dart';
+import '../models/budget_census_dto.dart';
 import '../models/census_data_dto.dart';
 
 /// Interface abstrata para operações remotas de dados do Censo Escolar
@@ -24,4 +25,8 @@ abstract class CensusRemoteDataSource {
     required int cityId,
     required Map<int, double> indices,
   });
+
+  /// Busca dados do censo para orçamento (suporta multi-cidade)
+  /// GET /api/orcamentos/{id}/censo
+  Future<BudgetCensusDto> getBudgetCensus(int budgetId);
 }

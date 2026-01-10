@@ -41,7 +41,7 @@ class MultiCityBudgetRepositoryImpl implements MultiCityBudgetRepository {
   }
 
   @override
-  Future<Either<BudgetFailure, int>> criarMultiCidade({
+  Future<Either<BudgetFailure, Map<String, dynamic>>> criarMultiCidade({
     required String nome,
     required int diasValidade,
     required List<int> cidadeIds,

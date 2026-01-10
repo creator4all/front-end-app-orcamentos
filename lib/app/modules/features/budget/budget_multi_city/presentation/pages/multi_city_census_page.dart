@@ -127,12 +127,19 @@ class _MultiCityCensusPageState
       return;
     }
 
-    // Criar orçamento
-    final budgetId = await store.createBudget();
+    // Criar orçamento - agora retorna dados completos
+    final budgetData = await store.createBudget();
 
-    if (budgetId != null) {
-      // Navegar para configuração do orçamento
-      Modular.to.pushReplacementNamed('/budget/config/$budgetId');
+    if (budgetData != null) {
+      // Extrair ID dos dados retornados
+      final budgetId = budgetData['id'] ?? budgetData['orc_orcamentoId'];
+
+      // Navegar para configuração passando dados completos via arguments
+      // Isso evita chamadas extras de GET /api/orcamentos/{id} e /produtos-completos
+      Modular.to.pushReplacementNamed(
+        '/budget/config/$budgetId',
+        arguments: {'multiCityResponse': budgetData},
+      );
     } else if (store.error != null && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

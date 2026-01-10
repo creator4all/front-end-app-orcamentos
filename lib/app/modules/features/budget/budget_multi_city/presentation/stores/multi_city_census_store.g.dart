@@ -232,7 +232,7 @@ mixin _$MultiCityCensusStore on _MultiCityCensusStoreBase, Store {
       AsyncAction('_MultiCityCensusStoreBase.createBudget', context: context);
 
   @override
-  Future<int?> createBudget() {
+  Future<Map<String, dynamic>?> createBudget() {
     return _$createBudgetAsyncAction.run(() => super.createBudget());
   }
 
