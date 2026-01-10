@@ -669,6 +669,19 @@ abstract class _BudgetConfigStoreBase with Store {
           // Inicializar nome
           budgetName = budget.name;
 
+          // ✅ Popular censoEscolar a partir do censo_agregado (orçamentos multi-cidade)
+          // Apenas se censoAgregado não estiver vazio (preserva fluxo para orçamentos comuns)
+          if (budget.censoAgregado.isNotEmpty) {
+            debugPrint(
+                '✅ [BudgetConfigStore] Populando censoEscolar a partir de censo_agregado: ${budget.censoAgregado.length} etapas');
+            censoEscolar = CensoEscolarEntity(
+              cidadeId: 0,
+              cidadeNome: 'Agregado',
+              grupos: const [],
+              valoresPorEtapa: budget.censoAgregado,
+            );
+          }
+
           // ✅ Info básica carregada
           isLoading = false;
 

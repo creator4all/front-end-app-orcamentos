@@ -20,6 +20,8 @@ class BudgetDetailDto {
   final List<CategoryDTO> categories;
   final List<Map<String, dynamic>>
       citiesData; // ✅ Dados completos das cidades com indicadores
+  final Map<String, double>
+      censoAgregado; // ✅ Censo agregado para orçamentos multi-cidade
 
   BudgetDetailDto({
     required this.id,
@@ -36,6 +38,7 @@ class BudgetDetailDto {
     required this.categoryStates,
     required this.categories,
     required this.citiesData,
+    this.censoAgregado = const {},
   });
 
   /// Cria DTO a partir do JSON da API
@@ -231,6 +234,17 @@ class BudgetDetailDto {
           '✅ [BudgetDetailDTO] ${productsList.length} produtos extraídos das categorias.');
     }
 
+    // ✅ Parse censo_agregado para orçamentos multi-cidade
+    final censoAgregadoJson =
+        json['censo_agregado'] as Map<String, dynamic>? ?? {};
+    final censoAgregado = censoAgregadoJson.map(
+      (key, value) => MapEntry(key, (value as num).toDouble()),
+    );
+    if (censoAgregado.isNotEmpty) {
+      print(
+          '✅ [BudgetDetailDTO] censo_agregado parseado: ${censoAgregado.length} etapas');
+    }
+
     return BudgetDetailDto(
       id: json['id'] ?? 0,
       name: json['nome'] ?? json['orc_nome'],
@@ -252,6 +266,7 @@ class BudgetDetailDto {
       categoryStates: categories,
       categories: categoriesList,
       citiesData: citiesDataList,
+      censoAgregado: censoAgregado,
     );
   }
 
@@ -294,6 +309,7 @@ class BudgetDetailDto {
       categoryStates: categoryStates,
       categories: categories.map((c) => c.toEntity()).toList(),
       citiesData: citiesData,
+      censoAgregado: censoAgregado,
     );
   }
 
@@ -317,6 +333,7 @@ class BudgetDetailDto {
       categories:
           entity.categories.map((c) => CategoryDTO.fromEntity(c)).toList(),
       citiesData: [], // Não há dados de cidades na entity, apenas IDs
+      censoAgregado: entity.censoAgregado,
     );
   }
 }

@@ -3,6 +3,8 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import 'package:multimidiaapp/app/modules/features/budget/budget_list/presentation/stores/budget_list_store.dart';
+import 'package:multimidiaapp/app/shared/widgets/custom_info_dialog.dart';
 
 // Imports compartilhados
 import '../../../../../../shared/widgets/budget_summary_card.dart';
@@ -19,6 +21,7 @@ import '../../../budget_config/domain/entities/subcategory_entity.dart';
 // Imports dos widgets do budget_config (reutilização)
 import '../../../budget_config/presentation/widgets/budget_skeleton.dart';
 import '../../../budget_config/presentation/widgets/product_detail_modal.dart';
+import '../../../budget_config/presentation/widgets/product_remark_confirmation_modal.dart';
 import '../../../budget_config/presentation/widgets/school_census_card.dart';
 import '../../../budget_config/presentation/widgets/subcategories_modal.dart';
 import '../../../budget_config/presentation/widgets/subcategory_products_modal.dart';
@@ -124,44 +127,44 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
   Future<void> _handleSaveWithValidation() async {
     // 1️⃣ Validar data de validade
     if (store.validityDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor, defina a data de validade do orçamento'),
-          backgroundColor: Colors.orange,
-        ),
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.warning,
+        title: 'Atenção',
+        message: 'Por favor, defina a data de validade do orçamento',
       );
       return;
     }
 
     // 2️⃣ Validar se data não está no passado
     if (store.validityDate!.isBefore(DateTime.now())) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Data de validade não pode ser no passado'),
-          backgroundColor: Colors.orange,
-        ),
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.warning,
+        title: 'Atenção',
+        message: 'Data de validade não pode ser no passado',
       );
       return;
     }
 
     // 3️⃣ Validar produtos selecionados (usa totalSelectedProducts que conta da hierarquia de categorias)
     if (store.totalSelectedProducts == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Selecione pelo menos um produto para o orçamento'),
-          backgroundColor: Colors.orange,
-        ),
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.warning,
+        title: 'Atenção',
+        message: 'Selecione pelo menos um produto para o orçamento',
       );
       return;
     }
 
     // 4️⃣ Validar se orçamento pode ser editado (não aprovado)
     if (store.budgetData != null && !store.budgetData!.canBeEdited) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Este orçamento não pode mais ser editado'),
-          backgroundColor: Colors.red,
-        ),
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.error,
+        title: 'Ação não permitida',
+        message: 'Este orçamento não pode mais ser editado',
       );
       return;
     }
@@ -176,23 +179,26 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     result.fold(
       (failure) {
         // Erro já foi definido na store
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(failure.message),
-            backgroundColor: Colors.red,
-          ),
+        // Erro já foi definido na store
+        CustomInfoDialog.show(
+          context: context,
+          type: DialogType.error,
+          title: 'Erro ao salvar',
+          message: failure.message,
         );
       },
-      (budget) {
+      (budget) async {
         // Sucesso
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Orçamento atualizado com sucesso!'),
-            backgroundColor: Colors.green,
-          ),
+        await CustomInfoDialog.show(
+          context: context,
+          type: DialogType.success,
+          title: 'Sucesso',
+          message: 'Orçamento atualizado com sucesso!',
         );
 
-        // Navegar de volta para a lista
+        // Forçar atualização da lista e navegar para ela
+        final listStore = Modular.get<BudgetListStore>();
+        await listStore.refresh();
         Modular.to.navigate('/budget/');
       },
     );
@@ -269,12 +275,16 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                       child: SchoolCensusCard(
                         numberOfCities: store.budgetData?.cityIds.length ?? 0,
                         citiesData: _extractCitiesData(),
+                        censoAgregado: store.censoEscolar?.valoresPorEtapa,
                         onTap: () async {
                           print(
                               '👆 [EditPage] Navegando para edição do Censo Escolar');
 
-                          final cityId = store.budgetData?.cityIds.firstOrNull;
-                          if (cityId == null) return;
+                          // ✅ Verificar se é multi-cidade
+                          final isMultiCity =
+                              (store.budgetData?.cityIds.length ?? 0) > 1;
+                          final cityId =
+                              store.budgetData?.cityIds.firstOrNull ?? 0;
 
                           // Navegar para tela de edição do censo passando dados
                           await Modular.to.pushNamed(
@@ -282,12 +292,40 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                             arguments: {
                               'censoEscolar': store.censoEscolar,
                               'budgetId': widget.budgetId,
+                              'isMultiCityMode': isMultiCity,
                               'onCensusUpdated': (updatedCenso) {
                                 // Atualizar censo no store local
                                 store.updateCensoEscolar(updatedCenso);
                               },
                             },
                           );
+
+                          // ✅ Sempre recarregar ao retornar da tela para garantir sincronização
+                          print(
+                              '✅ [EditPage] Retornou do Censo, atualizando estado...');
+
+                          // Recarregar produtos com quantidades recalculadas
+                          await store.reloadProductsAfterCensusEdit();
+
+                          // Verificar se há produtos que precisam de remarcação
+                          if (store.productsNeedingRemark.isNotEmpty) {
+                            print(
+                                '🔔 [EditPage] ${store.productsNeedingRemark.length} produtos precisam de remarcação');
+
+                            // Mostrar modal de confirmação
+                            if (mounted) {
+                              await ProductRemarkConfirmationModal.show(
+                                context: context,
+                                productsToRemark: store.productsNeedingRemark,
+                                onConfirm: () {
+                                  store.confirmProductRemark();
+                                },
+                                onCancel: () {
+                                  store.rejectProductRemark();
+                                },
+                              );
+                            }
+                          }
                         },
                       ),
                     ),
@@ -616,12 +654,11 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
   void _showSubcategoriesModal(CategoryEntity category) {
     // Guard: Não permitir abertura enquanto produtos estão carregando
     if (store.isLoadingProducts) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Aguarde, carregando produtos...'),
-          duration: Duration(seconds: 2),
-          backgroundColor: Colors.orange,
-        ),
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.info,
+        title: 'Aguarde',
+        message: 'Carregando produtos...',
       );
       return;
     }
@@ -727,160 +764,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
           },
         );
       },
-    );
-  }
-
-  Widget _buildContent() {
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: EdgeInsets.all(16.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Card Censo Escolar (se disponível)
-            if (store.hasCensusData && store.budgetData != null) ...[
-              SchoolCensusCard(
-                numberOfCities: store.budgetData!.cityIds.length,
-                citiesData: store.budgetData!.categoriesData['citiesData']
-                        as List<Map<String, dynamic>>? ??
-                    [],
-              ),
-              SizedBox(height: 16.h),
-            ],
-
-            // Resumo do Orçamento
-            Observer(
-              builder: (_) => BudgetSummaryCard(
-                budgetValue: store.totalValue,
-                selectedProductsCount: store.selectedProductsCount,
-              ),
-            ),
-
-            SizedBox(height: 24.h),
-
-            // Título da seção de categorias
-            Text(
-              'Categorias de Produtos',
-              style: TextStyle(
-                fontSize: 18.sp,
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF484848),
-              ),
-            ),
-
-            SizedBox(height: 12.h),
-
-            // Lista de Categorias
-            _buildCategoriesList(),
-
-            // Espaço para botão flutuante
-            SizedBox(height: 80.h),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCategoriesList() {
-    return Observer(
-      builder: (_) {
-        // Loading de produtos
-        if (store.isLoadingProducts) {
-          return Center(
-            child: Padding(
-              padding: EdgeInsets.all(32.h),
-              child: const CircularProgressIndicator(),
-            ),
-          );
-        }
-
-        // Sem categorias
-        if (store.categories.isEmpty) {
-          return Center(
-            child: Padding(
-              padding: EdgeInsets.all(32.h),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.category_outlined,
-                    size: 48.sp,
-                    color: Colors.grey,
-                  ),
-                  SizedBox(height: 12.h),
-                  Text(
-                    'Nenhuma categoria disponível',
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
-
-        // Lista de categorias
-        return ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: store.categories.length,
-          separatorBuilder: (_, __) => SizedBox(height: 12.h),
-          itemBuilder: (context, index) {
-            final category = store.categories[index];
-
-            return ProductCategory(
-              categoryIcon: Icon(
-                Icons.category,
-                size: 24.sp,
-                color: const Color(0xFF117BBD),
-              ),
-              title: category.nome,
-              value: _formatCurrency(category.totalValue),
-              selectedCount: category.selectedProductsCount,
-              totalCount: category.totalActiveProducts,
-              isSelected: category.hasSelectedProducts,
-              onCheckboxChanged: (selected) {
-                // TODO: Implementar seleção/desseleção de toda categoria
-              },
-              onCardTap: () => _handleCategoryTap(category),
-              onActionTap: () => _handleCategoryTap(category),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Future<void> _handleCategoryTap(CategoryEntity category) async {
-    // Selecionar categoria na store
-    store.selectCategory(category);
-
-    // TODO: Implementar navegação para produtos da categoria
-    // Por enquanto, apenas mostra dialog informativo
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(category.nome),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Subcategorias: ${category.subcategorias.length}'),
-            SizedBox(height: 8.h),
-            Text(
-                'Produtos selecionados: ${category.selectedProductsCount}/${category.totalActiveProducts}'),
-            SizedBox(height: 8.h),
-            Text('Valor: ${_formatCurrency(category.totalValue)}'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Fechar'),
-          ),
-        ],
-      ),
     );
   }
 

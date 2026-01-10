@@ -48,6 +48,9 @@ class BudgetDetailEntity extends Equatable {
   /// ✅ Dados completos das cidades com indicadores para Censo Escolar
   final List<Map<String, dynamic>> citiesData;
 
+  /// ✅ Censo agregado para orçamentos multi-cidade (chave: nome_etapa, valor: quantidade)
+  final Map<String, double> censoAgregado;
+
   const BudgetDetailEntity({
     required this.id,
     this.name,
@@ -63,6 +66,7 @@ class BudgetDetailEntity extends Equatable {
     required this.categoryStates,
     required this.categories,
     required this.citiesData,
+    this.censoAgregado = const {},
   });
 
   // ========== Regras de Negócio ==========
@@ -115,6 +119,7 @@ class BudgetDetailEntity extends Equatable {
         products,
         categoryStates,
         categories,
+        censoAgregado,
       ];
 
   /// Cria uma cópia com campos alterados
@@ -133,6 +138,7 @@ class BudgetDetailEntity extends Equatable {
     Map<String, bool>? categoryStates,
     List<CategoryEntity>? categories,
     List<Map<String, dynamic>>? citiesData,
+    Map<String, double>? censoAgregado,
   }) {
     return BudgetDetailEntity(
       id: id ?? this.id,
@@ -149,6 +155,7 @@ class BudgetDetailEntity extends Equatable {
       categoryStates: categoryStates ?? this.categoryStates,
       categories: categories ?? this.categories,
       citiesData: citiesData ?? this.citiesData,
+      censoAgregado: censoAgregado ?? this.censoAgregado,
     );
   }
 }

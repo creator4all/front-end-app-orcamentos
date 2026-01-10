@@ -346,6 +346,8 @@ class BudgetModuleNew extends Module {
           (i) => MultiCityCensusStore(
             i.get<GetMultiCityCensusUseCase>(),
             i.get<CreateMultiCityBudgetUseCase>(),
+            Modular.get<
+                AuthStore>(), // ✅ Injeção do AuthStore para obter usuário logado
           ),
         ),
       ];

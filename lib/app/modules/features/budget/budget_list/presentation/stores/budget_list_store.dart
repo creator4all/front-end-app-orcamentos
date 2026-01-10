@@ -24,6 +24,9 @@ abstract class _BudgetListStoreBase with Store {
   bool isLoading = false;
 
   @observable
+  bool needsRefresh = false;
+
+  @observable
   String? error;
 
   @observable
@@ -36,8 +39,9 @@ abstract class _BudgetListStoreBase with Store {
   String searchQuery = '';
 
   @observable
-  ObservableSet<String> selectedFilters =
-      ObservableSet<String>.of(['pendente']); // Pendente ativo por padrão
+  ObservableSet<String> selectedFilters = ObservableSet<String>.of([
+    'pendente',
+  ]); // Pendente ativo por padrão
 
   @action
   Future<void> fetch({String? status}) async {
@@ -61,7 +65,8 @@ abstract class _BudgetListStoreBase with Store {
           print('✅ [Store] Orçamentos carregados: ${budgets.length}');
           for (final budget in budgets) {
             print(
-                '   - ID: ${budget.id}, Nome: ${budget.nome}, Status: ${budget.status}, Total: R\$ ${budget.total}');
+              '   - ID: ${budget.id}, Nome: ${budget.nome}, Status: ${budget.status}, Total: R\$ ${budget.total}',
+            );
           }
           allItems.clear();
           allItems.addAll(budgets);
@@ -95,6 +100,20 @@ abstract class _BudgetListStoreBase with Store {
   @action
   Future<void> refresh() async {
     await fetch();
+  }
+
+  @action
+  void reset() {
+    allItems.clear();
+    items.clear();
+    error = null;
+    isLoading = false;
+    needsRefresh = false;
+  }
+
+  @action
+  void markNeedsRefresh() {
+    needsRefresh = true;
   }
 
   @action
@@ -199,7 +218,7 @@ abstract class _BudgetListStoreBase with Store {
       return selectedFilters.any((filter) {
         switch (filter) {
           case 'pendente':
-            return status == 'pendente' || status == 'rascunho';
+            return status == 'pendente';
           case 'expirado':
             return status == 'expirado';
           case 'nao_aprovado':
@@ -227,7 +246,8 @@ abstract class _BudgetListStoreBase with Store {
     items.addAll(filtered);
 
     print(
-        '🔍 [Store] Filtros aplicados: ${items.length} de ${allItems.length} orçamentos');
+      '🔍 [Store] Filtros aplicados: ${items.length} de ${allItems.length} orçamentos',
+    );
     print('🔍 [Store] Filtros ativos: ${selectedFilters.toList()}');
   }
 }

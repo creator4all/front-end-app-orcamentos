@@ -1,7 +1,5 @@
-import 'package:dartz/dartz.dart';
 import 'package:mobx/mobx.dart';
 
-import '../../../shared/errors/budget_failure.dart';
 import '../../data/models/budget_census_dto.dart';
 import '../../domain/entities/censo_escolar_entity.dart';
 import '../../domain/usecases/get_budget_census_usecase.dart';
@@ -91,7 +89,7 @@ abstract class _SchoolCensusStoreBase with Store {
     }
     final city = cidades.firstWhere(
       (c) => c.id == selectedCityId,
-      orElse: () => CidadeCensoDto(id: 0, nome: 'Cidade', indices: []),
+      orElse: () => const CidadeCensoDto(id: 0, nome: 'Cidade', indices: []),
     );
     return city.nome;
   }
@@ -179,36 +177,58 @@ abstract class _SchoolCensusStoreBase with Store {
     isSaving = true;
     error = null;
 
-    Either<BudgetFailure, CensoEscolarEntity> result;
-
     // Usar endpoint budget-scoped se budgetId estiver definido
     if (budgetId != null && _updateBudgetCensusUseCase != null) {
-      result = await _updateBudgetCensusUseCase.call(
+      final updateResult = await _updateBudgetCensusUseCase.call(
         budgetId: budgetId!,
         cityId: censoEscolar!.cidadeId,
         indices: editedValues,
       );
+
+      updateResult.fold(
+        (l) => error = l.message,
+        (r) {
+          // Atualizar dados multi-cidade no store
+          isMultiCity = r.multiCidade;
+
+          // Atualizar lista de cidades usando o factory fromEntity para preservar índices
+          cidades.clear();
+          for (var cityEntity in r.cidades) {
+            cidades.add(CidadeCensoDto.fromEntity(cityEntity));
+          }
+
+          // Atualizar censo agregado
+          censoAgregado.clear();
+          censoAgregado.addAll(r.censoAgregado);
+
+          isEditMode = false;
+          _initEditedValues();
+
+          // Re-selecionar cidade para atualizar censoEscolar da UI com os novos dados
+          selectCity(selectedCityId);
+        },
+      );
     } else {
       // Fallback para endpoint legacy (por cidade)
-      result = await _updateCensusUseCase(
+      final legacyResult = await _updateCensusUseCase(
         cityId: censoEscolar!.cidadeId,
         indices: editedValues,
       );
+
+      legacyResult.fold(
+        (l) => error = l.message,
+        (r) {
+          censoEscolar = r;
+          isEditMode = false;
+          _initEditedValues();
+
+          // Atualizar cidade na lista se for multi-cidade
+          if (isMultiCity && selectedCityId != null) {
+            _updateCityInList(r);
+          }
+        },
+      );
     }
-
-    result.fold(
-      (l) => error = l.message,
-      (r) {
-        censoEscolar = r;
-        isEditMode = false;
-        _initEditedValues();
-
-        // Atualizar cidade na lista se for multi-cidade
-        if (isMultiCity && selectedCityId != null) {
-          _updateCityInList(r);
-        }
-      },
-    );
 
     isSaving = false;
   }
@@ -227,7 +247,7 @@ abstract class _SchoolCensusStoreBase with Store {
     error = null;
     budgetId = budgetIdParam;
 
-    final result = await _getBudgetCensusUseCase!.call(budgetIdParam);
+    final result = await _getBudgetCensusUseCase.call(budgetIdParam);
 
     result.fold(
       (failure) {
@@ -275,7 +295,7 @@ abstract class _SchoolCensusStoreBase with Store {
       // Cidade específica
       final city = cidades.firstWhere(
         (c) => c.id == cityId,
-        orElse: () => CidadeCensoDto(id: 0, nome: '', indices: []),
+        orElse: () => const CidadeCensoDto(id: 0, nome: '', indices: []),
       );
       censoEscolar = city.toEntity();
       _initEditedValues();

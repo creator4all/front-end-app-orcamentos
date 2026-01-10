@@ -21,6 +21,10 @@ class BudgetEditEntity extends Equatable {
   final dynamic categoriesData; // Pode ser List ou Map dependendo da API
   final CensusDataEntity? censusData;
 
+  /// Dados agregados do censo escolar para orçamentos multi-cidade
+  /// Mapa de nome_etapa -> valor (ex: {"bercario": 2935, "maternal": 1120})
+  final Map<String, double> censoAgregado;
+
   const BudgetEditEntity({
     required this.id,
     this.name,
@@ -36,6 +40,7 @@ class BudgetEditEntity extends Equatable {
     required this.products,
     required this.categoriesData,
     this.censusData,
+    this.censoAgregado = const {},
   });
 
   // ========== Regras de Negócio ==========
@@ -72,6 +77,7 @@ class BudgetEditEntity extends Equatable {
         products,
         categoriesData,
         censusData,
+        censoAgregado,
       ];
 
   BudgetEditEntity copyWith({
@@ -89,6 +95,7 @@ class BudgetEditEntity extends Equatable {
     List<ProductSelectionEntity>? products,
     dynamic categoriesData,
     CensusDataEntity? censusData,
+    Map<String, double>? censoAgregado,
   }) {
     return BudgetEditEntity(
       id: id ?? this.id,
@@ -105,6 +112,7 @@ class BudgetEditEntity extends Equatable {
       products: products ?? this.products,
       categoriesData: categoriesData ?? this.categoriesData,
       censusData: censusData ?? this.censusData,
+      censoAgregado: censoAgregado ?? this.censoAgregado,
     );
   }
 }
