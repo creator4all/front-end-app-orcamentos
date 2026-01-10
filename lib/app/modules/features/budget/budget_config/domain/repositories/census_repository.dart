@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 
 import '../../../shared/errors/budget_failure.dart';
+import '../entities/budget_census_entity.dart';
 import '../entities/censo_escolar_entity.dart';
 import '../entities/census_data_entity.dart';
 
@@ -25,7 +26,7 @@ abstract class CensusRepository {
   );
 
   /// Atualiza os índices do censo escolar via endpoint de orçamento
-  Future<Either<BudgetFailure, CensoEscolarEntity>> updateBudgetCensusIndices({
+  Future<Either<BudgetFailure, BudgetCensusEntity>> updateBudgetCensusIndices({
     required int budgetId,
     required int cityId,
     required Map<int, double> updatedIndices,

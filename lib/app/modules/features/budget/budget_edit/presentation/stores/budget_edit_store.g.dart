@@ -341,6 +341,23 @@ mixin _$BudgetEditStore on _BudgetEditStoreBase, Store {
     });
   }
 
+  late final _$productsNeedingRemarkAtom = Atom(
+      name: '_BudgetEditStoreBase.productsNeedingRemark', context: context);
+
+  @override
+  ObservableList<ProductEntity> get productsNeedingRemark {
+    _$productsNeedingRemarkAtom.reportRead();
+    return super.productsNeedingRemark;
+  }
+
+  @override
+  set productsNeedingRemark(ObservableList<ProductEntity> value) {
+    _$productsNeedingRemarkAtom.reportWrite(value, super.productsNeedingRemark,
+        () {
+      super.productsNeedingRemark = value;
+    });
+  }
+
   late final _$initializeAsyncAction =
       AsyncAction('_BudgetEditStoreBase.initialize', context: context);
 
@@ -397,6 +414,16 @@ mixin _$BudgetEditStore on _BudgetEditStoreBase, Store {
   @override
   Future<Either<BudgetFailure, BudgetEditEntity>> saveBudgetWithDto() {
     return _$saveBudgetWithDtoAsyncAction.run(() => super.saveBudgetWithDto());
+  }
+
+  late final _$reloadProductsAfterCensusEditAsyncAction = AsyncAction(
+      '_BudgetEditStoreBase.reloadProductsAfterCensusEdit',
+      context: context);
+
+  @override
+  Future<void> reloadProductsAfterCensusEdit() {
+    return _$reloadProductsAfterCensusEditAsyncAction
+        .run(() => super.reloadProductsAfterCensusEdit());
   }
 
   late final _$_BudgetEditStoreBaseActionController =
@@ -592,6 +619,40 @@ mixin _$BudgetEditStore on _BudgetEditStoreBase, Store {
   }
 
   @override
+  void _checkForProductsToRemark(
+      CensoEscolarEntity oldCenso, CensoEscolarEntity newCenso) {
+    final _$actionInfo = _$_BudgetEditStoreBaseActionController.startAction(
+        name: '_BudgetEditStoreBase._checkForProductsToRemark');
+    try {
+      return super._checkForProductsToRemark(oldCenso, newCenso);
+    } finally {
+      _$_BudgetEditStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void confirmProductRemark() {
+    final _$actionInfo = _$_BudgetEditStoreBaseActionController.startAction(
+        name: '_BudgetEditStoreBase.confirmProductRemark');
+    try {
+      return super.confirmProductRemark();
+    } finally {
+      _$_BudgetEditStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void rejectProductRemark() {
+    final _$actionInfo = _$_BudgetEditStoreBaseActionController.startAction(
+        name: '_BudgetEditStoreBase.rejectProductRemark');
+    try {
+      return super.rejectProductRemark();
+    } finally {
+      _$_BudgetEditStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
   String toString() {
     return '''
 isLoading: ${isLoading},
@@ -610,6 +671,7 @@ selectedCategory: ${selectedCategory},
 selectedSubcategory: ${selectedSubcategory},
 censusData: ${censusData},
 censoEscolar: ${censoEscolar},
+productsNeedingRemark: ${productsNeedingRemark},
 hasData: ${hasData},
 canSave: ${canSave},
 selectedProductsCount: ${selectedProductsCount},

@@ -4,6 +4,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:multimidiaapp/app/shared/widgets/city_badge_widget.dart';
 import 'package:multimidiaapp/app/shared/widgets/city_selection_modal.dart';
+import 'package:multimidiaapp/app/shared/widgets/custom_info_dialog.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_top_bar.dart';
 import 'package:multimidiaapp/stores/store_provider.dart';
 
@@ -121,8 +122,11 @@ class _MultiCityCensusPageState
 
   Future<void> _handleNext() async {
     if (!store.hasCities) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Selecione ao menos uma cidade')),
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.warning,
+        title: 'Nenhuma cidade selecionada',
+        message: 'Selecione ao menos uma cidade para continuar.',
       );
       return;
     }
@@ -141,11 +145,12 @@ class _MultiCityCensusPageState
         arguments: {'multiCityResponse': budgetData},
       );
     } else if (store.error != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(store.error!),
-          backgroundColor: Colors.red,
-        ),
+      // ✅ Usar CustomInfoDialog para exibir erro
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.error,
+        title: 'Erro ao criar orçamento',
+        message: store.error!,
       );
     }
   }

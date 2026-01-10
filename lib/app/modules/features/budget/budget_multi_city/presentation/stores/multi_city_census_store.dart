@@ -1,4 +1,5 @@
 import 'package:mobx/mobx.dart';
+import 'package:multimidiaapp/app/modules/features/auth/presentation/stores/auth_store.dart';
 import 'package:multimidiaapp/app/modules/features/budget/budget_config/domain/entities/censo_escolar_entity.dart';
 
 import '../../domain/usecases/create_multi_city_budget_usecase.dart';
@@ -12,10 +13,12 @@ class MultiCityCensusStore = _MultiCityCensusStoreBase
 abstract class _MultiCityCensusStoreBase with Store {
   final GetMultiCityCensusUseCase _getCensusUseCase;
   final CreateMultiCityBudgetUseCase _createBudgetUseCase;
+  final AuthStore _authStore;
 
   _MultiCityCensusStoreBase(
     this._getCensusUseCase,
     this._createBudgetUseCase,
+    this._authStore,
   );
 
   // =========================
@@ -250,6 +253,13 @@ abstract class _MultiCityCensusStoreBase with Store {
       return null;
     }
 
+    // ✅ Obter ID do usuário autenticado
+    final userId = _authStore.currentUser?.id ?? 0;
+    if (userId <= 0) {
+      error = 'Usuário não autenticado';
+      return null;
+    }
+
     isSaving = true;
     error = null;
 
@@ -262,6 +272,7 @@ abstract class _MultiCityCensusStoreBase with Store {
     final result = await _createBudgetUseCase(
       nome: budgetName,
       diasValidade: 60,
+      usuarioId: userId, // ✅ Usar ID do usuário logado
       cidadeIds: cidadeIds,
       overridesPorCidade: overrides,
     );

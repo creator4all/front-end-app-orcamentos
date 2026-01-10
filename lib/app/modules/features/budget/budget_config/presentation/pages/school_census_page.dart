@@ -447,20 +447,20 @@ class _SchoolCensusPageState
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Censo escolar salvo com sucesso!'),
-            backgroundColor: Color(0xFF56B34A),
-          ),
+        await CustomInfoDialog.show(
+          context: context,
+          type: DialogType.success,
+          title: 'Sucesso',
+          message: 'Censo escolar salvo com sucesso!',
         );
       }
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao salvar: ${store.error}'),
-            backgroundColor: Colors.red,
-          ),
+        CustomInfoDialog.show(
+          context: context,
+          type: DialogType.error,
+          title: 'Erro ao salvar',
+          message: 'Erro ao salvar: ${store.error}',
         );
       }
     }

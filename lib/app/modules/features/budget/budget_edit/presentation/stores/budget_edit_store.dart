@@ -94,6 +94,11 @@ abstract class _BudgetEditStoreBase with Store {
   @observable
   CensoEscolarEntity? censoEscolar;
 
+  /// Produtos que passaram a ter disponibilidade após mudança no censo
+  @observable
+  ObservableList<ProductEntity> productsNeedingRemark =
+      ObservableList<ProductEntity>();
+
   // ========== COMPUTED ==========
 
   @computed
@@ -162,12 +167,11 @@ abstract class _BudgetEditStoreBase with Store {
 
   @action
   Future<void> initialize(int budgetId) async {
-    // Carrega estrutura completa (categorias, subcategorias, produtos e cidade)
-    // A API /api/orcamentos/{id} já retorna TODOS os dados necessários
+    // Carrega estrutura (categorias, subcategorias)
     await loadBudgetForEdit(budgetId);
 
-    // Nota: Não é mais necessário chamar _loadAllProducts() ou loadCensusData()
-    // pois loadBudgetForEdit() já traz todos os dados da API
+    // Carrega os produtos reais e faz o merge na estrutura
+    await _loadAllProducts(budgetId);
   }
 
   @action
@@ -889,9 +893,28 @@ abstract class _BudgetEditStoreBase with Store {
   // ========== METHODS CENSO ESCOLAR ==========
 
   /// Converte os dados brutos de cidades (citiesDataRaw) em CensoEscolarEntity
-  /// Usa CidadeDto para parsing tipado, igual ao BudgetConfigStore
+  /// Para multi-cidade, usa censoAgregado; para cidade única, usa CidadeDto
   void _parseCensoEscolarFromCitiesData() {
-    if (budgetData == null || budgetData!.citiesDataRaw.isEmpty) {
+    if (budgetData == null) {
+      censoEscolar = null;
+      return;
+    }
+
+    // ✅ Prioridade 1: Usar censo_agregado para orçamentos multi-cidade
+    if (budgetData!.censoAgregado.isNotEmpty) {
+      print(
+          '✅ [BudgetEditStore] Usando censo_agregado para multi-cidade: ${budgetData!.censoAgregado.length} etapas');
+      censoEscolar = CensoEscolarEntity(
+        cidadeId: 0,
+        cidadeNome: 'Agregado',
+        grupos: const [],
+        valoresPorEtapa: budgetData!.censoAgregado,
+      );
+      return;
+    }
+
+    // Fallback: Usar citiesDataRaw para orçamento de cidade única
+    if (budgetData!.citiesDataRaw.isEmpty) {
       censoEscolar = null;
       return;
     }
@@ -920,6 +943,9 @@ abstract class _BudgetEditStoreBase with Store {
   /// Também atualiza os dados raw da cidade no budgetData
   @action
   void updateCensoEscolar(CensoEscolarEntity updatedCenso) {
+    // Guardar censo antigo para verificação de remark
+    final oldCenso = censoEscolar;
+
     censoEscolar = updatedCenso;
 
     // Atualizar também os dados raw da cidade no budgetData
@@ -939,6 +965,116 @@ abstract class _BudgetEditStoreBase with Store {
 
     print(
         '✅ [BudgetEditStore] CensoEscolar atualizado: ${censoEscolar!.grupos.length} grupos');
+
+    // Se temos censo antigo, verificar se há produtos para remarcação
+    if (oldCenso != null) {
+      _checkForProductsToRemark(oldCenso, updatedCenso);
+    }
+  }
+
+  @action
+  Future<void> reloadProductsAfterCensusEdit() async {
+    if (budgetData == null) return;
+
+    isLoading = true;
+    isLoadingProducts = true;
+    print(
+        '🔄 [BudgetEditStore] Recarregando orçamento completo após edição do censo...');
+
+    try {
+      final oldCenso = censoEscolar;
+
+      // 1. Recarregar estrutura e totais (GET /api/orcamentos/{id})
+      await loadBudgetForEdit(budgetData!.id);
+
+      // 2. Recarregar produtos completos com quantidades recalculadas
+      await _loadAllProducts(budgetData!.id);
+
+      // 3. Verificar se há produtos que precisam de remarcação
+      if (oldCenso != null && censoEscolar != null) {
+        _checkForProductsToRemark(oldCenso, censoEscolar!);
+      }
+
+      print('✅ [BudgetEditStore] Orçamento recarregado com sucesso');
+    } catch (e) {
+      error = 'Erro ao recarregar orçamento: $e';
+      print('❌ [BudgetEditStore] Erro ao recarregar: $e');
+    } finally {
+      isLoading = false;
+      isLoadingProducts = false;
+    }
+  }
+
+  /// Verifica produtos que precisam ser remarcação após mudança no censo
+  @action
+  void _checkForProductsToRemark(
+    CensoEscolarEntity oldCenso,
+    CensoEscolarEntity newCenso,
+  ) {
+    final productsToRemark = <ProductEntity>[];
+
+    // Percorrer todos os produtos para verificar mudanças
+    for (final category in categories) {
+      for (final subcategory in category.subcategorias) {
+        for (final product in subcategory.produtos) {
+          // Calcular quantidade antiga e nova
+          final oldQuantity = calculationService.calcularQuantidade(
+            product,
+            oldCenso,
+          );
+          final newQuantity = calculationService.calcularQuantidade(
+            product,
+            newCenso,
+          );
+
+          // Se era 0 e agora > 0, e NÃO está selecionado, adicionar à lista
+          if (oldQuantity == 0 && newQuantity > 0 && !product.selecionado) {
+            final updatedProduct =
+                product.copyWith(quantidade: newQuantity.round());
+            productsToRemark.add(updatedProduct);
+          }
+        }
+      }
+    }
+
+    // Atualizar observable com produtos que precisam de remarcação
+    productsNeedingRemark.clear();
+    productsNeedingRemark.addAll(productsToRemark);
+
+    if (productsToRemark.isNotEmpty) {
+      print(
+          '🔔 [BudgetEditStore] ${productsToRemark.length} produtos agora têm disponibilidade');
+    }
+  }
+
+  /// Marca os produtos como selecionados (chamado pela UI após confirmação)
+  @action
+  void confirmProductRemark() {
+    if (productsNeedingRemark.isEmpty) return;
+
+    print(
+        '✅ [BudgetEditStore] Confirmando remarcação de ${productsNeedingRemark.length} produtos');
+
+    final productsToRemark = List<ProductEntity>.from(productsNeedingRemark);
+
+    for (final product in productsToRemark) {
+      toggleProduct(product.id, true);
+    }
+
+    // Limpar lista após confirmação
+    productsNeedingRemark.clear();
+  }
+
+  /// Rejeita remarcação dos produtos (chamado pela UI)
+  @action
+  void rejectProductRemark() {
+    if (productsNeedingRemark.isEmpty) return;
+
+    print(
+        '❌ [BudgetEditStore] Rejeitando remarcação de ${productsNeedingRemark.length} produtos');
+
+    // Limpar lista após rejeição
+    productsNeedingRemark.clear();
   }
 
   /// Cria um novo Map de dados da cidade com os valores atualizados do censo

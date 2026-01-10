@@ -3,12 +3,14 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import 'package:multimidiaapp/app/shared/widgets/custom_info_dialog.dart';
 
 import '../../../../../../shared/widgets/budget_summary_card.dart';
 import '../../../../../../shared/widgets/custom_top_bar.dart';
 import '../../../../../../shared/widgets/product_category.dart';
 import '../../../../auth/presentation/stores/auth_store.dart';
 import '../../../budget_create/domain/entities/budget_draft_entity.dart';
+import '../../../budget_list/presentation/stores/budget_list_store.dart';
 import '../../domain/entities/category_entity.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../domain/entities/subcategory_entity.dart';
@@ -110,23 +112,25 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     result.fold(
       (failure) {
         // Erro já foi definido na store
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(failure.message),
-            backgroundColor: Colors.red,
-          ),
+        CustomInfoDialog.show(
+          context: context,
+          type: DialogType.error,
+          title: 'Erro ao salvar',
+          message: failure.message,
         );
       },
-      (budget) {
+      (budget) async {
         // Sucesso
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Orçamento salvo com sucesso!'),
-            backgroundColor: Colors.green,
-          ),
+        await CustomInfoDialog.show(
+          context: context,
+          type: DialogType.success,
+          title: 'Sucesso',
+          message: 'Orçamento salvo com sucesso!',
         );
 
-        // Navegar de volta para a lista
+        // Forçar atualização da lista e navegar para ela
+        final listStore = Modular.get<BudgetListStore>();
+        await listStore.refresh();
         Modular.to.navigate('/budget/');
       },
     );
@@ -136,12 +140,11 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
   Future<void> _handleSaveWithValidation() async {
     // 1️⃣ Validar data de validade
     if (store.validityDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor, defina a data de validade do orçamento'),
-          backgroundColor: Colors.orange,
-          duration: Duration(seconds: 3),
-        ),
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.warning,
+        title: 'Atenção',
+        message: 'Por favor, defina a data de validade do orçamento',
       );
       return;
     }
@@ -637,12 +640,11 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     // 🔒 GUARD: Não permitir abertura enquanto produtos estão carregando
     if (store.isLoadingProducts) {
       print('⚠️ [ConfigPage] Modal bloqueado - produtos ainda carregando');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Aguarde, carregando produtos...'),
-          duration: Duration(seconds: 2),
-          backgroundColor: Colors.orange,
-        ),
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.info,
+        title: 'Aguarde',
+        message: 'Carregando produtos...',
       );
       return;
     }
@@ -690,12 +692,11 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     // 🔒 GUARD: Não permitir abertura enquanto produtos estão carregando
     if (store.isLoadingProducts) {
       print('⚠️ [ConfigPage] Modal de produtos bloqueado - ainda carregando');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Aguarde, carregando produtos...'),
-          duration: Duration(seconds: 2),
-          backgroundColor: Colors.orange,
-        ),
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.info,
+        title: 'Aguarde',
+        message: 'Carregando produtos...',
       );
       return;
     }

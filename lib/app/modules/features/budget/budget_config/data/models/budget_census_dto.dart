@@ -1,3 +1,4 @@
+import '../../domain/entities/budget_census_entity.dart';
 import '../../domain/entities/censo_escolar_entity.dart';
 import '../../domain/entities/censo_group_entity.dart';
 import '../../domain/entities/censo_title_entity.dart';
@@ -21,6 +22,16 @@ class CidadeCensoDto {
       nome: json['nome'] as String? ?? '',
       indices: indicesJson
           .map((e) => IndiceCensoDto.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+
+  factory CidadeCensoDto.fromEntity(CensoEscolarEntity entity) {
+    return CidadeCensoDto(
+      id: entity.cidadeId,
+      nome: entity.cidadeNome,
+      indices: entity.grupos
+          .expand((g) => g.titulos.map((t) => IndiceCensoDto.fromEntity(t, g)))
           .toList(),
     );
   }
@@ -97,6 +108,17 @@ class IndiceCensoDto {
           : null,
     );
   }
+
+  factory IndiceCensoDto.fromEntity(
+      CensoTitleEntity title, CensoGroupEntity group) {
+    return IndiceCensoDto(
+      id: title.id,
+      nomeEtapa: title.nomeEtapa,
+      titulo: title.tituloExibicao,
+      valor: title.valor,
+      grupo: GrupoCensoDto.fromEntity(group),
+    );
+  }
 }
 
 /// DTO para grupo de censo
@@ -113,6 +135,13 @@ class GrupoCensoDto {
     return GrupoCensoDto(
       id: json['id'] as int? ?? 0,
       nome: json['nome'] as String? ?? '',
+    );
+  }
+
+  factory GrupoCensoDto.fromEntity(CensoGroupEntity entity) {
+    return GrupoCensoDto(
+      id: entity.id,
+      nome: entity.nome,
     );
   }
 }
@@ -148,6 +177,16 @@ class BudgetCensusDto {
       censoAgregado: censoAgregadoJson.map(
         (key, value) => MapEntry(key, (value as num).toDouble()),
       ),
+    );
+  }
+
+  /// Converte para BudgetCensusEntity (Domínio)
+  BudgetCensusEntity toEntity() {
+    return BudgetCensusEntity(
+      orcamentoId: orcamentoId,
+      multiCidade: multiCidade,
+      cidades: cidades.map((c) => c.toEntity()).toList(),
+      censoAgregado: censoAgregado,
     );
   }
 }

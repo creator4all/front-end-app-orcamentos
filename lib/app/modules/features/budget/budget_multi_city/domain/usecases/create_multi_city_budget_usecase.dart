@@ -15,6 +15,7 @@ class CreateMultiCityBudgetUseCase {
   Future<Either<BudgetFailure, Map<String, dynamic>>> call({
     required String nome,
     required int diasValidade,
+    required int usuarioId,
     required List<int> cidadeIds,
     required Map<int, Map<int, double>> overridesPorCidade,
     int? partnerDestinoId,
@@ -33,9 +34,14 @@ class CreateMultiCityBudgetUseCase {
           ValidationFailure('Dias de validade deve ser entre 1 e 365'));
     }
 
+    if (usuarioId <= 0) {
+      return const Left(ValidationFailure('Usuário não autenticado'));
+    }
+
     return _repository.criarMultiCidade(
       nome: nome.trim(),
       diasValidade: diasValidade,
+      usuarioId: usuarioId,
       cidadeIds: cidadeIds,
       overridesPorCidade: overridesPorCidade,
       partnerDestinoId: partnerDestinoId,

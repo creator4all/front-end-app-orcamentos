@@ -25,6 +25,22 @@ mixin _$BudgetListStore on _BudgetListStoreBase, Store {
     });
   }
 
+  late final _$needsRefreshAtom =
+      Atom(name: '_BudgetListStoreBase.needsRefresh', context: context);
+
+  @override
+  bool get needsRefresh {
+    _$needsRefreshAtom.reportRead();
+    return super.needsRefresh;
+  }
+
+  @override
+  set needsRefresh(bool value) {
+    _$needsRefreshAtom.reportWrite(value, super.needsRefresh, () {
+      super.needsRefresh = value;
+    });
+  }
+
   late final _$errorAtom =
       Atom(name: '_BudgetListStoreBase.error', context: context);
 
@@ -142,6 +158,28 @@ mixin _$BudgetListStore on _BudgetListStoreBase, Store {
       ActionController(name: '_BudgetListStoreBase', context: context);
 
   @override
+  void reset() {
+    final _$actionInfo = _$_BudgetListStoreBaseActionController.startAction(
+        name: '_BudgetListStoreBase.reset');
+    try {
+      return super.reset();
+    } finally {
+      _$_BudgetListStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void markNeedsRefresh() {
+    final _$actionInfo = _$_BudgetListStoreBaseActionController.startAction(
+        name: '_BudgetListStoreBase.markNeedsRefresh');
+    try {
+      return super.markNeedsRefresh();
+    } finally {
+      _$_BudgetListStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
   void setSearchQuery(String query) {
     final _$actionInfo = _$_BudgetListStoreBaseActionController.startAction(
         name: '_BudgetListStoreBase.setSearchQuery');
@@ -189,6 +227,7 @@ mixin _$BudgetListStore on _BudgetListStoreBase, Store {
   String toString() {
     return '''
 isLoading: ${isLoading},
+needsRefresh: ${needsRefresh},
 error: ${error},
 items: ${items},
 allItems: ${allItems},

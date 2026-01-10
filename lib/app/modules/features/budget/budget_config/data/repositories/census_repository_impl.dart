@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 
 import '../../../shared/errors/budget_failure.dart';
+import '../../domain/entities/budget_census_entity.dart';
 import '../../domain/entities/censo_escolar_entity.dart';
 import '../../domain/entities/census_data_entity.dart';
 import '../../domain/repositories/census_repository.dart';
@@ -57,7 +58,7 @@ class CensusRepositoryImpl implements CensusRepository {
   }
 
   @override
-  Future<Either<BudgetFailure, CensoEscolarEntity>> updateBudgetCensusIndices({
+  Future<Either<BudgetFailure, BudgetCensusEntity>> updateBudgetCensusIndices({
     required int budgetId,
     required int cityId,
     required Map<int, double> updatedIndices,
@@ -68,7 +69,7 @@ class CensusRepositoryImpl implements CensusRepository {
         cityId: cityId,
         indices: updatedIndices,
       );
-      return Right(result);
+      return Right(result.toEntity());
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }
