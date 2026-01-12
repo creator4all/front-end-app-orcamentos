@@ -385,6 +385,11 @@ abstract class _BudgetConfigStoreBase with Store {
               prodJson['orcamento_produto'] as Map<String, dynamic>? ?? {};
           final valor = (prodJson['valor'] as num?)?.toDouble() ?? 0.0;
 
+          // Sincroniza seleção com quantidade: quantidade = 0 → selecionado = false
+          final quantidade = orcProdJson['quantidade'] as int? ?? 0;
+          final selecionadoJson = orcProdJson['selecionado'] as bool? ?? false;
+          final selecionado = quantidade > 0 ? selecionadoJson : false;
+
           return ProductEntity(
             id: prodJson['id'] as int? ?? 0,
             codigo: prodJson['codigo'] as String? ?? '',
@@ -396,8 +401,8 @@ abstract class _BudgetConfigStoreBase with Store {
             tipoProduto: prodJson['tipo_produto'] as String? ?? '',
             ordem: prodJson['ordem'] as int? ?? 0,
             subcategoriaId: subJson['id'] as int? ?? 0,
-            selecionado: orcProdJson['selecionado'] as bool? ?? false,
-            quantidade: orcProdJson['quantidade'] as int? ?? 0,
+            selecionado: selecionado,
+            quantidade: quantidade,
             temOverride: false,
             valorOriginal: valor,
             ativoOriginal: prodJson['status'] as bool? ?? true,

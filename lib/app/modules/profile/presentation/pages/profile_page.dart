@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobx/mobx.dart';
 
@@ -60,42 +61,122 @@ class _ProfilePageState extends State<ProfilePage> {
     super.dispose();
   }
 
+  // Formatar telefone (XX) XXXXX-XXXX
+  String _formatPhone(String value) {
+    value = value.replaceAll(RegExp(r'[^0-9]'), '');
+    if (value.isNotEmpty) value = '($value';
+    if (value.length > 3)
+      value = '${value.substring(0, 3)}) ${value.substring(3)}';
+    if (value.length > 10)
+      value = '${value.substring(0, 10)}-${value.substring(10)}';
+    return value;
+  }
+
   Future<void> _pickImage() async {
     try {
       final XFile? image = await _imagePicker.pickImage(
         source: ImageSource.gallery,
         maxWidth: 1024,
         maxHeight: 1024,
-        imageQuality: 85,
       );
 
       if (image != null) {
-        _store.setSelectedAvatar(File(image.path));
-
-        // Fazer upload automaticamente
-        final success = await _store.uploadAvatar();
-        if (success && mounted) {
-          // ✅ Recarregar dados do usuário na AuthStore
-          await _authStore.loadCurrentUser();
-
-          if (!mounted) return;
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Avatar atualizado com sucesso!'),
-              backgroundColor: Colors.green,
+        // Abrir editor de recorte
+        final CroppedFile? croppedFile = await ImageCropper().cropImage(
+          sourcePath: image.path,
+          compressFormat: ImageCompressFormat.jpg,
+          compressQuality: 85,
+          aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+          uiSettings: [
+            AndroidUiSettings(
+              toolbarTitle: 'Recortar Foto',
+              toolbarColor: const Color(0xFF117BBD),
+              toolbarWidgetColor: Colors.white,
+              initAspectRatio: CropAspectRatioPreset.square,
+              lockAspectRatio: true,
             ),
-          );
+            IOSUiSettings(
+              title: 'Recortar Foto',
+              aspectRatioLockEnabled: true,
+              resetAspectRatioEnabled: false,
+            ),
+          ],
+        );
+
+        if (croppedFile != null) {
+          _store.setSelectedAvatar(File(croppedFile.path));
+
+          // Fazer upload automaticamente
+          final success = await _store.uploadAvatar();
+          if (success && mounted) {
+            // ✅ Recarregar dados do usuário na AuthStore
+            await _authStore.loadCurrentUser();
+
+            if (!mounted) return;
+
+            CustomInfoDialog.show(
+              context: context,
+              type: DialogType.success,
+              title: 'Sucesso',
+              message: 'Avatar atualizado com sucesso!',
+            );
+          }
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao selecionar imagem: $e'),
-            backgroundColor: Colors.red,
-          ),
+        CustomInfoDialog.show(
+          context: context,
+          type: DialogType.error,
+          title: 'Erro de Seleção',
+          message: 'Erro ao selecionar imagem: $e',
         );
+      }
+    }
+  }
+
+  Future<void> _confirmRemoveAvatar() async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remover Foto'),
+        content: const Text('Deseja realmente remover sua foto de perfil?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Remover'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      final success = await _store.removeAvatar();
+      if (success) {
+        // Atualizar store global (AuthStore)
+        await _authStore.loadCurrentUser();
+        if (mounted) {
+          CustomInfoDialog.show(
+            context: context,
+            type: DialogType.success,
+            title: 'Sucesso',
+            message: 'Foto removida com sucesso!',
+          );
+        }
+      } else if (_store.error != null) {
+        if (mounted) {
+          CustomInfoDialog.show(
+            context: context,
+            type: DialogType.error,
+            title: 'Erro na Remoção',
+            message: 'Erro: ${_store.error}',
+          );
+        }
       }
     }
   }
@@ -117,18 +198,18 @@ class _ProfilePageState extends State<ProfilePage> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Perfil atualizado com sucesso!'),
-          backgroundColor: Colors.green,
-        ),
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.success,
+        title: 'Sucesso',
+        message: 'Perfil atualizado com sucesso!',
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro ao atualizar perfil: ${_store.error}'),
-          backgroundColor: Colors.red,
-        ),
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.error,
+        title: 'Erro na Atualização',
+        message: 'Erro ao atualizar perfil: ${_store.error}',
       );
     }
   }
@@ -170,44 +251,16 @@ class _ProfilePageState extends State<ProfilePage> {
                 children: [
                   SizedBox(height: 20.h),
 
-                  // Informações adicionais (read-only) - MOVIDO PARA CIMA
-                  if (_store.profile!.roleName != null)
-                    _buildInfoCard(
-                      'Função',
-                      _store.profile!.roleName!,
-                      Icons.admin_panel_settings_outlined,
-                    ),
-
-                  if (_store.profile!.partnerName != null) ...[
-                    SizedBox(height: 8.h),
-                    _buildInfoCard(
-                      'Parceiro',
-                      _store.profile!.partnerName!,
-                      Icons.business_outlined,
-                    ),
-                  ],
-
-                  SizedBox(height: 24.h),
-
-                  // Avatar
+                  // 1. AVATAR NO TOPO
                   Stack(
+                    alignment: Alignment.center,
                     children: [
                       Observer(
                         builder: (_) {
-                          final avatarUrl = _store.profile!.avatar;
-                          const baseUrl =
-                              'http://192.168.3.2:8080'; // TODO: Pegar do ApiConfig
-                          return CircleAvatar(
-                            radius: 60.r,
-                            backgroundColor: const Color(0xFFE0E0E0),
-                            backgroundImage:
-                                avatarUrl != null && avatarUrl.isNotEmpty
-                                    ? NetworkImage('$baseUrl$avatarUrl')
-                                    : null,
-                            child: avatarUrl == null || avatarUrl.isEmpty
-                                ? Icon(Icons.person,
-                                    size: 60.sp, color: Colors.grey)
-                                : null,
+                          return UserAvatarWidget(
+                            avatarBase64: _store.profile!.avatarBase64,
+                            userName: _store.profile!.name,
+                            radius: 60,
                           );
                         },
                       ),
@@ -231,22 +284,48 @@ class _ProfilePageState extends State<ProfilePage> {
 
                   SizedBox(height: 16.h),
 
-                  // Botão de trocar foto
-                  ElevatedButton.icon(
-                    onPressed: _store.isUploadingAvatar ? null : _pickImage,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF117BBD),
-                      foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(
-                          horizontal: 24.w, vertical: 12.h),
-                    ),
-                    icon: const Icon(Icons.camera_alt),
-                    label: Text(
-                      _store.profile!.avatar == null ||
-                              _store.profile!.avatar!.isEmpty
-                          ? 'Adicionar Foto'
-                          : 'Trocar Foto',
-                    ),
+                  // 2. BADGES (FUNÇÃO E PARCEIRO) - REMOVIDO PARA A MODAL
+                  SizedBox(height: 24.h),
+
+                  // 3. BOTÕES DE AÇÃO (FOTO)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: _store.isUploadingAvatar ? null : _pickImage,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF117BBD),
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 16.w, vertical: 8.h),
+                        ),
+                        icon: const Icon(Icons.camera_alt, size: 18),
+                        label: Text(
+                          _store.profile!.avatar == null ||
+                                  _store.profile!.avatar!.isEmpty
+                              ? 'Adicionar Foto'
+                              : 'Trocar Foto',
+                          style: TextStyle(fontSize: 13.sp),
+                        ),
+                      ),
+                      if (_store.profile!.avatar != null &&
+                          _store.profile!.avatar!.isNotEmpty) ...[
+                        SizedBox(width: 8.w),
+                        TextButton.icon(
+                          onPressed: _store.isUploadingAvatar
+                              ? null
+                              : _confirmRemoveAvatar,
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.red,
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 16.w, vertical: 8.h),
+                          ),
+                          icon: const Icon(Icons.delete, size: 18),
+                          label: Text('Remover',
+                              style: TextStyle(fontSize: 13.sp)),
+                        ),
+                      ],
+                    ],
                   ),
 
                   SizedBox(height: 32.h),
@@ -281,6 +360,16 @@ class _ProfilePageState extends State<ProfilePage> {
                     controller: _phoneController,
                     label: 'Telefone',
                     keyboardType: TextInputType.phone,
+                    onChanged: (value) {
+                      final formatted = _formatPhone(value);
+                      if (formatted != value) {
+                        _phoneController.value = TextEditingValue(
+                          text: formatted,
+                          selection:
+                              TextSelection.collapsed(offset: formatted.length),
+                        );
+                      }
+                    },
                   ),
 
                   SizedBox(height: 32.h),
@@ -331,6 +420,7 @@ class _ProfilePageState extends State<ProfilePage> {
     required String label,
     TextInputType? keyboardType,
     bool obscureText = false,
+    void Function(String)? onChanged,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -350,6 +440,7 @@ class _ProfilePageState extends State<ProfilePage> {
             controller: controller,
             keyboardType: keyboardType,
             obscureText: obscureText,
+            onChanged: onChanged,
             decoration: InputDecoration(
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8.r),
@@ -369,42 +460,6 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildInfoCard(String label, String value, IconData icon) {
-    return Container(
-      padding: EdgeInsets.all(12.w),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5),
-        borderRadius: BorderRadius.circular(8.r),
-        border: Border.all(color: const Color(0xFFE0E0E0)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: const Color(0xFF117BBD)),
-          SizedBox(width: 12.w),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  color: Colors.grey,
-                ),
-              ),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 }

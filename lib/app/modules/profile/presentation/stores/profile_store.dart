@@ -1,5 +1,7 @@
-import 'package:mobx/mobx.dart';
 import 'dart:io';
+
+import 'package:mobx/mobx.dart';
+
 import '../../domain/models/user_profile.dart';
 import '../../external/services/profile_service.dart';
 
@@ -48,13 +50,13 @@ abstract class _ProfileStore with Store {
     try {
       print('🔄 Carregando perfil...');
       profile = await _service.obterPerfil();
-      
+
       // Preencher campos editáveis
       name = profile!.name;
       email = profile!.email;
       cargo = profile!.cargo ?? '';
       phone = profile!.phone ?? '';
-      
+
       print('✅ Perfil carregado com sucesso!');
       print('   ID: ${profile!.id}');
       print('   Nome: ${profile!.name}');
@@ -102,7 +104,7 @@ abstract class _ProfileStore with Store {
     error = null;
     try {
       print('💾 Salvando perfil...');
-      
+
       final dados = {
         'usr_name': name,
         'usr_email': email,
@@ -111,13 +113,13 @@ abstract class _ProfileStore with Store {
       };
 
       profile = await _service.atualizarPerfil(dados);
-      
+
       // Atualizar campos com dados salvos
       name = profile!.name;
       email = profile!.email;
       cargo = profile!.cargo ?? '';
       phone = profile!.phone ?? '';
-      
+
       print('✅ Perfil atualizado com sucesso');
       return true;
     } catch (e) {
@@ -140,14 +142,34 @@ abstract class _ProfileStore with Store {
     error = null;
     try {
       print('📤 Fazendo upload do avatar...');
-      
+
       profile = await _service.uploadAvatar(selectedAvatar!);
       selectedAvatar = null;
-      
+
       print('✅ Avatar atualizado com sucesso');
       return true;
     } catch (e) {
       print('❌ Erro ao fazer upload do avatar: $e');
+      error = e.toString();
+      return false;
+    } finally {
+      isUploadingAvatar = false;
+    }
+  }
+
+  @action
+  Future<bool> removeAvatar() async {
+    isUploadingAvatar = true;
+    error = null;
+    try {
+      print('🗑️ Removendo avatar...');
+
+      profile = await _service.removerAvatar();
+
+      print('✅ Avatar removido com sucesso');
+      return true;
+    } catch (e) {
+      print('❌ Erro ao remover avatar: $e');
       error = e.toString();
       return false;
     } finally {

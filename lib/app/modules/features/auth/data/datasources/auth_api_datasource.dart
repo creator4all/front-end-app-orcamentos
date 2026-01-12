@@ -365,11 +365,9 @@ class AuthApiDatasource implements AuthDatasource {
 
       // Verificar se a resposta indica sucesso
       final data = response.body;
-      if (data is Map<String, dynamic>) {
-        return data['valid'] == true ||
-            data['valido'] == true ||
-            response.statusCode == 200;
-      }
+      return data['valid'] == true ||
+          data['valido'] == true ||
+          response.statusCode == 200;
 
       return response.statusCode == 200;
     } on UnauthorizedException {
@@ -426,6 +424,43 @@ class AuthApiDatasource implements AuthDatasource {
     } catch (e) {
       print('❌ Erro ao redefinir senha: $e');
       throw Exception('Erro ao redefinir senha: $e');
+    }
+  }
+
+  @override
+  Future<UserModel> removeAvatar() async {
+    print('🗑️ AuthApiDatasource.removeAvatar()');
+
+    try {
+      final response = await httpClient.delete(
+        '/api/perfil/me/avatar',
+        config: HttpRequestConfig(
+          headers: {'User-Agent': 'App-Orcamentos-V1'},
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.body;
+        final userData = data.containsKey('dados')
+            ? data['dados'] as Map<String, dynamic>
+            : data;
+
+        final userModel = UserModel.fromJson(userData);
+
+        // Atualizar cache local
+        await secureStorage.write(
+          key: _userKey,
+          value: jsonEncode(userModel.toJson()),
+        );
+
+        print('✅ Avatar removido e cache de usuário atualizado');
+        return userModel;
+      } else {
+        throw Exception('Falha ao remover avatar');
+      }
+    } catch (e) {
+      print('❌ Erro ao remover avatar: $e');
+      throw Exception('Erro ao remover avatar: $e');
     }
   }
 }

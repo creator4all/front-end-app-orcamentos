@@ -54,4 +54,7 @@ abstract class AuthRepository {
     required String newPassword,
     required String confirmPassword,
   });
+
+  /// Remove o avatar do usuário logado
+  Future<Either<Failure, User>> removeAvatar();
 }

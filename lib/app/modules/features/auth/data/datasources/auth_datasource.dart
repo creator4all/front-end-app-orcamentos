@@ -44,4 +44,8 @@ abstract class AuthDatasource {
     String novaSenha,
     String confirmarSenha,
   );
+
+  /// Remove o avatar do usuário logado
+  /// DELETE /api/perfil/me/avatar
+  Future<UserModel> removeAvatar();
 }

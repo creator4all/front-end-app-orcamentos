@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import 'user_avatar_widget.dart';
+
 class ProfileModal extends StatefulWidget {
   final String userName;
   final String userEmail;
   final String userDocument; // CPF ou CNPJ
   final String? userImageUrl;
+  final String? userRole;
+  final String? partnerName;
   final VoidCallback onClose;
   final VoidCallback? onEditProfile;
   final VoidCallback? onEditCompany;
@@ -23,6 +27,8 @@ class ProfileModal extends StatefulWidget {
     required this.userEmail,
     required this.userDocument,
     this.userImageUrl,
+    this.userRole,
+    this.partnerName,
     required this.onClose,
     this.onEditProfile,
     this.onEditCompany,
@@ -128,27 +134,32 @@ class _ProfileModalState extends State<ProfileModal>
                             SizedBox(height: 40.h),
 
                             // Foto do perfil
-                            Container(
-                              width: 120.w,
-                              height: 120.w,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: const Color(0xFF117BBD),
-                                image: widget.userImageUrl != null
-                                    ? DecorationImage(
-                                        image:
-                                            NetworkImage(widget.userImageUrl!),
-                                        fit: BoxFit.cover,
-                                      )
-                                    : null,
-                              ),
-                              child: widget.userImageUrl == null
-                                  ? Icon(
-                                      Icons.person,
-                                      color: Colors.white,
-                                      size: 60.sp,
-                                    )
-                                  : null,
+                            UserAvatarWidget(
+                              avatarBase64: widget.userImageUrl,
+                              userName: widget.userName,
+                              radius: 60, // 120.w total width / 2
+                            ),
+
+                            SizedBox(height: 16.h),
+
+                            // Badges
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (widget.userRole != null)
+                                  _buildBadge(
+                                    widget.userRole!,
+                                    const Color(0xFF117BBD), // Primary
+                                  ),
+                                if (widget.partnerName != null &&
+                                    widget.userRole != null)
+                                  SizedBox(height: 8.h),
+                                if (widget.partnerName != null)
+                                  _buildBadge(
+                                    widget.partnerName!,
+                                    const Color(0xFF56B34A), // Success
+                                  ),
+                              ],
                             ),
 
                             SizedBox(height: 24.h),
@@ -336,6 +347,25 @@ class _ProfileModalState extends State<ProfileModal>
           ),
         );
       },
+    );
+  }
+
+  Widget _buildBadge(String value, Color color) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Text(
+        value,
+        style: TextStyle(
+          fontSize: 12.sp,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
+      ),
     );
   }
 }

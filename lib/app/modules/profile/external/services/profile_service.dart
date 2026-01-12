@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:multimidiaapp/services/api_service.dart';
 
 import '../../../../../config/api_config.dart';
@@ -36,10 +37,6 @@ class ProfileService {
 
     print('🔍 Dados extraídos: $data');
 
-    if (data is! Map<String, dynamic>) {
-      throw Exception('Formato de resposta inválido');
-    }
-
     return UserProfile.fromMap(data);
   }
 
@@ -62,10 +59,6 @@ class ProfileService {
     }
 
     print('🔍 Dados extraídos: $data');
-
-    if (data is! Map<String, dynamic>) {
-      throw Exception('Formato de resposta inválido');
-    }
 
     return UserProfile.fromMap(data);
   }
@@ -110,11 +103,12 @@ class ProfileService {
       request.headers['Authorization'] = 'Bearer $token';
     }
 
-    // Adicionar arquivo
+    // Adicionar arquivo com contentType explícito para garantir MIME type correto
     request.files.add(
       await http.MultipartFile.fromPath(
         'avatar',
         imageFile.path,
+        contentType: MediaType('image', 'jpeg'),
       ),
     );
 
@@ -135,6 +129,27 @@ class ProfileService {
     if (data is! Map<String, dynamic>) {
       throw Exception('Formato de resposta inválido');
     }
+
+    return UserProfile.fromMap(data);
+  }
+
+  /// Remove o avatar do usuário logado
+  Future<UserProfile> removerAvatar() async {
+    print('🌐 Removendo avatar...');
+
+    final token = await _storage.read(key: 'auth_token');
+    final res = await _api.delete('/api/perfil/me/avatar', token: token);
+    print('📡 Resposta da API: $res');
+
+    Map<String, dynamic> data;
+    if (res['data'] != null && res['data'] is Map) {
+      final innerData = res['data'] as Map<String, dynamic>;
+      data = innerData['dados'] ?? innerData;
+    } else {
+      data = res['dados'] ?? res;
+    }
+
+    print('🔍 Dados extraídos: $data');
 
     return UserProfile.fromMap(data);
   }
