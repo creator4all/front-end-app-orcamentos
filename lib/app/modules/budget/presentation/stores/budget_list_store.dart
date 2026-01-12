@@ -1,6 +1,7 @@
 import 'package:mobx/mobx.dart';
-import '../../../budget/external/services/budget_service.dart';
+
 import '../../../budget/domain/models/budget_summary.dart';
+import '../../../budget/external/services/budget_service.dart';
 
 part 'budget_list_store.g.dart';
 
@@ -18,15 +19,16 @@ abstract class _BudgetListStore with Store {
 
   @observable
   List<BudgetSummaryDto> items = [];
-  
+
   @observable
   List<BudgetSummaryDto> allItems = []; // Lista completa sem filtros
-  
+
   @observable
   String searchQuery = '';
-  
+
   @observable
-  ObservableSet<String> selectedFilters = ObservableSet<String>.of(['pendente']); // Pendente ativo por padrão
+  ObservableSet<String> selectedFilters =
+      ObservableSet<String>.of(['pendente']); // Pendente ativo por padrão
 
   @action
   Future<void> fetch({String? status}) async {
@@ -37,9 +39,10 @@ abstract class _BudgetListStore with Store {
       allItems = await _service.listar(status: status);
       print('✅ Orçamentos carregados: ${allItems.length}');
       for (final item in allItems) {
-        print('   - ID: ${item.id}, Nome: ${item.nome}, Status: ${item.status}, Total: R\$ ${item.total}');
+        print(
+            '   - ID: ${item.id}, Nome: ${item.nome}, Status: ${item.status}, Total: R\$ ${item.total}');
       }
-      
+
       // Aplicar filtros após carregar
       applyFilters();
     } catch (e) {
@@ -54,13 +57,13 @@ abstract class _BudgetListStore with Store {
   Future<void> refresh() async {
     await fetch();
   }
-  
+
   @action
   void setSearchQuery(String query) {
     searchQuery = query;
     applyFilters();
   }
-  
+
   @action
   void toggleFilter(String filter) {
     if (selectedFilters.contains(filter)) {
@@ -70,7 +73,7 @@ abstract class _BudgetListStore with Store {
     }
     applyFilters();
   }
-  
+
   @action
   void resetFilters() {
     searchQuery = '';
@@ -78,7 +81,7 @@ abstract class _BudgetListStore with Store {
     selectedFilters.add('pendente'); // Voltar para pendente por padrão
     applyFilters();
   }
-  
+
   @action
   void applyFilters() {
     // Se nenhum filtro estiver selecionado, mostrar lista vazia
@@ -87,13 +90,13 @@ abstract class _BudgetListStore with Store {
       print('🔍 Nenhum filtro selecionado - lista vazia');
       return;
     }
-    
+
     List<BudgetSummaryDto> filtered = List.from(allItems);
-    
+
     // Filtrar por status primeiro (obrigatório)
     filtered = filtered.where((item) {
       final status = item.status.toLowerCase();
-      
+
       // Mapear filtros para status da API
       return selectedFilters.any((filter) {
         switch (filter) {
@@ -102,7 +105,7 @@ abstract class _BudgetListStore with Store {
           case 'expirado':
             return status == 'expirado';
           case 'nao_aprovado':
-            return status == 'reprovado' || status == 'não aprovado';
+            return status == 'nao_aprovado';
           case 'aprovado':
             return status == 'aprovado';
           case 'arquivado':
@@ -112,7 +115,7 @@ abstract class _BudgetListStore with Store {
         }
       });
     }).toList();
-    
+
     // Depois filtrar por texto de busca (se houver)
     if (searchQuery.isNotEmpty) {
       filtered = filtered.where((item) {
@@ -121,9 +124,10 @@ abstract class _BudgetListStore with Store {
         return nome.contains(query);
       }).toList();
     }
-    
+
     items = filtered;
-    print('🔍 Filtros aplicados: ${items.length} de ${allItems.length} orçamentos');
+    print(
+        '🔍 Filtros aplicados: ${items.length} de ${allItems.length} orçamentos');
     print('🔍 Filtros ativos: ${selectedFilters.toList()}');
   }
 }

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:multimidiaapp/app/modules/features/auth/presentation/stores/forgot_password_store.dart';
 
 import 'app/modules/features/auth/auth_module.dart';
 // Auth - Clean Architecture (compartilhado globalmente)
@@ -11,6 +12,11 @@ import 'app/modules/features/auth/domain/repositories/auth_repository.dart';
 import 'app/modules/features/auth/domain/usecases/get_current_user_usecase.dart';
 import 'app/modules/features/auth/domain/usecases/login_usecase.dart';
 import 'app/modules/features/auth/domain/usecases/logout_usecase.dart';
+// Forgot Password Use Cases
+import 'app/modules/features/auth/domain/usecases/request_password_reset_usecase.dart';
+import 'app/modules/features/auth/domain/usecases/resend_otp_code_usecase.dart';
+import 'app/modules/features/auth/domain/usecases/reset_password_usecase.dart';
+import 'app/modules/features/auth/domain/usecases/verify_otp_code_usecase.dart';
 import 'app/modules/features/auth/presentation/stores/auth_store.dart';
 // import 'app/modules/budget/budget_module.dart'; // ANTIGO
 import 'app/modules/features/budget/budget_module_new.dart'; // NOVO - Clean Architecture
@@ -92,6 +98,20 @@ class AppModule extends Module {
           (i) => GetCurrentUserUsecase(i.get<AuthRepository>()),
         ),
 
+        // Forgot Password Use Cases
+        Bind.singleton<RequestPasswordResetUsecase>(
+          (i) => RequestPasswordResetUsecase(i.get<AuthRepository>()),
+        ),
+        Bind.singleton<ResendOtpCodeUsecase>(
+          (i) => ResendOtpCodeUsecase(i.get<AuthRepository>()),
+        ),
+        Bind.singleton<VerifyOtpCodeUsecase>(
+          (i) => VerifyOtpCodeUsecase(i.get<AuthRepository>()),
+        ),
+        Bind.singleton<ResetPasswordUsecase>(
+          (i) => ResetPasswordUsecase(i.get<AuthRepository>()),
+        ),
+
         // Store (Disponível para todos os módulos)
         Bind.singleton<AuthStore>(
           (i) => AuthStore(
@@ -99,6 +119,16 @@ class AppModule extends Module {
             logoutUsecase: i.get<LogoutUsecase>(),
             getCurrentUserUsecase: i.get<GetCurrentUserUsecase>(),
             secureStorage: i.get<FlutterSecureStorage>(),
+          ),
+        ),
+
+        // Forgot Password Store
+        Bind.singleton<ForgotPasswordStore>(
+          (i) => ForgotPasswordStore(
+            i.get<RequestPasswordResetUsecase>(),
+            i.get<ResendOtpCodeUsecase>(),
+            i.get<VerifyOtpCodeUsecase>(),
+            i.get<ResetPasswordUsecase>(),
           ),
         ),
 

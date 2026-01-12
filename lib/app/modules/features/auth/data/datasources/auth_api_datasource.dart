@@ -282,4 +282,150 @@ class AuthApiDatasource implements AuthDatasource {
       throw Exception('Erro inesperado ao validar token: $e');
     }
   }
+
+  // ===== Métodos para Recuperação de Senha =====
+
+  @override
+  Future<void> requestPasswordReset(String email) async {
+    print('📧 AuthApiDatasource.requestPasswordReset()');
+    print('   Email: $email');
+
+    try {
+      await httpClient.post(
+        '/api/auth/forgot-password',
+        data: {'usr_email': email},
+        config: HttpRequestConfig(
+          headers: {'User-Agent': 'App-Orcamentos-V1'},
+        ),
+      );
+
+      print('✅ Email de recuperação enviado com sucesso');
+    } on NotFoundException {
+      throw Exception('Usuário não encontrado com este email');
+    } on BadRequestException catch (e) {
+      throw Exception('Email inválido: ${e.message}');
+    } on InternalServerException {
+      throw Exception('Erro no servidor. Tente novamente mais tarde.');
+    } on ConnectionException {
+      throw Exception('Falha na conexão. Verifique sua internet.');
+    } catch (e) {
+      print('❌ Erro ao solicitar recuperação: $e');
+      throw Exception('Erro ao enviar email de recuperação: $e');
+    }
+  }
+
+  @override
+  Future<void> resendOtpCode(String email) async {
+    print('🔄 AuthApiDatasource.resendOtpCode()');
+    print('   Email: $email');
+
+    try {
+      await httpClient.post(
+        '/api/auth/forgot-password/resend',
+        data: {'usr_email': email},
+        config: HttpRequestConfig(
+          headers: {'User-Agent': 'App-Orcamentos-V1'},
+        ),
+      );
+
+      print('✅ Código OTP reenviado com sucesso');
+    } on NotFoundException {
+      throw Exception('Usuário não encontrado');
+    } on TooManyRequestsException {
+      throw Exception('Aguarde antes de solicitar um novo código');
+    } on InternalServerException {
+      throw Exception('Erro no servidor. Tente novamente mais tarde.');
+    } on ConnectionException {
+      throw Exception('Falha na conexão. Verifique sua internet.');
+    } catch (e) {
+      print('❌ Erro ao reenviar OTP: $e');
+      throw Exception('Erro ao reenviar código: $e');
+    }
+  }
+
+  @override
+  Future<bool> verifyOtpCode(String email, String otpCode) async {
+    print('🔢 AuthApiDatasource.verifyOtpCode()');
+    print('   Email: $email');
+    print('   OTP Code: $otpCode');
+
+    try {
+      final response = await httpClient.post(
+        '/api/auth/forgot-password/validate-otp',
+        data: {
+          'usr_email': email,
+          'otp_code': otpCode,
+        },
+        config: HttpRequestConfig(
+          headers: {'User-Agent': 'App-Orcamentos-V1'},
+        ),
+      );
+
+      print('✅ Código OTP verificado com sucesso');
+
+      // Verificar se a resposta indica sucesso
+      final data = response.body;
+      if (data is Map<String, dynamic>) {
+        return data['valid'] == true ||
+            data['valido'] == true ||
+            response.statusCode == 200;
+      }
+
+      return response.statusCode == 200;
+    } on UnauthorizedException {
+      throw Exception('Código OTP inválido');
+    } on BadRequestException {
+      throw Exception('Código OTP inválido ou expirado');
+    } on NotFoundException {
+      throw Exception('Solicitação de recuperação não encontrada');
+    } on InternalServerException {
+      throw Exception('Erro no servidor. Tente novamente mais tarde.');
+    } on ConnectionException {
+      throw Exception('Falha na conexão. Verifique sua internet.');
+    } catch (e) {
+      print('❌ Erro ao verificar OTP: $e');
+      throw Exception('Erro ao verificar código: $e');
+    }
+  }
+
+  @override
+  Future<void> resetPassword(
+    String email,
+    String otpCode,
+    String novaSenha,
+    String confirmarSenha,
+  ) async {
+    print('🔑 AuthApiDatasource.resetPassword()');
+    print('   Email: $email');
+
+    try {
+      await httpClient.post(
+        '/api/auth/reset-password',
+        data: {
+          'usr_email': email,
+          'otp_code': otpCode,
+          'nova_senha': novaSenha,
+          'confirmar_senha': confirmarSenha,
+        },
+        config: HttpRequestConfig(
+          headers: {'User-Agent': 'App-Orcamentos-V1'},
+        ),
+      );
+
+      print('✅ Senha redefinida com sucesso');
+    } on UnauthorizedException {
+      throw Exception('Código OTP inválido ou expirado');
+    } on BadRequestException catch (e) {
+      throw Exception('Erro ao redefinir senha: ${e.message}');
+    } on NotFoundException {
+      throw Exception('Solicitação de recuperação não encontrada');
+    } on InternalServerException {
+      throw Exception('Erro no servidor. Tente novamente mais tarde.');
+    } on ConnectionException {
+      throw Exception('Falha na conexão. Verifique sua internet.');
+    } catch (e) {
+      print('❌ Erro ao redefinir senha: $e');
+      throw Exception('Erro ao redefinir senha: $e');
+    }
+  }
 }

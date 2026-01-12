@@ -1,6 +1,9 @@
 import 'package:flutter_modular/flutter_modular.dart';
 
 import '../registration/registration_module.dart';
+import 'presentation/pages/forgot_password_email_page.dart';
+import 'presentation/pages/forgot_password_new_password_page.dart';
+import 'presentation/pages/forgot_password_otp_page.dart';
 import 'presentation/pages/login_page.dart';
 
 /// Módulo de autenticação seguindo Clean Architecture
@@ -21,6 +24,20 @@ class AuthModule extends Module {
         ChildRoute(
           '/login',
           child: (context, args) => const LoginPage(),
+        ),
+
+        // Rotas de recuperação de senha
+        ChildRoute(
+          '/forgot-password',
+          child: (context, args) => const ForgotPasswordEmailPage(),
+        ),
+        ChildRoute(
+          '/forgot-password/otp',
+          child: (context, args) => const ForgotPasswordOtpPage(),
+        ),
+        ChildRoute(
+          '/forgot-password/new-password',
+          child: (context, args) => const ForgotPasswordNewPasswordPage(),
         ),
 
         // Rota de cadastro/registro

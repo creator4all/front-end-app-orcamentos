@@ -247,7 +247,6 @@ class BudgetModuleNew extends Module {
         Bind.lazySingleton<BudgetConfigStore>(
           (i) => BudgetConfigStore(
             getBudgetDetailUseCase: i.get<GetBudgetDetailUseCase>(),
-            getAllBudgetProductsUseCase: i.get<GetAllBudgetProductsUseCase>(),
             getCategoryProductsUseCase: i.get<GetCategoryProductsUseCase>(),
             getCensusDataUseCase: i.get<GetCensusDataUseCase>(),
             toggleCategoryUseCase: i.get<ToggleCategoryUseCase>(),
@@ -312,7 +311,6 @@ class BudgetModuleNew extends Module {
         Bind.lazySingleton<BudgetEditStore>(
           (i) => BudgetEditStore(
             getBudgetForEditUseCase: i.get<GetBudgetForEditUseCase>(),
-            getAllProductsUseCase: i.get<GetAllBudgetProductsForEditUseCase>(),
             updateBudgetUseCase: i.get<UpdateBudgetUseCase>(),
             getCensusDataUseCase: i.get<GetCensusDataUseCase>(),
             authStore: Modular.get<AuthStore>(),

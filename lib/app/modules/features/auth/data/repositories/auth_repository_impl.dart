@@ -122,4 +122,100 @@ class AuthRepositoryImpl implements AuthRepository {
       }
     }
   }
+
+  // ===== Métodos para Recuperação de Senha =====
+
+  @override
+  Future<Either<Failure, void>> requestPasswordReset({
+    required String email,
+  }) async {
+    try {
+      await datasource.requestPasswordReset(email);
+      return const Right(null);
+    } catch (e) {
+      // Tratar 403/usuário inativo com mensagem amigável
+      if (e.toString().contains('403') || e.toString().contains('inativo')) {
+        return const Left(AuthFailure(
+            'Usuário inativo ou não encontrado. Em caso de dúvidas, entre em contato conosco pelo suporte.'));
+      }
+      if (e.toString().contains('não encontrado')) {
+        return const Left(AuthFailure(
+            'Usuário inativo ou não encontrado. Em caso de dúvidas, entre em contato conosco pelo suporte.'));
+      } else if (e.toString().contains('internet') ||
+          e.toString().contains('conexão')) {
+        return const Left(NetworkFailure('Falha na conexão com o servidor'));
+      } else if (e.toString().contains('servidor')) {
+        return const Left(
+            ServerFailure('Erro no servidor. Tente novamente mais tarde.'));
+      } else {
+        return const Left(AuthFailure(
+            'Usuário inativo ou não encontrado. Em caso de dúvidas, entre em contato conosco pelo suporte.'));
+      }
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> resendOtpCode({required String email}) async {
+    try {
+      await datasource.resendOtpCode(email);
+      return const Right(null);
+    } catch (e) {
+      if (e.toString().contains('Aguarde')) {
+        return const Left(
+            ValidationFailure('Aguarde antes de solicitar um novo código'));
+      } else if (e.toString().contains('internet') ||
+          e.toString().contains('conexão')) {
+        return const Left(NetworkFailure('Falha na conexão com o servidor'));
+      } else {
+        return Left(ServerFailure('Erro ao reenviar código: ${e.toString()}'));
+      }
+    }
+  }
+
+  @override
+  Future<Either<Failure, bool>> verifyOtpCode({
+    required String email,
+    required String otpCode,
+  }) async {
+    try {
+      final isValid = await datasource.verifyOtpCode(email, otpCode);
+      return Right(isValid);
+    } catch (e) {
+      // Tratar todos os erros de verificação OTP com mensagem amigável
+      if (e.toString().contains('internet') ||
+          e.toString().contains('conexão')) {
+        return const Left(NetworkFailure('Falha na conexão com o servidor'));
+      } else {
+        // Qualquer outro erro (inválido, expirado, não encontrado) mostra mensagem amigável
+        return const Left(AuthFailure('Código OTP inválido ou expirado'));
+      }
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> resetPassword({
+    required String email,
+    required String otpCode,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    try {
+      await datasource.resetPassword(
+          email, otpCode, newPassword, confirmPassword);
+      return const Right(null);
+    } catch (e) {
+      // Tratar erros de reset com mensagens amigáveis
+      if (e.toString().contains('internet') ||
+          e.toString().contains('conexão')) {
+        return const Left(NetworkFailure('Falha na conexão com o servidor'));
+      } else if (e.toString().contains('servidor') ||
+          e.toString().contains('500')) {
+        return const Left(
+            ServerFailure('Erro no servidor. Tente novamente mais tarde.'));
+      } else {
+        // Qualquer outro erro mostra mensagem amigável
+        return const Left(AuthFailure('Código OTP inválido ou expirado'));
+      }
+    }
+  }
 }

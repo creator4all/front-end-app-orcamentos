@@ -21,4 +21,27 @@ abstract class AuthDatasource {
 
   /// Valida o token com a API
   Future<bool> validateToken(String token);
+
+  // ===== Métodos para Recuperação de Senha =====
+
+  /// Solicita recuperação de senha
+  /// POST /api/auth/forgot-password
+  Future<void> requestPasswordReset(String email);
+
+  /// Reenvia código OTP
+  /// POST /api/auth/forgot-password/resend
+  Future<void> resendOtpCode(String email);
+
+  /// Verifica código OTP
+  /// POST /api/auth/forgot-password/validate-otp
+  Future<bool> verifyOtpCode(String email, String otpCode);
+
+  /// Redefine a senha
+  /// POST /api/auth/reset-password
+  Future<void> resetPassword(
+    String email,
+    String otpCode,
+    String novaSenha,
+    String confirmarSenha,
+  );
 }

@@ -18,7 +18,6 @@ import '../../../shared/errors/budget_failure.dart';
 import '../../../shared/models/budget_update_dto.dart';
 import '../../../shared/models/product_selection_update_dto.dart';
 import '../../domain/entities/budget_edit_entity.dart';
-import '../../domain/usecases/get_all_budget_products_for_edit_usecase.dart';
 import '../../domain/usecases/get_budget_for_edit_usecase.dart';
 import '../../domain/usecases/update_budget_usecase.dart';
 
@@ -30,7 +29,6 @@ abstract class _BudgetEditStoreBase with Store {
   final GetBudgetForEditUseCase getBudgetForEditUseCase;
   final UpdateBudgetUseCase updateBudgetUseCase;
   final GetCensusDataUseCase getCensusDataUseCase;
-  final GetAllBudgetProductsForEditUseCase getAllProductsUseCase;
   final AuthStore authStore;
   final ProductCalculationService calculationService;
 
@@ -38,7 +36,6 @@ abstract class _BudgetEditStoreBase with Store {
     required this.getBudgetForEditUseCase,
     required this.updateBudgetUseCase,
     required this.getCensusDataUseCase,
-    required this.getAllProductsUseCase,
     required this.authStore,
     required this.calculationService,
   });
@@ -167,11 +164,9 @@ abstract class _BudgetEditStoreBase with Store {
 
   @action
   Future<void> initialize(int budgetId) async {
-    // Carrega estrutura (categorias, subcategorias)
+    // Carrega estrutura completa (categorias, subcategorias, produtos)
+    // Produtos já vêm completos na resposta de GET /api/orcamentos/{id}
     await loadBudgetForEdit(budgetId);
-
-    // Carrega os produtos reais e faz o merge na estrutura
-    await _loadAllProducts(budgetId);
   }
 
   @action
@@ -219,70 +214,6 @@ abstract class _BudgetEditStoreBase with Store {
     } catch (e) {
       error = 'Erro ao carregar orçamento: $e';
       isLoading = false;
-      isLoadingProducts = false;
-    }
-  }
-
-  /// Carrega TODOS os produtos do orçamento com estados reais do banco
-  /// e faz merge com a estrutura de categorias/subcategorias
-  @action
-  Future<void> _loadAllProducts(int budgetId) async {
-    isLoadingProducts = true;
-
-    try {
-      final result = await getAllProductsUseCase(budgetId: budgetId);
-
-      result.fold(
-        (failure) {
-          error = failure.message;
-          isLoadingProducts = false;
-        },
-        (allProducts) {
-          // Agrupar produtos por subcategoria_id
-          final productsBySubcategory = <int, List<ProductEntity>>{};
-
-          for (final product in allProducts) {
-            final subId = product.subcategoriaId;
-            productsBySubcategory.putIfAbsent(subId, () => []);
-            productsBySubcategory[subId]!.add(product);
-          }
-
-          // Distribuir produtos nas subcategorias corretas
-          final updatedCategories = categories.map((cat) {
-            // Atualizar subcategorias com produtos reais
-            final updatedSubcategories = cat.subcategorias.map((sub) {
-              final subProducts = productsBySubcategory[sub.id] ?? [];
-
-              if (subProducts.isEmpty) {
-                // Subcategoria sem produtos, manter como está (com estatísticas)
-                return sub;
-              }
-
-              // Substituir estatísticas por produtos reais
-              return sub.copyWith(
-                produtos: subProducts,
-                estatisticas:
-                    null, // Remove estatísticas (agora tem produtos reais)
-              );
-            }).toList();
-
-            return cat.copyWith(subcategorias: updatedSubcategories);
-          }).toList();
-
-          // 🔧 FIX: Forçar recriação completa do ObservableList
-          // Isso garante que todos os Observers detectem a mudança
-          runInAction(() {
-            categories = ObservableList.of(updatedCategories);
-          });
-
-          // Atualizar selectedProductIds baseado nos produtos reais
-          _updateSelectedProductIds();
-
-          isLoadingProducts = false;
-        },
-      );
-    } catch (e) {
-      error = 'Erro ao carregar produtos: $e';
       isLoadingProducts = false;
     }
   }
@@ -984,11 +915,9 @@ abstract class _BudgetEditStoreBase with Store {
     try {
       final oldCenso = censoEscolar;
 
-      // 1. Recarregar estrutura e totais (GET /api/orcamentos/{id})
+      // Recarregar estrutura completa e produtos (GET /api/orcamentos/{id})
+      // Produtos já vêm com quantidades recalculadas na resposta
       await loadBudgetForEdit(budgetData!.id);
-
-      // 2. Recarregar produtos completos com quantidades recalculadas
-      await _loadAllProducts(budgetData!.id);
 
       // 3. Verificar se há produtos que precisam de remarcação
       if (oldCenso != null && censoEscolar != null) {

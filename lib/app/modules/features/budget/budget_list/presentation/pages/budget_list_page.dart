@@ -220,7 +220,7 @@ class _BudgetListPageState extends State<BudgetListPage> {
                         case 'aprovado':
                           status = BudgetStatus.approved;
                           break;
-                        case 'reprovado':
+                        case 'nao_aprovado':
                           status = BudgetStatus.notApproved;
                           break;
                         case 'expirado':
@@ -248,10 +248,8 @@ class _BudgetListPageState extends State<BudgetListPage> {
                         },
                         child: BudgetCardWidget(
                           title: b.nome ?? 'Orçamento #${b.id}',
-                          partner:
-                              null, // TODO: Implementar quando tiver dados do parceiro
-                          seller:
-                              null, // TODO: Implementar quando tiver dados do vendedor
+                          partner: b.empresaRazaoSocial,
+                          seller: b.usuarioNome,
                           budgetCode: 'ORC-${b.id.toString().padLeft(4, '0')}',
                           dueDate: b.dataValidade ??
                               DateTime.now().add(
@@ -260,7 +258,7 @@ class _BudgetListPageState extends State<BudgetListPage> {
                           totalValue: b.total,
                           daysRemaining: daysRemaining,
                           status: status,
-                          isArchived: b.status.toLowerCase() == 'arquivado',
+                          isArchived: b.isArchived,
                           userRole: UserRole
                               .admin, // TODO: Implementar baseado no usuário logado
                           onTap: () async {

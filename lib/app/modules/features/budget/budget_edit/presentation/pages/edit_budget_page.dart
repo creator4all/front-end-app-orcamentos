@@ -385,10 +385,19 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                                   ),
                                 ),
                                 SizedBox(width: 8.w),
-                                Icon(
-                                  Icons.info,
-                                  color: const Color(0xFF117BBD),
-                                  size: 16.sp,
+                                GestureDetector(
+                                  onTap: () => CustomInfoDialog.show(
+                                    context: context,
+                                    type: DialogType.info,
+                                    title: 'Data do orçamento',
+                                    message:
+                                        'A data do orçamento será atualizada sempre que você fizer e salvar modificações. O orçamento antigo será arquivado.',
+                                  ),
+                                  child: Icon(
+                                    Icons.info,
+                                    color: const Color(0xFF117BBD),
+                                    size: 16.sp,
+                                  ),
                                 ),
                               ],
                             ),
@@ -428,10 +437,19 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                                   ),
                                 ),
                                 SizedBox(width: 8.w),
-                                Icon(
-                                  Icons.info,
-                                  color: const Color(0xFF117BBD),
-                                  size: 16.sp,
+                                GestureDetector(
+                                  onTap: () => CustomInfoDialog.show(
+                                    context: context,
+                                    type: DialogType.info,
+                                    title: 'Validade do orçamento',
+                                    message:
+                                        'Validade definida em dias, caso queira, coloque outra quantidade de dias.',
+                                  ),
+                                  child: Icon(
+                                    Icons.info,
+                                    color: const Color(0xFF117BBD),
+                                    size: 16.sp,
+                                  ),
                                 ),
                               ],
                             ),
