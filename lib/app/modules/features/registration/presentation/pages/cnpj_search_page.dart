@@ -3,6 +3,8 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:multimidiaapp/app/shared/utils/document_validators.dart';
+import 'package:multimidiaapp/app/shared/widgets/custom_info_dialog.dart';
 
 import '../../../../../../theme/app_theme.dart';
 import '../../../../../../widgets/index.dart';
@@ -88,6 +90,20 @@ class _CnpjSearchPageState extends State<CnpjSearchPage> {
 
   void _searchDocument() async {
     if (_formKey.currentState?.validate() ?? false) {
+      final digits = _documentController.text.replaceAll(RegExp(r'[^0-9]'), '');
+
+      // Validar CPF/CNPJ antes de chamar API
+      final error = DocumentValidators.getDocumentError(digits);
+      if (error != null) {
+        CustomInfoDialog.show(
+          context: context,
+          type: DialogType.warning,
+          title: 'Documento inválido',
+          message: error,
+        );
+        return;
+      }
+
       await store.verifyDocument(_documentController.text);
 
       if (!mounted) return;

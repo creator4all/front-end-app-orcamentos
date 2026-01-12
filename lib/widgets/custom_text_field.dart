@@ -16,6 +16,7 @@ class CustomTextField extends StatelessWidget {
   final FocusNode? focusNode;
   final void Function(String)? onChanged;
   final void Function(String)? onSubmitted;
+  final bool isRequired;
 
   const CustomTextField({
     super.key,
@@ -32,6 +33,7 @@ class CustomTextField extends StatelessWidget {
     this.focusNode,
     this.onChanged,
     this.onSubmitted,
+    this.isRequired = false,
   });
 
   @override
@@ -39,11 +41,24 @@ class CustomTextField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
+        Text.rich(
+          TextSpan(
+            text: label,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+            children: isRequired
+                ? [
+                    TextSpan(
+                      text: ' *',
+                      style: TextStyle(
+                        color: Colors.red[600],
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ]
+                : null,
           ),
         ),
         const SizedBox(height: 8),

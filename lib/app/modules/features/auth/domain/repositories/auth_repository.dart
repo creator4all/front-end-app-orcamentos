@@ -28,4 +28,30 @@ abstract class AuthRepository {
 
   /// Valida se o token atual ainda é válido
   Future<Either<Failure, bool>> validateToken();
+
+  // ===== Métodos para Recuperação de Senha =====
+
+  /// Solicita recuperação de senha enviando OTP para o email
+  /// POST /api/auth/forgot-password
+  Future<Either<Failure, void>> requestPasswordReset({required String email});
+
+  /// Reenvia código OTP para o email (após 1 minuto)
+  /// POST /api/auth/forgot-password/resend
+  Future<Either<Failure, void>> resendOtpCode({required String email});
+
+  /// Verifica se o código OTP é válido
+  /// POST /api/auth/forgot-password/validate-otp
+  Future<Either<Failure, bool>> verifyOtpCode({
+    required String email,
+    required String otpCode,
+  });
+
+  /// Redefine a senha do usuário
+  /// POST /api/auth/reset-password
+  Future<Either<Failure, void>> resetPassword({
+    required String email,
+    required String otpCode,
+    required String newPassword,
+    required String confirmPassword,
+  });
 }

@@ -19,7 +19,6 @@ import '../../domain/entities/subcategory_entity.dart';
 import '../../domain/services/product_calculation_service.dart';
 import '../../domain/usecases/calculate_totals_usecase.dart';
 import '../../domain/usecases/finalize_budget_usecase.dart';
-import '../../domain/usecases/get_all_budget_products_usecase.dart';
 import '../../domain/usecases/get_budget_detail_usecase.dart';
 import '../../domain/usecases/get_category_products_usecase.dart';
 import '../../domain/usecases/get_census_data_usecase.dart';
@@ -32,7 +31,6 @@ class BudgetConfigStore = _BudgetConfigStoreBase with _$BudgetConfigStore;
 
 abstract class _BudgetConfigStoreBase with Store {
   final GetBudgetDetailUseCase getBudgetDetailUseCase;
-  final GetAllBudgetProductsUseCase getAllBudgetProductsUseCase;
   final GetCategoryProductsUseCase getCategoryProductsUseCase;
   final GetCensusDataUseCase getCensusDataUseCase;
   final ToggleCategoryUseCase toggleCategoryUseCase;
@@ -43,7 +41,6 @@ abstract class _BudgetConfigStoreBase with Store {
 
   _BudgetConfigStoreBase({
     required this.getBudgetDetailUseCase,
-    required this.getAllBudgetProductsUseCase,
     required this.getCategoryProductsUseCase,
     required this.getCensusDataUseCase,
     required this.toggleCategoryUseCase,
@@ -685,15 +682,8 @@ abstract class _BudgetConfigStoreBase with Store {
           // ✅ Info básica carregada
           isLoading = false;
 
-          // 🆕 ENRICHMENT: Preencher grupos dos indicadores usando dados da cidade
-          // Isso garante que os grupos apareçam mesmo se os produtos completos ainda não chegaram
-          _enrichCategoriesWithCityData();
-
-          // 🚀 EAGER LOAD: Buscar TODOS os produtos do orçamento
-          await _loadAllProducts(budgetId);
-
-          // Se o carregamento completo funcionar, ele vai sobrescrever com dados mais ricos.
-          // Mas o enrichment garante a UX imediata.
+          // ℹ️ Produtos já vêm no response do GET /api/orcamentos/{id}
+          // Não precisa mais chamar /produtos-completos
 
           // ✅ Produtos carregados
           isLoadingProducts = false;
@@ -703,84 +693,6 @@ abstract class _BudgetConfigStoreBase with Store {
       error = 'Erro ao carregar orçamento: $e';
       isLoading = false;
       isLoadingProducts = false;
-    }
-  }
-
-  /// Carrega TODOS os produtos do orçamento de uma vez (EAGER LOAD)
-  /// Distribui produtos nas categorias corretas usando subcategoriaId
-  @action
-  Future<void> _loadAllProducts(int budgetId) async {
-    try {
-      debugPrint(
-          '🚀 [BudgetConfigStore] Iniciando carregamento de produtos...');
-
-      final result = await getAllBudgetProductsUseCase(budgetId: budgetId);
-
-      result.fold(
-        (failure) {
-          debugPrint(
-              '❌ [BudgetConfigStore] ERRO ao carregar produtos: ${failure.message}');
-          // Não definir error aqui, manter estatísticas se falhar
-        },
-        (allProducts) {
-          debugPrint(
-              '✅ [BudgetConfigStore] ${allProducts.length} produtos recebidos do UseCase');
-
-          // Agrupar produtos por subcategoria_id
-          final productsBySubcategory = <int, List<ProductEntity>>{};
-
-          for (final product in allProducts) {
-            final subId = product.subcategoriaId;
-            productsBySubcategory.putIfAbsent(subId, () => []);
-            productsBySubcategory[subId]!.add(product);
-          }
-
-          debugPrint('📦 [BudgetConfigStore] Produtos agrupados:');
-          productsBySubcategory.forEach((subId, prods) {
-            debugPrint('   - Subcategoria $subId: ${prods.length} produtos');
-          });
-
-          // Distribuir produtos nas subcategorias corretas
-          final updatedCategories = categories.map((cat) {
-            // Atualizar subcategorias com produtos reais
-            final updatedSubcategories = cat.subcategorias.map((sub) {
-              final subProducts = productsBySubcategory[sub.id] ?? [];
-
-              if (subProducts.isEmpty) {
-                debugPrint(
-                    '   ⚠️ Subcategoria ${sub.id} (${sub.nome}) sem produtos - mantendo estatísticas');
-                // Subcategoria sem produtos, manter como está (com estatísticas)
-                return sub;
-              }
-
-              debugPrint(
-                  '   ✅ Subcategoria ${sub.id} (${sub.nome}): ${subProducts.length} produtos');
-              // Substituir estatísticas por produtos reais
-              return sub.copyWith(
-                produtos: subProducts,
-                estatisticas:
-                    null, // Remove estatísticas (agora tem produtos reais)
-              );
-            }).toList();
-
-            return cat.copyWith(subcategorias: updatedSubcategories);
-          }).toList();
-
-          // 🔧 FIX: Forçar recriação completa do ObservableList
-          // Isso garante que todos os Observers detectem a mudança
-          runInAction(() {
-            categories = ObservableList.of(updatedCategories);
-          });
-
-          debugPrint('🎉 [BudgetConfigStore] Merge concluído!');
-          debugPrint('   Total categorias: ${categories.length}');
-          debugPrint('   Total valor: R\$ ${totalValue.toStringAsFixed(2)}');
-        },
-      );
-    } catch (e, stackTrace) {
-      debugPrint('💥 [BudgetConfigStore] EXCEÇÃO ao carregar produtos: $e');
-      debugPrint('Stack: $stackTrace');
-      // Manter estatísticas se falhar
     }
   }
 
@@ -1555,29 +1467,7 @@ abstract class _BudgetConfigStoreBase with Store {
     categories = ObservableList.of(newCategories);
   }
 
-  /// 🔄 Recarrega produtos quando censo escolar é editado
-  /// Backend recalcula as quantidades baseado nos novos dados do censo
-  @action
-  Future<void> reloadProductsAfterCensusEdit() async {
-    if (budgetDetail == null) return;
-
-    print(
-        '🔄 [BudgetConfigStore] Recarregando produtos após edição do censo...');
-
-    isLoadingProducts = true;
-    error = null;
-
-    try {
-      await _loadAllProducts(budgetDetail!.id);
-      print(
-          '✅ [BudgetConfigStore] Produtos recarregados com novas quantidades');
-    } catch (e) {
-      error = 'Erro ao recarregar produtos: $e';
-      print('❌ [BudgetConfigStore] Erro ao recarregar: $e');
-    } finally {
-      isLoadingProducts = false;
-    }
-  }
+  /// 🔄 Recarrega produtos quando censo escolar é editado\r\n  /// Backend recalcula as quantidades baseado nos novos dados do censo\r\n  @action\r\n  Future<void> reloadProductsAfterCensusEdit() async {\r\n    if (budgetDetail == null) return;\r\n\r\n    print(\r\n        '🔄 [BudgetConfigStore] Recarregando orçamento após edição do censo...');\r\n\r\n    try {\r\n      // Recarrega o orçamento completo (produtos já vêm na resposta)\r\n      await loadBudgetDetail(budgetDetail!.id);\r\n      print(\r\n          '✅ [BudgetConfigStore] Orçamento recarregado com novas quantidades');\r\n    } catch (e) {\r\n      error = 'Erro ao recarregar orçamento: $e';\r\n      print('❌ [BudgetConfigStore] Erro ao recarregar: $e');\r\n    }\r\n  }
 
   @action
   void reset() {

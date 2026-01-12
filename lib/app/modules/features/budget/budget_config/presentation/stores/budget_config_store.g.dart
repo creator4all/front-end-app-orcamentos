@@ -364,15 +364,6 @@ mixin _$BudgetConfigStore on _BudgetConfigStoreBase, Store {
         .run(() => super.loadBudgetDetail(budgetId));
   }
 
-  late final _$_loadAllProductsAsyncAction =
-      AsyncAction('_BudgetConfigStoreBase._loadAllProducts', context: context);
-
-  @override
-  Future<void> _loadAllProducts(int budgetId) {
-    return _$_loadAllProductsAsyncAction
-        .run(() => super._loadAllProducts(budgetId));
-  }
-
   late final _$loadCensusDataAsyncAction =
       AsyncAction('_BudgetConfigStoreBase.loadCensusData', context: context);
 
@@ -387,16 +378,6 @@ mixin _$BudgetConfigStore on _BudgetConfigStoreBase, Store {
   @override
   Future<Either<BudgetFailure, BudgetDetailEntity>> finalizeBudget() {
     return _$finalizeBudgetAsyncAction.run(() => super.finalizeBudget());
-  }
-
-  late final _$reloadProductsAfterCensusEditAsyncAction = AsyncAction(
-      '_BudgetConfigStoreBase.reloadProductsAfterCensusEdit',
-      context: context);
-
-  @override
-  Future<void> reloadProductsAfterCensusEdit() {
-    return _$reloadProductsAfterCensusEditAsyncAction
-        .run(() => super.reloadProductsAfterCensusEdit());
   }
 
   late final _$saveBudgetAsyncAction =

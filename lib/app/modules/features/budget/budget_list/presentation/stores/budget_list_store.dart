@@ -208,32 +208,41 @@ abstract class _BudgetListStoreBase with Store {
       return;
     }
 
-    List<BudgetEntity> filtered = List.from(allItems);
+    // 1. Verificar se filtro "arquivado" está selecionado
+    final isArchivedFilter = selectedFilters.contains('arquivado');
 
-    // Filtrar por status primeiro (obrigatório)
-    filtered = filtered.where((item) {
-      final status = item.status.toLowerCase();
+    // 2. Pegar apenas filtros de STATUS (excluindo 'arquivado')
+    final statusFilters =
+        selectedFilters.where((f) => f != 'arquivado').toSet();
 
-      // Mapear filtros para status da API
-      return selectedFilters.any((filter) {
-        switch (filter) {
-          case 'pendente':
-            return status == 'pendente';
-          case 'expirado':
-            return status == 'expirado';
-          case 'nao_aprovado':
-            return status == 'reprovado' || status == 'não aprovado';
-          case 'aprovado':
-            return status == 'aprovado';
-          case 'arquivado':
-            return status == 'arquivado';
-          default:
-            return false;
-        }
-      });
-    }).toList();
+    // 3. Filtrar por is_archived primeiro
+    List<BudgetEntity> filtered =
+        allItems.where((item) => item.isArchived == isArchivedFilter).toList();
 
-    // Depois filtrar por texto de busca (se houver)
+    // 4. Se houver filtros de status selecionados, aplicar (OR entre eles)
+    if (statusFilters.isNotEmpty) {
+      filtered = filtered.where((item) {
+        final status = item.status.toLowerCase();
+
+        // Mapear filtros para status da API
+        return statusFilters.any((filter) {
+          switch (filter) {
+            case 'pendente':
+              return status == 'pendente';
+            case 'expirado':
+              return status == 'expirado';
+            case 'nao_aprovado':
+              return status == 'nao_aprovado';
+            case 'aprovado':
+              return status == 'aprovado';
+            default:
+              return false;
+          }
+        });
+      }).toList();
+    }
+
+    // 5. Depois filtrar por texto de busca (se houver)
     if (searchQuery.isNotEmpty) {
       filtered = filtered.where((item) {
         final nome = item.nome?.toLowerCase() ?? '';
@@ -249,5 +258,6 @@ abstract class _BudgetListStoreBase with Store {
       '🔍 [Store] Filtros aplicados: ${items.length} de ${allItems.length} orçamentos',
     );
     print('🔍 [Store] Filtros ativos: ${selectedFilters.toList()}');
+    print('🔍 [Store] Arquivados: $isArchivedFilter, Status: $statusFilters');
   }
 }

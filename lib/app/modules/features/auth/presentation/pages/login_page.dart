@@ -199,7 +199,7 @@ class _LoginPageState extends State<LoginPage> {
                     alignment: Alignment.centerLeft,
                     child: TextButton(
                       onPressed: () {
-                        // TODO: Navegar para tela de recuperação de senha
+                        Modular.to.pushNamed('/auth/forgot-password');
                       },
                       style: TextButton.styleFrom(
                         padding: EdgeInsets.zero,

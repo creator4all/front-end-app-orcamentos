@@ -375,15 +375,6 @@ mixin _$BudgetEditStore on _BudgetEditStoreBase, Store {
         .run(() => super.loadBudgetForEdit(budgetId));
   }
 
-  late final _$_loadAllProductsAsyncAction =
-      AsyncAction('_BudgetEditStoreBase._loadAllProducts', context: context);
-
-  @override
-  Future<void> _loadAllProducts(int budgetId) {
-    return _$_loadAllProductsAsyncAction
-        .run(() => super._loadAllProducts(budgetId));
-  }
-
   late final _$loadCensusDataAsyncAction =
       AsyncAction('_BudgetEditStoreBase.loadCensusData', context: context);
 
