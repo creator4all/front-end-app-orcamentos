@@ -16,6 +16,7 @@ class UserModel {
   final bool status;
   final bool delete;
   final String? avatar;
+  final String? avatarBase64;
   final String? cargo;
   final String? phone;
   final String? deletedAt;
@@ -33,6 +34,7 @@ class UserModel {
     required this.status,
     required this.delete,
     this.avatar,
+    this.avatarBase64,
     this.cargo,
     this.phone,
     this.deletedAt,
@@ -54,6 +56,7 @@ class UserModel {
       status: json['usr_status'] ?? json['status'] ?? false,
       delete: json['usr_delete'] ?? json['delete'] ?? false,
       avatar: json['usr_avatar'] ?? json['avatar'],
+      avatarBase64: json['usr_avatar_base64'],
       cargo: json['usr_cargo'] ?? json['cargo'],
       phone: json['usr_phone'] ?? json['phone'],
       deletedAt:
@@ -89,6 +92,7 @@ class UserModel {
       'status': status,
       'delete': delete,
       'avatar': avatar,
+      'usr_avatar_base64': avatarBase64,
       'cargo': cargo,
       'phone': phone,
       'deleted_at': deletedAt,
@@ -108,6 +112,7 @@ class UserModel {
       status: status,
       delete: delete,
       avatar: avatar,
+      avatarBase64: avatarBase64,
       cargo: cargo,
       phone: phone,
       deletedAt: deletedAt != null ? DateTime.tryParse(deletedAt!) : null,
@@ -127,6 +132,7 @@ class UserModel {
       status: user.status,
       delete: user.delete,
       avatar: user.avatar,
+      avatarBase64: user.avatarBase64,
       cargo: user.cargo,
       phone: user.phone,
       deletedAt: user.deletedAt?.toIso8601String(),

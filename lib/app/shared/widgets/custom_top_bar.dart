@@ -9,6 +9,7 @@ import '../../modules/profile/external/services/profile_service.dart';
 import '../core/utils/token_cache.dart';
 import 'delete_account_modal.dart';
 import 'profile_modal.dart';
+import 'user_avatar_widget.dart';
 
 class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
@@ -88,7 +89,8 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
               ] else if (!showBackButton) ...[
                 Observer(
                   builder: (_) {
-                    final userImageUrl = authStore?.userDisplayAvatar;
+                    final userImageBase64 = authStore?.userDisplayAvatar;
+                    final userName = authStore?.currentUser?.name ?? 'Usuário';
                     final hasUserData = authStore?.currentUser != null;
 
                     return GestureDetector(
@@ -99,26 +101,10 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
                           onProfileTap!();
                         }
                       },
-                      child: Container(
-                        width: 30.w,
-                        height: 30.w,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: const Color(0xFF117BBD),
-                          image: userImageUrl != null
-                              ? DecorationImage(
-                                  image: NetworkImage(userImageUrl),
-                                  fit: BoxFit.cover,
-                                )
-                              : null,
-                        ),
-                        child: userImageUrl == null
-                            ? Icon(
-                                Icons.person,
-                                color: Colors.white,
-                                size: 20.sp,
-                              )
-                            : null,
+                      child: UserAvatarWidget(
+                        avatarBase64: userImageBase64,
+                        userName: userName,
+                        radius: 15,
                       ),
                     );
                   },
@@ -182,6 +168,8 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
           userEmail: authStore?.userDisplayEmail ?? 'email@exemplo.com',
           userDocument: authStore?.userDisplayDocument ?? '000.000.000-00',
           userImageUrl: authStore?.userDisplayAvatar,
+          userRole: authStore?.userRole,
+          partnerName: authStore?.partnerName,
           onClose: () => Navigator.of(context).pop(),
           onEditProfile: () {
             Navigator.of(context).pop();

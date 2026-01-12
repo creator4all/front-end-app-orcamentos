@@ -19,6 +19,8 @@ abstract class _$UserModelCWProxy {
 
   UserModel avatar(String? avatar);
 
+  UserModel avatarBase64(String? avatarBase64);
+
   UserModel cargo(String? cargo);
 
   UserModel phone(String? phone);
@@ -46,6 +48,7 @@ abstract class _$UserModelCWProxy {
     bool? status,
     bool? delete,
     String? avatar,
+    String? avatarBase64,
     String? cargo,
     String? phone,
     String? deletedAt,
@@ -79,6 +82,10 @@ class _$UserModelCWProxyImpl implements _$UserModelCWProxy {
 
   @override
   UserModel avatar(String? avatar) => this(avatar: avatar);
+
+  @override
+  UserModel avatarBase64(String? avatarBase64) =>
+      this(avatarBase64: avatarBase64);
 
   @override
   UserModel cargo(String? cargo) => this(cargo: cargo);
@@ -116,6 +123,7 @@ class _$UserModelCWProxyImpl implements _$UserModelCWProxy {
     Object? status = const $CopyWithPlaceholder(),
     Object? delete = const $CopyWithPlaceholder(),
     Object? avatar = const $CopyWithPlaceholder(),
+    Object? avatarBase64 = const $CopyWithPlaceholder(),
     Object? cargo = const $CopyWithPlaceholder(),
     Object? phone = const $CopyWithPlaceholder(),
     Object? deletedAt = const $CopyWithPlaceholder(),
@@ -149,6 +157,10 @@ class _$UserModelCWProxyImpl implements _$UserModelCWProxy {
           ? _value.avatar
           // ignore: cast_nullable_to_non_nullable
           : avatar as String?,
+      avatarBase64: avatarBase64 == const $CopyWithPlaceholder()
+          ? _value.avatarBase64
+          // ignore: cast_nullable_to_non_nullable
+          : avatarBase64 as String?,
       cargo: cargo == const $CopyWithPlaceholder()
           ? _value.cargo
           // ignore: cast_nullable_to_non_nullable

@@ -5,6 +5,7 @@ class UserProfile {
   final String? cargo;
   final String? phone;
   final String? avatar;
+  final String? avatarBase64;
   final String? roleName;
   final String? partnerName;
   final bool status;
@@ -16,6 +17,7 @@ class UserProfile {
     this.cargo,
     this.phone,
     this.avatar,
+    this.avatarBase64,
     this.roleName,
     this.partnerName,
     required this.status,
@@ -27,13 +29,14 @@ class UserProfile {
     if (map['role'] != null && map['role'] is Map) {
       roleName = map['role']['rol_name'];
     }
-    
+
     // Extrair nome do parceiro do objeto aninhado
     String? partnerName;
     if (map['partner'] != null && map['partner'] is Map) {
-      partnerName = map['partner']['par_trade_name'] ?? map['partner']['par_legal_name'];
+      partnerName =
+          map['partner']['par_trade_name'] ?? map['partner']['par_legal_name'];
     }
-    
+
     return UserProfile(
       id: map['usr_userId'] ?? 0,
       name: map['usr_name'] ?? '',
@@ -41,6 +44,7 @@ class UserProfile {
       cargo: map['usr_cargo'],
       phone: map['usr_phone'],
       avatar: map['usr_avatar'],
+      avatarBase64: map['usr_avatar_base64'],
       roleName: roleName,
       partnerName: partnerName,
       status: map['usr_status'] ?? true,
@@ -63,6 +67,7 @@ class UserProfile {
     String? cargo,
     String? phone,
     String? avatar,
+    String? avatarBase64,
     String? roleName,
     String? partnerName,
     bool? status,
@@ -74,6 +79,7 @@ class UserProfile {
       cargo: cargo ?? this.cargo,
       phone: phone ?? this.phone,
       avatar: avatar ?? this.avatar,
+      avatarBase64: avatarBase64 ?? this.avatarBase64,
       roleName: roleName ?? this.roleName,
       partnerName: partnerName ?? this.partnerName,
       status: status ?? this.status,

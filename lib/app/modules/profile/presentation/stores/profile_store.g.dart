@@ -188,6 +188,14 @@ mixin _$ProfileStore on _ProfileStore, Store {
     return _$uploadAvatarAsyncAction.run(() => super.uploadAvatar());
   }
 
+  late final _$removeAvatarAsyncAction =
+      AsyncAction('_ProfileStore.removeAvatar', context: context);
+
+  @override
+  Future<bool> removeAvatar() {
+    return _$removeAvatarAsyncAction.run(() => super.removeAvatar());
+  }
+
   late final _$_ProfileStoreActionController =
       ActionController(name: '_ProfileStore', context: context);
 

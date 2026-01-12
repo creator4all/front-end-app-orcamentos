@@ -8,6 +8,7 @@ export 'budget_card_widget.dart';
 export 'budget_filter_widget.dart';
 // Export do BudgetSummaryCard
 export 'budget_summary_card.dart';
+export 'custom_info_dialog.dart';
 // Export da CustomModal
 export 'custom_modal.dart';
 // Export da CustomTopBar
@@ -21,3 +22,5 @@ export 'status_tag_widget.dart';
 export 'technology_item.dart';
 // Export do TechnologyProductsModal
 export 'technology_products_modal.dart';
+// Export do UserAvatarWidget
+export 'user_avatar_widget.dart';

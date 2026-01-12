@@ -70,7 +70,8 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Either<Failure, User>> getCurrentUser() async {
     try {
-      final userModel = await datasource.getCurrentUser();
+      // Sempre buscar da API para garantir dados atualizados
+      final userModel = await datasource.getCurrentUser(forceRefresh: true);
 
       // Converter Model para Entity
       final user = userModel.toEntity();
@@ -215,6 +216,21 @@ class AuthRepositoryImpl implements AuthRepository {
       } else {
         // Qualquer outro erro mostra mensagem amigável
         return const Left(AuthFailure('Código OTP inválido ou expirado'));
+      }
+    }
+  }
+
+  @override
+  Future<Either<Failure, User>> removeAvatar() async {
+    try {
+      final userModel = await datasource.removeAvatar();
+      return Right(userModel.toEntity());
+    } catch (e) {
+      if (e.toString().contains('internet') ||
+          e.toString().contains('conexão')) {
+        return const Left(NetworkFailure('Falha na conexão com o servidor'));
+      } else {
+        return Left(ServerFailure(e.toString()));
       }
     }
   }

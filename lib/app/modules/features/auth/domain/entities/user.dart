@@ -12,6 +12,7 @@ class User extends Equatable {
   final bool status;
   final bool delete;
   final String? avatar;
+  final String? avatarBase64;
   final String? cargo;
   final String? phone;
   final DateTime? deletedAt;
@@ -29,6 +30,7 @@ class User extends Equatable {
     required this.status,
     required this.delete,
     this.avatar,
+    this.avatarBase64,
     this.cargo,
     this.phone,
     this.deletedAt,
@@ -46,6 +48,7 @@ class User extends Equatable {
         status,
         delete,
         avatar,
+        avatarBase64,
         cargo,
         phone,
         deletedAt,

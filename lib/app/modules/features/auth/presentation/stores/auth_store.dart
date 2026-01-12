@@ -88,9 +88,9 @@ abstract class _AuthStoreBase with Store {
   String get userDisplayDocument =>
       currentUser?.partner?.cnpj ?? 'Sem documento';
 
-  /// Retorna a URL do avatar do usuário
+  /// Retorna a URL do avatar do usuário (base64)
   @computed
-  String? get userDisplayAvatar => currentUser?.avatar;
+  String? get userDisplayAvatar => currentUser?.avatarBase64;
 
   /// Retorna true se o usuário tem um parceiro vinculado
   @computed
