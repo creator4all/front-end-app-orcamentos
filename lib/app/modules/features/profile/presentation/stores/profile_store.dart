@@ -1,9 +1,9 @@
 import 'dart:io';
 
 import 'package:mobx/mobx.dart';
+import 'package:multimidiaapp/app/modules/features/profile/data/services/profile_service.dart';
 
 import '../../domain/models/user_profile.dart';
-import '../../external/services/profile_service.dart';
 
 part 'profile_store.g.dart';
 

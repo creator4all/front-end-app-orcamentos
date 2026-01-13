@@ -9,6 +9,8 @@ class GeneratePdfParams {
   final String cargo;
   final String telefone;
   final String? url;
+  final bool incluirLogo;
+  final bool incluirCenso;
   final String? logoBase64;
 
   const GeneratePdfParams({
@@ -17,6 +19,8 @@ class GeneratePdfParams {
     required this.cargo,
     required this.telefone,
     this.url,
+    required this.incluirLogo,
+    required this.incluirCenso,
     this.logoBase64,
   });
 
@@ -25,8 +29,10 @@ class GeneratePdfParams {
       'nome_vendedor': nomeVendedor,
       'cargo': cargo,
       'telefone': telefone,
-      if (url != null && url!.isNotEmpty) 'url': url,
-      if (logoBase64 != null && logoBase64!.isNotEmpty) 'logo': logoBase64,
+      'url': url ?? '',
+      'incluir_logo': incluirLogo,
+      'incluir_censo': incluirCenso,
+      'logo': logoBase64,
     };
   }
 }

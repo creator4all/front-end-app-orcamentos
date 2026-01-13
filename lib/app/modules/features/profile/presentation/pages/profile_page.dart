@@ -8,8 +8,8 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobx/mobx.dart';
 
-import '../../../../shared/widgets/widgets.dart';
-import '../../../features/auth/presentation/stores/auth_store.dart';
+import '../../../../../shared/widgets/widgets.dart';
+import '../../../auth/presentation/stores/auth_store.dart';
 import '../stores/profile_store.dart';
 
 class ProfilePage extends StatefulWidget {

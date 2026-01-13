@@ -4,6 +4,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_info_dialog.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../stores/auth_store.dart';
 
@@ -290,8 +291,21 @@ class _LoginPageState extends State<LoginPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       TextButton(
-                        onPressed: () {
-                          // TODO: Navegar para política de privacidade
+                        onPressed: () async {
+                          final Uri url =
+                              Uri.parse('https://politicas.creator4all.com/');
+                          if (!await launchUrl(url,
+                              mode: LaunchMode.externalApplication)) {
+                            if (mounted) {
+                              CustomInfoDialog.show(
+                                context: context,
+                                type: DialogType.error,
+                                title: 'Erro ao abrir link',
+                                message:
+                                    'Não foi possível abrir a página de privacidade.',
+                              );
+                            }
+                          }
                         },
                         style: TextButton.styleFrom(
                           padding: EdgeInsets.symmetric(horizontal: 8.w),

@@ -52,7 +52,7 @@ dependencies:
   wakelock_plus: ^1.4.0
   
   # Image Cropping & Upload
-  image_cropper: ^7.1.0
+  image_cropper: 9.0.0
   http_parser: ^4.0.2
 
 

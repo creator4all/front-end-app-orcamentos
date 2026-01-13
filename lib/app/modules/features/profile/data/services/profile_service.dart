@@ -4,9 +4,9 @@ import 'dart:io';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
+import 'package:multimidiaapp/config/api_config.dart';
 import 'package:multimidiaapp/services/api_service.dart';
 
-import '../../../../../config/api_config.dart';
 import '../../domain/models/user_profile.dart';
 
 class ProfileService {

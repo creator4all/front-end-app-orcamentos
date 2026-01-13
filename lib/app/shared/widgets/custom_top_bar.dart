@@ -5,7 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../modules/features/auth/presentation/stores/auth_store.dart';
-import '../../modules/profile/external/services/profile_service.dart';
+import '../../modules/features/profile/data/services/profile_service.dart';
 import '../core/utils/token_cache.dart';
 import 'delete_account_modal.dart';
 import 'profile_modal.dart';
