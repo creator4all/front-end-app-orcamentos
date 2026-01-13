@@ -21,7 +21,7 @@ class ApiProduct {
     return ApiProduct(
       nome: json['nome'] as String,
       valorTotal: json['valor_total'] as String,
-      quantidade: json['quantidade'] as int,
+      quantidade: (json['quantidade'] as num).toInt(),
       valorUnitario: json['valor_unitario'] as String,
       isSelected: json['is_selected'] as bool? ?? false,
     );
