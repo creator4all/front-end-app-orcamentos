@@ -135,4 +135,46 @@ class UpdateBudgetUseCase {
       return Left(UnknownFailure(e.toString()));
     }
   }
+
+  /// Cria nova versão de orçamento MULTI-CIDADE
+  ///
+  /// Usa endpoint específico para orçamentos com múltiplas cidades.
+  ///
+  /// [budgetId] ID do orçamento a versionar
+  /// [updateData] DTO com dados da nova versão (incluindo array cidades)
+  ///
+  /// Retorna a nova versão do orçamento ou falha
+  Future<Either<BudgetFailure, BudgetEditEntity>> versionMultiCityWithDto({
+    required int budgetId,
+    required BudgetUpdateDto updateData,
+  }) async {
+    try {
+      // Validação: ID válido
+      if (budgetId <= 0) {
+        return const Left(ValidationFailure('ID do orçamento inválido'));
+      }
+
+      // Validação: Dias de validade se fornecido
+      if (updateData.diasValidade != null &&
+          (updateData.diasValidade! < 1 || updateData.diasValidade! > 365)) {
+        return const Left(
+          ValidationFailure('Validade deve estar entre 1 e 365 dias'),
+        );
+      }
+
+      // Validação: Total se fornecido
+      if (updateData.total != null && updateData.total! < 0) {
+        return const Left(
+          ValidationFailure('O valor total não pode ser negativo'),
+        );
+      }
+
+      return await repository.versionMultiCityBudgetWithDto(
+        budgetId: budgetId,
+        updateData: updateData,
+      );
+    } catch (e) {
+      return Left(UnknownFailure(e.toString()));
+    }
+  }
 }

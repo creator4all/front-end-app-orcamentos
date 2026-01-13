@@ -15,7 +15,8 @@ class BudgetEditRepositoryImpl implements BudgetEditRepository {
 
   @override
   Future<Either<BudgetFailure, BudgetEditEntity>> getBudgetForEdit(
-      int id) async {
+    int id,
+  ) async {
     try {
       final dto = await remoteDataSource.getBudgetForEdit(id);
       final entity = dto.toEntity();
@@ -31,17 +32,19 @@ class BudgetEditRepositoryImpl implements BudgetEditRepository {
     required int budgetId,
   }) async {
     try {
-      final productsData =
-          await remoteDataSource.getBudgetProductsComplete(budgetId);
+      final productsData = await remoteDataSource.getBudgetProductsComplete(
+        budgetId,
+      );
 
       // Extrair array de produtos
       final produtosJson = productsData['produtos'] as List<dynamic>? ?? [];
 
       // Parsear cada produto usando ProductDTO
-      final produtos = produtosJson
-          .map((json) => ProductDTO.fromJson(json as Map<String, dynamic>))
-          .map((dto) => dto.toEntity())
-          .toList();
+      final produtos =
+          produtosJson
+              .map((json) => ProductDTO.fromJson(json as Map<String, dynamic>))
+              .map((dto) => dto.toEntity())
+              .toList();
 
       return Right(produtos);
     } on Exception catch (e) {
@@ -104,6 +107,26 @@ class BudgetEditRepositoryImpl implements BudgetEditRepository {
   }) async {
     try {
       final dto = await remoteDataSource.versionBudgetWithDto(
+        budgetId: budgetId,
+        updateData: updateData,
+      );
+
+      final entity = dto.toEntity();
+
+      return Right(entity);
+    } on Exception catch (e) {
+      return Left(_mapExceptionToFailure(e));
+    }
+  }
+
+  @override
+  Future<Either<BudgetFailure, BudgetEditEntity>>
+  versionMultiCityBudgetWithDto({
+    required int budgetId,
+    required BudgetUpdateDto updateData,
+  }) async {
+    try {
+      final dto = await remoteDataSource.versionMultiCityBudgetWithDto(
         budgetId: budgetId,
         updateData: updateData,
       );

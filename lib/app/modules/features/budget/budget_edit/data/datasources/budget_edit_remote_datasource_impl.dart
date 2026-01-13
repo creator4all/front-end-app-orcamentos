@@ -76,7 +76,8 @@ class BudgetEditRemoteDataSourceImpl implements BudgetEditRemoteDataSource {
   Future<Map<String, dynamic>> getBudgetProductsComplete(int id) async {
     try {
       debugPrint(
-          '🌐 [BudgetEdit-DataSource] GET /api/orcamentos/$id/produtos-completos');
+        '🌐 [BudgetEdit-DataSource] GET /api/orcamentos/$id/produtos-completos',
+      );
 
       // ✅ Usar ResponseType.bytes para receber bytes crus
       // Depois fazemos decode UTF-8 MANUAL para evitar corrupção de caracteres especiais
@@ -97,7 +98,8 @@ class BudgetEditRemoteDataSourceImpl implements BudgetEditRemoteDataSource {
       // Extrair bytes da resposta
       if (!response.containsKey('data')) {
         debugPrint(
-            '❌ [BudgetEdit-DataSource] Resposta não contém dados em "data"');
+          '❌ [BudgetEdit-DataSource] Resposta não contém dados em "data"',
+        );
         throw Exception('Resposta da API em formato inválido');
       }
 
@@ -110,26 +112,31 @@ class BudgetEditRemoteDataSourceImpl implements BudgetEditRemoteDataSource {
         // ✅ DECODE UTF-8 MANUAL - Garante que caracteres especiais (ê, ó, á, ã) sejam preservados
         jsonString = utf8.decode(rawData, allowMalformed: false);
         debugPrint(
-            '📦 [BudgetEdit-DataSource] Bytes decodificados com UTF-8: ${jsonString.length} chars');
+          '📦 [BudgetEdit-DataSource] Bytes decodificados com UTF-8: ${jsonString.length} chars',
+        );
       } else if (rawData is String) {
         // Fallback: se já vier como string (não deveria acontecer com ResponseType.bytes)
         jsonString = rawData;
         debugPrint(
-            '⚠️ [BudgetEdit-DataSource] Dados já vieram como String: ${jsonString.length} chars');
+          '⚠️ [BudgetEdit-DataSource] Dados já vieram como String: ${jsonString.length} chars',
+        );
       } else {
         debugPrint(
-            '❌ [BudgetEdit-DataSource] Tipo de dados inesperado: ${rawData.runtimeType}');
+          '❌ [BudgetEdit-DataSource] Tipo de dados inesperado: ${rawData.runtimeType}',
+        );
         throw Exception('Formato de resposta inválido');
       }
 
       debugPrint(
-          '🚀 [BudgetEdit-DataSource] Iniciando parse em Isolate com compute()...');
+        '🚀 [BudgetEdit-DataSource] Iniciando parse em Isolate com compute()...',
+      );
 
       // 🚀 Parse assíncrono em isolate para não travar a UI
       final produtos = await compute(_parseProductsInIsolate, jsonString);
 
       debugPrint(
-          '✅ [BudgetEdit-DataSource] ${produtos.length} produtos parseados com sucesso via Isolate');
+        '✅ [BudgetEdit-DataSource] ${produtos.length} produtos parseados com sucesso via Isolate',
+      );
 
       // Retornar no formato esperado pelo repository
       // Repository espera Map com chave 'produtos' contendo lista de Map<String, dynamic>
@@ -228,11 +235,14 @@ class BudgetEditRemoteDataSourceImpl implements BudgetEditRemoteDataSource {
       final body = updateData.toJson();
 
       debugPrint(
-          '🔄 [BudgetEdit-DataSource] POST /api/orcamentos/$budgetId/versionar');
+        '🔄 [BudgetEdit-DataSource] POST /api/orcamentos/$budgetId/versionar',
+      );
       debugPrint('📦 [BudgetEdit-DataSource] Payload: $body');
 
-      final response =
-          await apiService.post('/api/orcamentos/$budgetId/versionar', body);
+      final response = await apiService.post(
+        '/api/orcamentos/$budgetId/versionar',
+        body,
+      );
 
       // Extrair dados da resposta (mesmo parsing do updateBudgetWithDto)
       Map<String, dynamic> data;
@@ -255,6 +265,54 @@ class BudgetEditRemoteDataSourceImpl implements BudgetEditRemoteDataSource {
       return BudgetEditDto.fromJson(data);
     } on DioException catch (e) {
       debugPrint('❌ [BudgetEdit-DataSource] Erro ao versionar: ${e.message}');
+      throw _handleDioError(e);
+    }
+  }
+
+  @override
+  Future<BudgetEditDto> versionMultiCityBudgetWithDto({
+    required int budgetId,
+    required BudgetUpdateDto updateData,
+  }) async {
+    try {
+      // ✅ Usar toJsonForMultiCity() para formato específico de multi-cidade
+      final body = updateData.toJsonForMultiCity();
+
+      debugPrint(
+        '🔄 [BudgetEdit-DataSource] POST /api/orcamentos/$budgetId/versionar-multi-cidade',
+      );
+      debugPrint('📦 [BudgetEdit-DataSource] Payload: $body');
+
+      final response = await apiService.post(
+        '/api/orcamentos/$budgetId/versionar-multi-cidade',
+        body,
+      );
+
+      // Extrair dados da resposta (mesmo parsing do versionBudgetWithDto)
+      Map<String, dynamic> data;
+
+      if (response.containsKey('dados')) {
+        data = response['dados'] as Map<String, dynamic>;
+      } else if (response.containsKey('data')) {
+        final dataField = response['data'];
+        if (dataField is Map && dataField.containsKey('dados')) {
+          data = dataField['dados'] as Map<String, dynamic>;
+        } else {
+          data = dataField as Map<String, dynamic>;
+        }
+      } else {
+        data = response;
+      }
+
+      debugPrint(
+        '✅ [BudgetEdit-DataSource] Nova versão multi-cidade criada com sucesso',
+      );
+
+      return BudgetEditDto.fromJson(data);
+    } on DioException catch (e) {
+      debugPrint(
+        '❌ [BudgetEdit-DataSource] Erro ao versionar multi-cidade: ${e.message}',
+      );
       throw _handleDioError(e);
     }
   }
