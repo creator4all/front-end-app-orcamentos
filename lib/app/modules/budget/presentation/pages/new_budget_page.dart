@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:multimidiaapp/app/modules/features/partner/data/services/partner_service.dart';
 import 'package:multimidiaapp/stores/store_provider.dart';
 
 import '../../../../shared/widgets/custom_top_bar.dart';
-import '../../../partner/domain/models/partner_profile.dart';
-import '../../../partner/external/services/partner_service.dart';
+import '../../../features/partner/domain/models/partner_profile.dart';
 import '../../domain/models/budget_create.dart';
 import '../../external/services/budget_service.dart';
 import 'multi_city_school_census.dart';

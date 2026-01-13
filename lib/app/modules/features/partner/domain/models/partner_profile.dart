@@ -5,6 +5,7 @@ class PartnerProfile {
   final String? email;
   final String phone;
   final String? logo;
+  final String? logoBase64;
   final String cnpj;
   final bool status;
   final DateTime? createdAt;
@@ -17,6 +18,7 @@ class PartnerProfile {
     this.email,
     required this.phone,
     this.logo,
+    this.logoBase64,
     required this.cnpj,
     required this.status,
     this.createdAt,
@@ -31,10 +33,15 @@ class PartnerProfile {
       email: map['par_email'],
       phone: map['par_phone'] ?? '',
       logo: map['par_logo'],
+      logoBase64: map['par_logo_base64'],
       cnpj: map['par_cnpj'] ?? '',
       status: map['par_status'] == 1 || map['par_status'] == true,
-      createdAt: map['created_at'] != null ? DateTime.tryParse(map['created_at']) : null,
-      updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at']) : null,
+      createdAt: map['created_at'] != null
+          ? DateTime.tryParse(map['created_at'])
+          : null,
+      updatedAt: map['updated_at'] != null
+          ? DateTime.tryParse(map['updated_at'])
+          : null,
     );
   }
 
@@ -46,6 +53,7 @@ class PartnerProfile {
       'par_email': email,
       'par_phone': phone,
       'par_logo': logo,
+      'par_logo_base64': logoBase64,
       'par_cnpj': cnpj,
       'par_status': status,
       'created_at': createdAt?.toIso8601String(),
@@ -60,6 +68,7 @@ class PartnerProfile {
     String? email,
     String? phone,
     String? logo,
+    String? logoBase64,
     String? cnpj,
     bool? status,
     DateTime? createdAt,
@@ -72,6 +81,7 @@ class PartnerProfile {
       email: email ?? this.email,
       phone: phone ?? this.phone,
       logo: logo ?? this.logo,
+      logoBase64: logoBase64 ?? this.logoBase64,
       cnpj: cnpj ?? this.cnpj,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,

@@ -22,12 +22,12 @@ import 'app/modules/features/auth/presentation/stores/auth_store.dart';
 import 'app/modules/features/budget/budget_module_new.dart'; // NOVO - Clean Architecture
 // import 'app/modules/drive/drive_module.dart'; // ANTIGO - Legacy
 import 'app/modules/features/new_drive/new_drive_module.dart'; // NOVO - Clean Architecture
+import 'app/modules/features/partner/data/services/partner_service.dart';
+import 'app/modules/features/partner/partner_module.dart';
+import 'app/modules/features/profile/data/services/profile_service.dart';
+import 'app/modules/features/profile/profile_module.dart';
 import 'app/modules/features/prospect/prospect_module.dart';
 import 'app/modules/features/user_management/user_management_module.dart';
-import 'app/modules/partner/external/services/partner_service.dart';
-import 'app/modules/partner/partner_module.dart';
-import 'app/modules/profile/external/services/profile_service.dart';
-import 'app/modules/profile/profile_module.dart';
 import 'app/shared/core/http/app_http_client.dart'; // ✅ IMPORT NOVO HTTP CLIENT
 import 'app/shared/core/http/dio_client.dart';
 import 'app/shared/core/http/dio_config_factory.dart';

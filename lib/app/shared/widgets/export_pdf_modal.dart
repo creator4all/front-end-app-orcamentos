@@ -11,6 +11,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../modules/features/auth/presentation/stores/auth_store.dart';
 import '../../modules/features/budget/budget_edit/domain/repositories/budget_pdf_repository.dart';
 import '../../modules/features/budget/budget_edit/domain/usecases/generate_pdf_usecase.dart';
+import '../../modules/features/partner/data/services/partner_service.dart'; // ← NOVO
 import 'custom_modal.dart';
 
 /// Modal para exportar PDF com informações do vendedor e logo personalizada
@@ -76,15 +77,45 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
 
   // Variáveis para gerenciar a logo
   File? _logoImage;
+  String? _partnerLogoBase64; // ← NOVO: Logo do banco
   final ImagePicker _picker = ImagePicker();
+
+  // Variáveis para as novas checkboxes ← NOVO
+  bool _incluirLogoNoPdf = true;
+  bool _incluirCensoNoPdf = false;
 
   // Estado de loading
   bool _isLoading = false;
+  bool _isLoadingPartnerLogo = false; // ← NOVO
 
   @override
   void initState() {
     super.initState();
     _preencherDadosUsuario();
+    _carregarLogoParceiro(); // ← NOVO
+  }
+
+  Future<void> _carregarLogoParceiro() async {
+    setState(() => _isLoadingPartnerLogo = true);
+
+    try {
+      final partnerService = Modular.get<PartnerService>();
+      final partner = await partnerService.obterParceiro();
+
+      if (partner.logoBase64 != null && partner.logoBase64!.isNotEmpty) {
+        setState(() {
+          _partnerLogoBase64 = partner.logoBase64;
+        });
+        print('✅ [Modal] Logo do parceiro carregada');
+      }
+    } catch (e) {
+      print('⚠️ [Modal] Erro ao carregar logo do parceiro: $e');
+      // Não mostra erro para o usuário pois a logo é opcional
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingPartnerLogo = false);
+      }
+    }
   }
 
   void _preencherDadosUsuario() {
@@ -180,11 +211,57 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
 
         // Seção da Logo
         _buildLogoSection(),
+        SizedBox(height: 24.h),
+
+        // Checkboxes de opções ← NOVO
+        _buildCheckboxSection(),
         SizedBox(height: 32.h),
 
         // Botão Compartilhar PDF
         _buildShareButton(),
         SizedBox(height: 16.h),
+      ],
+    );
+  }
+
+  Widget _buildCheckboxSection() {
+    return Column(
+      children: [
+        // Checkbox: Incluir logo no PDF
+        CheckboxListTile(
+          title: Text(
+            'Incluir logo no PDF',
+            style: TextStyle(
+              fontSize: 14.sp,
+              color: Colors.black87,
+            ),
+          ),
+          value: _incluirLogoNoPdf,
+          onChanged: (value) {
+            setState(() => _incluirLogoNoPdf = value ?? true);
+          },
+          activeColor: const Color(0xFF117BBD),
+          controlAffinity: ListTileControlAffinity.leading,
+          contentPadding: EdgeInsets.zero,
+        ),
+
+        // Checkbox: Incluir dados do censo escolar
+        CheckboxListTile(
+          title: Text(
+            'Incluir dados do censo escolar',
+            style: TextStyle(
+              fontSize: 14.sp,
+              color: Colors.black87,
+            ),
+          ),
+          value: _incluirCensoNoPdf,
+          onChanged: (value) {
+            setState(() => _incluirCensoNoPdf = value ?? false);
+          },
+          activeColor: const Color(0xFF117BBD),
+          controlAffinity: ListTileControlAffinity.leading,
+          contentPadding: EdgeInsets.zero,
+        ),
       ],
     );
   }
@@ -281,58 +358,34 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
             borderRadius: BorderRadius.circular(8.r),
             color: Colors.grey[50],
           ),
-          child: _logoImage != null
-              ? Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8.r),
-                      child: Image.file(
-                        _logoImage!,
-                        fit: BoxFit.contain,
-                        width: double.infinity,
-                        height: double.infinity,
-                      ),
-                    ),
-                    // Botão para remover a imagem
-                    Positioned(
-                      top: 8.h,
-                      right: 8.w,
-                      child: GestureDetector(
-                        onTap: _removeLogo,
-                        child: Container(
-                          padding: EdgeInsets.all(4.w),
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.close,
-                            color: Colors.white,
-                            size: 16.sp,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+          child: _isLoadingPartnerLogo
+              ? const Center(
+                  child: CircularProgressIndicator(
+                    color: Color(0xFF117BBD),
+                  ),
                 )
-              : Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.image_outlined,
-                      size: 40.sp,
-                      color: Colors.grey[400],
-                    ),
-                    SizedBox(height: 8.h),
-                    Text(
-                      'Nenhuma logo selecionada',
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color: Colors.grey[500],
-                      ),
-                    ),
-                  ],
-                ),
+              : _logoImage != null
+                  ? _buildPreviewImage(file: _logoImage)
+                  : _partnerLogoBase64 != null
+                      ? _buildPreviewImage(base64: _partnerLogoBase64)
+                      : Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.image_outlined,
+                              size: 40.sp,
+                              color: Colors.grey[400],
+                            ),
+                            SizedBox(height: 8.h),
+                            Text(
+                              'Nenhuma logo selecionada',
+                              style: TextStyle(
+                                fontSize: 12.sp,
+                                color: Colors.grey[500],
+                              ),
+                            ),
+                          ],
+                        ),
         ),
         SizedBox(height: 12.h),
 
@@ -363,6 +416,50 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
             ),
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildPreviewImage({File? file, String? base64}) {
+    return Stack(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8.r),
+          child: file != null
+              ? Image.file(
+                  file,
+                  fit: BoxFit.contain,
+                  width: double.infinity,
+                  height: double.infinity,
+                )
+              : Image.memory(
+                  base64Decode(_extractBase64Data(base64!)),
+                  fit: BoxFit.contain,
+                  width: double.infinity,
+                  height: double.infinity,
+                ),
+        ),
+        // Botão para remover a imagem (só se for a temporária)
+        if (file != null)
+          Positioned(
+            top: 8.h,
+            right: 8.w,
+            child: GestureDetector(
+              onTap: _removeLogo,
+              child: Container(
+                padding: EdgeInsets.all(4.w),
+                decoration: const BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.close,
+                  color: Colors.white,
+                  size: 16.sp,
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -454,6 +551,13 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
     }
   }
 
+  String _extractBase64Data(String dataUri) {
+    if (dataUri.contains(',')) {
+      return dataUri.split(',').last;
+    }
+    return dataUri;
+  }
+
   Future<void> _handleSharePdf() async {
     // Validar campos obrigatórios
     if (_nomeVendedorController.text.trim().isEmpty) {
@@ -484,13 +588,17 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
           widget.generatePdfUseCase ?? Modular.get<GeneratePdfUseCase>();
       print('✅ [Modal] GeneratePdfUseCase obtido');
 
-      // Converter logo para base64 se existir
+      // Decidir qual logo enviar baseado no checkbox e na seleção
       String? logoBase64;
-      if (_logoImage != null) {
-        print('📸 [Modal] Convertendo logo para base64...');
-        final bytes = await _logoImage!.readAsBytes();
-        logoBase64 = base64Encode(bytes);
-        print('✅ [Modal] Logo convertida');
+      if (_incluirLogoNoPdf) {
+        if (_logoImage != null) {
+          print('📸 [Modal] Convertendo logo selecionada para base64...');
+          final bytes = await _logoImage!.readAsBytes();
+          logoBase64 = base64Encode(bytes);
+        } else if (_partnerLogoBase64 != null) {
+          print('📸 [Modal] Usando logo original do parceiro...');
+          logoBase64 = _extractBase64Data(_partnerLogoBase64!);
+        }
       }
 
       print('📡 [Modal] Chamando UseCase para gerar PDF...');
@@ -503,6 +611,8 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
         url: _urlController.text.trim().isNotEmpty
             ? _urlController.text.trim()
             : null,
+        incluirLogo: _incluirLogoNoPdf,
+        incluirCenso: _incluirCensoNoPdf,
         logoBase64: logoBase64,
       );
 
