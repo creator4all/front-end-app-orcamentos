@@ -69,9 +69,10 @@ class ProductSelectionUpdateDto extends Equatable {
   /// ```
   factory ProductSelectionUpdateDto.fromEntity(ProductEntity entity) {
     // Todos os indicadores com status explícito
-    final indicadoresDto = entity.indicadoresEtapa
-        .map((ind) => IndicadorProdutoUpdateDto.fromEntity(ind))
-        .toList();
+    final indicadoresDto =
+        entity.indicadoresEtapa
+            .map((ind) => IndicadorProdutoUpdateDto.fromEntity(ind))
+            .toList();
 
     // Valor apenas se foi alterado
     final valorAlterado = entity.hasValueOverride ? entity.valor : null;
@@ -91,18 +92,41 @@ class ProductSelectionUpdateDto extends Equatable {
   /// - 'quantidade' é enviada APENAS para serviços
   /// - Para livros/tecnologias, o backend calcula a partir dos indicadores
   Map<String, dynamic> toJson() => {
-        'produto_id': productId,
-        'selecionado': selecionado,
-        // ✅ Quantidade apenas para serviços
-        if (isServico) 'quantidade': quantidade,
-        if (indicadores != null)
-          'indicadores_etapa': indicadores!.map((i) => i.toJson()).toList(),
-        if (valor != null) 'valor': valor,
-      };
+    'produto_id': productId,
+    'selecionado': selecionado,
+    // ✅ Quantidade apenas para serviços
+    if (isServico) 'quantidade': quantidade,
+    if (indicadores != null)
+      'indicadores_etapa': indicadores!.map((i) => i.toJson()).toList(),
+    if (valor != null) 'valor': valor,
+  };
+
+  /// Converte para Map para envio via API no endpoint /versionar-multi-cidade
+  ///
+  /// Diferença do toJson():
+  /// - Serviços: envia quantidade (sem indicadores)
+  /// - Livros/Tecnologia: envia indicadores_etapa (sem quantidade)
+  ///
+  /// O backend não aceita quantidade + indicadores_etapa juntos
+  Map<String, dynamic> toJsonForMultiCity() => {
+    'produto_id': productId,
+    'selecionado': selecionado,
+    // ✅ Serviços: enviar quantidade
+    if (isServico) 'quantidade': quantidade,
+    // ✅ Demais tipos: enviar indicadores apenas se existirem
+    if (!isServico && indicadores != null && indicadores!.isNotEmpty)
+      'indicadores_etapa': indicadores!.map((i) => i.toJson()).toList(),
+  };
 
   @override
-  List<Object?> get props =>
-      [productId, selecionado, quantidade, tipoProduto, indicadores, valor];
+  List<Object?> get props => [
+    productId,
+    selecionado,
+    quantidade,
+    tipoProduto,
+    indicadores,
+    valor,
+  ];
 
   @override
   String toString() =>

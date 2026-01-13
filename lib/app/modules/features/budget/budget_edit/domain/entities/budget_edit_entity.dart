@@ -61,6 +61,9 @@ class BudgetEditEntity extends Equatable {
   /// Computed property para compatibilidade com código existente
   bool get isArchived => status.toLowerCase() == 'arquivado';
 
+  /// Verifica se é um orçamento multi-cidade (mais de 1 cidade)
+  bool get isMultiCity => cityIds.length > 1;
+
   @override
   List<Object?> get props => [
         id,

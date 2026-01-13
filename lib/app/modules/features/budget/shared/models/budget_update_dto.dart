@@ -126,20 +126,51 @@ class BudgetUpdateDto extends Equatable {
     return map;
   }
 
+  /// Converte para Map no formato específico do endpoint /versionar-multi-cidade
+  ///
+  /// Diferenças do toJson():
+  /// - `cidades`: formato `[{ cidade_id: int, overrides: null }]`
+  /// - `produtos`: usa toJsonForMultiCity() (serviços com quantidade, demais com indicadores)
+  Map<String, dynamic> toJsonForMultiCity() {
+    final map = <String, dynamic>{};
+
+    if (nome != null) map['orc_nome'] = nome;
+    if (diasValidade != null) map['orc_dias_validade'] = diasValidade;
+    if (status != null) map['orc_status'] = status;
+    if (usuarioId != null) map['orc_usuario_id'] = usuarioId;
+
+    // 🔑 Cidades no formato esperado: [{ cidade_id, overrides }]
+    if (cidades != null) {
+      map['cidades'] =
+          cidades!.map((id) => {'cidade_id': id, 'overrides': null}).toList();
+    }
+
+    // 🔑 Produtos usando serialização específica para multi-cidade
+    if (produtos != null) {
+      map['produtos'] = produtos!.map((p) => p.toJsonForMultiCity()).toList();
+    }
+
+    if (partnerDestinoId != null) {
+      map['orc_partner_destino_id'] = partnerDestinoId;
+    }
+
+    return map;
+  }
+
   @override
   List<Object?> get props => [
-        nome,
-        diasValidade,
-        status,
-        isArchived,
-        total,
-        usuarioId,
-        cidadeId,
-        cidades,
-        indicadores,
-        produtos,
-        partnerDestinoId,
-      ];
+    nome,
+    diasValidade,
+    status,
+    isArchived,
+    total,
+    usuarioId,
+    cidadeId,
+    cidades,
+    indicadores,
+    produtos,
+    partnerDestinoId,
+  ];
 
   @override
   String toString() {

@@ -55,4 +55,18 @@ abstract class BudgetEditRepository {
     required int budgetId,
     required BudgetUpdateDto updateData,
   });
+
+  /// Cria nova versão de orçamento MULTI-CIDADE
+  ///
+  /// Endpoint específico para orçamentos com múltiplas cidades.
+  ///
+  /// [budgetId] ID do orçamento a versionar
+  /// [updateData] DTO com dados da nova versão (incluindo array cidades)
+  ///
+  /// Retorna a nova versão do orçamento ou falha
+  Future<Either<BudgetFailure, BudgetEditEntity>>
+  versionMultiCityBudgetWithDto({
+    required int budgetId,
+    required BudgetUpdateDto updateData,
+  });
 }

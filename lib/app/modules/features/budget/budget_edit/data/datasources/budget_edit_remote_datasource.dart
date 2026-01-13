@@ -51,4 +51,20 @@ abstract class BudgetEditRemoteDataSource {
     required int budgetId,
     required BudgetUpdateDto updateData,
   });
+
+  /// Cria nova versão de orçamento MULTI-CIDADE
+  ///
+  /// Endpoint: POST /api/orcamentos/{id}/versionar-multi-cidade
+  ///
+  /// Específico para orçamentos com múltiplas cidades.
+  /// O payload deve conter `orc_cidade_id: null` e o array `cidades`.
+  ///
+  /// [budgetId] ID do orçamento a versionar
+  /// [updateData] DTO com dados da nova versão (incluindo array cidades)
+  ///
+  /// Retorna a nova versão do orçamento criada
+  Future<BudgetEditDto> versionMultiCityBudgetWithDto({
+    required int budgetId,
+    required BudgetUpdateDto updateData,
+  });
 }
