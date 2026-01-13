@@ -386,7 +386,7 @@ abstract class _BudgetConfigStoreBase with Store {
           final valor = (prodJson['valor'] as num?)?.toDouble() ?? 0.0;
 
           // Sincroniza seleção com quantidade: quantidade = 0 → selecionado = false
-          final quantidade = orcProdJson['quantidade'] as int? ?? 0;
+          final quantidade = (orcProdJson['quantidade'] as num?)?.toInt() ?? 0;
           final selecionadoJson = orcProdJson['selecionado'] as bool? ?? false;
           final selecionado = quantidade > 0 ? selecionadoJson : false;
 
