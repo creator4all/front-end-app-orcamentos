@@ -29,6 +29,13 @@ mixin _$UserManagementStore on _UserManagementStoreBase, Store {
       (_$changesCountComputed ??= Computed<int>(() => super.changesCount,
               name: '_UserManagementStoreBase.changesCount'))
           .value;
+  Computed<List<ManagedUser>>? _$filteredUsersComputed;
+
+  @override
+  List<ManagedUser> get filteredUsers => (_$filteredUsersComputed ??=
+          Computed<List<ManagedUser>>(() => super.filteredUsers,
+              name: '_UserManagementStoreBase.filteredUsers'))
+      .value;
 
   late final _$usersAtom =
       Atom(name: '_UserManagementStoreBase.users', context: context);
@@ -174,6 +181,38 @@ mixin _$UserManagementStore on _UserManagementStoreBase, Store {
     });
   }
 
+  late final _$partnerIdAtom =
+      Atom(name: '_UserManagementStoreBase.partnerId', context: context);
+
+  @override
+  int? get partnerId {
+    _$partnerIdAtom.reportRead();
+    return super.partnerId;
+  }
+
+  @override
+  set partnerId(int? value) {
+    _$partnerIdAtom.reportWrite(value, super.partnerId, () {
+      super.partnerId = value;
+    });
+  }
+
+  late final _$searchQueryAtom =
+      Atom(name: '_UserManagementStoreBase.searchQuery', context: context);
+
+  @override
+  String get searchQuery {
+    _$searchQueryAtom.reportRead();
+    return super.searchQuery;
+  }
+
+  @override
+  set searchQuery(String value) {
+    _$searchQueryAtom.reportWrite(value, super.searchQuery, () {
+      super.searchQuery = value;
+    });
+  }
+
   late final _$loadUsersAsyncAction =
       AsyncAction('_UserManagementStoreBase.loadUsers', context: context);
 
@@ -210,6 +249,28 @@ mixin _$UserManagementStore on _UserManagementStoreBase, Store {
 
   late final _$_UserManagementStoreBaseActionController =
       ActionController(name: '_UserManagementStoreBase', context: context);
+
+  @override
+  void setPartnerId(int? id) {
+    final _$actionInfo = _$_UserManagementStoreBaseActionController.startAction(
+        name: '_UserManagementStoreBase.setPartnerId');
+    try {
+      return super.setPartnerId(id);
+    } finally {
+      _$_UserManagementStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void setSearchQuery(String query) {
+    final _$actionInfo = _$_UserManagementStoreBaseActionController.startAction(
+        name: '_UserManagementStoreBase.setSearchQuery');
+    try {
+      return super.setSearchQuery(query);
+    } finally {
+      _$_UserManagementStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
 
   @override
   void updateUserStatus(int userId, bool status) {
@@ -256,9 +317,12 @@ error: ${error},
 currentPage: ${currentPage},
 lastPage: ${lastPage},
 totalUsers: ${totalUsers},
+partnerId: ${partnerId},
+searchQuery: ${searchQuery},
 hasChanges: ${hasChanges},
 hasMore: ${hasMore},
-changesCount: ${changesCount}
+changesCount: ${changesCount},
+filteredUsers: ${filteredUsers}
     ''';
   }
 }

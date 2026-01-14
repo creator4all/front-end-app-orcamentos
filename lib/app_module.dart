@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:multimidiaapp/app/modules/features/auth/presentation/stores/forgot_password_store.dart';
+import 'package:multimidiaapp/app/modules/features/partner_management/partner_management_module.dart';
+import 'package:multimidiaapp/app/modules/features/product_management/product_management_module.dart';
 
 import 'app/modules/features/auth/auth_module.dart';
 // Auth - Clean Architecture (compartilhado globalmente)
@@ -167,8 +169,14 @@ class AppModule extends Module {
         // User Management Module - Gestão de Usuários
         ModuleRoute('/user-management', module: UserManagementModule()),
 
+        // Partner Management Module - Gestão de Parceiros (Admin)
+        ModuleRoute('/partner-management', module: PartnerManagementModule()),
+
         // Prospect Module - Prospecção de Parceiros
         ModuleRoute('/prospect', module: ProspectModule()),
+
+        // Product Management Module - Gestão de Produtos (Admin)
+        ModuleRoute('/product-management', module: ProductManagementModule()),
 
         // Redirect to auth by default
         RedirectRoute('/', to: '/auth/login'),

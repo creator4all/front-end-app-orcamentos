@@ -170,6 +170,7 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
           userImageUrl: authStore?.userDisplayAvatar,
           userRole: authStore?.userRole,
           partnerName: authStore?.partnerName,
+          isAdmin: authStore?.isAdmin ?? false,
           onClose: () => Navigator.of(context).pop(),
           onEditProfile: () {
             Navigator.of(context).pop();
@@ -183,7 +184,7 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
               : null,
           onConfigureProducts: () {
             Navigator.of(context).pop();
-            // TODO: Implementar navegação para configurar produtos
+            Modular.to.pushNamed('/product-management/');
           },
           onPartnerProspecting: () {
             Navigator.of(context).pop();
@@ -191,7 +192,12 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
           },
           onAdministrativeManagement: () {
             Navigator.of(context).pop();
-            Modular.to.pushNamed('/user-management/');
+            // Admin vai para Gestão de Empresas, Gestor vai direto para Gestão de Usuários
+            if (authStore?.isAdmin == true) {
+              Modular.to.pushNamed('/partner-management/');
+            } else {
+              Modular.to.pushNamed('/user-management/');
+            }
           },
           onWiki: () {
             Navigator.of(context).pop();

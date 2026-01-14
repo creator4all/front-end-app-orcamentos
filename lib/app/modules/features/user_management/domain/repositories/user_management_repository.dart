@@ -6,9 +6,16 @@ import '../entities/managed_user.dart';
 /// Contrato abstrato do repositório de gerenciamento de usuários
 /// Segue o princípio de inversão de dependência da Clean Architecture
 abstract class UserManagementRepository {
-  /// Lista usuários com paginação
+  /// Lista usuários com paginação (para Gestor)
   /// Retorna [Either] com [Failure] em caso de erro ou [PaginatedUsers] em caso de sucesso
   Future<Either<Failure, PaginatedUsers>> listUsers({
+    required int page,
+    required int perPage,
+  });
+
+  /// Lista usuários de um parceiro específico (para Admin)
+  Future<Either<Failure, PaginatedUsers>> listPartnerUsers({
+    required int partnerId,
     required int page,
     required int perPage,
   });

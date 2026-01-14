@@ -36,6 +36,35 @@ class UserManagementApiDatasource implements UserManagementDatasource {
   }
 
   @override
+  Future<PaginatedUsersDto> listPartnerUsers({
+    required int partnerId,
+    required int page,
+    required int perPage,
+  }) async {
+    try {
+      print(
+          '📋 [UserManagementApiDatasource] Listando usuários do parceiro $partnerId página $page...');
+
+      final response = await httpClient.get(
+        '/api/partners/$partnerId/usuarios?page=$page&per_page=$perPage',
+      );
+
+      if (response.statusCode == 200) {
+        print(
+            '✅ [UserManagementApiDatasource] Usuários do parceiro carregados com sucesso');
+        return PaginatedUsersDto.fromJson(response.body);
+      }
+
+      throw Exception(
+          'Erro ao listar usuários do parceiro: ${response.statusCode}');
+    } catch (e) {
+      print(
+          '❌ [UserManagementApiDatasource] Erro ao listar usuários do parceiro: $e');
+      rethrow;
+    }
+  }
+
+  @override
   Future<UpdateUsersResponseDto> updateUsers(
       List<UserUpdateDto> updates) async {
     try {

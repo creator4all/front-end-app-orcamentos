@@ -57,6 +57,14 @@ abstract class _UserManagementStoreBase with Store {
   @observable
   int totalUsers = 0;
 
+  /// ID do parceiro (para Admin visualizando usuários de um parceiro específico)
+  @observable
+  int? partnerId;
+
+  /// Query de busca
+  @observable
+  String searchQuery = '';
+
   // ========== COMPUTED ==========
 
   /// Verifica se há alterações pendentes
@@ -71,7 +79,32 @@ abstract class _UserManagementStoreBase with Store {
   @computed
   int get changesCount => pendingChanges.length;
 
+  /// Lista filtrada de usuários
+  @computed
+  List<ManagedUser> get filteredUsers {
+    if (searchQuery.isEmpty) {
+      return users.toList();
+    }
+    final query = searchQuery.toLowerCase();
+    return users.where((user) {
+      return user.name.toLowerCase().contains(query) ||
+          user.email.toLowerCase().contains(query);
+    }).toList();
+  }
+
   // ========== ACTIONS ==========
+
+  /// Define o ID do parceiro (para contexto Admin)
+  @action
+  void setPartnerId(int? id) {
+    partnerId = id;
+  }
+
+  /// Define a query de busca
+  @action
+  void setSearchQuery(String query) {
+    searchQuery = query;
+  }
 
   /// Carrega a lista inicial de usuários
   @action
@@ -82,9 +115,10 @@ abstract class _UserManagementStoreBase with Store {
     users.clear();
     pendingChanges.clear();
 
-    print('📋 [UserManagementStore] Carregando usuários...');
+    print(
+        '📋 [UserManagementStore] Carregando usuários... partnerId=$partnerId');
 
-    final result = await listUsersUsecase(page: 1);
+    final result = await listUsersUsecase(page: 1, partnerId: partnerId);
 
     result.fold(
       (failure) {
@@ -113,7 +147,7 @@ abstract class _UserManagementStoreBase with Store {
 
     print('📋 [UserManagementStore] Carregando página $nextPage...');
 
-    final result = await listUsersUsecase(page: nextPage);
+    final result = await listUsersUsecase(page: nextPage, partnerId: partnerId);
 
     result.fold(
       (failure) {

@@ -28,6 +28,26 @@ class UserManagementRepositoryImpl implements UserManagementRepository {
   }
 
   @override
+  Future<Either<Failure, PaginatedUsers>> listPartnerUsers({
+    required int partnerId,
+    required int page,
+    required int perPage,
+  }) async {
+    try {
+      final result = await datasource.listPartnerUsers(
+        partnerId: partnerId,
+        page: page,
+        perPage: perPage,
+      );
+      return Right(result.toEntity());
+    } catch (e) {
+      print(
+          '❌ [UserManagementRepositoryImpl] Erro ao listar usuários do parceiro: $e');
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, UpdateUsersResult>> updateUsers(
     List<UserUpdate> updates,
   ) async {

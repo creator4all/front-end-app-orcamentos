@@ -10,6 +10,7 @@ class ManagedUser extends Equatable {
   final bool status;
   final int roleId;
   final String roleName;
+  final String? avatarBase64;
 
   const ManagedUser({
     required this.id,
@@ -19,6 +20,7 @@ class ManagedUser extends Equatable {
     required this.status,
     required this.roleId,
     required this.roleName,
+    this.avatarBase64,
   });
 
   /// Cria uma cópia do usuário com valores alterados
@@ -30,6 +32,7 @@ class ManagedUser extends Equatable {
     bool? status,
     int? roleId,
     String? roleName,
+    String? avatarBase64,
   }) {
     return ManagedUser(
       id: id ?? this.id,
@@ -39,6 +42,7 @@ class ManagedUser extends Equatable {
       status: status ?? this.status,
       roleId: roleId ?? this.roleId,
       roleName: roleName ?? this.roleName,
+      avatarBase64: avatarBase64 ?? this.avatarBase64,
     );
   }
 
@@ -51,6 +55,7 @@ class ManagedUser extends Equatable {
         status,
         roleId,
         roleName,
+        avatarBase64,
       ];
 
   @override
