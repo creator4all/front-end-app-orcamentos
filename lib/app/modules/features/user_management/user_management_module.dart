@@ -48,10 +48,17 @@ class UserManagementModule extends Module {
 
   @override
   List<ModularRoute> get routes => [
-        // Rota principal
+        // Rota principal (Gestor - seus usuários)
         ChildRoute(
           '/',
           child: (context, args) => const UserManagementPage(),
+        ),
+        // Rota com partnerId (Admin - usuários de um parceiro específico)
+        ChildRoute(
+          '/partner/:partnerId',
+          child: (context, args) => UserManagementPage(
+            partnerId: int.tryParse(args.params['partnerId'] ?? ''),
+          ),
         ),
       ];
 }

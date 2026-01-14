@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../../../shared/widgets/user_avatar_widget.dart';
 import '../../domain/entities/managed_user.dart';
 
 /// Widget que representa um item da lista de usuários
-/// Exibe email, nome, cargo, toggle de status e dropdown de role
+/// Layout horizontal: Avatar, Column (nome/role/email), Switch
 class UserListItemWidget extends StatelessWidget {
   final ManagedUser user;
   final bool hasPendingChanges;
@@ -25,162 +26,114 @@ class UserListItemWidget extends StatelessWidget {
     {'id': 2, 'name': 'Gestor'},
   ];
 
+  /// Obtém cor de fundo da tag de role
+  Color _getRoleBackgroundColor(String roleName) {
+    switch (roleName.toLowerCase()) {
+      case 'gestor':
+        return const Color(0xFFE0F4FF);
+      case 'vendedor':
+        return const Color(0xFFE0F0E0);
+      case 'administrador':
+        return const Color(0xFFFFE0E0);
+      default:
+        return const Color(0xFFF0F0F0);
+    }
+  }
+
+  /// Obtém cor do texto da tag de role
+  Color _getRoleTextColor(String roleName) {
+    switch (roleName.toLowerCase()) {
+      case 'gestor':
+        return const Color(0xFF0C498E);
+      case 'vendedor':
+        return const Color(0xFF155724);
+      case 'administrador':
+        return const Color(0xFF721C24);
+      default:
+        return const Color(0xFF333333);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.only(bottom: 12.h),
-      padding: EdgeInsets.all(16.w),
+      margin: EdgeInsets.only(bottom: 8.h),
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(10.r),
         border: Border.all(
-          color: hasPendingChanges
-              ? const Color(0xFF4CAF50)
-              : const Color(0xFFE0E0E0),
-          width: hasPendingChanges ? 2 : 1,
+          color: const Color(0xFFD9D9D9),
+          width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 2,
+            offset: const Offset(0, 1),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Email (destaque)
-          Row(
-            children: [
-              Icon(
-                Icons.email_outlined,
-                size: 16.sp,
-                color: const Color(0xFF117BBD),
-              ),
-              SizedBox(width: 8.w),
-              Expanded(
-                child: Text(
-                  user.email,
+          // Avatar
+          UserAvatarWidget(
+            avatarBase64: user.avatarBase64,
+            userName: user.name,
+            radius: 22,
+          ),
+
+          SizedBox(width: 10.w),
+
+          // Coluna com nome, role tag e email
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Nome
+                Text(
+                  user.name,
                   style: TextStyle(
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w600,
-                    color: const Color(0xFF117BBD),
+                    color: const Color(0xFF333333),
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              if (hasPendingChanges)
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF4CAF50).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(4.r),
+
+                SizedBox(height: 3.h),
+
+                // Tag de Role com dropdown
+                _buildRoleTag(),
+
+                SizedBox(height: 3.h),
+
+                // Email
+                Text(
+                  user.email,
+                  style: TextStyle(
+                    fontSize: 11.sp,
+                    color: const Color(0xFF666666),
                   ),
-                  child: Text(
-                    'Alterado',
-                    style: TextStyle(
-                      fontSize: 10.sp,
-                      fontWeight: FontWeight.w500,
-                      color: const Color(0xFF4CAF50),
-                    ),
-                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-            ],
-          ),
-
-          SizedBox(height: 8.h),
-
-          // Nome completo
-          Text(
-            user.name,
-            style: TextStyle(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFF333333),
+              ],
             ),
           ),
 
-          SizedBox(height: 4.h),
+          SizedBox(width: 6.w),
 
-          // Cargo
-          if (user.cargo != null && user.cargo!.isNotEmpty)
-            Text(
-              'Cargo: ${user.cargo}',
-              style: TextStyle(
-                fontSize: 13.sp,
-                color: const Color(0xFF666666),
-              ),
-            ),
-
-          SizedBox(height: 12.h),
-
-          // Row com Toggle de Status e Dropdown de Role
-          Row(
-            children: [
-              // Toggle de Status
-              Expanded(
-                child: _buildStatusToggle(),
-              ),
-
-              SizedBox(width: 12.w),
-
-              // Dropdown de Role
-              Expanded(
-                child: _buildRoleDropdown(),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatusToggle() {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-      decoration: BoxDecoration(
-        color: user.status ? const Color(0xFFE8F5E9) : const Color(0xFFFFEBEE),
-        borderRadius: BorderRadius.circular(8.r),
-        border: Border.all(
-          color:
-              user.status ? const Color(0xFF4CAF50) : const Color(0xFFE57373),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Icon(
-                user.status ? Icons.check_circle : Icons.cancel,
-                size: 16.sp,
-                color: user.status
-                    ? const Color(0xFF4CAF50)
-                    : const Color(0xFFE57373),
-              ),
-              SizedBox(width: 6.w),
-              Text(
-                user.status ? 'Ativo' : 'Inativo',
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w500,
-                  color: user.status
-                      ? const Color(0xFF2E7D32)
-                      : const Color(0xFFC62828),
-                ),
-              ),
-            ],
-          ),
+          // Switch
           SizedBox(
-            height: 20.h,
-            width: 36.w,
+            height: 24.h,
             child: Switch(
               value: user.status,
               onChanged: onStatusChanged,
               activeColor: const Color(0xFF4CAF50),
-              inactiveThumbColor: const Color(0xFFE57373),
-              inactiveTrackColor: const Color(0xFFFFCDD2),
+              inactiveThumbColor: const Color(0xFFBDBDBD),
+              inactiveTrackColor: const Color(0xFFE0E0E0),
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
           ),
@@ -189,41 +142,50 @@ class UserListItemWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildRoleDropdown() {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12.w),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5),
+  Widget _buildRoleTag() {
+    return PopupMenuButton<int>(
+      initialValue: user.roleId,
+      onSelected: onRoleChanged,
+      offset: Offset(0, 24.h),
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8.r),
-        border: Border.all(color: const Color(0xFFBDBDBD)),
       ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<int>(
-          value: availableRoles.any((r) => r['id'] == user.roleId)
-              ? user.roleId
-              : availableRoles.first['id'],
-          isExpanded: true,
-          icon: Icon(
-            Icons.arrow_drop_down,
-            color: const Color(0xFF666666),
-            size: 20.sp,
+      itemBuilder: (context) => availableRoles.map((role) {
+        return PopupMenuItem<int>(
+          value: role['id'],
+          child: Text(
+            role['name'],
+            style: TextStyle(
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-          style: TextStyle(
-            fontSize: 12.sp,
-            fontWeight: FontWeight.w500,
-            color: const Color(0xFF333333),
-          ),
-          items: availableRoles.map((role) {
-            return DropdownMenuItem<int>(
-              value: role['id'],
-              child: Text(role['name']),
-            );
-          }).toList(),
-          onChanged: (value) {
-            if (value != null) {
-              onRoleChanged(value);
-            }
-          },
+        );
+      }).toList(),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+        decoration: BoxDecoration(
+          color: _getRoleBackgroundColor(user.roleName),
+          borderRadius: BorderRadius.circular(6.r),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              user.roleName.toUpperCase(),
+              style: TextStyle(
+                fontSize: 10.sp,
+                fontWeight: FontWeight.w600,
+                color: _getRoleTextColor(user.roleName),
+              ),
+            ),
+            SizedBox(width: 4.w),
+            Icon(
+              Icons.arrow_drop_down,
+              size: 14.sp,
+              color: _getRoleTextColor(user.roleName),
+            ),
+          ],
         ),
       ),
     );

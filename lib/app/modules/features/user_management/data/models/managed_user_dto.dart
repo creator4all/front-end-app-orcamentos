@@ -9,6 +9,7 @@ class ManagedUserDto {
   final bool status;
   final int roleId;
   final String roleName;
+  final String? avatarBase64;
 
   ManagedUserDto({
     required this.id,
@@ -18,28 +19,66 @@ class ManagedUserDto {
     required this.status,
     required this.roleId,
     required this.roleName,
+    this.avatarBase64,
   });
 
   /// Cria DTO a partir do JSON da API
+  /// Suporta tanto formato limpo quanto formato Laravel Eloquent raw
   factory ManagedUserDto.fromJson(Map<String, dynamic> json) {
-    // Extrair nome da role do objeto aninhado
-    String roleName = 'Vendedor';
-    int roleId = json['roles_rol_roleId'] ?? 1;
+    // Debug: Log do JSON recebido
+    print('🔍 [ManagedUserDto] JSON recebido keys: ${json.keys.toList()}');
 
-    if (json['role'] != null && json['role'] is Map) {
-      roleName = json['role']['rol_name'] ?? 'Vendedor';
-      roleId = json['role']['rol_roleId'] ?? roleId;
+    // Laravel Eloquent retorna dados dentro de '\u0000*\u0000attributes' ou 'attributes'
+    // Precisamos extrair os dados de lá se existir
+    Map<String, dynamic> attributes = json;
+    Map<String, dynamic>? relations;
+
+    // Procurar por chave 'attributes' (pode ter null bytes no prefixo)
+    for (final key in json.keys) {
+      if (key.contains('attributes')) {
+        final attrValue = json[key];
+        if (attrValue is Map<String, dynamic>) {
+          attributes = attrValue;
+          print('📋 [ManagedUserDto] Usando attributes: $attributes');
+        }
+      }
+      if (key.contains('relations')) {
+        final relValue = json[key];
+        if (relValue is Map<String, dynamic>) {
+          relations = relValue;
+          print('📋 [ManagedUserDto] Usando relations: $relations');
+        }
+      }
     }
 
-    return ManagedUserDto(
-      id: json['usr_userId'] ?? 0,
-      name: json['usr_name'] ?? '',
-      email: json['usr_email'] ?? '',
-      cargo: json['usr_cargo'],
-      status: json['usr_status'] == true || json['usr_status'] == 1,
+    // Extrair nome da role do objeto aninhado (relations ou diretamente)
+    String roleName = 'Vendedor';
+    int roleId =
+        attributes['roles_rol_roleId'] ?? json['roles_rol_roleId'] ?? 1;
+
+    // Verificar role em relations (Laravel Eloquent) ou diretamente no json
+    final roleData = relations?['role'] ?? json['role'] ?? attributes['role'];
+    if (roleData != null && roleData is Map) {
+      roleName = roleData['rol_name'] ?? 'Vendedor';
+      roleId = roleData['rol_roleId'] ?? roleId;
+    }
+
+    final dto = ManagedUserDto(
+      id: attributes['usr_userId'] ?? json['usr_userId'] ?? 0,
+      name: attributes['usr_name'] ?? json['usr_name'] ?? '',
+      email: attributes['usr_email'] ?? json['usr_email'] ?? '',
+      cargo: attributes['usr_cargo'] ?? json['usr_cargo'],
+      status: (attributes['usr_status'] ?? json['usr_status']) == true ||
+          (attributes['usr_status'] ?? json['usr_status']) == 1,
       roleId: roleId,
       roleName: roleName,
+      avatarBase64: attributes['usr_avatar'] ?? json['usr_avatar'],
     );
+
+    print(
+        '✅ [ManagedUserDto] Parsed: id=${dto.id}, name=${dto.name}, email=${dto.email}, role=${dto.roleName}, status=${dto.status}');
+
+    return dto;
   }
 
   /// Converte DTO para entidade de domínio
@@ -52,6 +91,7 @@ class ManagedUserDto {
       status: status,
       roleId: roleId,
       roleName: roleName,
+      avatarBase64: avatarBase64,
     );
   }
 }
@@ -74,8 +114,15 @@ class PaginatedUsersDto {
 
   /// Cria DTO a partir do JSON da API
   factory PaginatedUsersDto.fromJson(Map<String, dynamic> json) {
+    // Debug: Log do JSON completo
+    print('🔍 [PaginatedUsersDto] JSON Response: $json');
+
     final dados = json['dados'] ?? json;
+    print('🔍 [PaginatedUsersDto] dados: $dados');
+
     final List<dynamic> dataList = dados['data'] ?? [];
+    print('🔍 [PaginatedUsersDto] dataList items: ${dataList.length}');
+
     final pagination = dados['pagination'] ?? {};
 
     return PaginatedUsersDto(

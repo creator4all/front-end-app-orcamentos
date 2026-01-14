@@ -20,6 +20,7 @@ class ProfileModal extends StatefulWidget {
   final VoidCallback? onDrive;
   final VoidCallback? onLogout;
   final VoidCallback? onDeleteAccount;
+  final bool isAdmin;
 
   const ProfileModal({
     super.key,
@@ -39,6 +40,7 @@ class ProfileModal extends StatefulWidget {
     this.onDrive,
     this.onLogout,
     this.onDeleteAccount,
+    this.isAdmin = false,
   });
 
   @override
@@ -233,12 +235,14 @@ class _ProfileModalState extends State<ProfileModal>
                                     ),
                                   ],
                                   SizedBox(height: 12.h),
-                                  _ProfileMenuItem(
-                                    icon: Icons.inventory,
-                                    title: 'Configurar produtos',
-                                    onTap: widget.onConfigureProducts,
-                                  ),
-                                  SizedBox(height: 12.h),
+                                  if (widget.isAdmin) ...[
+                                    _ProfileMenuItem(
+                                      icon: Icons.inventory,
+                                      title: 'Configurar produtos',
+                                      onTap: widget.onConfigureProducts,
+                                    ),
+                                    SizedBox(height: 12.h),
+                                  ],
                                   _ProfileMenuItem(
                                     icon: Icons.people,
                                     title: 'Prospecção de parceiros',

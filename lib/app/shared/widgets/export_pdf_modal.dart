@@ -12,6 +12,7 @@ import '../../modules/features/auth/presentation/stores/auth_store.dart';
 import '../../modules/features/budget/budget_edit/domain/repositories/budget_pdf_repository.dart';
 import '../../modules/features/budget/budget_edit/domain/usecases/generate_pdf_usecase.dart';
 import '../../modules/features/partner/data/services/partner_service.dart'; // ← NOVO
+import 'custom_info_dialog.dart';
 import 'custom_modal.dart';
 
 /// Modal para exportar PDF com informações do vendedor e logo personalizada
@@ -513,23 +514,21 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
         });
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Logo selecionada com sucesso!'),
-              backgroundColor: Color(0xFF56B34A),
-              duration: Duration(seconds: 2),
-            ),
+          CustomInfoDialog.show(
+            context: context,
+            type: DialogType.success,
+            title: 'Sucesso',
+            message: 'Logo selecionada com sucesso!',
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao selecionar imagem: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
+        CustomInfoDialog.show(
+          context: context,
+          type: DialogType.error,
+          title: 'Erro',
+          message: 'Erro ao selecionar imagem: $e',
         );
       }
     }
@@ -541,12 +540,11 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
     });
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Logo removida'),
-          backgroundColor: Colors.orange,
-          duration: Duration(seconds: 2),
-        ),
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.warning,
+        title: 'Logo removida',
+        message: 'A logo temporária foi removida.',
       );
     }
   }
@@ -676,12 +674,11 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
         print('✅ [Modal] Modal fechada');
 
         // Mostrar mensagem de sucesso
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('PDF gerado e compartilhado com sucesso!'),
-            backgroundColor: Color(0xFF56B34A),
-            duration: Duration(seconds: 3),
-          ),
+        CustomInfoDialog.show(
+          context: context,
+          type: DialogType.success,
+          title: 'Sucesso!',
+          message: 'PDF gerado e compartilhado com sucesso!',
         );
       }
     } catch (e, stackTrace) {
@@ -700,27 +697,11 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
   }
 
   void _showErrorMessage(String message) {
-    showDialog(
+    CustomInfoDialog.show(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        title: Row(
-          children: [
-            Icon(Icons.error_outline, color: Colors.red, size: 24.sp),
-            SizedBox(width: 8.w),
-            const Text('Atenção'),
-          ],
-        ),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
+      type: DialogType.error,
+      title: 'Atenção',
+      message: message,
     );
   }
 }
