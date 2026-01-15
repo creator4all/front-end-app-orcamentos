@@ -29,6 +29,13 @@ mixin _$AuthStore on _AuthStoreBase, Store {
   bool get isAdmin => (_$isAdminComputed ??=
           Computed<bool>(() => super.isAdmin, name: '_AuthStoreBase.isAdmin'))
       .value;
+  Computed<bool>? _$isManagerComputed;
+
+  @override
+  bool get isManager =>
+      (_$isManagerComputed ??= Computed<bool>(() => super.isManager,
+              name: '_AuthStoreBase.isManager'))
+          .value;
   Computed<bool>? _$hasPartnerComputed;
 
   @override
@@ -209,6 +216,7 @@ isLoggedIn: ${isLoggedIn},
 userRole: ${userRole},
 partnerName: ${partnerName},
 isAdmin: ${isAdmin},
+isManager: ${isManager},
 hasPartner: ${hasPartner},
 partnerId: ${partnerId},
 partnerInfo: ${partnerInfo},

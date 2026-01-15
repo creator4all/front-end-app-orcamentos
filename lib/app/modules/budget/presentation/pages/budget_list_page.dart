@@ -4,6 +4,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../../../../shared/utils/user_role_mapper.dart';
 import '../../../../shared/widgets/rename_budget_modal.dart';
 import '../../../../shared/widgets/widgets.dart';
 import '../../../features/auth/presentation/stores/auth_store.dart';
@@ -32,7 +33,7 @@ class _BudgetListPageState extends State<BudgetListPage> {
   Future<void> _checkAuthAndFetch() async {
     // Verificar se há token de autenticação
     try {
-      final storage = FlutterSecureStorage();
+      const storage = FlutterSecureStorage();
       final token = await storage.read(key: 'auth_token');
       print('🔐 Token encontrado: ${token != null ? 'SIM' : 'NÃO'}');
       if (token != null) {
@@ -247,8 +248,7 @@ class _BudgetListPageState extends State<BudgetListPage> {
                             daysRemaining: daysRemaining,
                             status: status,
                             isArchived: b.status.toLowerCase() == 'arquivado',
-                            userRole: UserRole
-                                .admin, // TODO: Implementar baseado no usuário logado
+                            userRole: mapStringToUserRole(_authStore.userRole),
                             onTap: () {
                               // Navigate to edit budget page
                               Modular.to.pushNamed(

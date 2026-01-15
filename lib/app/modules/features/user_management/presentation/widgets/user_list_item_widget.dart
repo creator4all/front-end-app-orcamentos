@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../../../shared/utils/user_role_mapper.dart';
 import '../../../../../shared/widgets/user_avatar_widget.dart';
 import '../../domain/entities/managed_user.dart';
 
@@ -11,6 +12,8 @@ class UserListItemWidget extends StatelessWidget {
   final bool hasPendingChanges;
   final ValueChanged<bool> onStatusChanged;
   final ValueChanged<int> onRoleChanged;
+  final int currentUserRoleId;
+  final VoidCallback? onPermissionDenied;
 
   const UserListItemWidget({
     super.key,
@@ -18,13 +21,19 @@ class UserListItemWidget extends StatelessWidget {
     this.hasPendingChanges = false,
     required this.onStatusChanged,
     required this.onRoleChanged,
+    required this.currentUserRoleId,
+    this.onPermissionDenied,
   });
 
   /// Roles disponíveis para seleção (sem Administrador)
   static const List<Map<String, dynamic>> availableRoles = [
-    {'id': 1, 'name': 'Vendedor'},
+    {'id': 3, 'name': 'Vendedor'},
     {'id': 2, 'name': 'Gestor'},
   ];
+
+  /// Verifica se o usuário logado pode editar o usuário alvo
+  /// Hierarquia: Admin (1) > Gestor (2) > Vendedor (3)
+  bool get _canEditUser => canEditUserWithRole(currentUserRoleId, user.roleId);
 
   /// Obtém cor de fundo da tag de role
   Color _getRoleBackgroundColor(String roleName) {
@@ -56,93 +65,137 @@ class UserListItemWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 8.h),
-      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10.r),
-        border: Border.all(
-          color: const Color(0xFFD9D9D9),
-          width: 1,
+    return Opacity(
+      opacity: _canEditUser ? 1.0 : 0.6,
+      child: Container(
+        margin: EdgeInsets.only(bottom: 8.h),
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10.r),
+          border: Border.all(
+            color: _canEditUser
+                ? const Color(0xFFD9D9D9)
+                : const Color(0xFFE0E0E0),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 2,
+              offset: const Offset(0, 1),
+            ),
+          ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 2,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // Avatar
-          UserAvatarWidget(
-            avatarBase64: user.avatarBase64,
-            userName: user.name,
-            radius: 22,
-          ),
-
-          SizedBox(width: 10.w),
-
-          // Coluna com nome, role tag e email
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Nome
-                Text(
-                  user.name,
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF333333),
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-
-                SizedBox(height: 3.h),
-
-                // Tag de Role com dropdown
-                _buildRoleTag(),
-
-                SizedBox(height: 3.h),
-
-                // Email
-                Text(
-                  user.email,
-                  style: TextStyle(
-                    fontSize: 11.sp,
-                    color: const Color(0xFF666666),
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Avatar
+            UserAvatarWidget(
+              avatarBase64: user.avatarBase64,
+              userName: user.name,
+              radius: 22,
             ),
-          ),
 
-          SizedBox(width: 6.w),
+            SizedBox(width: 10.w),
 
-          // Switch
-          SizedBox(
-            height: 24.h,
-            child: Switch(
-              value: user.status,
-              onChanged: onStatusChanged,
-              activeColor: const Color(0xFF4CAF50),
-              inactiveThumbColor: const Color(0xFFBDBDBD),
-              inactiveTrackColor: const Color(0xFFE0E0E0),
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            // Coluna com nome, role tag e email
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Nome
+                  Text(
+                    user.name,
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF333333),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+
+                  SizedBox(height: 3.h),
+
+                  // Tag de Role com dropdown
+                  _buildRoleTag(),
+
+                  SizedBox(height: 3.h),
+
+                  // Email
+                  Text(
+                    user.email,
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      color: const Color(0xFF666666),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+
+            SizedBox(width: 6.w),
+
+            // Switch
+            SizedBox(
+              height: 24.h,
+              child: Switch(
+                value: user.status,
+                onChanged: (value) {
+                  if (_canEditUser) {
+                    onStatusChanged(value);
+                  } else {
+                    onPermissionDenied?.call();
+                  }
+                },
+                activeColor: const Color(0xFF4CAF50),
+                inactiveThumbColor: const Color(0xFFBDBDBD),
+                inactiveTrackColor: const Color(0xFFE0E0E0),
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildRoleTag() {
+    // Se não pode editar, exibe apenas a tag sem dropdown
+    if (!_canEditUser) {
+      return GestureDetector(
+        onTap: () => onPermissionDenied?.call(),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+          decoration: BoxDecoration(
+            color: _getRoleBackgroundColor(user.roleName),
+            borderRadius: BorderRadius.circular(6.r),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                user.roleName.toUpperCase(),
+                style: TextStyle(
+                  fontSize: 10.sp,
+                  fontWeight: FontWeight.w600,
+                  color: _getRoleTextColor(user.roleName),
+                ),
+              ),
+              SizedBox(width: 4.w),
+              Icon(
+                Icons.lock,
+                size: 12.sp,
+                color: _getRoleTextColor(user.roleName),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return PopupMenuButton<int>(
       initialValue: user.roleId,
       onSelected: onRoleChanged,

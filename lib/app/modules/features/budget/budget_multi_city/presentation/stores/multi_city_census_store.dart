@@ -271,7 +271,7 @@ abstract class _MultiCityCensusStoreBase with Store {
 
     final result = await _createBudgetUseCase(
       nome: budgetName,
-      diasValidade: 60,
+      diasValidade: 60, // Padrão: 60 dias (alterável depois na ConfigPage)
       usuarioId: userId, // ✅ Usar ID do usuário logado
       cidadeIds: cidadeIds,
       overridesPorCidade: overrides,

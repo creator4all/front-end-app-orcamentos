@@ -21,6 +21,7 @@ class ProfileModal extends StatefulWidget {
   final VoidCallback? onLogout;
   final VoidCallback? onDeleteAccount;
   final bool isAdmin;
+  final bool isManager;
 
   const ProfileModal({
     super.key,
@@ -41,6 +42,7 @@ class ProfileModal extends StatefulWidget {
     this.onLogout,
     this.onDeleteAccount,
     this.isAdmin = false,
+    this.isManager = false,
   });
 
   @override
@@ -221,12 +223,15 @@ class _ProfileModalState extends State<ProfileModal>
                               padding: EdgeInsets.symmetric(horizontal: 20.w),
                               child: Column(
                                 children: [
+                                  // Editar perfil - TODOS
                                   _ProfileMenuItem(
                                     icon: Icons.edit,
                                     title: 'Editar perfil',
                                     onTap: widget.onEditProfile,
                                   ),
-                                  if (widget.onEditCompany != null) ...[
+                                  // Editar empresa - ADMIN e GESTOR (se tiver parceiro)
+                                  if ((widget.isAdmin || widget.isManager) &&
+                                      widget.onEditCompany != null) ...[
                                     SizedBox(height: 12.h),
                                     _ProfileMenuItem(
                                       icon: Icons.business,
@@ -234,32 +239,41 @@ class _ProfileModalState extends State<ProfileModal>
                                       onTap: widget.onEditCompany,
                                     ),
                                   ],
-                                  SizedBox(height: 12.h),
+                                  // Configurar produtos - APENAS ADMIN
                                   if (widget.isAdmin) ...[
+                                    SizedBox(height: 12.h),
                                     _ProfileMenuItem(
                                       icon: Icons.inventory,
                                       title: 'Configurar produtos',
                                       onTap: widget.onConfigureProducts,
                                     ),
-                                    SizedBox(height: 12.h),
                                   ],
-                                  _ProfileMenuItem(
-                                    icon: Icons.people,
-                                    title: 'Prospecção de parceiros',
-                                    onTap: widget.onPartnerProspecting,
-                                  ),
-                                  SizedBox(height: 12.h),
-                                  _ProfileMenuItem(
-                                    icon: Icons.admin_panel_settings,
-                                    title: 'Gestão administrativa',
-                                    onTap: widget.onAdministrativeManagement,
-                                  ),
+                                  // Prospecção de parceiros - APENAS ADMIN
+                                  if (widget.isAdmin) ...[
+                                    SizedBox(height: 12.h),
+                                    _ProfileMenuItem(
+                                      icon: Icons.people,
+                                      title: 'Prospecção de parceiros',
+                                      onTap: widget.onPartnerProspecting,
+                                    ),
+                                  ],
+                                  // Gestão administrativa - ADMIN e GESTOR
+                                  if (widget.isAdmin || widget.isManager) ...[
+                                    SizedBox(height: 12.h),
+                                    _ProfileMenuItem(
+                                      icon: Icons.admin_panel_settings,
+                                      title: 'Gestão administrativa',
+                                      onTap: widget.onAdministrativeManagement,
+                                    ),
+                                  ],
+                                  // Wiki - TODOS
                                   SizedBox(height: 12.h),
                                   _ProfileMenuItem(
                                     icon: Icons.menu_book,
                                     title: 'Wiki',
                                     onTap: widget.onWiki,
                                   ),
+                                  // Drive - TODOS
                                   SizedBox(height: 12.h),
                                   _ProfileMenuItem(
                                     icon: Icons.cloud,

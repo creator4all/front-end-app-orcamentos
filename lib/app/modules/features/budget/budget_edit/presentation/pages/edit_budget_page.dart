@@ -21,7 +21,6 @@ import '../../../budget_config/domain/entities/subcategory_entity.dart';
 // Imports dos widgets do budget_config (reutilização)
 import '../../../budget_config/presentation/widgets/budget_skeleton.dart';
 import '../../../budget_config/presentation/widgets/product_detail_modal.dart';
-import '../../../budget_config/presentation/widgets/product_remark_confirmation_modal.dart';
 import '../../../budget_config/presentation/widgets/school_census_card.dart';
 import '../../../budget_config/presentation/widgets/subcategories_modal.dart';
 import '../../../budget_config/presentation/widgets/subcategory_products_modal.dart';
@@ -307,25 +306,8 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                           // Recarregar produtos com quantidades recalculadas
                           await store.reloadProductsAfterCensusEdit();
 
-                          // Verificar se há produtos que precisam de remarcação
-                          if (store.productsNeedingRemark.isNotEmpty) {
-                            print(
-                                '🔔 [EditPage] ${store.productsNeedingRemark.length} produtos precisam de remarcação');
-
-                            // Mostrar modal de confirmação
-                            if (mounted) {
-                              await ProductRemarkConfirmationModal.show(
-                                context: context,
-                                productsToRemark: store.productsNeedingRemark,
-                                onConfirm: () {
-                                  store.confirmProductRemark();
-                                },
-                                onCancel: () {
-                                  store.rejectProductRemark();
-                                },
-                              );
-                            }
-                          }
+                          print(
+                              '✅ [EditPage] Produtos atualizados com sucesso!');
                         },
                       ),
                     ),

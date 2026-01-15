@@ -86,6 +86,9 @@ class BudgetCardWidget extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                  // Spacer para manter Vendedor à direita quando Parceiro não é exibido
+                  if (userRole != UserRole.admin || partner == null)
+                    const Spacer(),
                   if (seller != null)
                     Text(
                       'Vendedor: $seller',
