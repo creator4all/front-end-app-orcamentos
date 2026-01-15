@@ -3,7 +3,7 @@ description: "Aplicativo para gerenciamento de orçamentos empresariais"
 
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
-version: 1.0.1+5
+version: 1.0.2+6
 
 environment:
   sdk: '>=3.4.1 <4.0.0'
