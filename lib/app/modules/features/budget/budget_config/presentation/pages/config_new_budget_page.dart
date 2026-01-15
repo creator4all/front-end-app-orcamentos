@@ -17,7 +17,6 @@ import '../../domain/entities/subcategory_entity.dart';
 import '../stores/budget_config_store.dart';
 import '../widgets/budget_skeleton.dart';
 import '../widgets/product_edit_modal.dart';
-import '../widgets/product_remark_confirmation_modal.dart';
 import '../widgets/school_census_card.dart';
 import '../widgets/subcategories_modal.dart';
 import '../widgets/subcategory_products_modal.dart';
@@ -60,6 +59,12 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
 
     _validadeOrcamentoController.text = '60';
 
+    // ✅ Listener para mudanças no campo de validade
+    _validadeOrcamentoController.addListener(_onValidityDaysChanged);
+
+    // Inicializar store com valor default de 60 dias
+    _updateValidityDate(60);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final args = Modular.args.data;
 
@@ -91,8 +96,28 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     });
   }
 
+  /// Atualiza validityDate na store quando usuário digita
+  void _onValidityDaysChanged() {
+    final text = _validadeOrcamentoController.text;
+    if (text.isNotEmpty) {
+      final dias = int.tryParse(text);
+      if (dias != null && dias > 0) {
+        _updateValidityDate(dias);
+      }
+    }
+  }
+
+  /// Calcula e seta nova data de validade baseado nos dias
+  void _updateValidityDate(int dias) {
+    final hoje = DateTime.now();
+    final hojeDate = DateTime(hoje.year, hoje.month, hoje.day);
+    final novaData = hojeDate.add(Duration(days: dias));
+    store.setValidityDate(novaData);
+  }
+
   @override
   void dispose() {
+    _validadeOrcamentoController.removeListener(_onValidityDaysChanged);
     _dataOrcamentoController.dispose();
     _validadeOrcamentoController.dispose();
     super.dispose();
@@ -298,31 +323,7 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                           // Ao retornar da tela, verificar se houve atualização (retorna true)
                           if (result == true) {
                             print(
-                                '✅ [ConfigPage] Censo editado, recarregando produtos...');
-
-                            // Recarregar produtos com quantidades recalculadas
-                            // await store.reloadProductsAfterCensusEdit();
-
-                            // Verificar se há produtos que precisam de remarcação
-                            if (store.productsNeedingRemark.isNotEmpty) {
-                              print(
-                                  '🔔 [ConfigPage] ${store.productsNeedingRemark.length} produtos precisam de remarcação');
-
-                              // Mostrar modal de confirmação
-                              await ProductRemarkConfirmationModal.show(
-                                context: context,
-                                productsToRemark: store.productsNeedingRemark,
-                                onConfirm: () {
-                                  store.confirmProductRemark();
-                                },
-                                onCancel: () {
-                                  store.rejectProductRemark();
-                                },
-                              );
-                            }
-
-                            print(
-                                '✅ [ConfigPage] Produtos atualizados com sucesso!');
+                                '✅ [ConfigPage] Censo editado, produtos atualizados com sucesso!');
                           }
                         },
                       ),

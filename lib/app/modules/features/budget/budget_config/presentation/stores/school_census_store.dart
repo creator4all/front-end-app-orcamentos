@@ -151,6 +151,14 @@ abstract class _SchoolCensusStoreBase with Store {
   void setCensoEscolar(CensoEscolarEntity censo) {
     censoEscolar = censo;
     error = null;
+
+    // ✅ FIX: Definir selectedCityId com o ID da cidade do censo
+    selectedCityId = censo.cidadeId;
+
+    // ✅ FIX: Popular lista de cidades para que selectCity() funcione após save
+    cidades.clear();
+    cidades.add(CidadeCensoDto.fromEntity(censo));
+
     _initEditedValues();
   }
 
@@ -292,13 +300,13 @@ abstract class _SchoolCensusStoreBase with Store {
       // Visualização agregada
       _loadAggregatedView();
     } else {
-      // Cidade específica
-      final city = cidades.firstWhere(
-        (c) => c.id == cityId,
-        orElse: () => const CidadeCensoDto(id: 0, nome: '', indices: []),
-      );
-      censoEscolar = city.toEntity();
-      _initEditedValues();
+      // Cidade específica - usar indexWhere para evitar fallback com id: 0
+      final cityIndex = cidades.indexWhere((c) => c.id == cityId);
+      if (cityIndex != -1) {
+        censoEscolar = cidades[cityIndex].toEntity();
+        _initEditedValues();
+      }
+      // Se não encontrar, mantém censoEscolar atual (não sobrescreve com id: 0)
     }
   }
 

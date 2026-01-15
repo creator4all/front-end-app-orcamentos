@@ -29,6 +29,12 @@ class _ProfilePageState extends State<ProfilePage> {
   final TextEditingController _cargoController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
 
+  // Variáveis de erro para validação
+  String? _nameError;
+  String? _emailError;
+  String? _cargoError;
+  String? _phoneError;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -64,6 +70,10 @@ class _ProfilePageState extends State<ProfilePage> {
   // Formatar telefone (XX) XXXXX-XXXX
   String _formatPhone(String value) {
     value = value.replaceAll(RegExp(r'[^0-9]'), '');
+    // Limitar a 11 dígitos (DDD + 9 dígitos)
+    if (value.length > 11) {
+      value = value.substring(0, 11);
+    }
     if (value.isNotEmpty) value = '($value';
     if (value.length > 3)
       value = '${value.substring(0, 3)}) ${value.substring(3)}';
@@ -181,12 +191,60 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  // Validar campos obrigatórios
+  bool _validateFields() {
+    bool isValid = true;
+
+    // Validar Nome
+    if (_nameController.text.trim().isEmpty) {
+      setState(() => _nameError = 'Nome é obrigatório');
+      isValid = false;
+    } else {
+      setState(() => _nameError = null);
+    }
+
+    // Validar E-mail
+    if (_emailController.text.trim().isEmpty) {
+      setState(() => _emailError = 'E-mail é obrigatório');
+      isValid = false;
+    } else if (!RegExp(r'^[\w\-\.]+@([\w\-]+\.)+[\w\-]{2,4}$')
+        .hasMatch(_emailController.text.trim())) {
+      setState(() => _emailError = 'E-mail inválido');
+      isValid = false;
+    } else {
+      setState(() => _emailError = null);
+    }
+
+    // Validar Cargo
+    if (_cargoController.text.trim().isEmpty) {
+      setState(() => _cargoError = 'Cargo é obrigatório');
+      isValid = false;
+    } else {
+      setState(() => _cargoError = null);
+    }
+
+    // Validar Telefone
+    if (_phoneController.text.trim().isEmpty) {
+      setState(() => _phoneError = 'Telefone é obrigatório');
+      isValid = false;
+    } else {
+      setState(() => _phoneError = null);
+    }
+
+    return isValid;
+  }
+
   Future<void> _save() async {
+    // Validar campos obrigatórios antes de salvar
+    if (!_validateFields()) {
+      return;
+    }
+
     // Atualizar store com valores dos controllers
-    _store.setName(_nameController.text);
-    _store.setEmail(_emailController.text);
-    _store.setCargo(_cargoController.text);
-    _store.setPhone(_phoneController.text);
+    _store.setName(_nameController.text.trim());
+    _store.setEmail(_emailController.text.trim());
+    _store.setCargo(_cargoController.text.trim());
+    _store.setPhone(_phoneController.text.trim());
 
     final success = await _store.save();
 
@@ -334,6 +392,8 @@ class _ProfilePageState extends State<ProfilePage> {
                   _buildTextFieldWithLabel(
                     controller: _nameController,
                     label: 'Nome',
+                    isRequired: true,
+                    errorText: _nameError,
                   ),
 
                   SizedBox(height: 16.h),
@@ -343,6 +403,8 @@ class _ProfilePageState extends State<ProfilePage> {
                     controller: _emailController,
                     label: 'E-mail',
                     keyboardType: TextInputType.emailAddress,
+                    isRequired: true,
+                    errorText: _emailError,
                   ),
 
                   SizedBox(height: 16.h),
@@ -351,6 +413,8 @@ class _ProfilePageState extends State<ProfilePage> {
                   _buildTextFieldWithLabel(
                     controller: _cargoController,
                     label: 'Cargo',
+                    isRequired: true,
+                    errorText: _cargoError,
                   ),
 
                   SizedBox(height: 16.h),
@@ -360,6 +424,8 @@ class _ProfilePageState extends State<ProfilePage> {
                     controller: _phoneController,
                     label: 'Telefone',
                     keyboardType: TextInputType.phone,
+                    isRequired: true,
+                    errorText: _phoneError,
                     onChanged: (value) {
                       final formatted = _formatPhone(value);
                       if (formatted != value) {
@@ -421,16 +487,34 @@ class _ProfilePageState extends State<ProfilePage> {
     TextInputType? keyboardType,
     bool obscureText = false,
     void Function(String)? onChanged,
+    bool isRequired = false,
+    String? errorText,
   }) {
+    final bool hasError = errorText != null && errorText.isNotEmpty;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w500,
-            color: const Color(0xFF484848),
+        RichText(
+          text: TextSpan(
+            text: label,
+            style: TextStyle(
+              fontSize: 14.sp,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF484848),
+            ),
+            children: isRequired
+                ? [
+                    TextSpan(
+                      text: ' *',
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ]
+                : null,
           ),
         ),
         SizedBox(height: 8.h),
@@ -447,18 +531,33 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8.r),
-                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                borderSide: BorderSide(
+                  color: hasError ? Colors.red : const Color(0xFFE0E0E0),
+                ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8.r),
-                borderSide:
-                    const BorderSide(color: Color(0xFF117BBD), width: 2),
+                borderSide: BorderSide(
+                  color: hasError ? Colors.red : const Color(0xFF117BBD),
+                  width: 2,
+                ),
               ),
               contentPadding:
                   EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
             ),
           ),
         ),
+        if (hasError)
+          Padding(
+            padding: EdgeInsets.only(top: 4.h),
+            child: Text(
+              errorText,
+              style: TextStyle(
+                color: Colors.red,
+                fontSize: 12.sp,
+              ),
+            ),
+          ),
       ],
     );
   }

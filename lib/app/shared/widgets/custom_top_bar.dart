@@ -171,6 +171,7 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
           userRole: authStore?.userRole,
           partnerName: authStore?.partnerName,
           isAdmin: authStore?.isAdmin ?? false,
+          isManager: authStore?.isManager ?? false,
           onClose: () => Navigator.of(context).pop(),
           onEditProfile: () {
             Navigator.of(context).pop();

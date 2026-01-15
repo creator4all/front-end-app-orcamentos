@@ -4,6 +4,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
+import '../../../../../shared/utils/user_role_mapper.dart';
 import '../../../../../shared/widgets/custom_info_dialog.dart';
 import '../../../../../shared/widgets/custom_top_bar.dart';
 import '../../../auth/presentation/stores/auth_store.dart';
@@ -64,6 +65,21 @@ class _UserManagementPageState extends State<UserManagementPage> {
         _scrollController.position.maxScrollExtent - 200) {
       _store.loadMoreUsers();
     }
+  }
+
+  /// Retorna o ID da role do usuário logado
+  int get _currentUserRoleId {
+    return getRoleIdFromName(_authStore.currentUser?.role?.name);
+  }
+
+  /// Exibe dialog de permissão negada
+  void _showPermissionDeniedDialog() {
+    CustomInfoDialog.show(
+      context: context,
+      type: DialogType.warning,
+      title: 'Ação não permitida',
+      message: 'Você não pode alterar usuários com cargo superior ao seu.',
+    );
   }
 
   Future<void> _handleSave() async {
@@ -241,6 +257,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                       return UserListItemWidget(
                         user: user,
                         hasPendingChanges: hasPendingChanges,
+                        currentUserRoleId: _currentUserRoleId,
                         onStatusChanged: (status) =>
                             _store.updateUserStatus(user.id, status),
                         onRoleChanged: (roleId) {
@@ -248,6 +265,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                               .firstWhere((r) => r['id'] == roleId)['name'];
                           _store.updateUserRole(user.id, roleId, roleName);
                         },
+                        onPermissionDenied: _showPermissionDeniedDialog,
                       );
                     },
                   ),

@@ -140,10 +140,9 @@ abstract class _BudgetEditStoreBase with Store {
     return categories.fold(0, (sum, category) {
       if (category.expandido) {
         // Categorias expandidas contam SUBCATEGORIAS com produtos selecionados
-        final selectedSubcategories =
-            category.subcategorias
-                .where((subcategory) => subcategory.hasSelectedProducts)
-                .length;
+        final selectedSubcategories = category.subcategorias
+            .where((subcategory) => subcategory.hasSelectedProducts)
+            .length;
         return sum + selectedSubcategories;
       } else {
         // Categorias compactas contam como 1 categoria se tiverem produtos selecionados
@@ -442,15 +441,13 @@ abstract class _BudgetEditStoreBase with Store {
 
     // Atualizar categoria
     final updatedCategory = category.copyWith(
-      subcategorias:
-          category.subcategorias.map((sub) {
-            return sub.copyWith(
-              produtos:
-                  sub.produtos.map((prod) {
-                    return prod.copyWith(selecionado: selected);
-                  }).toList(),
-            );
+      subcategorias: category.subcategorias.map((sub) {
+        return sub.copyWith(
+          produtos: sub.produtos.map((prod) {
+            return prod.copyWith(selecionado: selected);
           }).toList(),
+        );
+      }).toList(),
     );
 
     categories[categoryIndex] = updatedCategory;
@@ -490,10 +487,9 @@ abstract class _BudgetEditStoreBase with Store {
 
     // Atualizar subcategoria
     final updatedSubcategory = subcategory.copyWith(
-      produtos:
-          subcategory.produtos.map((prod) {
-            return prod.copyWith(selecionado: selected);
-          }).toList(),
+      produtos: subcategory.produtos.map((prod) {
+        return prod.copyWith(selecionado: selected);
+      }).toList(),
     );
 
     // Atualizar categoria com subcategoria modificada
@@ -820,8 +816,13 @@ abstract class _BudgetEditStoreBase with Store {
       // 2. Calcular total
       final totalCalculado = totalValue;
 
-      // 3. Calcular dias de validade
-      final diasValidade = validityDate!.difference(DateTime.now()).inDays;
+      // Normalizar para meia-noite para cálculo preciso
+      final hoje = DateTime.now();
+      final hojeNormalizado = DateTime(hoje.year, hoje.month, hoje.day);
+      final validadeNormalizada =
+          DateTime(validityDate!.year, validityDate!.month, validityDate!.day);
+      final diasValidade =
+          validadeNormalizada.difference(hojeNormalizado).inDays;
 
       // 4. Criar DTO de atualização (com dados obrigatórios para versionamento)
       // 🔑 Diferenciação: multi-cidade envia cidadeId=null + array cidades
@@ -940,15 +941,14 @@ abstract class _BudgetEditStoreBase with Store {
 
     // Atualizar também os dados raw da cidade no budgetData
     if (budgetData != null && budgetData!.citiesDataRaw.isNotEmpty) {
-      final updatedCitiesData =
-          budgetData!.citiesDataRaw.map((cityData) {
-            final cityId = cityData['idCidades'] ?? cityData['id'];
-            if (cityId == updatedCenso.cidadeId) {
-              // Atualizar indicadores com novos valores
-              return _updateCityDataWithCenso(cityData, updatedCenso);
-            }
-            return cityData;
-          }).toList();
+      final updatedCitiesData = budgetData!.citiesDataRaw.map((cityData) {
+        final cityId = cityData['idCidades'] ?? cityData['id'];
+        if (cityId == updatedCenso.cidadeId) {
+          // Atualizar indicadores com novos valores
+          return _updateCityDataWithCenso(cityData, updatedCenso);
+        }
+        return cityData;
+      }).toList();
 
       // Atualizar citiesDataRaw no budgetData
       budgetData = budgetData!.copyWith(citiesDataRaw: updatedCitiesData);
@@ -1142,14 +1142,13 @@ abstract class _BudgetEditStoreBase with Store {
       }
 
       // Converter grupos map para entidades
-      final grupos =
-          gruposMap.entries.map((entry) {
-            return CensoGroupEntity(
-              id: entry.key,
-              nome: grupoNomes[entry.key] ?? '',
-              titulos: entry.value,
-            );
-          }).toList();
+      final grupos = gruposMap.entries.map((entry) {
+        return CensoGroupEntity(
+          id: entry.key,
+          nome: grupoNomes[entry.key] ?? '',
+          titulos: entry.value,
+        );
+      }).toList();
 
       return CensoEscolarEntity(
         cidadeId: cidade.id,

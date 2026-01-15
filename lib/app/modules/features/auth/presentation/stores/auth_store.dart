@@ -57,6 +57,10 @@ abstract class _AuthStoreBase with Store {
   @computed
   bool get isAdmin => currentUser?.role?.name.toLowerCase() == 'administrador';
 
+  /// Verifica se o usuário é gestor
+  @computed
+  bool get isManager => currentUser?.role?.name.toLowerCase() == 'gestor';
+
   /// Verifica se o usuário tem um parceiro associado
   @computed
   bool get hasPartner => currentUser?.partner != null;

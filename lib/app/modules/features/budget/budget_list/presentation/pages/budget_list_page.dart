@@ -3,6 +3,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../../../../shared/utils/user_role_mapper.dart';
 import '../../../../../../shared/widgets/rename_budget_modal.dart';
 import '../../../../../../shared/widgets/widgets.dart';
 import '../../../../../features/auth/presentation/stores/auth_store.dart';
@@ -259,8 +260,7 @@ class _BudgetListPageState extends State<BudgetListPage> {
                           daysRemaining: daysRemaining,
                           status: status,
                           isArchived: b.isArchived,
-                          userRole: UserRole
-                              .admin, // TODO: Implementar baseado no usuário logado
+                          userRole: mapStringToUserRole(_authStore.userRole),
                           onTap: () async {
                             final result = await Modular.to.pushNamed(
                               '/budget/edit/${b.id}',

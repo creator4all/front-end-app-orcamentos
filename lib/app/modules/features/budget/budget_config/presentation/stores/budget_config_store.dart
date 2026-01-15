@@ -1538,8 +1538,13 @@ abstract class _BudgetConfigStoreBase with Store {
       // 2. Calcular total
       final totalCalculado = totalValue;
 
-      // 3. Calcular dias de validade
-      final diasValidade = validityDate!.difference(DateTime.now()).inDays;
+      // 3. Calcular dias de validade (normalizado para meia-noite)
+      final hoje = DateTime.now();
+      final hojeNormalizado = DateTime(hoje.year, hoje.month, hoje.day);
+      final validadeNormalizada =
+          DateTime(validityDate!.year, validityDate!.month, validityDate!.day);
+      final diasValidade =
+          validadeNormalizada.difference(hojeNormalizado).inDays;
 
       // 4. Criar DTO de atualização
       final updateDto = BudgetUpdateDto(

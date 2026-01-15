@@ -41,8 +41,12 @@ class CreateBudgetDraftParams {
     // Calcula dias de validade (60 dias a partir de hoje se não especificado)
     final validity =
         validityDate ?? DateTime.now().add(const Duration(days: 60));
-    final now = DateTime.now();
-    final diasValidade = validity.difference(now).inDays;
+    // Normalizar para meia-noite para cálculo preciso
+    final hoje = DateTime.now();
+    final hojeNormalizado = DateTime(hoje.year, hoje.month, hoje.day);
+    final validadeNormalizada =
+        DateTime(validity.year, validity.month, validity.day);
+    final diasValidade = validadeNormalizada.difference(hojeNormalizado).inDays;
 
     final Map<String, dynamic> data = {
       'orc_parceiro_id': partnerId,
