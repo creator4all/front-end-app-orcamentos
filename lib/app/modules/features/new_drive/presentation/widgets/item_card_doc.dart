@@ -99,61 +99,61 @@ class ItemCardDoc extends StatelessWidget {
     );
   }
 
-  /// Variante com ícone colorido
+  /// Variante com ícone colorido - layout horizontal compacto
   Widget _buildIconVariant() {
     final colors = DriveItemColors.fromType(itemType);
 
     return Padding(
-      padding: EdgeInsets.all(12.w),
-      child: Column(
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
         children: [
-          // Row com ícone e menu
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Container do ícone
-              Container(
-                width: 48.w,
-                height: 48.h,
-                decoration: BoxDecoration(
-                  color: colors.backgroundColor,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  _getIconForType(itemType),
-                  color: colors.iconColor,
-                  size: 24.sp,
-                ),
-              ),
-              const Spacer(),
-              // Menu de três pontos
-              GestureDetector(
-                onTap: onMenuTap,
-                child: Icon(
-                  Icons.more_horiz,
-                  color: const Color(0xFF565E6C),
-                  size: 20.sp,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 12.h),
-          // Nome do item
-          Text(
-            itemName,
-            style: TextStyle(
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF171A1F),
+          // Ícone à esquerda
+          Container(
+            width: 36.w,
+            height: 36.h,
+            decoration: BoxDecoration(
+              color: colors.backgroundColor,
+              shape: BoxShape.circle,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+            child: Icon(
+              _getIconForType(itemType),
+              color: colors.iconColor,
+              size: 18.sp,
+            ),
           ),
-          SizedBox(height: 4.h),
-          // Metadata row (tamanho e data)
-          _buildMetadataRow(),
+          SizedBox(width: 12.w),
+          // Nome e metadata (expande para preencher espaço)
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Nome do item (pode quebrar em múltiplas linhas)
+                Text(
+                  itemName,
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF171A1F),
+                  ),
+                ),
+                SizedBox(height: 4.h),
+                // Metadata row (tamanho e data)
+                _buildMetadataRow(),
+              ],
+            ),
+          ),
+          SizedBox(width: 8.w),
+          // Menu de três pontos
+          GestureDetector(
+            onTap: onMenuTap,
+            child: Icon(
+              Icons.more_horiz,
+              color: const Color(0xFF565E6C),
+              size: 20.sp,
+            ),
+          ),
         ],
       ),
     );

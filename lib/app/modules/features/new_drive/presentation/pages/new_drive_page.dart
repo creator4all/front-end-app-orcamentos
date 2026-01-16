@@ -72,56 +72,80 @@ class _NewDrivePageState extends State<NewDrivePage> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          return SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Conteúdo com padding lateral
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 10.w),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(height: 16.h),
-
-                      // Campo de busca
-                      _buildSearchField(),
-
-                      SizedBox(height: 24.h),
-
-                      // Seção de vistos recentemente (apenas se houver itens)
-                      Observer(
-                        builder: (_) {
-                          if (store.recentItems.isNotEmpty) {
-                            return Column(
-                              children: [
-                                _buildRecentSection(),
-                                SizedBox(height: 24.h),
-                              ],
-                            );
-                          }
-                          return const SizedBox.shrink();
-                        },
-                      ),
-
-                      // Botão "Meus arquivos" (apenas para admin)
-                      if (authStore.isAdmin) ...[
-                        _buildMyFilesButton(),
-                        SizedBox(height: 12.h),
-                      ],
-
-                      // Botão de todos os arquivos compartilhados
-                      _buildSharedFilesButton(),
-
-                      SizedBox(height: 24.h),
-                    ],
-                  ),
+          return Column(
+            children: [
+              // Topo: Campo de busca
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 10.w),
+                child: Column(
+                  children: [
+                    SizedBox(height: 16.h),
+                    _buildSearchField(),
+                  ],
                 ),
+              ),
 
-                // Seção de categorias (largura total, dentro do scroll)
-                _buildCategoriesSection(),
-              ],
-            ),
+              // Meio: Empty state OU itens recentes (centralizado)
+              Expanded(
+                child: Observer(
+                  builder: (_) {
+                    if (store.recentItems.isNotEmpty) {
+                      return SingleChildScrollView(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 10.w, vertical: 24.h),
+                        child: _buildRecentSection(),
+                      );
+                    }
+                    // Empty state centralizado
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.folder_open_outlined,
+                            size: 48.sp,
+                            color: const Color(0xFF9095A0),
+                          ),
+                          SizedBox(height: 12.h),
+                          Text(
+                            authStore.isAdmin
+                                ? 'Nenhum item compartilhado com você\nou enviado por você'
+                                : 'Nenhum item compartilhado com você ainda',
+                            style: TextStyle(
+                              fontSize: 13.sp,
+                              color: const Color(0xFF565E6C),
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              // Rodapé: Botões + Categorias
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 10.w),
+                child: Column(
+                  children: [
+                    // Botão "Meus arquivos" (apenas para admin)
+                    if (authStore.isAdmin) ...[
+                      _buildMyFilesButton(),
+                      SizedBox(height: 12.h),
+                    ],
+
+                    // Botão de todos os arquivos compartilhados
+                    _buildSharedFilesButton(),
+
+                    SizedBox(height: 16.h),
+                  ],
+                ),
+              ),
+
+              // Seção de categorias
+              _buildCategoriesSection(),
+            ],
           );
         },
       ),
@@ -335,6 +359,7 @@ class _NewDrivePageState extends State<NewDrivePage> {
       ),
       padding: EdgeInsets.all(10.w),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           // Header da seção
           Row(
@@ -373,7 +398,7 @@ class _NewDrivePageState extends State<NewDrivePage> {
                   crossAxisCount: 2,
                   crossAxisSpacing: 12.w,
                   mainAxisSpacing: 12.h,
-                  childAspectRatio: 1.3,
+                  childAspectRatio: 2.5,
                 ),
                 itemCount: categories.length,
                 itemBuilder: (context, index) {

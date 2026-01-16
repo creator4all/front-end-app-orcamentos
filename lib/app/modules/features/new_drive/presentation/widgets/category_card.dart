@@ -29,7 +29,7 @@ class CategoryCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.all(10.w),
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
         decoration: BoxDecoration(
           color: Colors.white,
           border: Border.all(
@@ -38,14 +38,12 @@ class CategoryCard extends StatelessWidget {
           ),
           borderRadius: BorderRadius.circular(6),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
+        child: Row(
           children: [
-            // Container do ícone
+            // Ícone à esquerda
             Container(
-              width: 40.w,
-              height: 40.h,
+              width: 36.w,
+              height: 36.h,
               decoration: BoxDecoration(
                 color: colors.backgroundColor,
                 shape: BoxShape.circle,
@@ -53,51 +51,41 @@ class CategoryCard extends StatelessWidget {
               child: Icon(
                 _getIconForType(categoryType),
                 color: colors.iconColor,
-                size: 20.sp,
+                size: 18.sp,
               ),
             ),
-            SizedBox(height: 8.h),
-            // Nome da categoria
-            Text(
-              categoryName,
-              style: TextStyle(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF171A1F),
+            SizedBox(width: 12.w),
+            // Textos à direita (2 linhas)
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Linha 1: Nome da categoria
+                  Text(
+                    categoryName,
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF171A1F),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: 2.h),
+                  // Linha 2: Quantidade e tamanho
+                  Text(
+                    '$itemCount items • $totalSize',
+                    style: TextStyle(
+                      fontSize: 11.sp,
+                      color: const Color(0xFF565E6C),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            SizedBox(height: 2.h),
-            // Informações (quantidade e tamanho)
-            Row(
-              children: [
-                Text(
-                  '$itemCount items',
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: const Color(0xFF565E6C),
-                  ),
-                ),
-                SizedBox(width: 8.w),
-                // Separador circular
-                Container(
-                  width: 4.w,
-                  height: 4.h,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFDEE1E6),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                SizedBox(width: 8.w),
-                Text(
-                  totalSize,
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    color: const Color(0xFF565E6C),
-                  ),
-                ),
-              ],
             ),
           ],
         ),
