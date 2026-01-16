@@ -2,6 +2,7 @@ import 'package:mobx/mobx.dart';
 
 import '../../domain/entities/drive_category.dart';
 import '../../domain/entities/drive_item.dart';
+import '../../domain/usecases/get_file_details_usecase.dart';
 import '../../domain/usecases/get_folder_contents_usecase.dart';
 import '../../domain/usecases/get_own_files_usecase.dart';
 import '../../domain/usecases/get_recent_items_usecase.dart';
@@ -14,11 +15,13 @@ abstract class _NewDriveStoreBase with Store {
   final GetRecentItemsUseCase? getRecentItemsUseCase;
   final GetOwnFilesUseCase? getOwnFilesUseCase;
   final GetFolderContentsUseCase? getFolderContentsUseCase;
+  final GetFileDetailsUseCase? getFileDetailsUseCase;
 
   _NewDriveStoreBase({
     this.getRecentItemsUseCase,
     this.getOwnFilesUseCase,
     this.getFolderContentsUseCase,
+    this.getFileDetailsUseCase,
   });
 
   // Observables
@@ -308,6 +311,21 @@ abstract class _NewDriveStoreBase with Store {
   @action
   void clearError() {
     errorMessage = null;
+  }
+
+  /// Busca detalhes de um arquivo específico
+  /// Retorna DriveItem com sharedBy e downloadUrl preenchidos
+  Future<DriveItem?> getFileDetails(String fileId) async {
+    if (getFileDetailsUseCase == null) return null;
+
+    final result = await getFileDetailsUseCase!(fileId);
+    return result.fold(
+      (failure) {
+        errorMessage = failure.message;
+        return null;
+      },
+      (item) => item,
+    );
   }
 
   @action

@@ -1,5 +1,6 @@
 import '../../../../../../config/api_config.dart';
 import '../../domain/entities/drive_item.dart';
+import '../../domain/entities/shared_by_user.dart';
 
 /// DTO (Data Transfer Object) para DriveItem
 ///
@@ -17,6 +18,8 @@ class DriveItemModel {
   final int? parentId;
   final String? parentName;
   final List<DriveItemModel>? children;
+  final Map<String, dynamic>? sharedBy;
+  final String? downloadUrl;
 
   DriveItemModel({
     required this.id,
@@ -31,6 +34,8 @@ class DriveItemModel {
     this.parentId,
     this.parentName,
     this.children,
+    this.sharedBy,
+    this.downloadUrl,
   });
 
   /// Converte JSON para Model
@@ -71,6 +76,8 @@ class DriveItemModel {
                     DriveItemModel.fromJson(child as Map<String, dynamic>))
                 .toList()
             : null,
+        sharedBy: json['sharedBy'] as Map<String, dynamic>?,
+        downloadUrl: json['downloadUrl'] as String?,
       );
     } catch (e) {
       print('[DriveItemModel] ERRO ao parsear: $e');
@@ -114,6 +121,15 @@ class DriveItemModel {
       parentId: parentId,
       parentName: parentName,
       children: children?.map((child) => child.toEntity()).toList(),
+      sharedBy: sharedBy != null
+          ? SharedByUser(
+              id: sharedBy!['id'] as int,
+              name: sharedBy!['name'] as String,
+              email: sharedBy!['email'] as String,
+              avatarUrl: sharedBy!['avatarUrl'] as String?,
+            )
+          : null,
+      downloadUrl: downloadUrl,
     );
   }
 

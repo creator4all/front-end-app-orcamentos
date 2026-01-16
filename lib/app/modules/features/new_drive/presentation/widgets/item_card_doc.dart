@@ -62,7 +62,10 @@ class ItemCardDoc extends StatelessWidget {
   final String? thumbnailUrl;
   final VoidCallback? onTap;
   final VoidCallback? onMenuTap;
+  final VoidCallback? onLongPress;
   final bool showDate; // Para cards de categoria que não mostram data
+  final bool showMenu; // Mostrar menu de 3 pontos
+  final int? maxNameLines; // Limite de linhas para nome (null = ilimitado)
 
   const ItemCardDoc({
     super.key,
@@ -73,7 +76,10 @@ class ItemCardDoc extends StatelessWidget {
     this.thumbnailUrl,
     this.onTap,
     this.onMenuTap,
+    this.onLongPress,
     this.showDate = true,
+    this.showMenu = true,
+    this.maxNameLines,
   });
 
   @override
@@ -85,6 +91,7 @@ class ItemCardDoc extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onLongPress,
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -129,7 +136,7 @@ class ItemCardDoc extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Nome do item (pode quebrar em múltiplas linhas)
+                // Nome do item
                 Text(
                   itemName,
                   style: TextStyle(
@@ -137,6 +144,8 @@ class ItemCardDoc extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                     color: const Color(0xFF171A1F),
                   ),
+                  maxLines: maxNameLines,
+                  overflow: maxNameLines != null ? TextOverflow.ellipsis : null,
                 ),
                 SizedBox(height: 4.h),
                 // Metadata row (tamanho e data)
@@ -145,15 +154,16 @@ class ItemCardDoc extends StatelessWidget {
             ),
           ),
           SizedBox(width: 8.w),
-          // Menu de três pontos
-          GestureDetector(
-            onTap: onMenuTap,
-            child: Icon(
-              Icons.more_horiz,
-              color: const Color(0xFF565E6C),
-              size: 20.sp,
+          // Menu de três pontos (condicional)
+          if (showMenu)
+            GestureDetector(
+              onTap: onMenuTap,
+              child: Icon(
+                Icons.more_horiz,
+                color: const Color(0xFF565E6C),
+                size: 20.sp,
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -173,37 +183,37 @@ class ItemCardDoc extends StatelessWidget {
                 topLeft: Radius.circular(6),
                 topRight: Radius.circular(6),
               ),
-              child: SizedBox(
-                height: 62.h,
-                width: double.infinity,
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
                 child: AuthenticatedThumbnail(
                   url: thumbnailUrl!,
                   width: double.infinity,
-                  height: 62.h,
+                  height: double.infinity,
                   fit: BoxFit.cover,
                 ),
               ),
             ),
-            // Menu posicionado sobre a imagem
-            Positioned(
-              top: 8.h,
-              right: 8.w,
-              child: GestureDetector(
-                onTap: onMenuTap,
-                child: Container(
-                  padding: EdgeInsets.all(4.w),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.3),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.more_horiz,
-                    color: Colors.white,
-                    size: 20.sp,
+            // Menu posicionado sobre a imagem (condicional)
+            if (showMenu)
+              Positioned(
+                top: 8.h,
+                right: 8.w,
+                child: GestureDetector(
+                  onTap: onMenuTap,
+                  child: Container(
+                    padding: EdgeInsets.all(4.w),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.3),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.more_horiz,
+                      color: Colors.white,
+                      size: 20.sp,
+                    ),
                   ),
                 ),
               ),
-            ),
           ],
         ),
         // Informações do item
@@ -221,7 +231,7 @@ class ItemCardDoc extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                   color: const Color(0xFF171A1F),
                 ),
-                maxLines: 1,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
               SizedBox(height: 4.h),
@@ -236,42 +246,14 @@ class ItemCardDoc extends StatelessWidget {
 
   /// Constrói a row de metadata (tamanho • data de compartilhamento ou tamanho • contagem)
   Widget _buildMetadataRow() {
-    return Row(
-      children: [
-        // Tamanho do arquivo
-        Text(
-          itemSize,
-          style: TextStyle(
-            fontSize: 12.sp,
-            color: const Color(0xFF565E6C),
-          ),
-        ),
-        if (showDate) ...[
-          SizedBox(width: 8.w),
-          // Separador circular
-          Container(
-            width: 4.w,
-            height: 4.h,
-            decoration: const BoxDecoration(
-              color: Color(0xFFDEE1E6),
-              shape: BoxShape.circle,
-            ),
-          ),
-          SizedBox(width: 8.w),
-          // Data de compartilhamento
-          Expanded(
-            child: Text(
-              itemDate,
-              style: TextStyle(
-                fontSize: 12.sp,
-                color: const Color(0xFF565E6C),
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ],
+    return Text(
+      showDate ? '$itemSize • $itemDate' : itemSize,
+      style: TextStyle(
+        fontSize: 12.sp,
+        color: const Color(0xFF565E6C),
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
     );
   }
 
