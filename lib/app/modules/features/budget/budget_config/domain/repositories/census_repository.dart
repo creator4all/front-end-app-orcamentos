@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dartz/dartz.dart';
 
 import '../../../shared/errors/budget_failure.dart';
@@ -31,4 +33,8 @@ abstract class CensusRepository {
     required int cityId,
     required Map<int, double> updatedIndices,
   });
+
+  /// Exporta o censo escolar em formato CSV
+  /// GET /api/orcamentos/{id}/censo/exportar
+  Future<Either<BudgetFailure, Uint8List>> exportCensusCsv(int budgetId);
 }

@@ -20,6 +20,7 @@ import 'budget_config/domain/repositories/budget_detail_repository.dart';
 import 'budget_config/domain/repositories/census_repository.dart';
 import 'budget_config/domain/services/product_calculation_service.dart';
 import 'budget_config/domain/usecases/calculate_totals_usecase.dart';
+import 'budget_config/domain/usecases/export_census_csv_usecase.dart';
 import 'budget_config/domain/usecases/finalize_budget_usecase.dart';
 import 'budget_config/domain/usecases/get_all_budget_products_usecase.dart';
 import 'budget_config/domain/usecases/get_budget_census_usecase.dart';
@@ -236,6 +237,9 @@ class BudgetModuleNew extends Module {
         ),
         Bind.lazySingleton(
           (i) => GetBudgetCensusUseCase(i.get<CensusRemoteDataSource>()),
+        ),
+        Bind.lazySingleton(
+          (i) => ExportCensusCsvUseCase(i.get<CensusRepository>()),
         ),
 
         // Services
