@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dartz/dartz.dart';
 
 import '../../../shared/errors/budget_failure.dart';
@@ -70,6 +72,16 @@ class CensusRepositoryImpl implements CensusRepository {
         indices: updatedIndices,
       );
       return Right(result.toEntity());
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<BudgetFailure, Uint8List>> exportCensusCsv(int budgetId) async {
+    try {
+      final result = await datasource.exportCensusCsv(budgetId);
+      return Right(result);
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }

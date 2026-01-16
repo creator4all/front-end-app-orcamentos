@@ -1,13 +1,18 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_info_dialog.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../../../../shared/widgets/custom_top_bar.dart';
 import '../../../../../../shared/widgets/searchable_dropdown_widget.dart';
 import '../../domain/entities/censo_escolar_entity.dart';
 import '../../domain/entities/censo_group_entity.dart';
+import '../../domain/usecases/export_census_csv_usecase.dart';
 import '../stores/school_census_store.dart';
 import '../widgets/census_data_section_widget.dart';
 
@@ -37,6 +42,7 @@ class _SchoolCensusPageState
     extends ModularState<SchoolCensusPage, SchoolCensusStore> {
   final Map<int, TextEditingController> _controllers = {};
   bool _hasSavedChanges = false;
+  bool _isExporting = false;
 
   // Ano mockado conforme solicitado
   static const String _mockYear = '2024';
@@ -157,14 +163,23 @@ class _SchoolCensusPageState
         appBar: CustomTopBar(
           title: 'Censo escolar',
           showBackButton: true,
-          actionButton: store.isMultiCity
+          actionButton: widget.budgetId != null
               ? IconButton(
-                  onPressed: _showInfoDialog,
-                  icon: Icon(
-                    Icons.info_outline,
-                    color: const Color(0xFF117BBD),
-                    size: 24.sp,
-                  ),
+                  onPressed: _isExporting ? null : _handleExportCsv,
+                  icon: _isExporting
+                      ? SizedBox(
+                          width: 20.sp,
+                          height: 20.sp,
+                          child: const CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Color(0xFF117BBD),
+                          ),
+                        )
+                      : Icon(
+                          Icons.share,
+                          color: const Color(0xFF117BBD),
+                          size: 24.sp,
+                        ),
                 )
               : null,
         ),
@@ -462,6 +477,67 @@ class _SchoolCensusPageState
           title: 'Erro ao salvar',
           message: 'Erro ao salvar: ${store.error}',
         );
+      }
+    }
+  }
+
+  Future<void> _handleExportCsv() async {
+    if (widget.budgetId == null) return;
+
+    setState(() => _isExporting = true);
+
+    try {
+      final useCase = Modular.get<ExportCensusCsvUseCase>();
+      final result = await useCase(widget.budgetId!);
+
+      result.fold(
+        (failure) {
+          if (mounted) {
+            CustomInfoDialog.show(
+              context: context,
+              type: DialogType.error,
+              title: 'Erro ao exportar',
+              message: failure.message,
+            );
+          }
+        },
+        (csvBytes) async {
+          try {
+            // Salvar arquivo temporário
+            final tempDir = await getTemporaryDirectory();
+            final timestamp = DateTime.now().millisecondsSinceEpoch;
+            final file = File('${tempDir.path}/censo_escolar_$timestamp.csv');
+            await file.writeAsBytes(csvBytes);
+
+            // Compartilhar
+            await Share.shareXFiles(
+              [XFile(file.path)],
+              subject: 'Censo Escolar - Orçamento ${widget.budgetId}',
+            );
+          } catch (e) {
+            if (mounted) {
+              CustomInfoDialog.show(
+                context: context,
+                type: DialogType.error,
+                title: 'Erro ao compartilhar',
+                message: 'Erro ao compartilhar arquivo: $e',
+              );
+            }
+          }
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        CustomInfoDialog.show(
+          context: context,
+          type: DialogType.error,
+          title: 'Erro',
+          message: 'Erro inesperado: $e',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isExporting = false);
       }
     }
   }

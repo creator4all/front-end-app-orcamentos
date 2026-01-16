@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+
+import 'package:dio/dio.dart';
 import 'package:multimidiaapp/config/api_config.dart';
 import 'package:multimidiaapp/services/api_service.dart';
 
@@ -204,6 +207,37 @@ class CensusRemoteDataSourceImpl implements CensusRemoteDataSource {
       return BudgetCensusDto.fromJson(data);
     } else {
       throw Exception(response['error'] ?? 'Erro ao buscar censo do orçamento');
+    }
+  }
+
+  @override
+  Future<Uint8List> exportCensusCsv(int budgetId) async {
+    final response = await _apiService.get(
+      '${ApiConfig.baseUrl}/api/orcamentos/$budgetId/censo/exportar',
+      responseType: ResponseType.bytes,
+    );
+
+    if (response['success'] == true) {
+      final data = response['data'];
+      if (data is List<int>) {
+        return Uint8List.fromList(data);
+      }
+      throw Exception('Formato de resposta inválido');
+    } else {
+      final error = response['error'] ?? 'Erro ao exportar censo';
+      final statusCode = response['statusCode'];
+
+      if (statusCode == 404) {
+        throw Exception('Orçamento não encontrado');
+      } else if (statusCode == 422) {
+        throw Exception('Orçamento não possui dados de censo');
+      } else if (statusCode == 401) {
+        throw Exception('Não autorizado');
+      } else if (statusCode == 403) {
+        throw Exception('Sem permissão para exportar censo');
+      }
+
+      throw Exception(error);
     }
   }
 }

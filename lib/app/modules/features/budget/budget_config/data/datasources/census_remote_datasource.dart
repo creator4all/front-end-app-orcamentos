@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import '../../domain/entities/censo_escolar_entity.dart';
 import '../models/budget_census_dto.dart';
 import '../models/census_data_dto.dart';
@@ -29,4 +31,8 @@ abstract class CensusRemoteDataSource {
   /// Busca dados do censo para orçamento (suporta multi-cidade)
   /// GET /api/orcamentos/{id}/censo
   Future<BudgetCensusDto> getBudgetCensus(int budgetId);
+
+  /// Exporta o censo escolar em formato CSV
+  /// GET /api/orcamentos/{id}/censo/exportar
+  Future<Uint8List> exportCensusCsv(int budgetId);
 }
