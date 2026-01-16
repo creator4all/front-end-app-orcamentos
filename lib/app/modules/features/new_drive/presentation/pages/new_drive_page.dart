@@ -10,6 +10,7 @@ import '../../domain/entities/drive_item.dart';
 import '../stores/file_opener_store.dart';
 import '../stores/new_drive_store.dart';
 import '../widgets/category_card.dart';
+import '../widgets/file_details_modal.dart';
 import '../widgets/item_card_doc.dart';
 
 /// Tela principal do módulo Multi Drive
@@ -72,80 +73,84 @@ class _NewDrivePageState extends State<NewDrivePage> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          return Column(
-            children: [
-              // Topo: Campo de busca
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 10.w),
-                child: Column(
-                  children: [
-                    SizedBox(height: 16.h),
-                    _buildSearchField(),
-                  ],
+          return SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Topo: Campo de busca
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 10.w),
+                  child: Column(
+                    children: [
+                      SizedBox(height: 16.h),
+                      _buildSearchField(),
+                    ],
+                  ),
                 ),
-              ),
 
-              // Meio: Empty state OU itens recentes (centralizado)
-              Expanded(
-                child: Observer(
+                // Meio: Empty state OU itens recentes
+                Observer(
                   builder: (_) {
                     if (store.recentItems.isNotEmpty) {
-                      return SingleChildScrollView(
+                      return Padding(
                         padding: EdgeInsets.symmetric(
                             horizontal: 10.w, vertical: 24.h),
                         child: _buildRecentSection(),
                       );
                     }
-                    // Empty state centralizado
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.folder_open_outlined,
-                            size: 48.sp,
-                            color: const Color(0xFF9095A0),
-                          ),
-                          SizedBox(height: 12.h),
-                          Text(
-                            authStore.isAdmin
-                                ? 'Nenhum item compartilhado com você\nou enviado por você'
-                                : 'Nenhum item compartilhado com você ainda',
-                            style: TextStyle(
-                              fontSize: 13.sp,
-                              color: const Color(0xFF565E6C),
+                    // Empty state
+                    return Padding(
+                      padding: EdgeInsets.symmetric(vertical: 48.h),
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.folder_open_outlined,
+                              size: 48.sp,
+                              color: const Color(0xFF9095A0),
                             ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
+                            SizedBox(height: 12.h),
+                            Text(
+                              authStore.isAdmin
+                                  ? 'Nenhum item compartilhado com você\nou enviado por você'
+                                  : 'Nenhum item compartilhado com você ainda',
+                              style: TextStyle(
+                                fontSize: 13.sp,
+                                color: const Color(0xFF565E6C),
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   },
                 ),
-              ),
 
-              // Rodapé: Botões + Categorias
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 10.w),
-                child: Column(
-                  children: [
-                    // Botão "Meus arquivos" (apenas para admin)
-                    if (authStore.isAdmin) ...[
-                      _buildMyFilesButton(),
-                      SizedBox(height: 12.h),
+                // Botões
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 10.w),
+                  child: Column(
+                    children: [
+                      // Botão "Meus arquivos" (apenas para admin)
+                      if (authStore.isAdmin) ...[
+                        _buildMyFilesButton(),
+                        SizedBox(height: 12.h),
+                      ],
+
+                      // Botão de todos os arquivos compartilhados
+                      _buildSharedFilesButton(),
+
+                      SizedBox(height: 16.h),
                     ],
-
-                    // Botão de todos os arquivos compartilhados
-                    _buildSharedFilesButton(),
-
-                    SizedBox(height: 16.h),
-                  ],
+                  ),
                 ),
-              ),
 
-              // Seção de categorias
-              _buildCategoriesSection(),
-            ],
+                // Seção de categorias
+                _buildCategoriesSection(),
+              ],
+            ),
           );
         },
       ),
@@ -260,12 +265,32 @@ class _NewDrivePageState extends State<NewDrivePage> {
       itemDate: item.getFormattedDate(),
       itemType: item.type,
       thumbnailUrl: item.thumbnailUrl,
-      onTap: () => _handleFileOpen(item),
-      onMenuTap: () {
-        // TODO: Implementar menu de opções
-        debugPrint('Menu tap on item: ${item.name}');
-      },
+      maxNameLines: 2, // Limite de 2 linhas na tela inicial
+      showMenu: false, // Remove 3-dot menu
+      onTap: () => _showFileDetails(item), // Tap abre modal
     );
+  }
+
+  /// Exibe modal de detalhes do arquivo
+  void _showFileDetails(DriveItem item) {
+    FileDetailsModal.show(
+      context: context,
+      item: item,
+      onOpen: () => _handleFileOpenAsync(item),
+      onDownload: () => _handleDownloadAsync(item),
+    );
+  }
+
+  /// Abre arquivo (async para feedback de loading)
+  Future<void> _handleFileOpenAsync(DriveItem item) async {
+    await _handleFileOpen(item);
+  }
+
+  /// Realiza download do arquivo (async para feedback de loading)
+  Future<void> _handleDownloadAsync(DriveItem item) async {
+    // Simula download - TODO: Implementar download real
+    await Future.delayed(const Duration(seconds: 2));
+    debugPrint('Download completed: ${item.name}');
   }
 
   /// Botão para meus arquivos (apenas administrador)

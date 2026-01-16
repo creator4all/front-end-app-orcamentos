@@ -125,11 +125,16 @@ class DriveRemoteDataSourceImpl implements DriveRemoteDataSource {
   @override
   Future<DriveItemModel> getFileDetails(String fileId) async {
     try {
-      // TODO: Substituir por endpoint real
-      final response = await dio.get('/api/drive/files/$fileId');
+      // Endpoint: GET /api/files/{id}
+      // Retorna detalhes do arquivo incluindo sharedBy e downloadUrl
+      final response = await dio.get('/api/files/$fileId');
 
       if (response.statusCode == 200) {
-        return DriveItemModel.fromJson(response.data);
+        // A API retorna {dados: {...}}
+        final Map<String, dynamic> responseData =
+            response.data as Map<String, dynamic>;
+        final data = responseData['dados'] as Map<String, dynamic>;
+        return DriveItemModel.fromJson(data);
       }
 
       throw Exception('Falha ao carregar detalhes do arquivo');

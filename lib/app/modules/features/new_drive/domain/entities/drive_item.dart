@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import 'shared_by_user.dart';
+
 /// Enum para tipos de itens do drive
 enum DriveItemType {
   document,
@@ -21,6 +23,8 @@ class DriveItem extends Equatable {
   final int? parentId; // ID da pasta pai
   final String? parentName; // Nome da pasta pai (para exibição)
   final List<DriveItem>? children; // Itens dentro desta pasta
+  final SharedByUser? sharedBy; // Usuário que compartilhou
+  final String? downloadUrl; // URL para download direto
 
   const DriveItem({
     required this.id,
@@ -33,6 +37,8 @@ class DriveItem extends Equatable {
     this.parentId,
     this.parentName,
     this.children,
+    this.sharedBy,
+    this.downloadUrl,
   });
 
   /// Formata a data de compartilhamento de acordo com as regras de negócio
@@ -74,5 +80,7 @@ class DriveItem extends Equatable {
         parentId,
         parentName,
         children,
+        sharedBy,
+        downloadUrl,
       ];
 }
