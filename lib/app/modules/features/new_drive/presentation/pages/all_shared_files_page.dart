@@ -8,6 +8,7 @@ import '../../../auth/presentation/stores/auth_store.dart';
 import '../../domain/entities/drive_item.dart';
 import '../stores/file_opener_store.dart';
 import '../stores/new_drive_store.dart';
+import '../widgets/file_details_modal.dart';
 import '../widgets/item_card_doc.dart';
 
 /// Página de todos os arquivos compartilhados
@@ -106,11 +107,8 @@ class _AllSharedFilesPageState extends State<AllSharedFilesPage> {
                           itemDate: item.getFormattedDate(),
                           itemType: item.type,
                           thumbnailUrl: item.thumbnailUrl,
-                          onTap: () => _handleFileOpen(item),
-                          onMenuTap: () {
-                            // TODO: Implementar menu de opções
-                            debugPrint('Menu tap on item: ${item.name}');
-                          },
+                          showMenu: false,
+                          onTap: () => _showFileDetails(item),
                         ),
                         if (index < items.length - 1) SizedBox(height: 12.h),
                       ],
@@ -183,6 +181,21 @@ class _AllSharedFilesPageState extends State<AllSharedFilesPage> {
         ],
       ),
     );
+  }
+
+  /// Exibe modal de detalhes do arquivo
+  void _showFileDetails(DriveItem item) {
+    FileDetailsModal.show(
+      context: context,
+      item: item,
+      onOpen: () async => _handleFileOpen(item),
+      onDownload: () async => _handleDownload(item),
+    );
+  }
+
+  /// Realiza download do arquivo
+  Future<void> _handleDownload(DriveItem item) async {
+    await fileOpenerStore.openFile(item);
   }
 
   /// Abre o arquivo, navega para pasta ou video

@@ -76,7 +76,9 @@ class DriveItemModel {
                     DriveItemModel.fromJson(child as Map<String, dynamic>))
                 .toList()
             : null,
-        sharedBy: json['sharedBy'] as Map<String, dynamic>?,
+        // Suporta tanto 'sharedBy' quanto 'user' (fallback para API atual)
+        sharedBy: json['sharedBy'] as Map<String, dynamic>? ??
+            json['user'] as Map<String, dynamic>?,
         downloadUrl: json['downloadUrl'] as String?,
       );
     } catch (e) {
@@ -123,10 +125,12 @@ class DriveItemModel {
       children: children?.map((child) => child.toEntity()).toList(),
       sharedBy: sharedBy != null
           ? SharedByUser(
-              id: sharedBy!['id'] as int,
-              name: sharedBy!['name'] as String,
-              email: sharedBy!['email'] as String,
-              avatarUrl: sharedBy!['avatarUrl'] as String?,
+              // Suporta campos com prefixo usr_ (API atual) e sem prefixo (formato sharedBy)
+              id: (sharedBy!['usr_userId'] ?? sharedBy!['id']) as int,
+              name: (sharedBy!['usr_name'] ?? sharedBy!['name']) as String,
+              email: (sharedBy!['usr_email'] ?? sharedBy!['email']) as String,
+              avatarUrl: (sharedBy!['usr_avatar'] ?? sharedBy!['avatarUrl'])
+                  as String?,
             )
           : null,
       downloadUrl: downloadUrl,
