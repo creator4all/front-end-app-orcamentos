@@ -38,6 +38,10 @@ class _NewDrivePageState extends State<NewDrivePage> {
   @override
   void initState() {
     super.initState();
+    // Resetar estado de navegação ao entrar na home do Drive
+    store.folderStack.clear();
+    store.currentFolder = null;
+
     // Carregar dados iniciais
     store.initialize();
 
@@ -79,84 +83,104 @@ class _NewDrivePageState extends State<NewDrivePage> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          return SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Topo: Campo de busca
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 10.w),
-                  child: Column(
-                    children: [
-                      SizedBox(height: 16.h),
-                      _buildSearchField(),
-                    ],
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight,
                   ),
-                ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Parte Superior: Busca e itens recentes
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Topo: Campo de busca
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 10.w),
+                            child: Column(
+                              children: [
+                                SizedBox(height: 16.h),
+                                _buildSearchField(),
+                              ],
+                            ),
+                          ),
 
-                // Meio: Empty state OU itens recentes
-                Observer(
-                  builder: (_) {
-                    if (store.recentItems.isNotEmpty) {
-                      return Padding(
-                        padding: EdgeInsets.symmetric(
-                            horizontal: 10.w, vertical: 24.h),
-                        child: _buildRecentSection(),
-                      );
-                    }
-                    // Empty state
-                    return Padding(
-                      padding: EdgeInsets.symmetric(vertical: 48.h),
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.folder_open_outlined,
-                              size: 48.sp,
-                              color: const Color(0xFF9095A0),
-                            ),
-                            SizedBox(height: 12.h),
-                            Text(
-                              authStore.isAdmin
-                                  ? 'Nenhum item compartilhado com você\nou enviado por você'
-                                  : 'Nenhum item compartilhado com você ainda',
-                              style: TextStyle(
-                                fontSize: 13.sp,
-                                color: const Color(0xFF565E6C),
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
+                          // Meio: Empty state OU itens recentes
+                          Observer(
+                            builder: (_) {
+                              if (store.recentItems.isNotEmpty) {
+                                return Padding(
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 10.w, vertical: 24.h),
+                                  child: _buildRecentSection(),
+                                );
+                              }
+                              // Empty state
+                              return Padding(
+                                padding: EdgeInsets.symmetric(vertical: 48.h),
+                                child: Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.folder_open_outlined,
+                                        size: 48.sp,
+                                        color: const Color(0xFF9095A0),
+                                      ),
+                                      SizedBox(height: 12.h),
+                                      Text(
+                                        authStore.isAdmin
+                                            ? 'Nenhum item compartilhado com você\nou enviado por você'
+                                            : 'Nenhum item compartilhado com você ainda',
+                                        style: TextStyle(
+                                          fontSize: 13.sp,
+                                          color: const Color(0xFF565E6C),
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
-                    );
-                  },
-                ),
 
-                // Botões
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 10.w),
-                  child: Column(
-                    children: [
-                      // Botão "Meus arquivos" (apenas para admin)
-                      if (authStore.isAdmin) ...[
-                        _buildMyFilesButton(),
-                        SizedBox(height: 12.h),
-                      ],
+                      // Parte Inferior: Botões e Categorias (fixos embaixo quando o conteúdo não enche a tela)
+                      Column(
+                        children: [
+                          // Botões
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 10.w),
+                            child: Column(
+                              children: [
+                                // Botão "Meus arquivos" (apenas para admin)
+                                if (authStore.isAdmin) ...[
+                                  _buildMyFilesButton(),
+                                  SizedBox(height: 12.h),
+                                ],
 
-                      // Botão de todos os arquivos compartilhados
-                      _buildSharedFilesButton(),
+                                // Botão de todos os arquivos compartilhados
+                                _buildSharedFilesButton(),
 
-                      SizedBox(height: 16.h),
+                                SizedBox(height: 16.h),
+                              ],
+                            ),
+                          ),
+
+                          // Seção de categorias
+                          _buildCategoriesSection(),
+                        ],
+                      ),
                     ],
                   ),
                 ),
-
-                // Seção de categorias
-                _buildCategoriesSection(),
-              ],
-            ),
+              );
+            },
           );
         },
       ),
@@ -273,7 +297,9 @@ class _NewDrivePageState extends State<NewDrivePage> {
       thumbnailUrl: item.thumbnailUrl,
       maxNameLines: 2, // Limite de 2 linhas na tela inicial
       showMenu: false, // Remove 3-dot menu
-      onTap: () => _showFileDetails(item), // Tap abre modal
+      onTap: item.type == DriveItemType.folder
+          ? () => _handleFileOpen(item) // Pastas navegam diretamente
+          : () => _showFileDetails(item), // Arquivos abrem modal
     );
   }
 
@@ -475,6 +501,8 @@ class _NewDrivePageState extends State<NewDrivePage> {
   Future<void> _handleFileOpen(DriveItem item) async {
     // 1. Pastas -> Navegar para pasta
     if (item.type == DriveItemType.folder) {
+      store.navigateToFolder(
+          item.id, item.name); // ✅ Registra na pilha de navegação
       Modular.to.pushNamed(
         './folder',
         arguments: {

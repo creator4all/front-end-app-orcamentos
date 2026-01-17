@@ -224,6 +224,22 @@ mixin _$NewDriveStore on _NewDriveStoreBase, Store {
     });
   }
 
+  late final _$folderStackAtom =
+      Atom(name: '_NewDriveStoreBase.folderStack', context: context);
+
+  @override
+  ObservableList<FolderBreadcrumb> get folderStack {
+    _$folderStackAtom.reportRead();
+    return super.folderStack;
+  }
+
+  @override
+  set folderStack(ObservableList<FolderBreadcrumb> value) {
+    _$folderStackAtom.reportWrite(value, super.folderStack, () {
+      super.folderStack = value;
+    });
+  }
+
   late final _$loadRecentItemsAsyncAction =
       AsyncAction('_NewDriveStoreBase.loadRecentItems', context: context);
 
@@ -335,6 +351,39 @@ mixin _$NewDriveStore on _NewDriveStoreBase, Store {
   }
 
   @override
+  void navigateToFolder(String folderId, String folderName) {
+    final _$actionInfo = _$_NewDriveStoreBaseActionController.startAction(
+        name: '_NewDriveStoreBase.navigateToFolder');
+    try {
+      return super.navigateToFolder(folderId, folderName);
+    } finally {
+      _$_NewDriveStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void navigateBack() {
+    final _$actionInfo = _$_NewDriveStoreBaseActionController.startAction(
+        name: '_NewDriveStoreBase.navigateBack');
+    try {
+      return super.navigateBack();
+    } finally {
+      _$_NewDriveStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
+  void navigateToStackIndex(int index) {
+    final _$actionInfo = _$_NewDriveStoreBaseActionController.startAction(
+        name: '_NewDriveStoreBase.navigateToStackIndex');
+    try {
+      return super.navigateToStackIndex(index);
+    } finally {
+      _$_NewDriveStoreBaseActionController.endAction(_$actionInfo);
+    }
+  }
+
+  @override
   String toString() {
     return '''
 allItems: ${allItems},
@@ -348,6 +397,7 @@ ownFiles: ${ownFiles},
 isLoadingOwnFiles: ${isLoadingOwnFiles},
 currentFolder: ${currentFolder},
 isLoadingFolder: ${isLoadingFolder},
+folderStack: ${folderStack},
 recentItems: ${recentItems},
 selectedCategoryItems: ${selectedCategoryItems},
 filteredCategoryItems: ${filteredCategoryItems},

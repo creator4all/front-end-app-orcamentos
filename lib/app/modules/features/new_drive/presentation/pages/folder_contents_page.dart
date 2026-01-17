@@ -8,6 +8,7 @@ import '../../../auth/presentation/stores/auth_store.dart';
 import '../../domain/entities/drive_item.dart';
 import '../stores/file_opener_store.dart';
 import '../stores/new_drive_store.dart';
+import '../widgets/file_details_modal.dart';
 import '../widgets/item_card_doc.dart';
 
 /// Página para exibir conteúdo de uma pasta
@@ -56,6 +57,10 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
       appBar: CustomTopBar(
         title: widget.folderName ?? 'Pasta',
         showBackButton: true,
+        onBackPressed: () {
+          store.navigateBack();
+          Navigator.of(context).pop();
+        },
         authStore: _authStore,
       ),
       body: Observer(
@@ -152,30 +157,70 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            // Drive
-            Text(
-              'Drive',
-              style: TextStyle(
-                fontSize: 12.sp,
-                color: const Color(0xFF565E6C),
+            // Drive (Raiz)
+            GestureDetector(
+              onTap: () {
+                store.navigateToStackIndex(-1);
+                // Volta para a raiz (NewDrivePage)
+                Modular.to.popUntil(ModalRoute.withName('/drive/'));
+              },
+              child: Text(
+                'Drive',
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  color: const Color(0xFF565E6C),
+                ),
               ),
             ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8.w),
-              child: Icon(
-                Icons.chevron_right,
-                size: 16.sp,
-                color: const Color(0xFF565E6C),
-              ),
-            ),
-            // Pasta atual
-            Text(
-              folder.name,
-              style: TextStyle(
-                fontSize: 12.sp,
-                color: const Color(0xFF171A1F),
-                fontWeight: FontWeight.w600,
-              ),
+
+            // Pilha de pastas
+            Observer(
+              builder: (_) {
+                return Row(
+                  children: store.folderStack.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final breadcrumb = entry.value;
+                    final isLast = index == store.folderStack.length - 1;
+
+                    return Row(
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 8.w),
+                          child: Icon(
+                            Icons.chevron_right,
+                            size: 16.sp,
+                            color: const Color(0xFF565E6C),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: isLast
+                              ? null
+                              : () {
+                                  store.navigateToStackIndex(index);
+                                  // Volta N vezes no Navigator para chegar na pasta correta
+                                  final pops =
+                                      store.folderStack.length - 1 - index;
+                                  for (var i = 0; i < pops; i++) {
+                                    Navigator.of(context).pop();
+                                  }
+                                },
+                          child: Text(
+                            breadcrumb.name,
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: isLast
+                                  ? const Color(0xFF171A1F)
+                                  : const Color(0xFF565E6C),
+                              fontWeight:
+                                  isLast ? FontWeight.w600 : FontWeight.normal,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  }).toList(),
+                );
+              },
             ),
           ],
         ),
@@ -298,7 +343,9 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
   /// Trata clique em item
   void _handleItemTap(DriveItem item) {
     if (item.type == DriveItemType.folder) {
-      // Navegar para a pasta
+      // Navegar para a pasta (Empilhar na store para o breadcrumb)
+      store.navigateToFolder(item.id, item.name);
+
       Modular.to.pushNamed(
         './folder',
         arguments: {
@@ -319,8 +366,13 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
         arguments: item,
       );
     } else {
-      // Download e abrir arquivo (documento, etc)
-      fileOpenerStore.openFile(item);
+      // Para arquivos, abrir modal de detalhes (conforme regra de negócio de arquivos)
+      FileDetailsModal.show(
+        context: context,
+        item: item,
+        onOpen: () => fileOpenerStore.openFile(item),
+        onDownload: () => fileOpenerStore.openFile(item),
+      );
     }
   }
 }

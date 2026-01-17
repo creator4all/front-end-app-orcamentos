@@ -240,18 +240,23 @@ class _FileDetailsContentState extends State<_FileDetailsContent> {
 
         // Botões de ação
         _buildActionButton(
-          icon: Icons.open_in_new,
-          label: 'Abrir/Visualizar',
+          icon: item.type == DriveItemType.folder
+              ? Icons.folder_open
+              : Icons.open_in_new,
+          label:
+              item.type == DriveItemType.folder ? 'Abrir' : 'Abrir/Visualizar',
           isLoading: _isOpening,
           onTap: _handleOpen,
         ),
-        SizedBox(height: 12.h),
-        _buildActionButton(
-          icon: Icons.download_outlined,
-          label: 'Baixar',
-          isLoading: _isDownloading,
-          onTap: _handleDownload,
-        ),
+        if (item.type != DriveItemType.folder) ...[
+          SizedBox(height: 12.h),
+          _buildActionButton(
+            icon: Icons.download_outlined,
+            label: 'Baixar',
+            isLoading: _isDownloading,
+            onTap: _handleDownload,
+          ),
+        ],
         SizedBox(height: 16.h),
       ],
     );
