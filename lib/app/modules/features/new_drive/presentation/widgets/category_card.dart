@@ -29,7 +29,7 @@ class CategoryCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 8.h),
         decoration: BoxDecoration(
           color: Colors.white,
           border: Border.all(
@@ -42,8 +42,8 @@ class CategoryCard extends StatelessWidget {
           children: [
             // Ícone à esquerda
             Container(
-              width: 36.w,
-              height: 36.h,
+              width: 32.w,
+              height: 32.h,
               decoration: BoxDecoration(
                 color: colors.backgroundColor,
                 shape: BoxShape.circle,
@@ -51,10 +51,10 @@ class CategoryCard extends StatelessWidget {
               child: Icon(
                 _getIconForType(categoryType),
                 color: colors.iconColor,
-                size: 18.sp,
+                size: 16.sp,
               ),
             ),
-            SizedBox(width: 12.w),
+            SizedBox(width: 8.w),
             // Textos à direita (2 linhas)
             Expanded(
               child: Column(
@@ -76,9 +76,9 @@ class CategoryCard extends StatelessWidget {
                   SizedBox(height: 2.h),
                   // Linha 2: Quantidade e tamanho
                   Text(
-                    '$itemCount items • $totalSize',
+                    '$itemCount ${itemCount == 1 ? 'item' : 'itens'} • $totalSize',
                     style: TextStyle(
-                      fontSize: 11.sp,
+                      fontSize: 10.sp,
                       color: const Color(0xFF565E6C),
                     ),
                     maxLines: 1,

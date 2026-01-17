@@ -3,6 +3,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mobx/mobx.dart';
+import 'package:multimidiaapp/app/shared/widgets/custom_info_dialog.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_top_bar.dart';
 
 import '../../../auth/presentation/stores/auth_store.dart';
@@ -40,12 +41,17 @@ class _NewDrivePageState extends State<NewDrivePage> {
     // Carregar dados iniciais
     store.initialize();
 
-    // Observar erros da FileOpenerStore e mostrar SnackBar
+    // Observar erros da FileOpenerStore e mostrar dialog
     reaction(
       (_) => fileOpenerStore.errorMessage,
       (String? errorMessage) {
         if (errorMessage != null && errorMessage.isNotEmpty) {
-          _showErrorSnackBar(errorMessage);
+          CustomInfoDialog.show(
+            context: context,
+            type: DialogType.error,
+            title: 'Erro',
+            message: errorMessage,
+          );
           fileOpenerStore.clearError();
         }
       },
@@ -288,9 +294,7 @@ class _NewDrivePageState extends State<NewDrivePage> {
 
   /// Realiza download do arquivo (async para feedback de loading)
   Future<void> _handleDownloadAsync(DriveItem item) async {
-    // Simula download - TODO: Implementar download real
-    await Future.delayed(const Duration(seconds: 2));
-    debugPrint('Download completed: ${item.name}');
+    await fileOpenerStore.openFile(item);
   }
 
   /// Botão para meus arquivos (apenas administrador)
@@ -533,25 +537,6 @@ class _NewDrivePageState extends State<NewDrivePage> {
               ],
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  /// Exibe SnackBar com mensagem de erro
-  void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 4),
-        behavior: SnackBarBehavior.floating,
-        action: SnackBarAction(
-          label: 'OK',
-          textColor: Colors.white,
-          onPressed: () {
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          },
         ),
       ),
     );
