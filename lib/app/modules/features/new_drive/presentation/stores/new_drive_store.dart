@@ -9,6 +9,13 @@ import '../../domain/usecases/get_recent_items_usecase.dart';
 
 part 'new_drive_store.g.dart';
 
+class FolderBreadcrumb {
+  final String id;
+  final String name;
+
+  FolderBreadcrumb({required this.id, required this.name});
+}
+
 class NewDriveStore = _NewDriveStoreBase with _$NewDriveStore;
 
 abstract class _NewDriveStoreBase with Store {
@@ -59,23 +66,30 @@ abstract class _NewDriveStoreBase with Store {
   @observable
   bool isLoadingFolder = false;
 
+  @observable
+  ObservableList<FolderBreadcrumb> folderStack =
+      ObservableList<FolderBreadcrumb>();
+
   // Computed
 
   @computed
   List<DriveItem> get recentItems {
-    // Retorna os 4 itens compartilhados mais recentemente
-    final sorted = allItems.toList()
+    // Retorna os 4 itens compartilhados mais recentemente (apenas raiz)
+    final sorted = allItems.where((item) => item.parentId == null).toList()
       ..sort((a, b) => b.lastViewed.compareTo(a.lastViewed));
     return sorted.take(4).toList();
   }
 
   @computed
   List<DriveItem> get selectedCategoryItems {
-    // Retorna itens filtrados pela categoria selecionada
+    // Retorna itens filtrados pela categoria selecionada (apenas raiz)
     if (selectedCategoryType == null) {
       return [];
     }
-    return allItems.where((item) => item.type == selectedCategoryType).toList();
+    return allItems
+        .where((item) =>
+            item.type == selectedCategoryType && item.parentId == null)
+        .toList();
   }
 
   @computed
@@ -235,28 +249,30 @@ abstract class _NewDriveStoreBase with Store {
 
   @action
   Future<void> loadCategories() async {
-    // Categorias são fixas, mas as estatísticas vêm dos itens carregados
+    // Categorias são fixas, mas as estatísticas vêm dos itens carregados (apenas raiz)
     categories.clear();
+
+    final rootItems = allItems.where((item) => item.parentId == null);
 
     // Contar itens por tipo
     final documents =
-        allItems.where((item) => item.type == DriveItemType.document).length;
+        rootItems.where((item) => item.type == DriveItemType.document).length;
     final images =
-        allItems.where((item) => item.type == DriveItemType.image).length;
+        rootItems.where((item) => item.type == DriveItemType.image).length;
     final videos =
-        allItems.where((item) => item.type == DriveItemType.video).length;
+        rootItems.where((item) => item.type == DriveItemType.video).length;
     final folders =
-        allItems.where((item) => item.type == DriveItemType.folder).length;
+        rootItems.where((item) => item.type == DriveItemType.folder).length;
 
     // Calcular tamanho total por categoria
     final documentsSize = _calculateTotalSize(
-        allItems.where((item) => item.type == DriveItemType.document));
+        rootItems.where((item) => item.type == DriveItemType.document));
     final imagesSize = _calculateTotalSize(
-        allItems.where((item) => item.type == DriveItemType.image));
+        rootItems.where((item) => item.type == DriveItemType.image));
     final videosSize = _calculateTotalSize(
-        allItems.where((item) => item.type == DriveItemType.video));
+        rootItems.where((item) => item.type == DriveItemType.video));
     final foldersSize = _calculateTotalSize(
-        allItems.where((item) => item.type == DriveItemType.folder));
+        rootItems.where((item) => item.type == DriveItemType.folder));
 
     categories.addAll([
       DriveCategory(
@@ -354,6 +370,46 @@ abstract class _NewDriveStoreBase with Store {
   void clearViewMode() {
     viewMode = null;
     searchQuery = '';
+  }
+
+  @action
+  void navigateToFolder(String folderId, String folderName) {
+    // Evita duplicar a pasta atual se for recarregada
+    if (folderStack.isNotEmpty && folderStack.last.id == folderId) {
+      return;
+    }
+    folderStack.add(FolderBreadcrumb(id: folderId, name: folderName));
+  }
+
+  @action
+  void navigateBack() {
+    if (folderStack.isNotEmpty) {
+      folderStack.removeLast();
+
+      if (folderStack.isNotEmpty) {
+        loadFolderContents(folderStack.last.id);
+      } else {
+        // Se a pilha ficou vazia, estamos voltando para a raiz
+        currentFolder = null;
+      }
+    }
+  }
+
+  @action
+  void navigateToStackIndex(int index) {
+    if (index >= 0 && index < folderStack.length) {
+      // Remove todos os itens após o índice selecionado
+      final itemsToRemove = folderStack.length - 1 - index;
+      for (var i = 0; i < itemsToRemove; i++) {
+        folderStack.removeLast();
+      }
+      // Carrega o conteúdo da pasta que agora está no topo
+      loadFolderContents(folderStack.last.id);
+    } else if (index == -1) {
+      // Volta para a raiz (Drive)
+      folderStack.clear();
+      currentFolder = null;
+    }
   }
 
   // Métodos auxiliares para dados mockados
