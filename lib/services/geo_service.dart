@@ -1,14 +1,16 @@
-import 'api_service.dart';
+import '../app/shared/core/utils/token_cache.dart';
 import '../config/api_config.dart';
-import '../entities/estado_entity.dart';
 import '../entities/cidade_entity.dart';
+import '../entities/estado_entity.dart';
+import 'api_service.dart';
 
 class GeoService {
   final ApiService _api;
   GeoService({ApiService? api}) : _api = api ?? ApiService();
 
   Future<List<EstadoEntity>> listarEstados() async {
-    final res = await _api.get(ApiConfig.estadosEndpoint);
+    final token = TokenCache.instance.getTokenOrEmpty();
+    final res = await _api.get(ApiConfig.estadosEndpoint, token: token);
     if (res['success'] == true) {
       final data = (res['data']['dados'] as List);
       return data
@@ -19,10 +21,11 @@ class GeoService {
   }
 
   Future<List<CidadeEntity>> listarCidades({int? estadoId}) async {
+    final token = TokenCache.instance.getTokenOrEmpty();
     final endpoint = estadoId == null
         ? ApiConfig.cidadesEndpoint
         : '${ApiConfig.cidadesEndpoint}/estado/$estadoId';
-    final res = await _api.get(endpoint);
+    final res = await _api.get(endpoint, token: token);
     if (res['success'] == true) {
       final data = (res['data']['dados'] as List);
       final list = data
