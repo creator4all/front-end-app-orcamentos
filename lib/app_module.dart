@@ -29,6 +29,7 @@ import 'app/modules/features/partner/partner_module.dart';
 import 'app/modules/features/profile/data/services/profile_service.dart';
 import 'app/modules/features/profile/profile_module.dart';
 import 'app/modules/features/prospect/prospect_module.dart';
+import 'app/modules/features/reports/reports_module.dart';
 import 'app/modules/features/user_management/user_management_module.dart';
 import 'app/shared/core/http/app_http_client.dart'; // ✅ IMPORT NOVO HTTP CLIENT
 import 'app/shared/core/http/dio_client.dart';
@@ -177,6 +178,9 @@ class AppModule extends Module {
 
         // Product Management Module - Gestão de Produtos (Admin)
         ModuleRoute('/product-management', module: ProductManagementModule()),
+
+        // Reports Module - Relatórios de Orçamentos (Admin)
+        ModuleRoute('/reports', module: ReportsModule()),
 
         // Redirect to auth by default
         RedirectRoute('/', to: '/auth/login'),

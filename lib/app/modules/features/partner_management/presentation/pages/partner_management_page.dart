@@ -3,7 +3,6 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../../../../shared/widgets/custom_info_dialog.dart';
 import '../../../../../shared/widgets/custom_top_bar.dart';
 import '../../../auth/presentation/stores/auth_store.dart';
 import '../stores/partner_management_store.dart';
@@ -58,13 +57,11 @@ class _PartnerManagementPageState extends State<PartnerManagementPage> {
     Modular.to.pushNamed('/user-management/partner/$partnerId');
   }
 
-  void _onReportsPressed(int partnerId) {
-    // Funcionalidade futura - mostrar dialog informativo
-    CustomInfoDialog.show(
-      context: context,
-      type: DialogType.info,
-      title: 'Em breve',
-      message: 'A funcionalidade de relatórios estará disponível em breve!',
+  void _onReportsPressed(int partnerId, String partnerName) {
+    // Navegar para a tela de relatórios do parceiro
+    Modular.to.pushNamed(
+      '/reports/partner/$partnerId',
+      arguments: {'partnerName': partnerName},
     );
   }
 
@@ -207,7 +204,8 @@ class _PartnerManagementPageState extends State<PartnerManagementPage> {
                       return PartnerCardWidget(
                         partner: partner,
                         onUsersPressed: () => _onUsersPressed(partner.id),
-                        onReportsPressed: () => _onReportsPressed(partner.id),
+                        onReportsPressed: () =>
+                            _onReportsPressed(partner.id, partner.tradeName),
                       );
                     },
                   ),
