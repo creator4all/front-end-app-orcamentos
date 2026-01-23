@@ -1,16 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:intl/intl.dart';
 
 import '../../../../../shared/widgets/custom_top_bar.dart';
+import '../../../../../shared/widgets/searchable_dropdown_widget.dart';
 import '../../../budget/budget_config/data/models/budget_census_dto.dart';
+import '../../../budget/budget_config/domain/entities/censo_group_entity.dart';
+import '../../../budget/budget_config/presentation/stores/school_census_store.dart';
+import '../../../budget/budget_config/presentation/widgets/census_data_section_widget.dart';
 
 /// Página de visualização do Censo Escolar em modo somente leitura.
 ///
-/// Exibe os dados do censo sem permitir edição. Esta página é uma versão
-/// simplificada da SchoolCensusPage, removendo todas as funcionalidades
-/// de edição.
+/// Layout IDÊNTICO ao SchoolCensusPage, mas sem controles de edição:
+/// - ❌ Toggle de modo edição
+/// - ❌ Botão Salvar
+/// - ✅ City Selector (multi-cidade)
+/// - ✅ CensusDataSectionWidget
+/// - ✅ Separação Alunos/Professores
+/// - ✅ Export CSV
 class ReportCensusPage extends StatefulWidget {
   final int budgetId;
   final BudgetCensusDto? censoData;
@@ -26,308 +34,273 @@ class ReportCensusPage extends StatefulWidget {
 }
 
 class _ReportCensusPageState extends State<ReportCensusPage> {
+  late final SchoolCensusStore _store;
+  final Map<int, TextEditingController> _controllers = {};
+
+  // Ano mockado conforme layout original
+  static const String _mockYear = '2024';
+
+  @override
+  void initState() {
+    super.initState();
+    _store = Modular.get<SchoolCensusStore>();
+
+    // Definir budgetId e carregar dados via endpoint de orçamento
+    _store.setBudgetId(widget.budgetId);
+    _store.loadBudgetCensus(widget.budgetId);
+  }
+
+  @override
+  void dispose() {
+    for (var controller in _controllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  void _syncControllersWithStore() {
+    final censo = _store.censoEscolar;
+    if (censo == null) return;
+
+    for (var group in censo.grupos) {
+      for (var title in group.titulos) {
+        if (!_controllers.containsKey(title.id)) {
+          _controllers[title.id] = TextEditingController(
+            text: title.valor.toStringAsFixed(0),
+          );
+        } else {
+          // Sempre manter sync pois é readonly
+          _controllers[title.id]?.text = title.valor.toStringAsFixed(0);
+        }
+      }
+    }
+  }
+
+  /// Filtra grupos para mostrar apenas dados de ALUNOS (sem sufixo P)
+  List<CensoGroupEntity> _getStudentGroups() {
+    final censo = _store.censoEscolar;
+    if (censo == null) return [];
+
+    return censo.grupos
+        .map((group) {
+          final studentTitles = group.titulos
+              .where((title) => !title.nomeEtapa.endsWith('P'))
+              .toList();
+          return CensoGroupEntity(
+            id: group.id,
+            nome: group.nome,
+            titulos: studentTitles,
+          );
+        })
+        .where((group) => group.titulos.isNotEmpty)
+        .toList();
+  }
+
+  /// Filtra grupos para mostrar apenas dados de PROFESSORES (com sufixo P)
+  List<CensoGroupEntity> _getProfessorGroups() {
+    final censo = _store.censoEscolar;
+    if (censo == null) return [];
+
+    return censo.grupos
+        .map((group) {
+          final professorTitles = group.titulos
+              .where((title) => title.nomeEtapa.endsWith('P'))
+              .toList();
+          return CensoGroupEntity(
+            id: group.id,
+            nome: group.nome,
+            titulos: professorTitles,
+          );
+        })
+        .where((group) => group.titulos.isNotEmpty)
+        .toList();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final censo = widget.censoData;
-
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      appBar: const CustomTopBar(
+        title: 'Censo escolar',
+        showBackButton: true,
+      ),
       body: SafeArea(
-        child: Column(
-          children: [
-            // Top Bar
-            CustomTopBar(
-              title: 'Censo Escolar',
-              showBackButton: true,
-              onBackPressed: () => Modular.to.pop(),
-            ),
+        child: Observer(
+          builder: (context) {
+            if (_store.isLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-            // Conteúdo
-            Expanded(
-              child: censo == null
-                  ? _buildEmptyState()
-                  : _buildCensusContent(censo),
-            ),
-          ],
+            if (_store.error != null) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text('Erro: ${_store.error}'),
+                    SizedBox(height: 16.h),
+                    ElevatedButton(
+                      onPressed: () => _store.loadBudgetCensus(widget.budgetId),
+                      child: const Text('Tentar novamente'),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            if (_store.censoEscolar == null) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.school_outlined,
+                      size: 48.w,
+                      color: const Color(0xFF828282),
+                    ),
+                    SizedBox(height: 16.h),
+                    Text(
+                      'Dados do censo não disponíveis',
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        color: const Color(0xFF828282),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            // Sync controllers
+            _syncControllersWithStore();
+
+            return RefreshIndicator(
+              onRefresh: () => _store.loadBudgetCensus(widget.budgetId),
+              color: const Color(0xFF117BBD),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Seletor de cidade (só para multi-cidade)
+                    if (_store.isMultiCity) _buildCitySelector(),
+
+                    // Informação do censo
+                    _buildCensusInfo(),
+
+                    SizedBox(height: 16.h),
+
+                    // Seções de Alunos
+                    _buildStudentsSections(),
+
+                    // Seções de Professores
+                    _buildProfessorsSections(),
+
+                    SizedBox(height: 16.h),
+                  ],
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.school_outlined,
-            size: 48.w,
-            color: const Color(0xFF828282),
-          ),
-          SizedBox(height: 16.h),
-          Text(
-            'Dados do censo não disponíveis',
-            style: TextStyle(
-              fontSize: 14.sp,
-              color: const Color(0xFF828282),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCensusContent(BudgetCensusDto censo) {
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(16.w),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Indicador de multi-cidade
-          if (censo.multiCidade)
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-              margin: EdgeInsets.only(bottom: 16.h),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE0F0FF),
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.location_city,
-                    size: 20.w,
-                    color: const Color(0xFF0C498E),
-                  ),
-                  SizedBox(width: 8.w),
-                  Text(
-                    'Orçamento multi-cidade (${censo.cidades.length} cidades)',
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      color: const Color(0xFF0C498E),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-          // Censo agregado para multi-cidade
-          if (censo.multiCidade && censo.censoAgregado.isNotEmpty)
-            _buildCensoAgregadoCard(censo.censoAgregado),
-
-          // Cidades
-          ...censo.cidades.map((cidade) => _buildCidadeCard(cidade)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCensoAgregadoCard(Map<String, double> censoAgregado) {
-    return Container(
-      width: double.infinity,
-      margin: EdgeInsets.only(bottom: 16.h),
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8.r,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.summarize,
-                size: 20.w,
-                color: const Color(0xFF0E3562),
-              ),
-              SizedBox(width: 8.w),
-              Text(
-                'Censo Agregado',
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF0E3562),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 12.h),
-          ...censoAgregado.entries.map((entry) => _buildCensusRow(
-                _formatEtapaName(entry.key),
-                entry.value,
-              )),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCidadeCard(CidadeCensoDto cidade) {
-    // Agrupar índices por grupo
-    final gruposMap = <int, List<IndiceCensoDto>>{};
-    final grupoNomes = <int, String>{};
-
-    for (final indice in cidade.indices) {
-      final grupoId = indice.grupo?.id ?? 0;
-      grupoNomes[grupoId] = indice.grupo?.nome ?? 'Outros';
-      gruposMap.putIfAbsent(grupoId, () => []);
-      gruposMap[grupoId]!.add(indice);
-    }
-
-    return Container(
-      width: double.infinity,
-      margin: EdgeInsets.only(bottom: 16.h),
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8.r,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header da cidade
-          Row(
-            children: [
-              Icon(
-                Icons.location_on,
-                size: 20.w,
-                color: const Color(0xFF0E3562),
-              ),
-              SizedBox(width: 8.w),
-              Expanded(
-                child: Text(
-                  cidade.nome,
-                  style: TextStyle(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF0E3562),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 16.h),
-
-          // Grupos de índices
-          ...gruposMap.entries.map((entry) {
-            final grupoId = entry.key;
-            final indices = entry.value;
-            final grupoNome = grupoNomes[grupoId] ?? 'Grupo';
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header do grupo
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 12.w,
-                    vertical: 8.h,
-                  ),
-                  margin: EdgeInsets.only(bottom: 8.h),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF5F5F5),
-                    borderRadius: BorderRadius.circular(6.r),
-                  ),
-                  child: Text(
-                    grupoNome,
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF484848),
-                    ),
-                  ),
-                ),
-                // Índices do grupo
-                ...indices.map((indice) => _buildCensusRow(
-                      indice.titulo.isNotEmpty
-                          ? indice.titulo
-                          : _formatEtapaName(indice.nomeEtapa),
-                      indice.valor,
-                    )),
-                SizedBox(height: 12.h),
-              ],
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCensusRow(String label, double value) {
+  /// Dropdown pesquisável para selecionar cidade (apenas multi-cidade)
+  Widget _buildCitySelector() {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 6.h, horizontal: 12.w),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 14.sp,
-                color: const Color(0xFF484848),
-              ),
-            ),
-          ),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE0F0FF),
-              borderRadius: BorderRadius.circular(4.r),
-            ),
-            child: Text(
-              _formatNumber(value),
-              style: TextStyle(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF0C498E),
-              ),
-            ),
-          ),
-        ],
+      padding: EdgeInsets.symmetric(vertical: 12.h),
+      child: SearchableDropdownWidget(
+        label: 'Cidade',
+        hint: 'Selecione uma cidade',
+        searchHint: 'Pesquisar cidade...',
+        value: _store.selectedCityName,
+        items: _store.cityOptions.map((e) => e.name).toList(),
+        onChanged: (cityName) {
+          if (cityName == null) return;
+
+          final selectedOption = _store.cityOptions.firstWhere(
+            (option) => option.name == cityName,
+            orElse: () => _store.cityOptions.first,
+          );
+
+          _store.selectCity(selectedOption.id);
+          // Limpar controllers ao trocar de cidade
+          _controllers.clear();
+        },
       ),
     );
   }
 
-  String _formatNumber(double value) {
-    // Se for número inteiro, não mostrar decimais
-    if (value == value.roundToDouble()) {
-      return NumberFormat('#,##0', 'pt_BR').format(value.toInt());
-    }
-    return NumberFormat('#,##0.00', 'pt_BR').format(value);
+  Widget _buildCensusInfo() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Total de alunos: ${_store.totalStudents.toStringAsFixed(0)}',
+          style: TextStyle(
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w400,
+            color: Colors.black,
+          ),
+        ),
+        SizedBox(height: 4.h),
+        Text(
+          _mockYear,
+          style: TextStyle(
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w400,
+            color: Colors.black,
+          ),
+        ),
+      ],
+    );
   }
 
-  String _formatEtapaName(String nomeEtapa) {
-    // Converter códigos de etapa para nomes legíveis
-    final mappings = {
-      'EI_creche': 'Creche',
-      'EI_pre': 'Pré-escola',
-      'EF_anos': 'Anos Iniciais',
-      'EF_finais': 'Anos Finais',
-      'EM_medio': 'Ensino Médio',
-      'EJA': 'EJA',
-      'creche_P': 'Creche (Professores)',
-      'pre_P': 'Pré-escola (Professores)',
-      'anos_P': 'Anos Iniciais (Professores)',
-      'finais_P': 'Anos Finais (Professores)',
-      'medio_P': 'Ensino Médio (Professores)',
-      'eja_P': 'EJA (Professores)',
-    };
+  Widget _buildStudentsSections() {
+    final studentGroups = _getStudentGroups();
 
-    return mappings[nomeEtapa] ?? nomeEtapa;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: studentGroups
+          .map((group) => CensusDataSectionWidget.withId(
+                group: group,
+                isEditMode: false, // ✅ Sempre readonly
+                controllers: _controllers,
+                onItemChanged: null, // ✅ Sem callback de edição
+              ))
+          .toList(),
+    );
+  }
+
+  Widget _buildProfessorsSections() {
+    final professorGroups = _getProfessorGroups();
+
+    // Só exibe seção de professores se houver dados
+    if (professorGroups.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(height: 16.h),
+        Text(
+          'Professores',
+          style: TextStyle(
+            fontSize: 16.sp,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF117BBD),
+          ),
+        ),
+        SizedBox(height: 8.h),
+        ...professorGroups.map((group) => CensusDataSectionWidget.withId(
+              group: group,
+              isEditMode: false, // ✅ Sempre readonly
+              controllers: _controllers,
+              onItemChanged: null, // ✅ Sem callback de edição
+            )),
+      ],
+    );
   }
 }

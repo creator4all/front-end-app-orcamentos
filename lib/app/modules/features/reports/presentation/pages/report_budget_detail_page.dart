@@ -182,7 +182,7 @@ class _ReportBudgetDetailPageState extends State<ReportBudgetDetailPage> {
 
                   // 📊 Resumo do orçamento
                   BudgetSummaryCard(
-                    budgetValue: budget.total,
+                    budgetValue: budget.calculatedTotal,
                     selectedProductsCount: _store.selectedItemsCount,
                   ),
 
@@ -458,6 +458,7 @@ class _ReportBudgetDetailPageState extends State<ReportBudgetDetailPage> {
       totalCount: subcategory.activeProductsCount,
       isSelected: subcategory.selectedProductsCount > 0,
       onCardTap: () => _showProductsModal(parentCategory, subcategory),
+      onActionTap: () => _showProductsModal(parentCategory, subcategory),
     );
   }
 
@@ -474,6 +475,7 @@ class _ReportBudgetDetailPageState extends State<ReportBudgetDetailPage> {
       totalCount: category.totalActiveProducts,
       isSelected: category.hasSelectedProducts,
       onCardTap: () => _showSubcategoriesModal(category),
+      onActionTap: () => _showSubcategoriesModal(category),
     );
   }
 

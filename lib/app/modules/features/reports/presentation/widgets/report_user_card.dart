@@ -145,7 +145,7 @@ class ReportUserCard extends StatelessWidget {
     );
   }
 
-  /// Badge de status: fundo branco, borda azul, texto + quantidade
+  /// Badge de status: fundo branco, borda azul, formato "Label: N"
   Widget _buildStatusBadge(String label, int count) {
     return Expanded(
       child: Container(
@@ -155,28 +155,16 @@ class ReportUserCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(4.r),
           border: Border.all(color: const Color(0xFF0E3562)),
         ),
-        child: Column(
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 8.sp,
-                color: const Color(0xFF0E3562),
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            SizedBox(height: 2.h),
-            Text(
-              count.toString(),
-              style: TextStyle(
-                fontSize: 12.sp,
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF0E3562),
-              ),
-            ),
-          ],
+        child: Text(
+          '$label: $count',
+          style: TextStyle(
+            fontSize: 10.sp,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF0E3562),
+          ),
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
       ),
     );

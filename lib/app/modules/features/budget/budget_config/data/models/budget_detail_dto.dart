@@ -159,10 +159,16 @@ class BudgetDetailDto {
         final nomeGrupo = grupoObj?['nome_grupo'] ?? '';
         final idGrupo = grupoObj?['grupo_id'] ?? 0;
 
+        // Parsear etapa_valor como double (API retorna String "305.00")
+        final valorRaw = ind['pivot']?['etapa_valor'] ?? 0;
+        final valor = valorRaw is num
+            ? valorRaw.toDouble()
+            : double.tryParse(valorRaw.toString()) ?? 0.0;
+
         return {
           'id': ind['idindice_etapa'],
           'nome': ind['nome_etapa'],
-          'valor': ind['pivot']?['etapa_valor'] ?? 0,
+          'valor': valor,
           'grupo_id': idGrupo,
           'grupo_nome': nomeGrupo,
         };

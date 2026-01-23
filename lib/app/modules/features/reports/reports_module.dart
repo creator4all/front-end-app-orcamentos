@@ -3,6 +3,10 @@ import 'package:flutter_modular/flutter_modular.dart';
 import '../../../shared/core/http/app_http_client.dart';
 import '../budget/budget_config/domain/usecases/get_budget_census_usecase.dart';
 import '../budget/budget_config/domain/usecases/get_budget_detail_usecase.dart';
+import '../budget/budget_config/domain/usecases/get_census_usecase.dart';
+import '../budget/budget_config/domain/usecases/update_budget_census_usecase.dart';
+import '../budget/budget_config/domain/usecases/update_census_usecase.dart';
+import '../budget/budget_config/presentation/stores/school_census_store.dart';
 import 'data/datasources/reports_api_datasource.dart';
 import 'data/datasources/reports_datasource.dart';
 import 'data/repositories/reports_repository_impl.dart';
@@ -73,6 +77,16 @@ class ReportsModule extends Module {
           (i) => ReportBudgetDetailStore(
             getBudgetDetailUseCase: i.get<GetBudgetDetailUseCase>(),
             getBudgetCensusUseCase: i.get<GetBudgetCensusUseCase>(),
+          ),
+        ),
+
+        // SchoolCensusStore para página de censo readonly
+        Bind.factory<SchoolCensusStore>(
+          (i) => SchoolCensusStore(
+            i.get<GetCensusUseCase>(),
+            i.get<UpdateCensusUseCase>(),
+            i.get<UpdateBudgetCensusUseCase>(),
+            i.get<GetBudgetCensusUseCase>(),
           ),
         ),
       ];

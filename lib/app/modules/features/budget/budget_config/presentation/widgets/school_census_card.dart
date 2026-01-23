@@ -44,12 +44,15 @@ class SchoolCensusCard extends StatelessWidget {
   }
 
   /// Calcula o total de estudantes
-  /// Para multi-cidade: soma todos os valores em censoAgregado
-  /// Para cidade única: soma valores de indices_etapa
+  /// Para multi-cidade: soma valores em censoAgregado (excluindo professores - sufixo P)
+  /// Para cidade única: soma valores de indices_etapa (excluindo professores)
   int _calculateTotalStudents() {
-    // Se temos censo agregado, usar ele
+    // Se temos censo agregado, usar ele (excluindo professores)
     if (censoAgregado != null && censoAgregado!.isNotEmpty) {
-      return censoAgregado!.values.fold(0.0, (sum, v) => sum + v).round();
+      return censoAgregado!.entries
+          .where((e) => !e.key.endsWith('P')) // Exclui professores
+          .fold(0.0, (sum, e) => sum + e.value)
+          .round();
     }
 
     // Fallback para formato antigo
@@ -61,6 +64,10 @@ class SchoolCensusCard extends StatelessWidget {
           [];
       for (final indicador in indicadores) {
         if (indicador is Map<String, dynamic>) {
+          // Excluir professores (nome terminando com P)
+          final nome = indicador['nome_etapa'] ?? indicador['nome'] ?? '';
+          if (nome.toString().endsWith('P')) continue;
+
           final pivot = indicador['pivot'] as Map<String, dynamic>?;
           final valor = pivot?['etapa_valor'] ??
               indicador['etapa_valor'] ??
@@ -70,7 +77,7 @@ class SchoolCensusCard extends StatelessWidget {
               ? valor
               : (valor is double
                   ? valor.toInt()
-                  : int.tryParse(valor.toString()) ?? 0));
+                  : int.tryParse(valor.toString().split('.').first) ?? 0));
         }
       }
     }
