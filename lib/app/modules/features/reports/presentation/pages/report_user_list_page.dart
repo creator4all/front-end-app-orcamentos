@@ -44,8 +44,13 @@ class _ReportUserListPageState extends State<ReportUserListPage> {
     // Limpar filtros ao entrar na página
     _filterStore.resetFilters();
 
-    // Carregar usuários
-    _store.loadUsers(widget.partnerId, partnerName: widget.partnerName);
+    // Carregar usuários e depois as vendas do parceiro para calcular contadores
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    await _store.loadUsers(widget.partnerId, partnerName: widget.partnerName);
+    await _store.loadPartnerSales(widget.partnerId);
   }
 
   @override
@@ -108,194 +113,213 @@ class _ReportUserListPageState extends State<ReportUserListPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Top Bar
+            // Top Bar (fixo no topo)
             CustomTopBar(
               title: 'Gestão admnistrativa',
               showBackButton: true,
               onBackPressed: () => Modular.to.pop(),
             ),
 
-            // Container de filtros com borda
-            Container(
-              margin: EdgeInsets.all(16.w),
-              padding: EdgeInsets.all(16.w),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8.r),
-                border: Border.all(color: const Color(0xFFD9D9D9)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header: Filtros + Resetar
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            // Conteúdo scrollável (filtros + lista)
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _store.refresh,
+                color: const Color(0xFF0E3562),
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Column(
                     children: [
-                      Text(
-                        'Filtros',
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFF484848),
+                      // Container de filtros com borda
+                      Container(
+                        margin: EdgeInsets.all(16.w),
+                        padding: EdgeInsets.all(16.w),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8.r),
+                          border: Border.all(color: const Color(0xFFD9D9D9)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Header: Filtros + Resetar
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Filtros',
+                                  style: TextStyle(
+                                    fontSize: 14.sp,
+                                    fontWeight: FontWeight.w500,
+                                    color: const Color(0xFF484848),
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: _onResetFilters,
+                                  child: Text(
+                                    'Resetar',
+                                    style: TextStyle(
+                                      fontSize: 14.sp,
+                                      color: const Color(0xFF0E3562),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            SizedBox(height: 12.h),
+
+                            // Campo de busca
+                            TextField(
+                              controller: _searchController,
+                              onChanged: _onSearchChanged,
+                              decoration: InputDecoration(
+                                hintText: 'Busca por nome',
+                                hintStyle: TextStyle(
+                                  fontSize: 14.sp,
+                                  color: const Color(0xFF828282),
+                                ),
+                                prefixIcon: Icon(
+                                  Icons.search,
+                                  size: 20.w,
+                                  color: const Color(0xFF828282),
+                                ),
+                                filled: true,
+                                fillColor: const Color(0xFFF5F5F5),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8.r),
+                                  borderSide: BorderSide.none,
+                                ),
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 16.w,
+                                  vertical: 12.h,
+                                ),
+                              ),
+                            ),
+
+                            SizedBox(height: 12.h),
+
+                            // Filtros de data
+                            Observer(
+                              builder: (_) => Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildDateField(
+                                      label: 'De:',
+                                      date: _filterStore.dataInicio,
+                                      onTap: () => _selectDate(context, true),
+                                    ),
+                                  ),
+                                  SizedBox(width: 12.w),
+                                  Expanded(
+                                    child: _buildDateField(
+                                      label: 'Até:',
+                                      date: _filterStore.dataFim,
+                                      onTap: () => _selectDate(context, false),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      GestureDetector(
-                        onTap: _onResetFilters,
-                        child: Text(
-                          'Resetar',
-                          style: TextStyle(
-                            fontSize: 14.sp,
-                            color: const Color(0xFF0E3562),
-                          ),
-                        ),
+
+                      // Lista de usuários
+                      Observer(
+                        builder: (_) {
+                          if (_store.isLoading) {
+                            return Padding(
+                              padding: EdgeInsets.symmetric(vertical: 48.h),
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  color: Color(0xFF0E3562),
+                                ),
+                              ),
+                            );
+                          }
+
+                          if (_store.error != null) {
+                            return Padding(
+                              padding: EdgeInsets.symmetric(vertical: 48.h),
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.error_outline,
+                                      size: 48.w,
+                                      color: const Color(0xFF828282),
+                                    ),
+                                    SizedBox(height: 16.h),
+                                    Text(
+                                      _store.error!,
+                                      style: TextStyle(
+                                        fontSize: 14.sp,
+                                        color: const Color(0xFF828282),
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    SizedBox(height: 16.h),
+                                    ElevatedButton(
+                                      onPressed: _store.refresh,
+                                      child: const Text('Tentar novamente'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }
+
+                          final users = _store.filteredUsers;
+
+                          if (users.isEmpty) {
+                            return Padding(
+                              padding: EdgeInsets.symmetric(vertical: 48.h),
+                              child: Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.people_outline,
+                                      size: 48.w,
+                                      color: const Color(0xFF828282),
+                                    ),
+                                    SizedBox(height: 16.h),
+                                    Text(
+                                      'Nenhum usuário encontrado',
+                                      style: TextStyle(
+                                        fontSize: 14.sp,
+                                        color: const Color(0xFF828282),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }
+
+                          return ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            padding: EdgeInsets.only(bottom: 16.h),
+                            itemCount: users.length,
+                            itemBuilder: (context, index) {
+                              final user = users[index];
+                              return ReportUserCard(
+                                user: user,
+                                onTap: () => _onUserTap(
+                                  user.id,
+                                  user.nome,
+                                  user.cargo,
+                                ),
+                              );
+                            },
+                          );
+                        },
                       ),
                     ],
                   ),
-
-                  SizedBox(height: 12.h),
-
-                  // Campo de busca
-                  TextField(
-                    controller: _searchController,
-                    onChanged: _onSearchChanged,
-                    decoration: InputDecoration(
-                      hintText: 'Busca por nome',
-                      hintStyle: TextStyle(
-                        fontSize: 14.sp,
-                        color: const Color(0xFF828282),
-                      ),
-                      prefixIcon: Icon(
-                        Icons.search,
-                        size: 20.w,
-                        color: const Color(0xFF828282),
-                      ),
-                      filled: true,
-                      fillColor: const Color(0xFFF5F5F5),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8.r),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 16.w,
-                        vertical: 12.h,
-                      ),
-                    ),
-                  ),
-
-                  SizedBox(height: 12.h),
-
-                  // Filtros de data
-                  Observer(
-                    builder: (_) => Row(
-                      children: [
-                        Expanded(
-                          child: _buildDateField(
-                            label: 'De:',
-                            date: _filterStore.dataInicio,
-                            onTap: () => _selectDate(context, true),
-                          ),
-                        ),
-                        SizedBox(width: 12.w),
-                        Expanded(
-                          child: _buildDateField(
-                            label: 'Até:',
-                            date: _filterStore.dataFim,
-                            onTap: () => _selectDate(context, false),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Lista de usuários
-            Expanded(
-              child: Observer(
-                builder: (_) {
-                  if (_store.isLoading) {
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFF0E3562),
-                      ),
-                    );
-                  }
-
-                  if (_store.error != null) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            size: 48.w,
-                            color: const Color(0xFF828282),
-                          ),
-                          SizedBox(height: 16.h),
-                          Text(
-                            _store.error!,
-                            style: TextStyle(
-                              fontSize: 14.sp,
-                              color: const Color(0xFF828282),
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          SizedBox(height: 16.h),
-                          ElevatedButton(
-                            onPressed: _store.refresh,
-                            child: const Text('Tentar novamente'),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  final users = _store.filteredUsers;
-
-                  if (users.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.people_outline,
-                            size: 48.w,
-                            color: const Color(0xFF828282),
-                          ),
-                          SizedBox(height: 16.h),
-                          Text(
-                            'Nenhum usuário encontrado',
-                            style: TextStyle(
-                              fontSize: 14.sp,
-                              color: const Color(0xFF828282),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  return RefreshIndicator(
-                    onRefresh: _store.refresh,
-                    color: const Color(0xFF0E3562),
-                    child: ListView.builder(
-                      padding: EdgeInsets.only(bottom: 16.h),
-                      itemCount: users.length,
-                      itemBuilder: (context, index) {
-                        final user = users[index];
-                        return ReportUserCard(
-                          user: user,
-                          onTap: () => _onUserTap(
-                            user.id,
-                            user.nome,
-                            user.cargo,
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
+                ),
               ),
             ),
           ],

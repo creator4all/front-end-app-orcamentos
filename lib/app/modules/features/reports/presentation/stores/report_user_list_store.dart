@@ -1,6 +1,8 @@
 import 'package:mobx/mobx.dart';
 
+import '../../domain/entities/report_budget.dart';
 import '../../domain/entities/report_user.dart';
+import '../../domain/repositories/reports_repository.dart';
 import '../../domain/usecases/get_partner_users_usecase.dart';
 import 'report_filter_store.dart';
 
@@ -14,10 +16,12 @@ class ReportUserListStore = _ReportUserListStoreBase with _$ReportUserListStore;
 
 abstract class _ReportUserListStoreBase with Store {
   final GetPartnerUsersUsecase getPartnerUsersUsecase;
+  final ReportsRepository reportsRepository;
   final ReportFilterStore filterStore;
 
   _ReportUserListStoreBase({
     required this.getPartnerUsersUsecase,
+    required this.reportsRepository,
     required this.filterStore,
   });
 
@@ -41,20 +45,26 @@ abstract class _ReportUserListStoreBase with Store {
   @observable
   String? currentPartnerName;
 
-  /// Usuários filtrados pela busca
+  /// Usuários filtrados pela busca e ordenados por nome
   @computed
   List<ReportUser> get filteredUsers {
+    List<ReportUser> result;
+
     if (filterStore.userSearchQuery.isEmpty) {
-      return allUsers.toList();
+      result = allUsers.toList();
+    } else {
+      final query = filterStore.userSearchQuery.toLowerCase();
+      result = allUsers
+          .where((user) =>
+              user.nome.toLowerCase().contains(query) ||
+              user.email.toLowerCase().contains(query) ||
+              user.cargo.toLowerCase().contains(query))
+          .toList();
     }
 
-    final query = filterStore.userSearchQuery.toLowerCase();
-    return allUsers
-        .where((user) =>
-            user.nome.toLowerCase().contains(query) ||
-            user.email.toLowerCase().contains(query) ||
-            user.cargo.toLowerCase().contains(query))
-        .toList();
+    // Ordenar por nome alfabeticamente
+    result.sort((a, b) => a.nome.toLowerCase().compareTo(b.nome.toLowerCase()));
+    return result;
   }
 
   /// Soma total de vendas de todos os usuários
@@ -102,11 +112,80 @@ abstract class _ReportUserListStoreBase with Store {
     );
   }
 
+  /// Orçamentos do parceiro para cálculo de contadores
+  @observable
+  ObservableList<ReportBudget> allPartnerBudgets =
+      ObservableList<ReportBudget>();
+
+  /// Carrega as vendas do parceiro e atualiza os contadores dos usuários
+  @action
+  Future<void> loadPartnerSales(int partnerId) async {
+    final result = await reportsRepository.getPartnerSales(
+      partnerId,
+      dataInicio: filterStore.dataInicio,
+      dataFim: filterStore.dataFim,
+    );
+
+    result.fold(
+      (failure) {
+        // Se falhar, mantemos os dados existentes
+        // Os contadores virão zerados se não houver dados
+      },
+      (budgets) {
+        allPartnerBudgets.clear();
+        allPartnerBudgets.addAll(budgets);
+        _updateUserCounters();
+      },
+    );
+  }
+
+  /// Atualiza os contadores de cada usuário baseado nos orçamentos
+  void _updateUserCounters() {
+    // Agrupar orçamentos por usuário
+    final userBudgets = <int, List<ReportBudget>>{};
+    for (final budget in allPartnerBudgets) {
+      userBudgets.putIfAbsent(budget.usuarioId, () => []).add(budget);
+    }
+
+    // Atualizar cada usuário com os contadores calculados
+    final updatedUsers = allUsers.map((user) {
+      final budgets = userBudgets[user.id] ?? [];
+      final aprovados =
+          budgets.where((b) => b.status.toLowerCase() == 'aprovado').length;
+      final pendentes =
+          budgets.where((b) => b.status.toLowerCase() == 'pendente').length;
+      final expirados =
+          budgets.where((b) => b.status.toLowerCase() == 'expirado').length;
+      final naoAprovados = budgets
+          .where((b) =>
+              b.status.toLowerCase() == 'nao_aprovado' ||
+              b.status.toLowerCase() == 'não aprovado')
+          .length;
+      final totalVendas = budgets.fold<double>(0.0, (sum, b) => sum + b.total);
+
+      return ReportUser(
+        id: user.id,
+        nome: user.nome,
+        email: user.email,
+        cargo: user.cargo,
+        totalVendas: totalVendas,
+        aprovados: aprovados,
+        pendentes: pendentes,
+        expirados: expirados,
+        naoAprovados: naoAprovados,
+      );
+    }).toList();
+
+    allUsers.clear();
+    allUsers.addAll(updatedUsers);
+  }
+
   /// Recarrega os usuários mantendo os filtros atuais
   @action
   Future<void> refresh() async {
     if (currentPartnerId != null) {
       await loadUsers(currentPartnerId!, partnerName: currentPartnerName);
+      await loadPartnerSales(currentPartnerId!);
     }
   }
 
@@ -114,6 +193,7 @@ abstract class _ReportUserListStoreBase with Store {
   @action
   void clear() {
     allUsers.clear();
+    allPartnerBudgets.clear();
     error = null;
     currentPartnerId = null;
     currentPartnerName = null;

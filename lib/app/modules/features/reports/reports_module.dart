@@ -57,6 +57,7 @@ class ReportsModule extends Module {
         Bind.lazySingleton<ReportUserListStore>(
           (i) => ReportUserListStore(
             getPartnerUsersUsecase: i.get<GetPartnerUsersUsecase>(),
+            reportsRepository: i.get<ReportsRepository>(),
             filterStore: i.get<ReportFilterStore>(),
           ),
         ),

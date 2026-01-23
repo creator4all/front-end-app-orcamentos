@@ -98,20 +98,48 @@ class ReportUserCard extends StatelessWidget {
     );
   }
 
-  /// Badge de cargo (estilo similar ao da página de budget_list)
+  /// Obtém cor de fundo da tag de role
+  Color _getRoleBackgroundColor(String roleName) {
+    switch (roleName.toLowerCase()) {
+      case 'gestor':
+        return const Color(0xFFE0F4FF); // Azul claro
+      case 'vendedor':
+        return const Color(0xFFE0F0E0); // Verde claro
+      case 'administrador':
+        return const Color(0xFFFFE0E0); // Vermelho claro
+      default:
+        return const Color(0xFFF0F0F0); // Cinza claro
+    }
+  }
+
+  /// Obtém cor do texto da tag de role
+  Color _getRoleTextColor(String roleName) {
+    switch (roleName.toLowerCase()) {
+      case 'gestor':
+        return const Color(0xFF0C498E); // Azul escuro
+      case 'vendedor':
+        return const Color(0xFF155724); // Verde escuro
+      case 'administrador':
+        return const Color(0xFF721C24); // Vermelho escuro
+      default:
+        return const Color(0xFF333333); // Cinza escuro
+    }
+  }
+
+  /// Badge de cargo com cores diferenciadas por role
   Widget _buildCargoBadge(String cargo) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
       decoration: BoxDecoration(
-        color: const Color(0xFFE0F0FF),
+        color: _getRoleBackgroundColor(cargo),
         borderRadius: BorderRadius.circular(4.r),
       ),
       child: Text(
-        cargo,
+        cargo.toUpperCase(),
         style: TextStyle(
           fontSize: 10.sp,
-          fontWeight: FontWeight.w500,
-          color: const Color(0xFF0C498E),
+          fontWeight: FontWeight.w600,
+          color: _getRoleTextColor(cargo),
         ),
       ),
     );

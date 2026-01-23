@@ -15,6 +15,7 @@ class ReportBudget extends Equatable {
   final String status;
   final bool isArchived;
   final int cidadesCount;
+  final int usuarioId; // ID do usuário que criou o orçamento
 
   const ReportBudget({
     required this.id,
@@ -27,6 +28,7 @@ class ReportBudget extends Equatable {
     required this.status,
     this.isArchived = false,
     this.cidadesCount = 1,
+    this.usuarioId = 0,
   });
 
   /// Verifica se o orçamento está expirado
@@ -53,6 +55,7 @@ class ReportBudget extends Equatable {
         status,
         isArchived,
         cidadesCount,
+        usuarioId,
       ];
 
   @override

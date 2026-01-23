@@ -98,11 +98,13 @@ abstract class _ReportFilterStoreBase with Store {
     dataFim = null;
   }
 
-  /// Limpa todos os filtros
+  /// Limpa todos os filtros e define datas padrão (hoje até +7 dias)
   @action
   void resetFilters() {
-    dataInicio = null;
-    dataFim = null;
+    final now = DateTime.now();
+    dataInicio = DateTime(now.year, now.month, now.day);
+    dataFim =
+        DateTime(now.year, now.month, now.day).add(const Duration(days: 7));
     userSearchQuery = '';
     budgetSearchQuery = '';
     selectedStatuses.clear();

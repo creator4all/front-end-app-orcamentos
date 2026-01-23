@@ -116,4 +116,31 @@ class ReportsApiDatasource implements ReportsDatasource {
 
     return data.map((json) => ReportBudgetDto.fromJson(json)).toList();
   }
+
+  @override
+  Future<List<ReportBudgetDto>> getPartnerSales(
+    int partnerId, {
+    DateTime? dataInicio,
+    DateTime? dataFim,
+  }) async {
+    // Montar query parameters
+    final queryParams = <String, dynamic>{};
+    if (dataInicio != null) {
+      queryParams['data_inicio'] = _dateFormat.format(dataInicio);
+    }
+    if (dataFim != null) {
+      queryParams['data_fim'] = _dateFormat.format(dataFim);
+    }
+
+    // Endpoint: /api/relatorios/partners/{id}/vendas
+    final response = await httpClient.get(
+      '/api/relatorios/partners/$partnerId/vendas',
+      config: HttpRequestConfig(queryParameters: queryParams),
+    );
+
+    // Extrair lista de orçamentos usando helper
+    final List<dynamic> data = _extractList(response.body);
+
+    return data.map((json) => ReportBudgetDto.fromJson(json)).toList();
+  }
 }

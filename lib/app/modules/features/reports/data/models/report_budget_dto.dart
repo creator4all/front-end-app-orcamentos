@@ -15,6 +15,7 @@ class ReportBudgetDto {
   final String status;
   final bool isArchived;
   final int cidadesCount;
+  final int usuarioId; // ID do usuário dono do orçamento
 
   ReportBudgetDto({
     required this.id,
@@ -27,6 +28,7 @@ class ReportBudgetDto {
     required this.status,
     this.isArchived = false,
     this.cidadesCount = 1,
+    this.usuarioId = 0,
   });
 
   /// Cria um DTO a partir do JSON da API.
@@ -76,7 +78,7 @@ class ReportBudgetDto {
     }
 
     return ReportBudgetDto(
-      id: json['id'] ?? json['orc_id'] ?? 0,
+      id: json['id'] ?? json['orc_id'] ?? json['orc_orcamentoId'] ?? 0,
       nome: json['nome'] ?? json['orc_nome'] ?? json['titulo'],
       codigo: codigo,
       dataOrcamento: parseDate(json['data_orcamento'] ?? json['created_at']) ??
@@ -89,6 +91,7 @@ class ReportBudgetDto {
       isArchived: json['is_archived'] ?? json['arquivado'] ?? false,
       cidadesCount:
           parseInt(json['cidades_count'] ?? json['cidadesCount'] ?? 1),
+      usuarioId: parseInt(json['orc_usuario_id'] ?? json['usuario_id'] ?? 0),
     );
   }
 
@@ -105,6 +108,7 @@ class ReportBudgetDto {
       status: status,
       isArchived: isArchived,
       cidadesCount: cidadesCount,
+      usuarioId: usuarioId,
     );
   }
 }

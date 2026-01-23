@@ -36,4 +36,17 @@ abstract class ReportsRepository {
     DateTime? dataFim,
     String? status,
   });
+
+  /// Busca todos os orçamentos de um parceiro.
+  ///
+  /// [partnerId] - ID do parceiro (empresa)
+  /// [dataInicio] - Data inicial para filtrar orçamentos (opcional)
+  /// [dataFim] - Data final para filtrar orçamentos (opcional)
+  ///
+  /// Retorna [Either] com [Failure] em caso de erro ou [List<ReportBudget>] em caso de sucesso.
+  Future<Either<Failure, List<ReportBudget>>> getPartnerSales(
+    int partnerId, {
+    DateTime? dataInicio,
+    DateTime? dataFim,
+  });
 }

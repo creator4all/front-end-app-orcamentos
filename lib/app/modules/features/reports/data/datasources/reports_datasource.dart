@@ -32,4 +32,17 @@ abstract class ReportsDatasource {
     DateTime? dataFim,
     String? status,
   });
+
+  /// Busca todos os orçamentos de um parceiro.
+  ///
+  /// [partnerId] - ID do parceiro (empresa)
+  /// [dataInicio] - Data inicial para filtrar orçamentos (opcional)
+  /// [dataFim] - Data final para filtrar orçamentos (opcional)
+  ///
+  /// Retorna lista de [ReportBudgetDto].
+  Future<List<ReportBudgetDto>> getPartnerSales(
+    int partnerId, {
+    DateTime? dataInicio,
+    DateTime? dataFim,
+  });
 }

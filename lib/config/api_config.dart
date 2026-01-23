@@ -12,7 +12,7 @@ class ApiConfig {
 
   // Current environment
   static const String _environment =
-      'production'; // Options: 'local', 'test', 'production'
+      'localCasa'; // Options: 'local', 'test', 'production'
 
   // Get base URL based on environment
   static String get baseUrl {
