@@ -55,6 +55,17 @@ abstract class _ReportBudgetListStoreBase with Store {
   List<ReportBudget> get filteredBudgets {
     var result = allBudgets.toList();
 
+    // Filtrar arquivados separadamente (mutuamente exclusivo)
+    final isArchivedFilterActive =
+        filterStore.selectedStatuses.contains('arquivado');
+    if (isArchivedFilterActive) {
+      // Se "arquivado" está selecionado, mostrar APENAS arquivados
+      result = result.where((budget) => budget.isArchived).toList();
+    } else {
+      // Caso contrário, mostrar APENAS não-arquivados
+      result = result.where((budget) => !budget.isArchived).toList();
+    }
+
     // Filtrar por busca
     if (filterStore.budgetSearchQuery.isNotEmpty) {
       final query = filterStore.budgetSearchQuery.toLowerCase();
@@ -65,12 +76,18 @@ abstract class _ReportBudgetListStoreBase with Store {
           .toList();
     }
 
-    // Filtrar por status
+    // Filtrar por status (exceto arquivado que já foi tratado)
     if (filterStore.selectedStatuses.isNotEmpty) {
-      result = result
-          .where((budget) => filterStore.selectedStatuses
-              .contains(budget.status.toLowerCase()))
-          .toList();
+      // Remover 'arquivado' da lista de status já que é tratado separadamente
+      final statusFilters =
+          filterStore.selectedStatuses.where((s) => s != 'arquivado').toSet();
+
+      if (statusFilters.isNotEmpty) {
+        result = result
+            .where(
+                (budget) => statusFilters.contains(budget.status.toLowerCase()))
+            .toList();
+      }
     }
 
     return result;

@@ -74,7 +74,7 @@ class ReportBudgetDto {
     String codigo = json['codigo'] ?? json['orc_codigo'] ?? '';
     if (codigo.isEmpty) {
       final id = json['id'] ?? json['orc_id'] ?? 0;
-      codigo = 'D-$id';
+      codigo = 'ORC-${id.toString().padLeft(3, '0')}';
     }
 
     return ReportBudgetDto(

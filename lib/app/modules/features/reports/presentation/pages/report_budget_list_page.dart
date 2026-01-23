@@ -45,9 +45,17 @@ class _ReportBudgetListPageState extends State<ReportBudgetListPage> {
     _store = Modular.get<ReportBudgetListStore>();
     _filterStore = Modular.get<ReportFilterStore>();
 
-    // Limpar apenas busca e status (manter filtros de data)
+    // Limpar apenas busca de orçamentos (manter filtros de data e status da navegação anterior)
     _filterStore.clearBudgetSearch();
-    _filterStore.clearStatusFilter();
+
+    // Se não há filtros de status, aplicar "pendente" como padrão
+    if (_filterStore.selectedStatuses.isEmpty) {
+      _filterStore.toggleStatus('pendente');
+      _selectedFilters = ['pendente'];
+    } else {
+      // Sincronizar filtros locais com a store
+      _selectedFilters = _filterStore.selectedStatuses.toList();
+    }
 
     // Carregar orçamentos
     _store.loadBudgets(
@@ -69,10 +77,12 @@ class _ReportBudgetListPageState extends State<ReportBudgetListPage> {
     setState(() {
       _selectedFilters = List.from(filters);
     });
+
     // Sincronizar filtros da UI com a store
     _filterStore.clearStatusFilter();
     for (final filter in filters) {
-      _filterStore.toggleStatus(filter);
+      // Normalizar status para lowercase
+      _filterStore.toggleStatus(filter.toLowerCase());
     }
   }
 
@@ -83,7 +93,13 @@ class _ReportBudgetListPageState extends State<ReportBudgetListPage> {
   }
 
   void _onBudgetTap(int budgetId) {
-    Modular.to.pushNamed('/reports/budget/$budgetId');
+    Modular.to.pushNamed(
+      '/reports/budget/$budgetId',
+      arguments: {
+        'partnerName': widget.partnerName,
+        'userName': widget.userName,
+      },
+    );
   }
 
   @override

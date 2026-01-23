@@ -104,6 +104,8 @@ class ReportsModule extends Module {
           '/budget/:budgetId',
           child: (context, args) => ReportBudgetDetailPage(
             budgetId: int.parse(args.params['budgetId'] ?? '0'),
+            partnerName: args.data?['partnerName'] as String?,
+            userName: args.data?['userName'] as String?,
           ),
         ),
 

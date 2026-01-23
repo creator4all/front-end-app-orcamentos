@@ -75,6 +75,27 @@ abstract class _ReportBudgetDetailStoreBase with Store {
   @computed
   bool get isMultiCity => budgetDetail?.isMultiCity ?? false;
 
+  /// ✅ Contagem para o BudgetSummaryCard
+  /// - Categorias expandidas: contam SUBCATEGORIAS com produtos selecionados
+  /// - Categorias compactas: contam como 1 se tiverem produtos selecionados
+  @computed
+  int get selectedItemsCount {
+    if (budgetDetail == null) return 0;
+
+    return budgetDetail!.categories.fold(0, (sum, category) {
+      if (category.expandido) {
+        // Categorias expandidas contam SUBCATEGORIAS com produtos selecionados
+        final selectedSubcategories = category.subcategorias
+            .where((subcategory) => subcategory.hasSelectedProducts)
+            .length;
+        return sum + selectedSubcategories;
+      } else {
+        // Categorias compactas contam como 1 categoria se tiverem produtos selecionados
+        return sum + (category.hasSelectedProducts ? 1 : 0);
+      }
+    });
+  }
+
   /// Carrega todos os dados do orçamento
   @action
   Future<void> loadBudgetDetails(int budgetId) async {

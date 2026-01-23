@@ -37,6 +37,10 @@ abstract class _ReportFilterStoreBase with Store {
   @computed
   bool get hasStatusFilter => selectedStatuses.isNotEmpty;
 
+  /// Verifica se deve manter os filtros de data ao navegar
+  @computed
+  bool get shouldPreserveDateFilters => dataInicio != null && dataFim != null;
+
   /// Define o range de datas
   @action
   void setDateRange(DateTime? inicio, DateTime? fim) {
