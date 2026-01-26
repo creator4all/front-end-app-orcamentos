@@ -19,7 +19,9 @@ class BudgetCardWidget extends StatelessWidget {
   final BudgetStatus status;
   final bool isArchived;
   final UserRole userRole;
+  final bool createdByAdmin;
   final VoidCallback? onTap;
+  final VoidCallback? onInfoTap;
 
   const BudgetCardWidget({
     super.key,
@@ -33,7 +35,9 @@ class BudgetCardWidget extends StatelessWidget {
     required this.status,
     this.isArchived = false,
     required this.userRole,
+    this.createdByAdmin = false,
     this.onTap,
+    this.onInfoTap,
   });
 
   @override
@@ -57,16 +61,34 @@ class BudgetCardWidget extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // Título
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF484848),
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            // Título com ícone de info para orçamentos criados por admin
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF484848),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (createdByAdmin)
+                  GestureDetector(
+                    onTap: onInfoTap,
+                    child: Padding(
+                      padding: EdgeInsets.only(left: 4.w),
+                      child: Icon(
+                        Icons.info_outline,
+                        size: 16.sp,
+                        color: const Color(0xFF117BBD),
+                      ),
+                    ),
+                  ),
+              ],
             ),
 
             // Parceiro e Vendedor (baseado no role)

@@ -261,6 +261,18 @@ class _BudgetListPageState extends State<BudgetListPage> {
                           status: status,
                           isArchived: b.isArchived,
                           userRole: mapStringToUserRole(_authStore.userRole),
+                          createdByAdmin: b.criadoPorAdmin,
+                          onInfoTap: b.criadoPorAdmin
+                              ? () => CustomInfoDialog.show(
+                                    context: context,
+                                    type: DialogType.info,
+                                    title: 'Orçamento criado por Administrador',
+                                    message:
+                                        'Este orçamento foi criado por um usuário '
+                                        'administrador e direcionado para você. '
+                                        'Por isso ele aparece na sua lista.',
+                                  )
+                              : null,
                           onTap: () async {
                             final result = await Modular.to.pushNamed(
                               '/budget/edit/${b.id}',

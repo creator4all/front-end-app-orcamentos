@@ -142,8 +142,9 @@ abstract class _BudgetCreateStoreBase with Store {
 
   /// Carrega a lista de parceiros padrão
   /// Só executa uma vez para evitar loop infinito
+  /// [excludePartnerId] - ID do parceiro a ser excluído da lista (parceiro do usuário logado)
   @action
-  Future<void> loadPartners() async {
+  Future<void> loadPartners({int? excludePartnerId}) async {
     // ✅ Evita múltiplas tentativas
     if (hasAttemptedLoadPartners) {
       print(
@@ -158,7 +159,8 @@ abstract class _BudgetCreateStoreBase with Store {
     try {
       print('🔄 [BudgetCreateStore] Carregando parceiros...');
 
-      final result = await getStandardPartnersUseCase();
+      final result =
+          await getStandardPartnersUseCase(excludePartnerId: excludePartnerId);
 
       result.fold(
         (failure) {

@@ -72,7 +72,7 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
     // Recarregar parceiros (apenas para admins)
     if (_authStore.isAdmin) {
       print(' Carregando parceiros (Admin)...');
-      await _store.loadPartners();
+      await _store.loadPartners(excludePartnerId: _authStore.partnerId);
     }
 
     // Recarregar estados se já tiver provider inicializado
@@ -404,6 +404,7 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                                       )
                                     : DropdownButton<int>(
                                         value: _store.selectedPartner?.id,
+                                        isExpanded: true,
                                         hint: Text(
                                           !_store.hasPartners
                                               ? 'Nenhum parceiro disponível'
@@ -412,6 +413,7 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                                             fontSize: 16.sp,
                                             color: Colors.grey[500],
                                           ),
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                         items: _store.partners
                                             .map((partner) =>
@@ -421,6 +423,8 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                                                     partner.displayName,
                                                     style: TextStyle(
                                                         fontSize: 16.sp),
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
                                                   ),
                                                 ))
                                             .toList(),

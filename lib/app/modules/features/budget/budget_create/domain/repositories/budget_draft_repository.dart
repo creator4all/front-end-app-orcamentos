@@ -49,7 +49,7 @@ class CreateBudgetDraftParams {
     final diasValidade = validadeNormalizada.difference(hojeNormalizado).inDays;
 
     final Map<String, dynamic> data = {
-      'orc_parceiro_id': partnerId,
+      'orc_partner_destino_id': partnerId,
       'orc_usuario_id': userId, // ✅ Campo obrigatório
       'orc_cidade_id': cityId, // ✅ ID único da cidade (não mais array)
       'orc_status': 'rascunho',
