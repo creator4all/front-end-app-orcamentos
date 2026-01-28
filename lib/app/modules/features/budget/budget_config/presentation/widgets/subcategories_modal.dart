@@ -26,10 +26,10 @@ class SubcategoriesModal extends StatelessWidget {
       content: ListView.separated(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        itemCount: category.subcategorias.length,
+        itemCount: category.orderedSubcategorias.length,
         separatorBuilder: (_, __) => SizedBox(height: 12.h),
         itemBuilder: (context, index) {
-          final subcategory = category.subcategorias[index];
+          final subcategory = category.orderedSubcategorias[index];
           return _buildSubcategoryItem(context, subcategory);
         },
       ),

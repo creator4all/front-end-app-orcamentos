@@ -286,7 +286,9 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                     ),
                   SizedBox(height: 12.h),
                   if (store.hasCategories) ...[
-                    ...store.categories.map((category) {
+                    ...(store.categories.toList()
+                          ..sort((a, b) => a.ordem.compareTo(b.ordem)))
+                        .map((category) {
                       if (category.expandido) {
                         return [
                           _buildExpandedCategoryHeader(category),

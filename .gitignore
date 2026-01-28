@@ -47,3 +47,8 @@ app.*.map.json
 /macos/
 /windows/
 /linux/
+/docs
+/android/.gradle/
+*.g.dart
+.agent/
+android/app

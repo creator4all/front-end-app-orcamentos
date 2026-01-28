@@ -1,4 +1,4 @@
-﻿enum Environment { local, localCasa, test, production }
+enum Environment { local, localCasa, test, production }
 
 class ApiConfig {
   static const String _localBaseUrl = 'http://192.168.68.54:8080';
