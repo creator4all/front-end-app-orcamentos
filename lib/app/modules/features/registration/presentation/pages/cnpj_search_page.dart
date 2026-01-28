@@ -313,7 +313,7 @@ class _CnpjSearchPageState extends State<CnpjSearchPage> {
                           ),
                         ),
                         child: Text(
-                          'Tentar novamente',
+                          'Voltar',
                           style: TextStyle(
                             fontSize: 14.sp,
                             fontWeight: FontWeight.w600,

@@ -34,9 +34,10 @@ class SubcategoryEntity extends Equatable {
   /// Verifica se está usando estatísticas (produtos não carregados ainda)
   bool get usandoEstatisticas => produtos.isEmpty && estatisticas != null;
 
-  /// ⚠️ Lista apenas produtos ATIVOS (que podem ser exibidos)
+  /// ⚠️ Lista apenas produtos ATIVOS (que podem ser exibidos), ordenados por `ordem`
   List<ProductEntity> get activeProdutos {
-    return produtos.where((p) => p.ativo).toList();
+    return produtos.where((p) => p.ativo).toList()
+      ..sort((a, b) => a.ordem.compareTo(b.ordem));
   }
 
   /// ✅ Lista apenas produtos SELECIONADOS (e ativos)

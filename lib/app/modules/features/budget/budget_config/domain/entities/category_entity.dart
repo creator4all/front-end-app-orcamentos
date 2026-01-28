@@ -41,6 +41,11 @@ class CategoryEntity extends Equatable {
     return subcategorias.where((s) => s.hasActiveProducts).toList();
   }
 
+  /// Subcategorias ordenadas pelo campo `ordem`
+  List<SubcategoryEntity> get orderedSubcategorias {
+    return subcategorias.toList()..sort((a, b) => a.ordem.compareTo(b.ordem));
+  }
+
   /// Quantidade total de subcategorias com produtos ativos
   int get activeSubcategoriesCount => activeSubcategories.length;
 

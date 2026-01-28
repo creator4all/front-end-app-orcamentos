@@ -333,7 +333,9 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
 
                   // ✅ Categorias Dinâmicas (baseadas no campo "expandido")
                   if (store.hasCategories) ...[
-                    ...store.categories.map((category) {
+                    ...(store.categories.toList()
+                          ..sort((a, b) => a.ordem.compareTo(b.ordem)))
+                        .map((category) {
                       if (category.expandido) {
                         // Exibir como categoria expandida (header + subcategorias visíveis)
                         return [

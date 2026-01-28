@@ -42,3 +42,8 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 .github
+/docs
+/android/.gradle/
+*.g.dart
+.agent/
+android/app
