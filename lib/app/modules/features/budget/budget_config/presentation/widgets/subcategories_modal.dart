@@ -6,7 +6,6 @@ import '../../../../../../shared/widgets/custom_modal.dart';
 import '../../domain/entities/category_entity.dart';
 import '../../domain/entities/subcategory_entity.dart';
 
-/// Modal para exibir as subcategorias de uma categoria
 class SubcategoriesModal extends StatelessWidget {
   final CategoryEntity category;
   final Function(SubcategoryEntity) onSubcategoryTap;
@@ -58,18 +57,13 @@ class SubcategoriesModal extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Checkbox - clicável separadamente
             GestureDetector(
               onTap: () {
-                if (onCheckboxChanged != null) {
-                  print(
-                      '✅ [SubcategoriesModal] Checkbox subcategoria ${subcategory.nome}: ${!hasSelectedProducts ? "MARCAR" : "DESMARCAR"}');
-                  onCheckboxChanged!(
-                    category.id,
-                    subcategory.id,
-                    !hasSelectedProducts,
-                  );
-                }
+                onCheckboxChanged?.call(
+                  category.id,
+                  subcategory.id,
+                  !hasSelectedProducts,
+                );
               },
               child: Container(
                 width: 17.w,
@@ -95,16 +89,12 @@ class SubcategoriesModal extends StatelessWidget {
                     : null,
               ),
             ),
-
             SizedBox(width: 12.w),
-
-            // Informações da subcategoria
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Nome
                   Text(
                     capitalizeFirstLetter(subcategory.nome),
                     style: TextStyle(
@@ -114,7 +104,6 @@ class SubcategoriesModal extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: 2.h),
-                  // Valor
                   Text(
                     subcategory.formattedTotalValue,
                     style: TextStyle(
@@ -126,8 +115,6 @@ class SubcategoriesModal extends StatelessWidget {
                 ],
               ),
             ),
-
-            // Contador e seta
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [

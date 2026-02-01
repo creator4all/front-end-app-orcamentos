@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../../../../shared/utils/string_utils.dart';
 import '../../domain/entities/product_entity.dart';
 
 /// Widget de checkbox para produto com recálculo dinâmico
@@ -128,29 +129,17 @@ class ProductCheckbox extends StatelessWidget {
     );
   }
 
+  static const _productIcons = <String, IconData>{
+    'livro': Icons.book,
+    'tecnologia': Icons.computer,
+    'serviço': Icons.miscellaneous_services,
+  };
+
   IconData _getProductIcon(String tipoProduto) {
-    if (tipoProduto.toLowerCase().contains('livro')) {
-      return Icons.book;
-    } else if (tipoProduto.toLowerCase().contains('tecnologia')) {
-      return Icons.computer;
-    } else if (tipoProduto.toLowerCase().contains('software')) {
-      return Icons.apps;
-    } else if (tipoProduto.toLowerCase().contains('plataforma')) {
-      return Icons.web;
-    }
-    return Icons.category;
+    return _productIcons[tipoProduto.toLowerCase()] ?? Icons.category;
   }
 
   String _getProductType(String tipoProduto) {
-    if (tipoProduto.toLowerCase().contains('livro')) {
-      return 'Livro';
-    } else if (tipoProduto.toLowerCase().contains('tecnologia')) {
-      return 'Tecnologia';
-    } else if (tipoProduto.toLowerCase().contains('software')) {
-      return 'Software';
-    } else if (tipoProduto.toLowerCase().contains('plataforma')) {
-      return 'Plataforma';
-    }
-    return 'Produto';
+    return capitalizeFirstLetter(tipoProduto);
   }
 }

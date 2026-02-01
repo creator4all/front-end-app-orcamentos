@@ -28,37 +28,29 @@ class AuthApiDatasource implements AuthDatasource {
     required this.secureStorage,
   });
 
+  /// Configuração padrão para requisições HTTP
+  /// User-Agent é obrigatório para evitar OTP em mobile
+  HttpRequestConfig get _defaultConfig => HttpRequestConfig(
+        headers: {'User-Agent': 'App-Orcamentos-V1'},
+      );
+
   @override
   Future<UserModel> login({
     required String email,
     required String password,
   }) async {
-    print('🌐 AuthApiDatasource.login() iniciado');
-    print('   URL: ${ApiConfig.loginEndpoint}');
-    print('   Email: $email');
-
     try {
-      print('📡 Fazendo POST para ${ApiConfig.loginEndpoint}...');
-
-      // ✅ USANDO NOVO AppHttpClient com User-Agent customizado
       final response = await httpClient.post(
         ApiConfig.loginEndpoint,
         data: {
           'usr_email': email,
           'usr_password': password,
         },
-        config: HttpRequestConfig(
-          headers: {
-            'User-Agent':
-                'App-Orcamentos-V1', // ⚠️ OBRIGATÓRIO para evitar OTP em mobile
-          },
-        ),
+        config: _defaultConfig,
       );
 
-      // Processar resposta de sucesso
       final data = response.body;
 
-      // Validar estrutura da resposta
       if (!data.containsKey('dados')) {
         throw Exception(
             'Resposta da API inválida: chave "dados" não encontrada');
@@ -66,38 +58,27 @@ class AuthApiDatasource implements AuthDatasource {
 
       final dadosResponse = data['dados'] as Map<String, dynamic>;
 
-      // === PASSO 1: Salvar token ===
       if (dadosResponse.containsKey('token') &&
           dadosResponse['token'] != null) {
         final token = dadosResponse['token'].toString();
 
-        // Salvar no SecureStorage
         await secureStorage.write(
           key: _tokenKey,
           value: token,
         );
 
-        // Cachear no TokenCache para uso síncrono nos interceptors
+        // TokenCache permite acesso síncrono ao token nos interceptors
         TokenCache.instance.setToken(token);
-
-        print('✅ Token salvo com sucesso (SecureStorage + TokenCache)');
-        print('📝 Token: ${token.substring(0, 20)}...');
       } else {
         throw Exception('Token não retornado pela API de login');
       }
 
-      // === PASSO 2: SEMPRE buscar dados completos do usuário via /api/perfil/me ===
-      print('🔍 Buscando dados completos do usuário via /api/perfil/me...');
-      final userModel =
-          await getCurrentUser(forceRefresh: true); // ⭐ FORÇA BUSCAR DA API
+      final userModel = await getCurrentUser(forceRefresh: true);
 
-      // === PASSO 3: Salvar dados completos do usuário no cache ===
       await secureStorage.write(
         key: _userKey,
         value: jsonEncode(userModel.toJson()),
       );
-
-      print('✅ Dados completos do usuário salvos no cache');
 
       return userModel;
     } on UnauthorizedException {
@@ -114,7 +95,6 @@ class AuthApiDatasource implements AuthDatasource {
       throw Exception(
           'Falha na conexão. Verifique sua internet e tente novamente.');
     } catch (e) {
-      print('❌ Erro inesperado: $e');
       throw Exception('Erro inesperado ao fazer login: $e');
     }
   }
@@ -126,7 +106,6 @@ class AuthApiDatasource implements AuthDatasource {
 
       if (token != null) {
         try {
-          // Chamar endpoint de logout
           await dio.post(
             '${ApiConfig.baseUrl}/api/auth/logout',
             options: Options(
@@ -136,20 +115,14 @@ class AuthApiDatasource implements AuthDatasource {
               },
             ),
           );
-        } catch (e) {
-          // Mesmo se falhar na API, limpar dados locais
-          print('Erro ao chamar logout na API: $e');
+        } catch (_) {
+          // Ignora erro da API - sempre limpa dados locais
         }
       }
 
-      // Limpar dados armazenados
       await secureStorage.delete(key: _tokenKey);
       await secureStorage.delete(key: _userKey);
-
-      // Limpar token do cache em memória
       TokenCache.instance.clearToken();
-
-      print('✅ Logout realizado: SecureStorage e TokenCache limpos');
     } catch (e) {
       throw Exception('Erro ao fazer logout: $e');
     }
@@ -164,62 +137,33 @@ class AuthApiDatasource implements AuthDatasource {
         throw Exception('Token não encontrado. Faça login novamente.');
       }
 
-      // Se forceRefresh = false, tentar buscar do cache primeiro
       if (!forceRefresh) {
         final cachedUser = await secureStorage.read(key: _userKey);
         if (cachedUser != null) {
           try {
-            print(
-                '📦 [getCurrentUser] Retornando do cache (forceRefresh=false)');
             final userJson = jsonDecode(cachedUser) as Map<String, dynamic>;
             return UserModel.fromJson(userJson);
-          } catch (e) {
-            print('⚠️ Erro ao decodificar usuário do cache: $e');
+          } catch (_) {
+            // Cache corrompido - buscar da API
           }
         }
-      } else {
-        print('🔄 [getCurrentUser] forceRefresh=true - Ignorando cache');
       }
 
-      // Se forceRefresh = true OU não houver cache, buscar da API
-      print('🌐 Chamando GET /api/perfil/me via AppHttpClient...');
       final response = await httpClient.get(
         '/api/perfil/me',
-        config: HttpRequestConfig(
-          headers: {
-            'User-Agent':
-                'App-Orcamentos-V1', // ⚠️ OBRIGATÓRIO para evitar OTP em mobile
-          },
-        ),
+        config: _defaultConfig,
       );
-
-      print('📡 Status Code: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = response.body;
 
-        print('📦 Resposta completa da API:');
-        print(data);
-
-        // A API pode retornar dentro de 'dados' ou diretamente
+        // API pode retornar dentro de 'dados' ou diretamente
         final userData = data.containsKey('dados')
             ? data['dados'] as Map<String, dynamic>
             : data;
 
-        print('👤 Dados do usuário extraídos:');
-        print(userData);
-
         final userModel = UserModel.fromJson(userData);
 
-        print('✅ UserModel criado com sucesso:');
-        print('   - ID: ${userModel.id}');
-        print('   - Nome: ${userModel.name}');
-        print('   - Email: ${userModel.email}');
-        print('   - Role: ${userModel.role?.name ?? "N/A"}');
-        print('   - Partner: ${userModel.partner?.tradeName ?? "N/A"}');
-        print('   - Status: ${userModel.status}');
-
-        // Atualizar cache
         await secureStorage.write(
           key: _userKey,
           value: jsonEncode(userModel.toJson()),
@@ -231,7 +175,7 @@ class AuthApiDatasource implements AuthDatasource {
       }
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {
-        // Token inválido - limpar e forçar novo login
+        // Token inválido - força novo login
         await secureStorage.delete(key: _tokenKey);
         await secureStorage.delete(key: _userKey);
         throw Exception('Sessão expirada. Faça login novamente.');
@@ -287,19 +231,12 @@ class AuthApiDatasource implements AuthDatasource {
 
   @override
   Future<void> requestPasswordReset(String email) async {
-    print('📧 AuthApiDatasource.requestPasswordReset()');
-    print('   Email: $email');
-
     try {
       await httpClient.post(
         '/api/auth/forgot-password',
         data: {'usr_email': email},
-        config: HttpRequestConfig(
-          headers: {'User-Agent': 'App-Orcamentos-V1'},
-        ),
+        config: _defaultConfig,
       );
-
-      print('✅ Email de recuperação enviado com sucesso');
     } on NotFoundException {
       throw Exception('Usuário não encontrado com este email');
     } on BadRequestException catch (e) {
@@ -309,26 +246,18 @@ class AuthApiDatasource implements AuthDatasource {
     } on ConnectionException {
       throw Exception('Falha na conexão. Verifique sua internet.');
     } catch (e) {
-      print('❌ Erro ao solicitar recuperação: $e');
       throw Exception('Erro ao enviar email de recuperação: $e');
     }
   }
 
   @override
   Future<void> resendOtpCode(String email) async {
-    print('🔄 AuthApiDatasource.resendOtpCode()');
-    print('   Email: $email');
-
     try {
       await httpClient.post(
         '/api/auth/forgot-password/resend',
         data: {'usr_email': email},
-        config: HttpRequestConfig(
-          headers: {'User-Agent': 'App-Orcamentos-V1'},
-        ),
+        config: _defaultConfig,
       );
-
-      print('✅ Código OTP reenviado com sucesso');
     } on NotFoundException {
       throw Exception('Usuário não encontrado');
     } on TooManyRequestsException {
@@ -338,17 +267,12 @@ class AuthApiDatasource implements AuthDatasource {
     } on ConnectionException {
       throw Exception('Falha na conexão. Verifique sua internet.');
     } catch (e) {
-      print('❌ Erro ao reenviar OTP: $e');
       throw Exception('Erro ao reenviar código: $e');
     }
   }
 
   @override
   Future<bool> verifyOtpCode(String email, String otpCode) async {
-    print('🔢 AuthApiDatasource.verifyOtpCode()');
-    print('   Email: $email');
-    print('   OTP Code: $otpCode');
-
     try {
       final response = await httpClient.post(
         '/api/auth/forgot-password/validate-otp',
@@ -356,20 +280,13 @@ class AuthApiDatasource implements AuthDatasource {
           'usr_email': email,
           'otp_code': otpCode,
         },
-        config: HttpRequestConfig(
-          headers: {'User-Agent': 'App-Orcamentos-V1'},
-        ),
+        config: _defaultConfig,
       );
 
-      print('✅ Código OTP verificado com sucesso');
-
-      // Verificar se a resposta indica sucesso
       final data = response.body;
       return data['valid'] == true ||
           data['valido'] == true ||
           response.statusCode == 200;
-
-      return response.statusCode == 200;
     } on UnauthorizedException {
       throw Exception('Código OTP inválido');
     } on BadRequestException {
@@ -381,7 +298,6 @@ class AuthApiDatasource implements AuthDatasource {
     } on ConnectionException {
       throw Exception('Falha na conexão. Verifique sua internet.');
     } catch (e) {
-      print('❌ Erro ao verificar OTP: $e');
       throw Exception('Erro ao verificar código: $e');
     }
   }
@@ -393,9 +309,6 @@ class AuthApiDatasource implements AuthDatasource {
     String novaSenha,
     String confirmarSenha,
   ) async {
-    print('🔑 AuthApiDatasource.resetPassword()');
-    print('   Email: $email');
-
     try {
       await httpClient.post(
         '/api/auth/reset-password',
@@ -405,12 +318,8 @@ class AuthApiDatasource implements AuthDatasource {
           'nova_senha': novaSenha,
           'confirmar_senha': confirmarSenha,
         },
-        config: HttpRequestConfig(
-          headers: {'User-Agent': 'App-Orcamentos-V1'},
-        ),
+        config: _defaultConfig,
       );
-
-      print('✅ Senha redefinida com sucesso');
     } on UnauthorizedException {
       throw Exception('Código OTP inválido ou expirado');
     } on BadRequestException catch (e) {
@@ -422,21 +331,16 @@ class AuthApiDatasource implements AuthDatasource {
     } on ConnectionException {
       throw Exception('Falha na conexão. Verifique sua internet.');
     } catch (e) {
-      print('❌ Erro ao redefinir senha: $e');
       throw Exception('Erro ao redefinir senha: $e');
     }
   }
 
   @override
   Future<UserModel> removeAvatar() async {
-    print('🗑️ AuthApiDatasource.removeAvatar()');
-
     try {
       final response = await httpClient.delete(
         '/api/perfil/me/avatar',
-        config: HttpRequestConfig(
-          headers: {'User-Agent': 'App-Orcamentos-V1'},
-        ),
+        config: _defaultConfig,
       );
 
       if (response.statusCode == 200) {
@@ -447,19 +351,16 @@ class AuthApiDatasource implements AuthDatasource {
 
         final userModel = UserModel.fromJson(userData);
 
-        // Atualizar cache local
         await secureStorage.write(
           key: _userKey,
           value: jsonEncode(userModel.toJson()),
         );
 
-        print('✅ Avatar removido e cache de usuário atualizado');
         return userModel;
       } else {
         throw Exception('Falha ao remover avatar');
       }
     } catch (e) {
-      print('❌ Erro ao remover avatar: $e');
       throw Exception('Erro ao remover avatar: $e');
     }
   }

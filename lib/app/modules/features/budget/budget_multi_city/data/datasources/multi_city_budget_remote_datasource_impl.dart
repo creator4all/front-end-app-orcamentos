@@ -13,6 +13,27 @@ class MultiCityBudgetRemoteDataSourceImpl
 
   MultiCityBudgetRemoteDataSourceImpl(this._apiService);
 
+  /// Constrói payload de cidades com overrides para envio à API
+  List<Map<String, dynamic>> _buildCidadesPayload(
+    List<int> cidadeIds,
+    Map<int, Map<int, double>> overridesPorCidade,
+  ) {
+    return cidadeIds.map((cidadeId) {
+      final overrides = overridesPorCidade[cidadeId] ?? {};
+      final overridesList = overrides.entries
+          .map((e) => {
+                'indice_etapa_id': e.key,
+                'valor': e.value,
+              })
+          .toList();
+
+      return {
+        'cidade_id': cidadeId,
+        'overrides': overridesList,
+      };
+    }).toList();
+  }
+
   @override
   Future<Map<int, CensoEscolarEntity>> buscarCensosMultiCidade(
     List<int> cidadeIds,
@@ -44,20 +65,10 @@ class MultiCityBudgetRemoteDataSourceImpl
     required List<int> cidadeIds,
     required Map<int, Map<int, double>> overridesPorCidade,
   }) async {
+    final cidades = _buildCidadesPayload(cidadeIds, overridesPorCidade);
     final payload = {
       'orc_nome': nome,
-      'cidades': cidadeIds.map((cidadeId) {
-        final overrides = overridesPorCidade[cidadeId] ?? {};
-        return {
-          'cidade_id': cidadeId,
-          'overrides': overrides.entries
-              .map((e) => {
-                    'indice_etapa_id': e.key,
-                    'valor': e.value,
-                  })
-              .toList(),
-        };
-      }).toList(),
+      'cidades': cidades,
     };
 
     final response = await _apiService.post(
@@ -83,22 +94,12 @@ class MultiCityBudgetRemoteDataSourceImpl
     required Map<int, Map<int, double>> overridesPorCidade,
     int? partnerDestinoId,
   }) async {
+    final cidades = _buildCidadesPayload(cidadeIds, overridesPorCidade);
     final payload = <String, dynamic>{
       'orc_nome': nome,
       'orc_dias_validade': diasValidade,
       'orc_usuario_id': usuarioId,
-      'cidades': cidadeIds.map((cidadeId) {
-        final overrides = overridesPorCidade[cidadeId] ?? {};
-        return {
-          'cidade_id': cidadeId,
-          'overrides': overrides.entries
-              .map((e) => {
-                    'indice_etapa_id': e.key,
-                    'valor': e.value,
-                  })
-              .toList(),
-        };
-      }).toList(),
+      'cidades': cidades,
     };
 
     if (partnerDestinoId != null) {
@@ -134,19 +135,9 @@ class MultiCityBudgetRemoteDataSourceImpl
     required List<int> cidadeIds,
     required Map<int, Map<int, double>> overridesPorCidade,
   }) async {
+    final cidades = _buildCidadesPayload(cidadeIds, overridesPorCidade);
     final payload = {
-      'cidades': cidadeIds.map((cidadeId) {
-        final overrides = overridesPorCidade[cidadeId] ?? {};
-        return {
-          'cidade_id': cidadeId,
-          'overrides': overrides.entries
-              .map((e) => {
-                    'indice_etapa_id': e.key,
-                    'valor': e.value,
-                  })
-              .toList(),
-        };
-      }).toList(),
+      'cidades': cidades,
     };
 
     final response = await _apiService.put(

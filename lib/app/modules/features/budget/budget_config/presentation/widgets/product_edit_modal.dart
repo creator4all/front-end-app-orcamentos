@@ -10,13 +10,13 @@ import '../../domain/entities/product_entity.dart';
 class ProductEditModal extends StatefulWidget {
   final ProductEntity product;
   final Function(ProductEntity) onSave;
-  final VoidCallback onClose;
+  final VoidCallback? onClose;
 
   const ProductEditModal({
     super.key,
     required this.product,
     required this.onSave,
-    required this.onClose,
+    this.onClose,
   });
 
   @override
@@ -85,6 +85,14 @@ class _ProductEditModalState extends State<ProductEditModal> {
     });
   }
 
+  void _close() {
+    if (widget.onClose != null) {
+      widget.onClose!();
+    } else {
+      Navigator.of(context).pop();
+    }
+  }
+
   void _handleSave() {
     // Parse do valor
     final valorText = _valorController.text.replaceAll(RegExp(r'[^\d,]'), '');
@@ -97,7 +105,7 @@ class _ProductEditModalState extends State<ProductEditModal> {
     );
 
     widget.onSave(updatedProduct);
-    widget.onClose();
+    _close();
   }
 
   @override
@@ -128,7 +136,7 @@ class _ProductEditModalState extends State<ProductEditModal> {
                     ),
                   ),
                   IconButton(
-                    onPressed: widget.onClose,
+                    onPressed: _close,
                     icon: const Icon(Icons.close),
                   ),
                 ],
@@ -347,7 +355,7 @@ class _ProductEditModalState extends State<ProductEditModal> {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: widget.onClose,
+                      onPressed: _close,
                       style: OutlinedButton.styleFrom(
                         padding: EdgeInsets.symmetric(vertical: 12.h),
                       ),

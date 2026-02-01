@@ -311,12 +311,10 @@ class _MultiCityCensusPageState
               final studentTitles = group.titulos
                   .where((title) => !title.nomeEtapa.endsWith('P'))
                   .toList();
-              return group.titulos.isEmpty
-                  ? null
-                  : group.copyWith(titulos: studentTitles);
+              if (studentTitles.isEmpty) return null;
+              return group.copyWith(titulos: studentTitles);
             })
-            .whereType<dynamic>()
-            .where((g) => g.titulos.isNotEmpty)
+            .nonNulls
             .toList();
 
         return Padding(

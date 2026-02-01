@@ -289,15 +289,6 @@ abstract class _BudgetEditStoreBase with Store {
   }
 
   @action
-  void toggleCategory(int categoryId) {
-    final categoryIndex = categories.indexWhere((c) => c.id == categoryId);
-    if (categoryIndex != -1) {
-      // A CategoryEntity não tem isExpanded
-      // A lógica de expansão será gerenciada pela UI
-    }
-  }
-
-  @action
   void selectCategory(CategoryEntity category) {
     selectedCategory = category;
     selectedSubcategory = null;

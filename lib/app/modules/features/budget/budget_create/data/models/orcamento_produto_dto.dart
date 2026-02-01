@@ -1,7 +1,7 @@
+import '../../../../../../../app/shared/utils/date_utils.dart';
 import '../../domain/entities/orcamento_produto_entity.dart';
 import 'produto_dto.dart';
 
-/// DTO para OrcamentoProduto
 class OrcamentoProdutoDto {
   final int id;
   final int orcamentoId;
@@ -31,24 +31,12 @@ class OrcamentoProdutoDto {
       orcamentoId: (json['op_orcamento_id'] as num?)?.toInt() ?? 0,
       produtoId: (json['op_produto_id'] as num?)?.toInt() ?? 0,
       selecionado: json['op_selecionado'] as bool? ?? false,
-      quantidade: double.tryParse(json['op_quantidade']?.toString() ?? '0') ?? 0.0,
-      createdAt: _parseDate(json['created_at']) ?? DateTime.now(),
-      updatedAt: _parseDate(json['updated_at']) ?? DateTime.now(),
+      quantidade:
+          double.tryParse(json['op_quantidade']?.toString() ?? '0') ?? 0.0,
+      createdAt: parseDate(json['created_at']) ?? DateTime.now(),
+      updatedAt: parseDate(json['updated_at']) ?? DateTime.now(),
       produto: ProdutoDto.fromJson(produtoJson),
     );
-  }
-
-  static DateTime? _parseDate(dynamic value) {
-    if (value == null) return null;
-    if (value is DateTime) return value;
-    if (value is String) {
-      try {
-        return DateTime.parse(value);
-      } catch (_) {
-        return null;
-      }
-    }
-    return null;
   }
 
   OrcamentoProdutoEntity toEntity() {

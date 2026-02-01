@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:multimidiaapp/app/modules/features/new_drive/presentation/widgets/drive_item_list_view.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_top_bar.dart';
 
 import '../../../auth/presentation/stores/auth_store.dart';
 import '../../domain/entities/drive_item.dart';
 import '../stores/file_opener_store.dart';
 import '../stores/new_drive_store.dart';
-import '../widgets/item_card_doc.dart';
 
 /// Página de detalhes de uma categoria
 ///
@@ -97,29 +97,12 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
 
               // ListView dos itens
               Expanded(
-                child: ListView.builder(
-                  padding: EdgeInsets.symmetric(horizontal: 10.w),
-                  itemCount: items.length,
-                  physics: const BouncingScrollPhysics(),
-                  itemBuilder: (context, index) {
-                    final item = items[index];
-                    return Column(
-                      children: [
-                        ItemCardDoc(
-                          itemName: item.name,
-                          itemSize: item.size,
-                          itemDate: item.getFormattedDate(),
-                          itemType: item.type,
-                          thumbnailUrl: item.thumbnailUrl,
-                          onTap: () => _handleFileOpen(item),
-                          onMenuTap: () {
-                            // TODO: Implementar menu de opções
-                            debugPrint('Menu tap on item: ${item.name}');
-                          },
-                        ),
-                        if (index < items.length - 1) SizedBox(height: 12.h),
-                      ],
-                    );
+                child: DriveItemListView(
+                  items: items,
+                  onItemTap: _handleFileOpen,
+                  onMenuTap: (item) {
+                    // TODO: Implementar menu de opções
+                    debugPrint('Menu tap on item: ${item.name}');
                   },
                 ),
               ),

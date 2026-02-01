@@ -82,10 +82,4 @@ abstract class BudgetDraftRepository {
   /// Busca um orçamento em rascunho por ID
   /// Retorna Either<BudgetFailure, BudgetDraftEntity>
   Future<Either<BudgetFailure, BudgetDraftEntity>> getDraftById(int budgetId);
-
-  /// Valida se um orçamento pode ser criado
-  /// Verifica regras de negócio antes da criação
-  Future<Either<BudgetFailure, bool>> validateBudgetCreation(
-    CreateBudgetDraftParams params,
-  );
 }

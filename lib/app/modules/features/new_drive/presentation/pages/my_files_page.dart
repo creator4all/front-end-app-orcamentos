@@ -8,8 +8,8 @@ import '../../../../features/auth/presentation/stores/auth_store.dart';
 import '../../domain/entities/drive_item.dart';
 import '../stores/file_opener_store.dart';
 import '../stores/new_drive_store.dart';
+import '../widgets/drive_item_list_view.dart';
 import '../widgets/file_details_modal.dart';
-import '../widgets/item_card_doc.dart';
 
 /// Página de meus arquivos
 ///
@@ -111,27 +111,10 @@ class _MyFilesPageState extends State<MyFilesPage> {
 
               // ListView dos itens
               Expanded(
-                child: ListView.builder(
-                  padding: EdgeInsets.symmetric(horizontal: 10.w),
-                  itemCount: items.length,
-                  physics: const BouncingScrollPhysics(),
-                  itemBuilder: (context, index) {
-                    final item = items[index];
-                    return Column(
-                      children: [
-                        ItemCardDoc(
-                          itemName: item.name,
-                          itemSize: item.size,
-                          itemDate: item.getFormattedDate(),
-                          itemType: item.type,
-                          thumbnailUrl: item.thumbnailUrl,
-                          showMenu: false,
-                          onTap: () => _showFileDetails(item),
-                        ),
-                        if (index < items.length - 1) SizedBox(height: 12.h),
-                      ],
-                    );
-                  },
+                child: DriveItemListView(
+                  items: items,
+                  onItemTap: _showFileDetails,
+                  showMenu: false,
                 ),
               ),
             ],

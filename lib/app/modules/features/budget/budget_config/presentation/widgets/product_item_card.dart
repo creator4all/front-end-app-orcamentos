@@ -6,26 +6,9 @@ import '../../../../../../shared/utils/string_utils.dart';
 import '../../../../../../shared/widgets/custom_checkbox.dart';
 import '../../domain/entities/product_entity.dart';
 
-/// Card de produto individual para seleção em orçamento
-///
-/// Layout:
-/// - Row com checkbox + informações + ícone info
-/// - Checkbox customizado (17x17)
-/// - Nome do produto
-/// - Qtde, Preço unitário, Valor total
-/// - Ícone de informação (22x22)
-///
-/// Estados visuais:
-/// - Selecionado: borda azul (#2830F2)
-/// - Não selecionado: borda cinza (#D9D9D9)
 class ProductItemCard extends StatelessWidget {
-  /// Produto a ser exibido
   final ProductEntity product;
-
-  /// Callback quando o checkbox é clicado
   final ValueChanged<bool>? onToggle;
-
-  /// Callback quando o ícone de info é clicado
   final VoidCallback? onInfoTap;
 
   const ProductItemCard({
@@ -35,7 +18,6 @@ class ProductItemCard extends StatelessWidget {
     this.onInfoTap,
   });
 
-  /// Formata valor para padrão brasileiro
   String _formatCurrency(double value) {
     final formatter = NumberFormat.currency(
       locale: 'pt_BR',
@@ -64,21 +46,16 @@ class ProductItemCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Checkbox
           CustomCheckbox(
             value: isSelected,
             onChanged: onToggle,
           ),
-
           SizedBox(width: 12.w),
-
-          // Informações do produto
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Nome do produto
                 Text(
                   capitalizeFirstLetter(product.solucao),
                   style: TextStyle(
@@ -87,10 +64,7 @@ class ProductItemCard extends StatelessWidget {
                     color: const Color(0xFF484848),
                   ),
                 ),
-
                 SizedBox(height: 4.h),
-
-                // Qtde, Preço, Total
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -123,10 +97,7 @@ class ProductItemCard extends StatelessWidget {
               ],
             ),
           ),
-
           SizedBox(width: 12.w),
-
-          // Ícone de informação
           GestureDetector(
             onTap: onInfoTap,
             child: Icon(

@@ -384,4 +384,40 @@ flutter:
 - Implementar guards de rota quando necessário
 - Manter consistência entre diferentes níveis
 
+### 6. **Utilitários e DRY (Don't Repeat Yourself)**
+- Criar classes utilitárias em `app/shared/utils/` para funcionalidades repetidas
+- **Formatação de moeda**: Usar `CurrencyUtils.formatBRL()` ao invés de criar `NumberFormat.currency()` localmente
+- **Exemplo de uso**:
+```dart
+// ❌ RUIM - Código duplicado em vários arquivos
+final formatter = NumberFormat.currency(
+  locale: 'pt_BR',
+  symbol: 'R\$',
+  decimalDigits: 2,
+);
+return formatter.format(value);
+
+// ✅ BOM - Utilitário centralizado
+return CurrencyUtils.formatBRL(value);
+```
+
+### 7. **Entidades com Equatable**
+- Usar `bool get stringify => true;` ao invés de `toString()` manual
+- Equatable gera toString automaticamente baseado nos `props`
+- Exemplo:
+```dart
+// ❌ RUIM - Manual
+@override
+String toString() => 'Entity(id: $id, name: $name)';
+
+// ✅ BOM - Equatable gera automaticamente
+@override
+bool get stringify => true;
+```
+
+### 8. **copyWith Pattern**
+- **Novos arquivos:** Usar `@CopyWith()` annotation com code generation
+- Evitar implementação manual para reduzir boilerplate
+- Rodar `flutter pub run build_runner build` após mudanças
+
 ---

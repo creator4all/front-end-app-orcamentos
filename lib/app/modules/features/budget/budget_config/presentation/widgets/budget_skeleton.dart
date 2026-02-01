@@ -2,10 +2,39 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
-/// Skeleton loading para tela de configuração de orçamento
-/// Exibe placeholders animados enquanto carrega dados completos
+import '../../../../../../shared/widgets/budget_summary_card.dart';
+import '../../../../../../shared/widgets/product_category.dart';
+import '../widgets/school_census_card.dart';
+
+/// Skeleton loading para tela de configuração de orçamento.
+///
+/// Utiliza widgets reais com dados fake para garantir que o skeleton
+/// sempre reflete o layout atual da UI - mudanças nos widgets são
+/// automaticamente refletidas no skeleton.
 class BudgetSkeleton extends StatelessWidget {
   const BudgetSkeleton({super.key});
+
+  // Dados fake para simular o estado real da UI
+  static const _fakeBudgetValue = 12500.00;
+  static const _fakeProductCount = 8;
+  static const _fakeCityCount = 2;
+
+  static final _fakeCitiesData = <Map<String, dynamic>>[
+    {
+      'id': 1,
+      'nome': 'Cidade Exemplo',
+      'cidades_has_indice_etapa': [
+        {
+          'nome_etapa': 'EF1',
+          'pivot': {'etapa_valor': 500}
+        },
+        {
+          'nome_etapa': 'EF2',
+          'pivot': {'etapa_valor': 750}
+        },
+      ],
+    },
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -21,254 +50,134 @@ class BudgetSkeleton extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Skeleton do BudgetSummaryCard
-            _buildSummaryCardSkeleton(),
-
-            SizedBox(height: 24.h),
-
-            // Skeleton do SchoolCensusCard
-            _buildCensusCardSkeleton(),
-
-            SizedBox(height: 24.h),
-
-            // Título "Categorias"
-            Container(
-              width: 120.w,
-              height: 20.h,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(4.r),
-              ),
+            // BudgetSummaryCard com dados fake
+            const BudgetSummaryCard(
+              budgetValue: _fakeBudgetValue,
+              selectedProductsCount: _fakeProductCount,
             ),
 
-            SizedBox(height: 16.h),
+            SizedBox(height: 12.h),
 
-            // Skeletons de Categorias (4 placeholders)
+            // SchoolCensusCard com dados fake
+            SchoolCensusCard(
+              numberOfCities: _fakeCityCount,
+              citiesData: _fakeCitiesData,
+            ),
+
+            SizedBox(height: 24.h),
+
+            // Cards de categoria fake (4 placeholders)
             ...List.generate(
               4,
               (index) => Padding(
                 padding: EdgeInsets.only(bottom: 12.h),
-                child: _buildCategoryCardSkeleton(),
+                child: const ProductCategory(
+                  categoryIcon: Icon(
+                    Icons.category,
+                    color: Colors.black54,
+                  ),
+                  title: 'Categoria Exemplo',
+                  value: 'R\$ 2.500,00',
+                  selectedCount: 3,
+                  totalCount: 10,
+                  isSelected: false,
+                ),
               ),
             ),
 
-            SizedBox(height: 32.h),
+            SizedBox(height: 24.h),
 
-            // Skeleton do botão "Finalizar"
-            Container(
+            // Campos de data (simulando Row com dois TextFields)
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Data do orçamento',
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      SizedBox(height: 8.h),
+                      TextField(
+                        enabled: false,
+                        decoration: InputDecoration(
+                          hintText: '01/01/2026',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.r),
+                          ),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12.w,
+                            vertical: 12.h,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Validade do orç. *',
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      SizedBox(height: 8.h),
+                      TextField(
+                        enabled: false,
+                        decoration: InputDecoration(
+                          hintText: '60',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.r),
+                          ),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12.w,
+                            vertical: 12.h,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            SizedBox(height: 24.h),
+
+            // Botão "Salvar Orçamento" fake
+            SizedBox(
               width: double.infinity,
               height: 50.h,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(8.r),
+              child: ElevatedButton(
+                onPressed: null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF117BBD),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                ),
+                child: Text(
+                  'Salvar Orçamento',
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ),
+
+            SizedBox(height: 24.h),
           ],
         ),
       ),
-    );
-  }
-
-  /// Skeleton do card de resumo (topo)
-  Widget _buildSummaryCardSkeleton() {
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Linha 1: Valor Total
-          _buildSkeletonRow(120.w, 140.w),
-          SizedBox(height: 12.h),
-          Divider(height: 1.h, color: Colors.grey[200]),
-          SizedBox(height: 12.h),
-          // Linha 2: Produtos
-          _buildSkeletonRow(100.w, 100.w),
-        ],
-      ),
-    );
-  }
-
-  /// Skeleton do card do censo escolar
-  Widget _buildCensusCardSkeleton() {
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Ícone
-          Container(
-            width: 48.w,
-            height: 48.h,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              shape: BoxShape.circle,
-            ),
-          ),
-          SizedBox(width: 16.w),
-          // Textos
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 150.w,
-                  height: 16.h,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(4.r),
-                  ),
-                ),
-                SizedBox(height: 8.h),
-                Container(
-                  width: 200.w,
-                  height: 14.h,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(4.r),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Ícone de seta
-          Container(
-            width: 24.w,
-            height: 24.h,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              shape: BoxShape.circle,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Skeleton de um card de categoria
-  Widget _buildCategoryCardSkeleton() {
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(
-          color: Colors.grey[200]!,
-          width: 1.5,
-        ),
-      ),
-      child: Row(
-        children: [
-          // Checkbox
-          Container(
-            width: 20.w,
-            height: 20.h,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(5.r),
-            ),
-          ),
-          SizedBox(width: 12.w),
-          // Ícone da categoria
-          Container(
-            width: 32.w,
-            height: 32.h,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              shape: BoxShape.circle,
-            ),
-          ),
-          SizedBox(width: 12.w),
-          // Informações
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 140.w,
-                  height: 16.h,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(4.r),
-                  ),
-                ),
-                SizedBox(height: 6.h),
-                Container(
-                  width: 100.w,
-                  height: 14.h,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(4.r),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Contador de produtos
-          Container(
-            width: 60.w,
-            height: 14.h,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(4.r),
-            ),
-          ),
-          SizedBox(width: 8.w),
-          // Ícone de ação
-          Container(
-            width: 24.w,
-            height: 24.h,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              shape: BoxShape.circle,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Helper para criar uma linha de skeleton com dois elementos
-  Widget _buildSkeletonRow(double leftWidth, double rightWidth) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Container(
-          width: leftWidth,
-          height: 16.h,
-          decoration: BoxDecoration(
-            color: Colors.grey[300],
-            borderRadius: BorderRadius.circular(4.r),
-          ),
-        ),
-        Container(
-          width: rightWidth,
-          height: 18.h,
-          decoration: BoxDecoration(
-            color: Colors.grey[300],
-            borderRadius: BorderRadius.circular(4.r),
-          ),
-        ),
-      ],
     );
   }
 }

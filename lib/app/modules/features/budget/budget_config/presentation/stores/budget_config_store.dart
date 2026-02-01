@@ -50,8 +50,6 @@ abstract class _BudgetConfigStoreBase with Store {
     required this.calculationService,
   });
 
-  // ========== OBSERVABLES ==========
-
   @observable
   bool isLoading = false;
 
@@ -85,7 +83,6 @@ abstract class _BudgetConfigStoreBase with Store {
   @observable
   String? budgetName;
 
-  // ✅ Novos observables para categorias
   @observable
   ObservableList<CategoryEntity> categories = ObservableList<CategoryEntity>();
 
@@ -95,18 +92,15 @@ abstract class _BudgetConfigStoreBase with Store {
   @observable
   SubcategoryEntity? selectedSubcategory;
 
-  // ✅ Produtos que precisam de remarcação após mudança no censo
   @observable
   List<ProductEntity> productsNeedingRemark = [];
-
-  // ========== COMPUTED ==========
 
   @computed
   bool get canFinalize {
     if (budgetDetail == null) return false;
     if (validityDate == null) return false;
 
-    // ✅ Verificar se tem produtos selecionados nas categorias
+    // Verificar se tem produtos selecionados nas categorias
     return totalSelectedProducts > 0;
   }
 
@@ -117,13 +111,11 @@ abstract class _BudgetConfigStoreBase with Store {
 
   @computed
   double get totalValue {
-    // ✅ Calcular total a partir das categorias
     return categories.fold(0.0, (sum, c) => sum + c.totalValue);
   }
 
   @computed
   int get selectedProductsCount {
-    // ✅ Contar produtos selecionados nas categorias
     return categories.fold(0, (sum, c) => sum + c.selectedProductsCount);
   }
 
@@ -133,7 +125,6 @@ abstract class _BudgetConfigStoreBase with Store {
     return categories.fold(0, (sum, c) => sum + c.totalActiveProducts);
   }
 
-  // ✅ Novo computed para total de produtos selecionados
   @computed
   int get totalSelectedProducts {
     return categories.fold(0, (sum, c) => sum + c.selectedProductsCount);
@@ -168,8 +159,6 @@ abstract class _BudgetConfigStoreBase with Store {
 
   @computed
   bool get isFullyLoaded => !isLoading && !isLoadingProducts;
-
-  // ========== ACTIONS ==========
 
   @action
   Future<void> initialize(int budgetId) async {
@@ -211,15 +200,14 @@ abstract class _BudgetConfigStoreBase with Store {
 
       categoryStates.clear();
 
+      // Regra de negócio: Todo novo orçamento possui 60 dias de validade por padrão
       validityDate =
           draft.validityDate ?? DateTime.now().add(const Duration(days: 60));
       budgetName = draft.partnerName;
 
-      // 🧮 Preencher censoEscolar a partir dos dados da cidade
       final oldCensoEscolar = censoEscolar;
       censoEscolar = _convertCidadeToCensoEscolar(draft.cidade);
 
-      // 🔄 Verificar se houve mudança no censo que afeta produtos
       if (oldCensoEscolar != null && censoEscolar != null) {
         _checkForProductsToRemark(oldCensoEscolar, censoEscolar!);
       }
@@ -275,6 +263,7 @@ abstract class _BudgetConfigStoreBase with Store {
       final id = response['orc_orcamentoId'] ?? response['id'];
       final nome = response['orc_nome'] ?? '';
       final status = response['orc_status'] ?? 'rascunho';
+      // Regra de negócio: Todo novo orçamento possui 60 dias de validade por padrão
       final diasValidade = response['orc_dias_validade'] ?? 60;
       final dataValidade = response['orc_data_validade'] != null
           ? DateTime.parse(response['orc_data_validade'].toString())
@@ -851,8 +840,6 @@ abstract class _BudgetConfigStoreBase with Store {
     }
   }
 
-  // ========== NOVOS ACTIONS PARA CATEGORIAS E PRODUTOS ==========
-
   @action
   void selectCategory(CategoryEntity? category) {
     selectedCategory = category;
@@ -871,7 +858,6 @@ abstract class _BudgetConfigStoreBase with Store {
     print(
         '🔄 [BudgetConfigStore] Alternando produto: $productId para $selected');
 
-    // Encontrar o produto em todas as categorias/subcategorias
     for (var i = 0; i < categories.length; i++) {
       final category = categories[i];
 
@@ -884,15 +870,13 @@ abstract class _BudgetConfigStoreBase with Store {
         if (productIndex != -1) {
           final product = subcategory.produtos[productIndex];
 
-          // ⚠️ Só permitir alteração se o produto estiver ativo
+          // Regra de negócio: Só permitir alteração se o produto estiver ativo
           if (!product.ativo) {
             return;
           }
 
-          // ✅ Alternar campo 'selecionado'
           final updatedProduct = product.copyWith(selecionado: selected);
 
-          // 🧮 Recalcular quantidade e valor baseado no censo
           if (censoEscolar != null && selected) {
             final quantidade = calculationService.calcularQuantidade(
               updatedProduct,
@@ -903,7 +887,6 @@ abstract class _BudgetConfigStoreBase with Store {
               censoEscolar!,
             );
 
-            // Atualizar produto com valores calculados
             final productWithCalculation = updatedProduct.copyWith(
               quantidade: quantidade.round(),
               valor: valorTotal > 0
@@ -911,7 +894,6 @@ abstract class _BudgetConfigStoreBase with Store {
                   : updatedProduct.valor,
             );
 
-            // Atualizar na subcategoria
             final updatedProducts =
                 subcategory.produtos.asMap().entries.map((entry) {
               return entry.key == productIndex
@@ -929,7 +911,6 @@ abstract class _BudgetConfigStoreBase with Store {
             categories[i] =
                 category.copyWith(subcategorias: updatedSubcategories);
           } else {
-            // Criar nova lista de produtos com imutabilidade
             final updatedProducts =
                 subcategory.produtos.asMap().entries.map((entry) {
               return entry.key == productIndex ? updatedProduct : entry.value;
@@ -968,20 +949,17 @@ abstract class _BudgetConfigStoreBase with Store {
 
     final category = categories[categoryIndex];
 
-    // Encontrar a subcategoria
     final subcategoryIndex =
         category.subcategorias.indexWhere((s) => s.id == subcategoryId);
     if (subcategoryIndex == -1) return;
 
     final subcategory = category.subcategorias[subcategoryIndex];
 
-    // Alternar todos os produtos da subcategoria
     final updatedProducts = subcategory.produtos.map((product) {
       if (!product.ativo) return product;
       return product.copyWith(selecionado: selected);
     }).toList();
 
-    // Atualizar subcategoria
     final updatedSubcategory = subcategory.copyWith(produtos: updatedProducts);
     final updatedSubcategories =
         category.subcategorias.asMap().entries.map((entry) {
@@ -1002,7 +980,6 @@ abstract class _BudgetConfigStoreBase with Store {
 
     final category = categories[categoryIndex];
 
-    // Alternar todos os produtos de todas as subcategorias
     final updatedSubcategories = category.subcategorias.map((subcategory) {
       final updatedProducts = subcategory.produtos.map((product) {
         if (!product.ativo) return product;
@@ -1031,7 +1008,6 @@ abstract class _BudgetConfigStoreBase with Store {
             subcategory.produtos.indexWhere((p) => p.id == updatedProduct.id);
 
         if (productIndex != -1) {
-          // Atualizar produto completo
           final updatedProducts =
               subcategory.produtos.asMap().entries.map((entry) {
             return entry.key == productIndex ? updatedProduct : entry.value;
@@ -1067,7 +1043,6 @@ abstract class _BudgetConfigStoreBase with Store {
       return;
     }
 
-    // Encontrar o produto
     for (var i = 0; i < categories.length; i++) {
       final category = categories[i];
 
@@ -1080,34 +1055,28 @@ abstract class _BudgetConfigStoreBase with Store {
         if (productIndex != -1) {
           final product = subcategory.produtos[productIndex];
 
-          // ⚠️ Só permitir se estiver ativo
+          // Regra de negócio: Só permitir se estiver ativo
           if (!product.ativo) {
             print('⚠️ [BudgetConfigStore] Produto $productId está inativo');
             return;
           }
 
-          // Atualizar quantidade
           final updatedProduct = product.copyWith(quantidade: quantity);
 
-          // Criar nova lista de produtos
           final updatedProducts =
               List<ProductEntity>.from(subcategory.produtos);
           updatedProducts[productIndex] = updatedProduct;
 
-          // Criar nova subcategoria
           final updatedSubcategory =
               subcategory.copyWith(produtos: updatedProducts);
 
-          // Criar nova lista de subcategorias
           final updatedSubcategories =
               List<SubcategoryEntity>.from(category.subcategorias);
           updatedSubcategories[j] = updatedSubcategory;
 
-          // Criar nova categoria
           final updatedCategory =
               category.copyWith(subcategorias: updatedSubcategories);
 
-          // Atualizar a categoria na lista
           categories[i] = updatedCategory;
 
           print('✅ [BudgetConfigStore] Quantidade atualizada');
@@ -1125,7 +1094,6 @@ abstract class _BudgetConfigStoreBase with Store {
     print(
         '🔄 [BudgetConfigStore] Atualizando valor do produto: $productId para $value');
 
-    // Encontrar o produto em todas as categorias/subcategorias
     for (var i = 0; i < categories.length; i++) {
       final category = categories[i];
 
@@ -1138,34 +1106,28 @@ abstract class _BudgetConfigStoreBase with Store {
         if (productIndex != -1) {
           final product = subcategory.produtos[productIndex];
 
-          // ⚠️ Só permitir se estiver ativo
+          // Regra de negócio: Só permitir se estiver ativo
           if (!product.ativo) {
             print('⚠️ [BudgetConfigStore] Produto $productId está inativo');
             return;
           }
 
-          // Atualizar valor
           final updatedProduct = product.copyWith(valor: value);
 
-          // Criar nova lista de produtos
           final updatedProducts =
               List<ProductEntity>.from(subcategory.produtos);
           updatedProducts[productIndex] = updatedProduct;
 
-          // Criar nova subcategoria
           final updatedSubcategory =
               subcategory.copyWith(produtos: updatedProducts);
 
-          // Criar nova lista de subcategorias
           final updatedSubcategories =
               List<SubcategoryEntity>.from(category.subcategorias);
           updatedSubcategories[j] = updatedSubcategory;
 
-          // Criar nova categoria
           final updatedCategory =
               category.copyWith(subcategorias: updatedSubcategories);
 
-          // Atualizar a categoria na lista
           categories[i] = updatedCategory;
 
           print('✅ [BudgetConfigStore] Valor atualizado');
@@ -1247,7 +1209,6 @@ abstract class _BudgetConfigStoreBase with Store {
         if (productIndex != -1) {
           final product = subcategory.produtos[productIndex];
 
-          // Encontrar o indicador na lista do produto
           final indicatorIndex = product.indicadoresEtapa
               .indexWhere((ind) => ind.produtoIndicadorId == indicatorId);
 
@@ -1255,7 +1216,6 @@ abstract class _BudgetConfigStoreBase with Store {
             final indicator = product.indicadoresEtapa[indicatorIndex];
             final newSelectedState = !indicator.selecionado;
 
-            // Atualizar o indicador
             final updatedIndicator =
                 indicator.copyWith(selecionado: newSelectedState);
 
@@ -1287,7 +1247,6 @@ abstract class _BudgetConfigStoreBase with Store {
                   '⚠️ [BudgetConfigStore] censoEscolar é null, quantidade não recalculada');
             }
 
-            // Propagar atualização na árvore
             final updatedProducts =
                 List<ProductEntity>.from(subcategory.produtos);
             updatedProducts[productIndex] = updatedProduct;
@@ -1334,7 +1293,7 @@ abstract class _BudgetConfigStoreBase with Store {
         if (productIndex != -1) {
           final product = subcategory.produtos[productIndex];
 
-          // ⚠️ Só permitir se estiver ativo
+          // Regra de negócio: Só permitir se estiver ativo
           if (!product.ativo) {
             print('⚠️ [BudgetConfigStore] Produto $productId está inativo');
             return;
@@ -1416,7 +1375,6 @@ abstract class _BudgetConfigStoreBase with Store {
       // Buscar produtos desta subcategoria
       final subcategoryProducts = productsBySubcategory[sub.id] ?? [];
 
-      // Marcar/desmarcar todos os produtos
       final updatedProducts = subcategoryProducts
           .map((p) => p.copyWith(
                 selecionado: selected,

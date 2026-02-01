@@ -55,25 +55,17 @@ class DriveItemColors {
 /// 1. Icon-based: Ícone colorido no topo esquerdo (padrão para documentos, imagens e pastas)
 /// 2. Image-based: Thumbnail de imagem quando o item é um vídeo
 class ItemCardDoc extends StatelessWidget {
-  final String itemName;
-  final String itemSize;
-  final String itemDate;
-  final DriveItemType itemType;
-  final String? thumbnailUrl;
+  final DriveItem item;
   final VoidCallback? onTap;
   final VoidCallback? onMenuTap;
   final VoidCallback? onLongPress;
-  final bool showDate; // Para cards de categoria que não mostram data
-  final bool showMenu; // Mostrar menu de 3 pontos
-  final int? maxNameLines; // Limite de linhas para nome (null = ilimitado)
+  final bool showDate;
+  final bool showMenu;
+  final int? maxNameLines;
 
   const ItemCardDoc({
     super.key,
-    required this.itemName,
-    required this.itemSize,
-    required this.itemDate,
-    required this.itemType,
-    this.thumbnailUrl,
+    required this.item,
     this.onTap,
     this.onMenuTap,
     this.onLongPress,
@@ -85,9 +77,9 @@ class ItemCardDoc extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Determina se deve usar variante com imagem (apenas para vídeos)
-    final bool hasImage = itemType == DriveItemType.video &&
-        thumbnailUrl != null &&
-        thumbnailUrl!.isNotEmpty;
+    final bool hasImage = item.type == DriveItemType.video &&
+        item.thumbnailUrl != null &&
+        item.thumbnailUrl!.isNotEmpty;
 
     return GestureDetector(
       onTap: onTap,
@@ -108,7 +100,7 @@ class ItemCardDoc extends StatelessWidget {
 
   /// Variante com ícone colorido - layout horizontal compacto
   Widget _buildIconVariant() {
-    final colors = DriveItemColors.fromType(itemType);
+    final colors = DriveItemColors.fromType(item.type);
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
@@ -124,7 +116,7 @@ class ItemCardDoc extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             child: Icon(
-              _getIconForType(itemType),
+              _getIconForType(item.type),
               color: colors.iconColor,
               size: 18.sp,
             ),
@@ -138,7 +130,7 @@ class ItemCardDoc extends StatelessWidget {
               children: [
                 // Nome do item
                 Text(
-                  itemName,
+                  item.name,
                   style: TextStyle(
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w600,
@@ -186,7 +178,7 @@ class ItemCardDoc extends StatelessWidget {
               child: AspectRatio(
                 aspectRatio: 16 / 9,
                 child: AuthenticatedThumbnail(
-                  url: thumbnailUrl!,
+                  url: item.thumbnailUrl!,
                   width: double.infinity,
                   height: double.infinity,
                   fit: BoxFit.cover,
@@ -225,7 +217,7 @@ class ItemCardDoc extends StatelessWidget {
             children: [
               // Nome do item
               Text(
-                itemName,
+                item.name,
                 style: TextStyle(
                   fontSize: 14.sp,
                   fontWeight: FontWeight.w600,
@@ -246,8 +238,9 @@ class ItemCardDoc extends StatelessWidget {
 
   /// Constrói a row de metadata (tamanho • data de compartilhamento ou tamanho • contagem)
   Widget _buildMetadataRow() {
+    final formattedDate = item.getFormattedDate();
     return Text(
-      showDate ? '$itemSize • $itemDate' : itemSize,
+      showDate ? '${item.size} • $formattedDate' : item.size,
       style: TextStyle(
         fontSize: 12.sp,
         color: const Color(0xFF565E6C),

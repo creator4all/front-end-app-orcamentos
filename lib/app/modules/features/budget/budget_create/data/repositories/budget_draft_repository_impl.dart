@@ -37,18 +37,6 @@ class BudgetDraftRepositoryImpl implements BudgetDraftRepository {
     }
   }
 
-  @override
-  Future<Either<BudgetFailure, bool>> validateBudgetCreation(
-    CreateBudgetDraftParams params,
-  ) async {
-    try {
-      final isValid = await remoteDataSource.validateBudgetCreation(params);
-      return Right(isValid);
-    } on Exception catch (e) {
-      return Left(_mapExceptionToFailure(e));
-    }
-  }
-
   /// Mapeia exceções para Failures apropriados
   BudgetFailure _mapExceptionToFailure(Exception exception) {
     final message = exception.toString();

@@ -1,6 +1,7 @@
 import '../../../../../../config/api_config.dart';
 import '../../domain/entities/drive_item.dart';
 import '../../domain/entities/shared_by_user.dart';
+import '../utils/drive_type_utils.dart';
 
 /// DTO (Data Transfer Object) para DriveItem
 ///
@@ -142,7 +143,7 @@ class DriveItemModel {
     return DriveItemModel(
       id: entity.id,
       name: entity.name,
-      type: _typeToString(entity.type),
+      type: DriveTypeUtils.typeToFileString(entity.type),
       mimeType: null,
       size: 0, // TODO: Parse do size string
       thumbnailPath: entity.thumbnailUrl,
@@ -179,19 +180,5 @@ class DriveItemModel {
       return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
     }
     return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
-  }
-
-  /// Converte DriveItemType para string
-  static String _typeToString(DriveItemType type) {
-    switch (type) {
-      case DriveItemType.document:
-        return 'file';
-      case DriveItemType.video:
-        return 'file';
-      case DriveItemType.image:
-        return 'file';
-      case DriveItemType.folder:
-        return 'folder';
-    }
   }
 }

@@ -1,5 +1,6 @@
 import '../../domain/entities/drive_category.dart';
 import '../../domain/entities/drive_item.dart';
+import '../utils/drive_type_utils.dart';
 
 /// DTO (Data Transfer Object) para DriveCategory
 ///
@@ -57,7 +58,7 @@ class DriveCategoryModel {
     return DriveCategoryModel(
       id: entity.id,
       name: entity.name,
-      type: _typeToString(entity.type),
+      type: DriveTypeUtils.typeToString(entity.type),
       itemCount: entity.itemCount,
       totalSize: entity.totalSize,
     );
@@ -76,20 +77,6 @@ class DriveCategoryModel {
         return DriveItemType.folder;
       default:
         return DriveItemType.document;
-    }
-  }
-
-  /// Converte DriveItemType para string
-  static String _typeToString(DriveItemType type) {
-    switch (type) {
-      case DriveItemType.document:
-        return 'document';
-      case DriveItemType.video:
-        return 'video';
-      case DriveItemType.image:
-        return 'image';
-      case DriveItemType.folder:
-        return 'folder';
     }
   }
 }

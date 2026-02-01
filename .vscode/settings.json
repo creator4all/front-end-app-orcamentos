@@ -16,6 +16,5 @@
         "source.fixAll": "explicit",
         "source.organizeImports": "explicit"
     },
-    "dart.flutterSdkPath": "C:\\Users\\pedro\\fvm\\default",
     "java.configuration.updateBuildConfiguration": "interactive"
 }

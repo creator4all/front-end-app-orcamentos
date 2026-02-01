@@ -738,11 +738,7 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
       builder: (_) => ProductEditModal(
         product: product,
         onSave: (updatedProduct) {
-          // Atualizar produto na store
           store.updateProductFromModal(updatedProduct);
-        },
-        onClose: () {
-          // Modal fechado sem salvar
         },
       ),
     );

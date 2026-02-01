@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:equatable/equatable.dart';
 
 import '../../../budget_config/domain/entities/censo_escolar_entity.dart';
@@ -37,11 +38,9 @@ class MultiCityBudgetEntity extends Equatable {
   /// Retorna o censo da cidade selecionada ou null se visualização agregada
   CensoEscolarEntity? get censoSelecionado {
     if (cidadeSelecionadaId == null) return null;
-    try {
-      return censosCidades.firstWhere((c) => c.cidadeId == cidadeSelecionadaId);
-    } catch (_) {
-      return null;
-    }
+    return censosCidades.firstWhereOrNull(
+      (c) => c.cidadeId == cidadeSelecionadaId,
+    );
   }
 
   /// Valor total agregado de todas as cidades
@@ -79,7 +78,5 @@ class MultiCityBudgetEntity extends Equatable {
       ];
 
   @override
-  String toString() {
-    return 'MultiCityBudgetEntity(nome: $nome, cidades: $quantidadeCidades, valorTotal: R\$ $valorTotalAgregado)';
-  }
+  bool get stringify => true;
 }

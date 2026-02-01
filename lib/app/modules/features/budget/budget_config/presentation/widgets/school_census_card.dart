@@ -3,14 +3,11 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../../../shared/widgets/card_layout.dart';
 
-/// Card para exibir dados de Censo Escolar
-/// Mostra: quantidade de turmas, municípios e total de estudantes
 class SchoolCensusCard extends StatelessWidget {
   final int numberOfCities;
   final List<Map<String, dynamic>> citiesData;
 
-  /// Censo agregado para orçamentos multi-cidade
-  /// Usado para calcular turmas (count > 0) e estudantes (soma)
+  /// Censo agregado para orçamentos multi-cidade (count > 0 = turmas, soma = estudantes)
   final Map<String, double>? censoAgregado;
   final VoidCallback? onTap;
 
@@ -22,16 +19,11 @@ class SchoolCensusCard extends StatelessWidget {
     this.onTap,
   });
 
-  /// Calcula o total de turmas
-  /// Para multi-cidade: conta quantos itens em censoAgregado têm valor > 0
-  /// Para cidade única: conta indices_etapa
   int _calculateTotalClasses() {
-    // Se temos censo agregado, usar ele
     if (censoAgregado != null && censoAgregado!.isNotEmpty) {
       return censoAgregado!.values.where((v) => v > 0).length;
     }
 
-    // Fallback para formato antigo
     int totalClasses = 0;
     for (final city in citiesData) {
       final indicadores = city['cidades_has_indice_etapa'] as List? ??
@@ -43,19 +35,15 @@ class SchoolCensusCard extends StatelessWidget {
     return totalClasses;
   }
 
-  /// Calcula o total de estudantes
-  /// Para multi-cidade: soma valores em censoAgregado (excluindo professores - sufixo P)
-  /// Para cidade única: soma valores de indices_etapa (excluindo professores)
   int _calculateTotalStudents() {
-    // Se temos censo agregado, usar ele (excluindo professores)
     if (censoAgregado != null && censoAgregado!.isNotEmpty) {
+      // Exclui professores (sufixo P)
       return censoAgregado!.entries
-          .where((e) => !e.key.endsWith('P')) // Exclui professores
+          .where((e) => !e.key.endsWith('P'))
           .fold(0.0, (sum, e) => sum + e.value)
           .round();
     }
 
-    // Fallback para formato antigo
     int totalStudents = 0;
     for (final city in citiesData) {
       final indicadores = city['cidades_has_indice_etapa'] as List? ??
@@ -64,7 +52,7 @@ class SchoolCensusCard extends StatelessWidget {
           [];
       for (final indicador in indicadores) {
         if (indicador is Map<String, dynamic>) {
-          // Excluir professores (nome terminando com P)
+          // Exclui professores (sufixo P)
           final nome = indicador['nome_etapa'] ?? indicador['nome'] ?? '';
           if (nome.toString().endsWith('P')) continue;
 
@@ -84,7 +72,6 @@ class SchoolCensusCard extends StatelessWidget {
     return totalStudents;
   }
 
-  /// Formata número com separadores
   String _formatNumber(int number) {
     return number.toString().replaceAllMapped(
           RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
@@ -92,12 +79,15 @@ class SchoolCensusCard extends StatelessWidget {
         );
   }
 
+  String _pluralize(int count, String singular, String plural) {
+    return count == 1 ? singular : plural;
+  }
+
   @override
   Widget build(BuildContext context) {
     final totalClasses = _calculateTotalClasses();
     final totalStudents = _calculateTotalStudents();
 
-    // Envolver em GestureDetector para card inteiro ser clicável
     return GestureDetector(
       onTap: onTap,
       child: CardLayout(
@@ -119,14 +109,12 @@ class SchoolCensusCard extends StatelessWidget {
     );
   }
 
-  /// Constrói o conteúdo para múltiplas cidades (Layout Horizontal)
   Widget _buildMultiCityContent(int totalClasses, int totalStudents) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Título
         Text(
           'Censo Escolar',
           style: TextStyle(
@@ -135,14 +123,11 @@ class SchoolCensusCard extends StatelessWidget {
             color: const Color(0xFF828282),
           ),
         ),
-
         SizedBox(height: 4.h),
-
-        // Linha com Turmas e Municípios (mesma linha, bold)
         Row(
           children: [
             Text(
-              '$totalClasses Turmas',
+              '$totalClasses ${_pluralize(totalClasses, 'Turma', 'Turmas')}',
               style: TextStyle(
                 fontSize: 12.sp,
                 fontWeight: FontWeight.w400,
@@ -152,7 +137,7 @@ class SchoolCensusCard extends StatelessWidget {
             SizedBox(width: 12.w),
             Flexible(
               child: Text(
-                '$numberOfCities Municípios selecionados',
+                '$numberOfCities ${_pluralize(numberOfCities, 'Município selecionado', 'Municípios selecionados')}',
                 style: TextStyle(
                   fontSize: 12.sp,
                   fontWeight: FontWeight.w400,
@@ -163,12 +148,9 @@ class SchoolCensusCard extends StatelessWidget {
             ),
           ],
         ),
-
         SizedBox(height: 4.h),
-
-        // Total de Estudantes
         Text(
-          '${_formatNumber(totalStudents)} Estudantes',
+          '${_formatNumber(totalStudents)} ${_pluralize(totalStudents, 'Estudante', 'Estudantes')}',
           style: TextStyle(
             fontSize: 12.sp,
             fontWeight: FontWeight.w400,
@@ -179,14 +161,12 @@ class SchoolCensusCard extends StatelessWidget {
     );
   }
 
-  /// Constrói o conteúdo para cidade única (Layout Vertical Padrão)
   Widget _buildSingleCityContent(int totalClasses, int totalStudents) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Título
         Text(
           'Censo Escolar',
           style: TextStyle(
@@ -195,12 +175,9 @@ class SchoolCensusCard extends StatelessWidget {
             color: const Color(0xFF484848),
           ),
         ),
-
         SizedBox(height: 2.h),
-
-        // Turmas
         Text(
-          '$totalClasses Turmas',
+          '$totalClasses ${_pluralize(totalClasses, 'Turma', 'Turmas')}',
           style: TextStyle(
             fontSize: 12.sp,
             fontWeight: FontWeight.w400,
@@ -208,12 +185,9 @@ class SchoolCensusCard extends StatelessWidget {
             height: 1.3,
           ),
         ),
-
         SizedBox(height: 2.h),
-
-        // Total de Estudantes
         Text(
-          '${_formatNumber(totalStudents)} Estudantes',
+          '${_formatNumber(totalStudents)} ${_pluralize(totalStudents, 'Estudante', 'Estudantes')}',
           style: TextStyle(
             fontSize: 12.sp,
             fontWeight: FontWeight.w400,

@@ -290,16 +290,12 @@ class _NewDrivePageState extends State<NewDrivePage> {
     }
 
     return ItemCardDoc(
-      itemName: item.name,
-      itemSize: item.size,
-      itemDate: item.getFormattedDate(),
-      itemType: item.type,
-      thumbnailUrl: item.thumbnailUrl,
-      maxNameLines: 2, // Limite de 2 linhas na tela inicial
-      showMenu: false, // Remove 3-dot menu
+      item: item,
+      maxNameLines: 2,
+      showMenu: false,
       onTap: item.type == DriveItemType.folder
-          ? () => _handleFileOpen(item) // Pastas navegam diretamente
-          : () => _showFileDetails(item), // Arquivos abrem modal
+          ? () => _handleFileOpen(item)
+          : () => _showFileDetails(item),
     );
   }
 

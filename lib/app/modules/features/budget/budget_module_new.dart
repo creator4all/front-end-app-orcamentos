@@ -47,7 +47,6 @@ import 'budget_create/domain/repositories/budget_draft_repository.dart';
 import 'budget_create/domain/repositories/partner_repository.dart';
 import 'budget_create/domain/usecases/create_draft_budget_usecase.dart';
 import 'budget_create/domain/usecases/get_standard_partners_usecase.dart';
-import 'budget_create/domain/usecases/validate_budget_data_usecase.dart';
 import 'budget_create/presentation/pages/new_budget_page.dart';
 import 'budget_create/presentation/stores/budget_create_store.dart';
 // Budget Edit - Clean Architecture
@@ -167,9 +166,6 @@ class BudgetModuleNew extends Module {
         Bind.lazySingleton<GetStandardPartnersUseCase>(
           (i) => GetStandardPartnersUseCase(i.get<PartnerRepository>()),
         ),
-        Bind.lazySingleton<ValidateBudgetDataUseCase>(
-          (i) => ValidateBudgetDataUseCase(i.get<BudgetDraftRepository>()),
-        ),
         Bind.lazySingleton<CreateDraftBudgetUseCase>(
           (i) => CreateDraftBudgetUseCase(i.get<BudgetDraftRepository>()),
         ),
@@ -179,7 +175,6 @@ class BudgetModuleNew extends Module {
           (i) => BudgetCreateStore(
             getStandardPartnersUseCase: i.get<GetStandardPartnersUseCase>(),
             createDraftBudgetUseCase: i.get<CreateDraftBudgetUseCase>(),
-            validateBudgetDataUseCase: i.get<ValidateBudgetDataUseCase>(),
           ),
         ),
 

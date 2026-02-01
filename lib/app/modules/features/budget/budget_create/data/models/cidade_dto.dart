@@ -1,7 +1,7 @@
+import '../../../../../../../app/shared/utils/date_utils.dart';
 import '../../domain/entities/cidade_entity.dart';
 import 'cidade_indice_etapa_dto.dart';
 
-/// DTO para Cidade
 class CidadeDto {
   final int id;
   final String nome;
@@ -24,10 +24,10 @@ class CidadeDto {
   });
 
   factory CidadeDto.fromJson(Map<String, dynamic> json) {
-    // Parse cidades_has_indice_etapa array
     final etapasArray = json['cidades_has_indice_etapa'] as List? ?? [];
     final etapas = etapasArray
-        .map((item) => CidadeIndiceEtapaDto.fromJson(item as Map<String, dynamic>))
+        .map((item) =>
+            CidadeIndiceEtapaDto.fromJson(item as Map<String, dynamic>))
         .toList();
 
     return CidadeDto(
@@ -36,23 +36,10 @@ class CidadeDto {
       estadoId: (json['estados_idestados'] as num?)?.toInt() ?? 0,
       status: json['status'] as bool? ?? false,
       excluido: json['excluido'] as bool? ?? false,
-      createdAt: _parseDate(json['created_at']) ?? DateTime.now(),
-      updatedAt: _parseDate(json['updated_at']) ?? DateTime.now(),
+      createdAt: parseDate(json['created_at']) ?? DateTime.now(),
+      updatedAt: parseDate(json['updated_at']) ?? DateTime.now(),
       cidadesHasIndiceEtapa: etapas,
     );
-  }
-
-  static DateTime? _parseDate(dynamic value) {
-    if (value == null) return null;
-    if (value is DateTime) return value;
-    if (value is String) {
-      try {
-        return DateTime.parse(value);
-      } catch (_) {
-        return null;
-      }
-    }
-    return null;
   }
 
   CidadeEntity toEntity() {
@@ -64,7 +51,8 @@ class CidadeDto {
       excluido: excluido,
       createdAt: createdAt,
       updatedAt: updatedAt,
-      cidadesHasIndiceEtapa: cidadesHasIndiceEtapa.map((dto) => dto.toEntity()).toList(),
+      cidadesHasIndiceEtapa:
+          cidadesHasIndiceEtapa.map((dto) => dto.toEntity()).toList(),
     );
   }
 
@@ -77,7 +65,8 @@ class CidadeDto {
       'excluido': excluido,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
-      'cidades_has_indice_etapa': cidadesHasIndiceEtapa.map((dto) => dto.toJson()).toList(),
+      'cidades_has_indice_etapa':
+          cidadesHasIndiceEtapa.map((dto) => dto.toJson()).toList(),
     };
   }
 }

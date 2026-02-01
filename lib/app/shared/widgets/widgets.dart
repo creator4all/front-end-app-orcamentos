@@ -1,7 +1,5 @@
 // Export do BookItem
 export 'book_item.dart';
-// Export do BooksModal
-export 'books_modal.dart';
 // Export do BudgetCardWidget e seus enums
 export 'budget_card_widget.dart';
 // Export do BudgetFilterWidget
@@ -20,7 +18,5 @@ export 'export_pdf_modal.dart';
 export 'profile_modal.dart';
 export 'status_tag_widget.dart';
 export 'technology_item.dart';
-// Export do TechnologyProductsModal
-export 'technology_products_modal.dart';
 // Export do UserAvatarWidget
 export 'user_avatar_widget.dart';

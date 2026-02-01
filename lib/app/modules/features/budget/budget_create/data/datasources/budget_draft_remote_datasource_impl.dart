@@ -11,80 +11,57 @@ class BudgetDraftRemoteDataSourceImpl implements BudgetDraftRemoteDataSource {
 
   @override
   Future<BudgetDraftEntity> createDraft(CreateBudgetDraftParams params) async {
-    try {
-      const url = '/api/orcamentos/';
-      final response = await client.post(url, data: params.toJson());
+    const url = '/api/orcamentos/';
+    final response = await client.post(url, data: params.toJson());
 
-      var data = response.body['dados'];
+    var data = response.body['dados'];
 
-      if (data == null) {
-        throw Exception('Resposta da API não contém dados válidos');
-      }
-
-      // ⚠️ IMPORTANTE: dados deve ser um Map (não List)
-      if (data is List) {
-        print('⚠️ [BudgetDraftRemoteDataSourceImpl] Aviso: dados é List, esperado Map');
-        if (data.isNotEmpty) {
-          data = data.first;
-        } else {
-          throw Exception('Array de dados está vazio');
-        }
-      }
-
-      if (data is! Map) {
-        throw Exception('Formato inesperado: dados não é Map. Tipo: ${data.runtimeType}');
-      }
-
-      print('✅ [BudgetDraftRemoteDataSourceImpl] Parseando orçamento criado com sucesso');
-      final dto = BudgetDraftDto.fromJson(Map<String, dynamic>.from(data as Map));
-      return dto.toEntity();
-    } catch (e) {
-      print('❌ [BudgetDraftRemoteDataSourceImpl] Erro ao criar orçamento: $e');
-      rethrow;
+    if (data == null) {
+      throw Exception('Resposta da API não contém dados válidos');
     }
+
+    // API às vezes retorna List ao invés de Map - normalizar para Map
+    if (data is List) {
+      if (data.isEmpty) {
+        throw Exception('Array de dados está vazio');
+      }
+      data = data.first;
+    }
+
+    if (data is! Map) {
+      throw Exception(
+          'Formato inesperado: dados não é Map. Tipo: ${data.runtimeType}');
+    }
+
+    final dto = BudgetDraftDto.fromJson(Map<String, dynamic>.from(data));
+    return dto.toEntity();
   }
 
   @override
   Future<BudgetDraftEntity> getDraftById(int budgetId) async {
-    try {
-      final url = '/api/orcamentos/$budgetId';
-      final response = await client.get(url);
+    final url = '/api/orcamentos/$budgetId';
+    final response = await client.get(url);
 
-      var data = response.body['dados'] ?? response.body['data'];
+    var data = response.body['dados'] ?? response.body['data'];
 
-      if (data == null) {
-        throw Exception('Orçamento não encontrado');
-      }
-
-      // ⚠️ IMPORTANTE: dados deve ser um Map (não List)
-      if (data is List) {
-        print('⚠️ [BudgetDraftRemoteDataSourceImpl] Aviso: dados é List, esperado Map');
-        if (data.isNotEmpty) {
-          data = data.first;
-        } else {
-          throw Exception('Array de dados está vazio');
-        }
-      }
-
-      if (data is! Map) {
-        throw Exception('Formato inesperado: dados não é Map. Tipo: ${data.runtimeType}');
-      }
-
-      print('✅ [BudgetDraftRemoteDataSourceImpl] Parseando orçamento ${budgetId} com sucesso');
-      final dto = BudgetDraftDto.fromJson(Map<String, dynamic>.from(data as Map));
-      return dto.toEntity();
-    } catch (e) {
-      print('❌ [BudgetDraftRemoteDataSourceImpl] Erro ao buscar orçamento: $e');
-      rethrow;
+    if (data == null) {
+      throw Exception('Orçamento não encontrado');
     }
-  }
 
-  @override
-  Future<bool> validateBudgetCreation(CreateBudgetDraftParams params) async {
-    try {
-      return true;
-    } catch (e) {
-      return false;
+    // API às vezes retorna List ao invés de Map - normalizar para Map
+    if (data is List) {
+      if (data.isEmpty) {
+        throw Exception('Array de dados está vazio');
+      }
+      data = data.first;
     }
+
+    if (data is! Map) {
+      throw Exception(
+          'Formato inesperado: dados não é Map. Tipo: ${data.runtimeType}');
+    }
+
+    final dto = BudgetDraftDto.fromJson(Map<String, dynamic>.from(data));
+    return dto.toEntity();
   }
 }

@@ -5,6 +5,7 @@ import '../../domain/entities/drive_item.dart';
 import '../../domain/repositories/drive_repository.dart';
 import '../../new_drive_failure.dart';
 import '../datasources/drive_remote_datasource.dart';
+import '../utils/drive_type_utils.dart';
 
 /// Implementação concreta do repositório de Drive
 ///
@@ -57,7 +58,7 @@ class DriveRepositoryImpl implements DriveRepository {
     DriveItemType type,
   ) async {
     try {
-      final typeString = _typeToString(type);
+      final typeString = DriveTypeUtils.typeToString(type);
       final models = await remoteDataSource.getFilesByCategory(typeString);
       final entities = models.map((model) => model.toEntity()).toList();
       return Right(entities);
@@ -111,20 +112,6 @@ class DriveRepositoryImpl implements DriveRepository {
       return Right(bytes);
     } catch (e) {
       return Left(DownloadFileFailure('Erro ao fazer download: $e'));
-    }
-  }
-
-  /// Converte DriveItemType para string
-  String _typeToString(DriveItemType type) {
-    switch (type) {
-      case DriveItemType.document:
-        return 'document';
-      case DriveItemType.video:
-        return 'video';
-      case DriveItemType.image:
-        return 'image';
-      case DriveItemType.folder:
-        return 'folder';
     }
   }
 }

@@ -39,21 +39,15 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
 
     // Adicionar listeners para sincronizar TextFields com Store
     _responsibleController.addListener(() {
-      _store.setResponsibleName(_responsibleController.text.trim().isEmpty
-          ? null
-          : _responsibleController.text.trim());
+      _store.setResponsibleName(_responsibleController.text);
     });
 
     _emailController.addListener(() {
-      _store.setResponsibleEmail(_emailController.text.trim().isEmpty
-          ? null
-          : _emailController.text.trim());
+      _store.setResponsibleEmail(_emailController.text);
     });
 
     _phoneController.addListener(() {
-      _store.setResponsiblePhone(_phoneController.text.trim().isEmpty
-          ? null
-          : _phoneController.text.trim());
+      _store.setResponsiblePhone(_phoneController.text);
     });
 
     // Resetar e recarregar dados sempre que entrar na página

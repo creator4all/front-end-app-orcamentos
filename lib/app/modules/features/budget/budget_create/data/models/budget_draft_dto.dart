@@ -1,22 +1,20 @@
+import '../../../../../../../app/shared/utils/date_utils.dart';
 import '../../../budget_config/data/models/category_dto.dart' as config;
 import '../../domain/entities/budget_draft_entity.dart';
 import '../../domain/entities/location_entity.dart';
 import 'cidade_dto.dart';
 import 'orcamento_produto_dto.dart';
 
-/// Data Transfer Object para Orçamento em Rascunho
-/// Responsável pela serialização/deserialização de JSON
 class BudgetDraftDto {
   final int id;
   final String? name;
-  final int?
-      partnerId; // ✅ Nullable - só existe quando admin escolhe parceiro destino
-  final String? partnerName; // ✅ Nullable
+  final int? partnerId;
+  final String? partnerName;
   final int userId;
   final String userName;
   final String userEmail;
-  final List<int> cityIds; // Lista de IDs das cidades
-  final List<String> cityNames; // Lista de nomes das cidades
+  final List<int> cityIds;
+  final List<String> cityNames;
   final String? responsibleName;
   final String? responsibleEmail;
   final DateTime validityDate;
@@ -33,8 +31,8 @@ class BudgetDraftDto {
   const BudgetDraftDto({
     required this.id,
     this.name,
-    this.partnerId, // ✅ Nullable
-    this.partnerName, // ✅ Nullable
+    this.partnerId,
+    this.partnerName,
     required this.userId,
     required this.userName,
     required this.userEmail,
@@ -54,91 +52,69 @@ class BudgetDraftDto {
     this.categories = const [],
   });
 
-  /// Cria DTO a partir de JSON da API
   factory BudgetDraftDto.fromJson(Map<String, dynamic> json) {
-    try {
-      final usuario = json['usuario'] as Map<String, dynamic>?;
-      final partnerDestino = json['partner_destino'] as Map<String, dynamic>?;
-      final cidadeJson = json['cidade'] as Map<String, dynamic>?;
-      final produtosArray = json['orcamento_produtos'] as List? ?? [];
-      final categoriasArray = json['categorias'] as List? ?? [];
+    final usuario = json['usuario'] as Map<String, dynamic>?;
+    final partnerDestino = json['partner_destino'] as Map<String, dynamic>?;
+    final cidadeJson = json['cidade'] as Map<String, dynamic>?;
+    final produtosArray = json['orcamento_produtos'] as List? ?? [];
+    final categoriasArray = json['categorias'] as List? ?? [];
 
-      final cityId = (json['orc_cidade_id'] as num?)?.toInt() ?? 0;
-      final cityName = cidadeJson?['nome_cidade'] as String? ?? '';
-      final cityIds = cityId > 0 ? [cityId] : <int>[];
-      final cityNames = cityName.isNotEmpty ? [cityName] : <String>[];
+    final cityId = (json['orc_cidade_id'] as num?)?.toInt() ?? 0;
+    final cityName = cidadeJson?['nome_cidade'] as String? ?? '';
+    final cityIds = cityId > 0 ? [cityId] : <int>[];
+    final cityNames = cityName.isNotEmpty ? [cityName] : <String>[];
 
-      final validityDateStr = json['orc_data_validade'];
-      final parsedValidityDate = validityDateStr != null
-          ? DateTime.parse(validityDateStr as String)
-          : DateTime.now();
+    final validityDateStr = json['orc_data_validade'];
+    final parsedValidityDate = validityDateStr != null
+        ? DateTime.parse(validityDateStr as String)
+        : DateTime.now();
 
-      final orcamentoProdutos = produtosArray
-          .map((item) => OrcamentoProdutoDto.fromJson(item as Map<String, dynamic>))
-          .toList();
+    final orcamentoProdutos = produtosArray
+        .map((item) =>
+            OrcamentoProdutoDto.fromJson(item as Map<String, dynamic>))
+        .toList();
 
-      final categories = categoriasArray
-          .map((item) => config.CategoryDTO.fromJson(item as Map<String, dynamic>))
-          .toList();
+    final categories = categoriasArray
+        .map(
+            (item) => config.CategoryDTO.fromJson(item as Map<String, dynamic>))
+        .toList();
 
-      final cidade = cidadeJson != null ? CidadeDto.fromJson(cidadeJson) : null;
+    final cidade = cidadeJson != null ? CidadeDto.fromJson(cidadeJson) : null;
 
-      return BudgetDraftDto(
-        id: (json['orc_orcamentoId'] as num?)?.toInt() ?? 0,
-        name: json['orc_nome'] as String?,
-        partnerId: partnerDestino?['id'] != null
-            ? (partnerDestino!['id'] as num?)?.toInt()
-            : null,
-        partnerName: partnerDestino?['nome_fantasia'] as String?,
-        userId: (usuario?['id'] as num?)?.toInt() ?? 0,
-        userName: usuario?['nome'] as String? ?? '',
-        userEmail: usuario?['email'] as String? ?? '',
-        cityIds: cityIds,
-        cityNames: cityNames,
-        responsibleName: json['orc_responsavel_nome'] as String?,
-        responsibleEmail: json['orc_responsavel_email'] as String?,
-        validityDate: parsedValidityDate,
-        validityDays: (json['orc_dias_validade'] as num?)?.toInt() ?? 60,
-        status: json['orc_status'] as String? ?? 'rascunho',
-        total: (json['orc_total'] as num?)?.toDouble() ?? 0.0,
-        createdByAdmin: json['orc_criado_por_admin'] as bool? ?? false,
-        createdAt: _parseDate(json['created_at']),
-        dataValidade: parsedValidityDate,
-        cidade: cidade,
-        orcamentoProdutos: orcamentoProdutos,
-        categories: categories,
-      );
-    } catch (e, stackTrace) {
-      print('❌ [BudgetDraftDto] Erro ao parsear JSON:');
-      print('   JSON recebido: $json');
-      print('   Erro: $e');
-      print('   StackTrace: $stackTrace');
-      rethrow;
-    }
+    return BudgetDraftDto(
+      id: (json['orc_orcamentoId'] as num?)?.toInt() ?? 0,
+      name: json['orc_nome'] as String?,
+      partnerId: partnerDestino?['id'] != null
+          ? (partnerDestino!['id'] as num?)?.toInt()
+          : null,
+      partnerName: partnerDestino?['nome_fantasia'] as String?,
+      userId: (usuario?['id'] as num?)?.toInt() ?? 0,
+      userName: usuario?['nome'] as String? ?? '',
+      userEmail: usuario?['email'] as String? ?? '',
+      cityIds: cityIds,
+      cityNames: cityNames,
+      responsibleName: json['orc_responsavel_nome'] as String?,
+      responsibleEmail: json['orc_responsavel_email'] as String?,
+      validityDate: parsedValidityDate,
+      validityDays: (json['orc_dias_validade'] as num?)?.toInt() ?? 60,
+      status: json['orc_status'] as String? ?? 'rascunho',
+      total: (json['orc_total'] as num?)?.toDouble() ?? 0.0,
+      createdByAdmin: json['orc_criado_por_admin'] as bool? ?? false,
+      createdAt: parseDate(json['created_at']),
+      dataValidade: parsedValidityDate,
+      cidade: cidade,
+      orcamentoProdutos: orcamentoProdutos,
+      categories: categories,
+    );
   }
 
-  /// Parse de data (pode vir em diferentes formatos)
-  static DateTime? _parseDate(dynamic value) {
-    if (value == null) return null;
-    if (value is DateTime) return value;
-    if (value is String) {
-      try {
-        return DateTime.parse(value);
-      } catch (_) {
-        return null;
-      }
-    }
-    return null;
-  }
-
-  /// Converte DTO para Entity
   BudgetDraftEntity toEntity() {
     return BudgetDraftEntity(
       id: id,
-      partnerId: partnerId, // ✅ Nullable
-      partnerName: partnerName ?? '', // Default vazio se null
+      partnerId: partnerId,
+      partnerName: partnerName ?? '',
       location: LocationEntity(
-        stateCode: '', // Estado não vem mais na response
+        stateCode: '',
         stateName: '',
         cityCode: cityIds.isNotEmpty ? cityIds.first.toString() : '',
         cityName: cityNames.isNotEmpty ? cityNames.first : '',
@@ -154,12 +130,12 @@ class BudgetDraftDto {
       createdByAdmin: createdByAdmin,
       dataValidade: dataValidade,
       cidade: cidade?.toEntity(),
-      orcamentoProdutos: orcamentoProdutos.map((dto) => dto.toEntity()).toList(),
+      orcamentoProdutos:
+          orcamentoProdutos.map((dto) => dto.toEntity()).toList(),
       categories: categories.map((dto) => dto.toEntity()).toList(),
     );
   }
 
-  /// Converte DTO para JSON
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = {
       'id': id,
