@@ -31,6 +31,7 @@ import 'app/modules/features/profile/profile_module.dart';
 import 'app/modules/features/prospect/prospect_module.dart';
 import 'app/modules/features/reports/reports_module.dart';
 import 'app/modules/features/user_management/user_management_module.dart';
+import 'app/modules/features/wiki/wiki_module.dart';
 import 'app/shared/core/http/app_http_client.dart'; // ✅ IMPORT NOVO HTTP CLIENT
 import 'app/shared/core/http/dio_client.dart';
 import 'app/shared/core/http/dio_config_factory.dart';
@@ -181,6 +182,9 @@ class AppModule extends Module {
 
         // Reports Module - Relatórios de Orçamentos (Admin)
         ModuleRoute('/reports', module: ReportsModule()),
+
+        // Wiki Module - Página de Ajuda
+        ModuleRoute('/wiki', module: WikiModule()),
 
         // Redirect to auth by default
         RedirectRoute('/', to: '/auth/login'),

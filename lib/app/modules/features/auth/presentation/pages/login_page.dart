@@ -324,7 +324,7 @@ class _LoginPageState extends State<LoginPage> {
                       SizedBox(width: 32.w),
                       TextButton(
                         onPressed: () {
-                          // TODO: Navegar para wiki
+                          Modular.to.pushNamed('/wiki/');
                         },
                         style: TextButton.styleFrom(
                           padding: EdgeInsets.symmetric(horizontal: 8.w),
