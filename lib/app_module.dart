@@ -27,6 +27,7 @@ import 'app/modules/features/profile/profile_module.dart';
 import 'app/modules/features/prospect/prospect_module.dart';
 import 'app/modules/features/reports/reports_module.dart';
 import 'app/modules/features/user_management/user_management_module.dart';
+import 'app/modules/features/wiki/wiki_module.dart';
 import 'app/shared/core/http/app_http_client.dart';
 import 'app/shared/core/http/dio_config_factory.dart';
 import 'app/shared/core/http/dio_http_client_impl.dart';
@@ -148,6 +149,12 @@ class AppModule extends Module {
         ModuleRoute('/product-management', module: ProductManagementModule()),
 
         ModuleRoute('/reports', module: ReportsModule()),
+
+        // Wiki Module - Página de Ajuda
+        ModuleRoute('/wiki', module: WikiModule()),
+
+        // Wiki Module - Página de Ajuda
+        ModuleRoute('/wiki', module: WikiModule()),
 
         RedirectRoute('/', to: '/auth/login'),
       ];

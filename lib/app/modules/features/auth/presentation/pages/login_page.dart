@@ -232,86 +232,68 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildFooterLinks() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        TextButton(
-          onPressed: () async {
-            final Uri url = Uri.parse('https://politicas.creator4all.com/');
-            if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-              if (mounted) {
-                CustomInfoDialog.show(
-                  context: context,
-                  type: DialogType.error,
-                  title: 'Erro ao abrir link',
-                  message: 'Não foi possível abrir a página de privacidade.',
-                );
-              }
-            }
-          },
-          style: TextButton.styleFrom(
-            padding: EdgeInsets.symmetric(horizontal: 8.w),
-            minimumSize: Size.zero,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  // Links de rodapé
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      TextButton(
+                        onPressed: () async {
+                          final Uri url =
+                              Uri.parse('https://politicas.creator4all.com/');
+                          if (!await launchUrl(url,
+                              mode: LaunchMode.externalApplication)) {
+                            if (mounted) {
+                              CustomInfoDialog.show(
+                                context: context,
+                                type: DialogType.error,
+                                title: 'Erro ao abrir link',
+                                message:
+                                    'Não foi possível abrir a página de privacidade.',
+                              );
+                            }
+                          }
+                        },
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.symmetric(horizontal: 8.w),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: Text(
+                          'Privacidade',
+                          style: TextStyle(
+                            color: const Color(0xFF1E88E5),
+                            fontSize: 14.sp,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 32.w),
+                      TextButton(
+                        onPressed: () {
+                          Modular.to.pushNamed('/wiki/');
+                        },
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.symmetric(horizontal: 8.w),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: Text(
+                          'Wiki',
+                          style: TextStyle(
+                            color: const Color(0xFF1E88E5),
+                            fontSize: 14.sp,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 24.h),
+                ],
+              ),
+            ),
           ),
-          child: Text('Privacidade', style: _linkTextStyle),
         ),
-        SizedBox(width: 32.w),
-        TextButton(
-          onPressed: () {
-            // TODO: Navegar para wiki
-          },
-          style: TextButton.styleFrom(
-            padding: EdgeInsets.symmetric(horizontal: 8.w),
-            minimumSize: Size.zero,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-          child: Text('Wiki', style: _linkTextStyle),
-        ),
-      ],
-    );
-  }
-
-  TextStyle get _linkTextStyle => TextStyle(
-        color: const Color(0xFF1E88E5),
-        fontSize: 14.sp,
-        decoration: TextDecoration.underline,
-      );
-
-  Widget _buildFieldLabel(String label) {
-    return Text(
-      label,
-      style: TextStyle(
-        fontSize: 16.sp,
-        fontWeight: FontWeight.w500,
-        color: Colors.black87,
-      ),
-    );
-  }
-
-  InputDecoration _inputDecoration({
-    required String hintText,
-    Widget? suffixIcon,
-  }) {
-    return InputDecoration(
-      hintText: hintText,
-      hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14.sp),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8.r),
-        borderSide: BorderSide(color: Colors.grey[300]!),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8.r),
-        borderSide: BorderSide(color: Colors.grey[300]!),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8.r),
-        borderSide: const BorderSide(color: Color(0xFF1E88E5)),
-      ),
-      contentPadding: EdgeInsets.symmetric(
-        horizontal: 16.w,
-        vertical: 12.h,
       ),
       suffixIcon: suffixIcon,
     );

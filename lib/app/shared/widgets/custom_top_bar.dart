@@ -198,6 +198,7 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
           },
           onWiki: () {
             Navigator.of(context).pop();
+            Modular.to.pushNamed('/wiki/');
           },
           onDrive: () {
             Navigator.of(context).pop();
