@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:multimidiaapp/app/shared/utils/string_utils.dart';
 import 'package:multimidiaapp/app/shared/widgets/searchable_dropdown_widget.dart';
 
 /// Dropdown para selecionar qual cidade visualizar no censo multi-cidades
@@ -31,9 +32,10 @@ class CitySelectorDropdown extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    // Ordenar cidades alfabeticamente
+    // Ordenar cidades alfabeticamente (ignorando acentos)
     final sortedCities = List<Map<String, dynamic>>.from(cities)
-      ..sort((a, b) => (a['nome'] as String).compareTo(b['nome'] as String));
+      ..sort((a, b) =>
+          compareIgnoringAccents(a['nome'] as String, b['nome'] as String));
 
     // Criar lista de itens: agregado + cidades ordenadas
     final List<String> items = [
