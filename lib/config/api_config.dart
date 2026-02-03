@@ -1,32 +1,39 @@
+/// Ambientes disponíveis para a aplicação
+enum Environment { local, localCasa, test, production }
+
 class ApiConfig {
   // Para emulador Android use: 'http://10.0.2.2:8080'
   // Para dispositivo físico use: 'http://192.168.3.2:8080'
   // Para iOS Simulator use: 'http://localhost:8080'
-  static const String _localBaseUrl =
-      'http://192.168.68.54:8080'; // IP para dispositivo físico
+  static const String _localBaseUrl = 'http://192.168.68.54:8080';
   static const String _localBaseUrlCasa = 'http://192.168.1.13:8080';
   static const String _testBaseUrl =
       'https://test-api.multimidiaeducacional.com.br';
   static const String _productionBaseUrl =
       'https://parceiro.multimidiaeducacional.com.br';
 
-  // Current environment
-  static const String _environment =
-      'localCasa'; // Options: 'local', 'test', 'production'
+  // Ambiente atual - altere aqui para trocar o apontamento
+  static Environment _currentEnvironment = Environment.localCasa;
 
-  // Get base URL based on environment
+  /// Inicializa o ambiente em runtime (opcional)
+  static void init(Environment environment) {
+    _currentEnvironment = environment;
+  }
+
+  /// Retorna o ambiente atual
+  static Environment get currentEnvironment => _currentEnvironment;
+
+  /// Retorna a URL base de acordo com o ambiente
   static String get baseUrl {
-    switch (_environment) {
-      case 'local':
+    switch (_currentEnvironment) {
+      case Environment.local:
         return _localBaseUrl;
-      case 'localCasa':
+      case Environment.localCasa:
         return _localBaseUrlCasa;
-      case 'test':
+      case Environment.test:
         return _testBaseUrl;
-      case 'production':
+      case Environment.production:
         return _productionBaseUrl;
-      default:
-        return _localBaseUrl;
     }
   }
 

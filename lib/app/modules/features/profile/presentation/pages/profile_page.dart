@@ -8,6 +8,7 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobx/mobx.dart';
 
+import '../../../../../../widgets/custom_text_field.dart';
 import '../../../../../shared/widgets/widgets.dart';
 import '../../../auth/presentation/stores/auth_store.dart';
 import '../stores/profile_store.dart';
@@ -389,43 +390,51 @@ class _ProfilePageState extends State<ProfilePage> {
                   SizedBox(height: 32.h),
 
                   // Nome
-                  _buildTextFieldWithLabel(
+                  CustomTextField(
                     controller: _nameController,
                     label: 'Nome',
+                    hintText: '',
                     isRequired: true,
                     errorText: _nameError,
+                    height: 50.h,
                   ),
 
                   SizedBox(height: 16.h),
 
                   // Email
-                  _buildTextFieldWithLabel(
+                  CustomTextField(
                     controller: _emailController,
                     label: 'E-mail',
+                    hintText: '',
                     keyboardType: TextInputType.emailAddress,
                     isRequired: true,
                     errorText: _emailError,
+                    height: 50.h,
                   ),
 
                   SizedBox(height: 16.h),
 
                   // Cargo
-                  _buildTextFieldWithLabel(
+                  CustomTextField(
                     controller: _cargoController,
                     label: 'Cargo',
+                    hintText: '',
                     isRequired: true,
                     errorText: _cargoError,
+                    height: 50.h,
                   ),
 
                   SizedBox(height: 16.h),
 
                   // Telefone
-                  _buildTextFieldWithLabel(
+                  CustomTextField(
                     controller: _phoneController,
                     label: 'Telefone',
+                    hintText: '',
                     keyboardType: TextInputType.phone,
                     isRequired: true,
                     errorText: _phoneError,
+                    height: 50.h,
                     onChanged: (value) {
                       final formatted = _formatPhone(value);
                       if (formatted != value) {
@@ -478,87 +487,6 @@ class _ProfilePageState extends State<ProfilePage> {
           },
         ),
       ),
-    );
-  }
-
-  Widget _buildTextFieldWithLabel({
-    required TextEditingController controller,
-    required String label,
-    TextInputType? keyboardType,
-    bool obscureText = false,
-    void Function(String)? onChanged,
-    bool isRequired = false,
-    String? errorText,
-  }) {
-    final bool hasError = errorText != null && errorText.isNotEmpty;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        RichText(
-          text: TextSpan(
-            text: label,
-            style: TextStyle(
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFF484848),
-            ),
-            children: isRequired
-                ? [
-                    TextSpan(
-                      text: ' *',
-                      style: TextStyle(
-                        color: Colors.red,
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ]
-                : null,
-          ),
-        ),
-        SizedBox(height: 8.h),
-        SizedBox(
-          height: 50.h,
-          child: TextField(
-            controller: controller,
-            keyboardType: keyboardType,
-            obscureText: obscureText,
-            onChanged: onChanged,
-            decoration: InputDecoration(
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8.r),
-                borderSide: BorderSide(
-                  color: hasError ? Colors.red : const Color(0xFFE0E0E0),
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8.r),
-                borderSide: BorderSide(
-                  color: hasError ? Colors.red : const Color(0xFF117BBD),
-                  width: 2,
-                ),
-              ),
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
-            ),
-          ),
-        ),
-        if (hasError)
-          Padding(
-            padding: EdgeInsets.only(top: 4.h),
-            child: Text(
-              errorText,
-              style: TextStyle(
-                color: Colors.red,
-                fontSize: 12.sp,
-              ),
-            ),
-          ),
-      ],
     );
   }
 }

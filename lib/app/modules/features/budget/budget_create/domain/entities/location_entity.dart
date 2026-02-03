@@ -17,12 +17,6 @@ class LocationEntity extends Equatable {
   /// Retorna a localização completa formatada
   String get fullLocation => '$cityName - $stateCode';
 
-  /// Retorna apenas o nome da cidade
-  String get cityDisplay => cityName;
-
-  /// Retorna apenas o nome do estado
-  String get stateDisplay => stateName;
-
   /// Verifica se a localização está completa
   bool get isValid =>
       stateCode.isNotEmpty &&

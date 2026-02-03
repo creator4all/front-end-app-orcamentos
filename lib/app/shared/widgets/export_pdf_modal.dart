@@ -8,10 +8,11 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../../widgets/custom_text_field.dart';
 import '../../modules/features/auth/presentation/stores/auth_store.dart';
 import '../../modules/features/budget/budget_edit/domain/repositories/budget_pdf_repository.dart';
 import '../../modules/features/budget/budget_edit/domain/usecases/generate_pdf_usecase.dart';
-import '../../modules/features/partner/data/services/partner_service.dart'; // ← NOVO
+import '../../modules/features/partner/data/services/partner_service.dart';
 import 'custom_info_dialog.dart';
 import 'custom_modal.dart';
 
@@ -174,39 +175,43 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Campo Nome do Vendedor
-        _buildTextField(
+        CustomTextField(
           controller: _nomeVendedorController,
           label: 'Nome vendedor',
           hintText: 'Digite o nome do vendedor',
           isRequired: true,
+          height: 44.h,
         ),
         SizedBox(height: 16.h),
 
         // Campo Cargo
-        _buildTextField(
+        CustomTextField(
           controller: _cargoController,
           label: 'Cargo',
           hintText: 'Digite o cargo',
           isRequired: true,
+          height: 44.h,
         ),
         SizedBox(height: 16.h),
 
         // Campo Telefone
-        _buildTextField(
+        CustomTextField(
           controller: _telefoneController,
           label: 'Telefone',
           hintText: 'Digite o telefone',
           keyboardType: TextInputType.phone,
           isRequired: true,
+          height: 44.h,
         ),
         SizedBox(height: 16.h),
 
         // Campo URL
-        _buildTextField(
+        CustomTextField(
           controller: _urlController,
           label: 'URL',
           hintText: 'Digite a URL',
           keyboardType: TextInputType.url,
+          height: 44.h,
         ),
         SizedBox(height: 24.h),
 
@@ -262,75 +267,6 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
           activeColor: const Color(0xFF117BBD),
           controlAffinity: ListTileControlAffinity.leading,
           contentPadding: EdgeInsets.zero,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required String hintText,
-    TextInputType? keyboardType,
-    bool isRequired = false,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        RichText(
-          text: TextSpan(
-            text: '$label:',
-            style: TextStyle(
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w500,
-              color: Colors.black87,
-            ),
-            children: isRequired
-                ? [
-                    TextSpan(
-                      text: ' *',
-                      style: TextStyle(
-                        color: Colors.red,
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ]
-                : null,
-          ),
-        ),
-        SizedBox(height: 8.h),
-        SizedBox(
-          height: 44.h,
-          child: TextFormField(
-            controller: controller,
-            keyboardType: keyboardType,
-            decoration: InputDecoration(
-              hintText: hintText,
-              hintStyle: TextStyle(
-                fontSize: 14.sp,
-                color: Colors.grey[500],
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8.r),
-                borderSide: BorderSide(color: Colors.grey[300]!),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8.r),
-                borderSide: BorderSide(color: Colors.grey[300]!),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8.r),
-                borderSide: const BorderSide(color: Color(0xFF117BBD)),
-              ),
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
-            ),
-            style: TextStyle(
-              fontSize: 14.sp,
-              color: Colors.black87,
-            ),
-          ),
         ),
       ],
     );
