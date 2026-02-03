@@ -277,129 +277,124 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
       ),
       body: RefreshIndicator(
         onRefresh: _refreshPage,
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.all(16.w),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(height: 5.h),
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(16.w),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(height: 5.h),
 
-                    Observer(
-                      builder: (_) {
-                        // Evita loop infinito quando API retorna lista vazia
+              // CAMPO PARCEIRO (apenas para admins)
+              Observer(
+                builder: (_) {
+                  // ✅ REMOVIDO: Lógica de carregamento movida para initState
+                  // Evita loop infinito quando API retorna lista vazia
 
-                        if (!_authStore.isAdmin) {
-                          return const SizedBox.shrink();
-                        }
+                  // Não mostrar campo se não for admin
+                  if (!_authStore.isAdmin) {
+                    return const SizedBox.shrink();
+                  }
 
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Gerar orçamento para (opcional):',
-                              style: TextStyle(
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.black87,
-                              ),
-                            ),
-                            SizedBox(height: 10.h),
-                            Container(
-                              width: double.infinity,
-                              height: 35.h,
-                              padding: EdgeInsets.symmetric(horizontal: 16.w),
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.grey[300]!),
-                                borderRadius: BorderRadius.circular(8.r),
-                              ),
-                              child: DropdownButtonHideUnderline(
-                                child: _store.isLoadingPartners
-                                    ? Center(
-                                        child: SizedBox(
-                                          width: 20.w,
-                                          height: 20.h,
-                                          child:
-                                              const CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: Color(0xFF117BBD),
-                                          ),
-                                        ),
-                                      )
-                                    : DropdownButton<int>(
-                                        value: _store.selectedPartner?.id,
-                                        isExpanded: true,
-                                        hint: Text(
-                                          !_store.hasPartners
-                                              ? 'Nenhum parceiro disponível'
-                                              : 'Selecione um parceiro',
-                                          style: TextStyle(
-                                            fontSize: 16.sp,
-                                            color: Colors.grey[500],
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        items: _store.partners
-                                            .map((partner) =>
-                                                DropdownMenuItem<int>(
-                                                  value: partner.id,
-                                                  child: Text(
-                                                    partner.displayName,
-                                                    style: TextStyle(
-                                                        fontSize: 16.sp),
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                  ),
-                                                ))
-                                            .toList(),
-                                        onChanged: !_store.hasPartners
-                                            ? null
-                                            : (value) {
-                                                final partner = _store.partners
-                                                    .firstWhere(
-                                                        (p) => p.id == value);
-                                                _store.selectPartner(partner);
-                                              },
-                                      ),
-                              ),
-                            ),
-                            SizedBox(height: 10.h),
-                            Container(
-                              width: double.infinity,
-                              height: 1.h,
-                              color: Colors.grey[300],
-                            ),
-                            SizedBox(height: 10.h),
-                          ],
-                        );
-                      },
-                    ),
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Gerar orçamento para (opcional):',
+                        style: TextStyle(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      SizedBox(height: 10.h),
+                      Container(
+                        width: double.infinity,
+                        height: 35.h,
+                        padding: EdgeInsets.symmetric(horizontal: 16.w),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey[300]!),
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: _store.isLoadingPartners
+                              ? Center(
+                                  child: SizedBox(
+                                    width: 20.w,
+                                    height: 20.h,
+                                    child: const CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Color(0xFF117BBD),
+                                    ),
+                                  ),
+                                )
+                              : DropdownButton<int>(
+                                  value: _store.selectedPartner?.id,
+                                  isExpanded: true,
+                                  hint: Text(
+                                    !_store.hasPartners
+                                        ? 'Nenhum parceiro disponível'
+                                        : 'Selecione um parceiro',
+                                    style: TextStyle(
+                                      fontSize: 16.sp,
+                                      color: Colors.grey[500],
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  items: _store.partners
+                                      .map((partner) => DropdownMenuItem<int>(
+                                            value: partner.id,
+                                            child: Text(
+                                              partner.displayName,
+                                              style: TextStyle(fontSize: 16.sp),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ))
+                                      .toList(),
+                                  onChanged: !_store.hasPartners
+                                      ? null
+                                      : (value) {
+                                          final partner = _store.partners
+                                              .firstWhere((p) => p.id == value);
+                                          _store.selectPartner(partner);
+                                        },
+                                ),
+                        ),
+                      ),
+                      SizedBox(height: 10.h),
+                      Container(
+                        width: double.infinity,
+                        height: 1.h,
+                        color: Colors.grey[300],
+                      ),
+                      SizedBox(height: 10.h),
+                    ],
+                  );
+                },
+              ),
 
-                    Observer(
-                      builder: (_) {
-                        final List<String> estadosNomes = _geo.estados
-                            .map((dynamic e) => e.nome as String)
-                            .cast<String>()
-                            .toList();
+              // ESTADO
+              Observer(
+                builder: (_) {
+                  final List<String> estadosNomes = _geo.estados
+                      .map((dynamic e) => e.nome as String)
+                      .cast<String>()
+                      .toList();
 
-                        return SearchableDropdownWidget(
-                          label: 'Selecione o Estado',
-                          hint: 'Estado',
-                          searchHint: 'Pesquisar estado...',
-                          items: estadosNomes,
-                          value: _geo.estadoSelecionado?.nome,
-                          onChanged: (value) async {
-                            if (value == null) return;
+                  return SearchableDropdownWidget(
+                    label: 'Selecione o Estado',
+                    hint: 'Estado',
+                    searchHint: 'Pesquisar estado...',
+                    items: estadosNomes,
+                    value: _geo.estadoSelecionado?.nome,
+                    onChanged: (value) async {
+                      if (value == null) return;
 
-                            final matches =
-                                _geo.estados.where((e) => e.nome == value);
-                            final estado =
-                                matches.isNotEmpty ? matches.first : null;
+                      final matches =
+                          _geo.estados.where((e) => e.nome == value);
+                      final estado = matches.isNotEmpty ? matches.first : null;
 
-                            if (estado != null) {
-                              await _geo.selecionarEstado(estado);
+                      if (estado != null) {
+                        await _geo.selecionarEstado(estado);
 
                               _store.setSelectedState(
                                 estado.id?.toString() ?? '',
@@ -422,22 +417,22 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                               .cast<String>()
                               .toList();
 
-                          return SearchableDropdownWidget(
-                            label: 'Selecione a Cidade',
-                            hint: 'Cidade',
-                            searchHint: 'Pesquisar cidade...',
-                            items: cidadesNomes,
-                            value: _geo.cidadeSelecionada?.nome,
-                            onChanged: (value) {
-                              if (value == null) return;
+                    return SearchableDropdownWidget(
+                      label: 'Selecione a Cidade',
+                      hint: 'Cidade',
+                      searchHint: 'Pesquisar cidade...',
+                      items: cidadesNomes,
+                      value: _geo.cidadeSelecionada?.nome,
+                      onChanged: (value) {
+                        if (value == null) return;
 
-                              final matches =
-                                  _geo.cidades.where((c) => c.nome == value);
-                              final cidade =
-                                  matches.isNotEmpty ? matches.first : null;
+                        final matches =
+                            _geo.cidades.where((c) => c.nome == value);
+                        final cidade =
+                            matches.isNotEmpty ? matches.first : null;
 
-                              if (cidade != null) {
-                                _geo.selecionarCidade(cidade);
+                        if (cidade != null) {
+                          _geo.selecionarCidade(cidade);
 
                                 _store.setSelectedCity(
                                   cidade.id.toString(),
@@ -445,15 +440,15 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                                   cityId: cidade.id,
                                 );
 
-                                if (mounted) setState(() {});
-                              }
-                            },
-                          );
-                        },
-                      ),
-                    ],
+                          if (mounted) setState(() {});
+                        }
+                      },
+                    );
+                  },
+                ),
+              ],
 
-                    SizedBox(height: 20.h),
+              SizedBox(height: 20.h),
 
                     Container(
                       width: double.infinity,
@@ -461,43 +456,45 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                       color: Colors.grey[300],
                     ),
 
-                    SizedBox(height: 20.h),
+              SizedBox(height: 20.h),
 
-                    Text(
-                      'Responsável cliente (opcional):',
-                      style: TextStyle(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.black87,
-                      ),
+              // RESPONSÁVEL
+              Text(
+                'Responsável cliente (opcional):',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black87,
+                ),
+              ),
+              SizedBox(height: 10.h),
+              SizedBox(
+                height: 35.h,
+                child: TextFormField(
+                  controller: _responsibleController,
+                  decoration: InputDecoration(
+                    hintText: 'Informe o nome',
+                    hintStyle: TextStyle(
+                      fontSize: 16.sp,
+                      color: Colors.grey[500],
                     ),
-                    SizedBox(height: 10.h),
-                    SizedBox(
-                      height: 35.h,
-                      child: TextFormField(
-                        controller: _responsibleController,
-                        decoration: InputDecoration(
-                          hintText: 'Informe o nome',
-                          hintStyle: TextStyle(
-                            fontSize: 16.sp,
-                            color: Colors.grey[500],
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.r),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.r),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
-                          ),
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 16.w, vertical: 8.h),
-                        ),
-                      ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                      borderSide: BorderSide(color: Colors.grey[300]!),
                     ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                      borderSide: BorderSide(color: Colors.grey[300]!),
+                    ),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                  ),
+                ),
+              ),
 
-                    SizedBox(height: 10.h),
+              SizedBox(height: 10.h),
 
+                    // EMAIL
                     Text(
                       'Email (opcional):',
                       style: TextStyle(
@@ -542,8 +539,9 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                       ),
                     ),
 
-                    SizedBox(height: 10.h),
+              SizedBox(height: 10.h),
 
+                    // TELEFONE
                     Text(
                       'Telefone (opcional):',
                       style: TextStyle(
@@ -559,130 +557,131 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
                         inputFormatters: [
+                          // Máscara para telefone brasileiro: (XX) XXXXX-XXXX
                           TextInputFormatter.withFunction((oldValue, newValue) {
                             String text =
                                 newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
 
-                            if (text.length > 11) {
-                              text = text.substring(0, 11);
-                            }
+                      if (text.length > 11) {
+                        text = text.substring(0, 11);
+                      }
 
-                            String formatted = '';
-                            if (text.isNotEmpty) {
-                              formatted = '($text';
-                              if (text.length >= 2) {
-                                formatted = '(${text.substring(0, 2)}';
-                                if (text.length > 2) {
-                                  formatted += ') ';
-                                  if (text.length <= 7) {
-                                    formatted += text.substring(2);
-                                  } else {
-                                    formatted += '${text.substring(2, 7)}-';
-                                    if (text.length > 7) {
-                                      formatted += text.substring(7);
-                                    }
-                                  }
-                                }
+                      String formatted = '';
+                      if (text.isNotEmpty) {
+                        formatted = '($text';
+                        if (text.length >= 2) {
+                          formatted = '(${text.substring(0, 2)}';
+                          if (text.length > 2) {
+                            formatted += ') ';
+                            if (text.length <= 7) {
+                              formatted += text.substring(2);
+                            } else {
+                              formatted += '${text.substring(2, 7)}-';
+                              if (text.length > 7) {
+                                formatted += text.substring(7);
                               }
                             }
+                          }
+                        }
+                      }
 
-                            return TextEditingValue(
-                              text: formatted,
-                              selection: TextSelection.collapsed(
-                                  offset: formatted.length),
-                            );
-                          }),
-                        ],
-                        decoration: InputDecoration(
-                          hintText: '(00) 00000-0000',
-                          hintStyle: TextStyle(
-                            fontSize: 16.sp,
-                            color: Colors.grey[500],
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.r),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8.r),
-                            borderSide: BorderSide(color: Colors.grey[300]!),
-                          ),
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 16.w, vertical: 8.h),
-                        ),
-                      ),
-                    ),
+                      return TextEditingValue(
+                        text: formatted,
+                        selection:
+                            TextSelection.collapsed(offset: formatted.length),
+                      );
+                    }),
                   ],
+                  decoration: InputDecoration(
+                    hintText: '(00) 00000-0000',
+                    hintStyle: TextStyle(
+                      fontSize: 16.sp,
+                      color: Colors.grey[500],
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                      borderSide: BorderSide(color: Colors.grey[300]!),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8.r),
+                      borderSide: BorderSide(color: Colors.grey[300]!),
+                    ),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                  ),
                 ),
               ),
-            ),
 
-            Container(
-              padding: EdgeInsets.all(16.w),
-              child: Column(
-                children: [
-                  Observer(
-                    builder: (_) => SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed:
-                            _store.isCreatingDraft ? null : _createDraftBudget,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF117BBD),
-                          disabledBackgroundColor: Colors.grey[300],
-                          padding: EdgeInsets.symmetric(vertical: 12.h),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8.r),
-                          ),
-                        ),
-                        child: _store.isCreatingDraft
-                            ? SizedBox(
-                                width: 20.w,
-                                height: 20.h,
-                                child: const CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    'Próximo',
-                                    style: TextStyle(
-                                      fontSize: 13.sp,
-                                      fontWeight: FontWeight.w600,
-                                      color: const Color(0xFFFFFFFF),
-                                    ),
-                                  ),
-                                  SizedBox(width: 8.w),
-                                  Icon(
-                                    Icons.arrow_forward,
-                                    color: const Color(0xFFFFFFFF),
-                                    size: 18.sp,
-                                  ),
-                                ],
-                              ),
+              // Espaçamento antes dos botões
+              SizedBox(height: 32.h),
+
+              // Botão Próximo
+              Observer(
+                builder: (_) => SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed:
+                        _store.isCreatingDraft ? null : _createDraftBudget,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF117BBD),
+                      disabledBackgroundColor: Colors.grey[300],
+                      padding: EdgeInsets.symmetric(vertical: 12.h),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.r),
                       ),
                     ),
+                    child: _store.isCreatingDraft
+                        ? SizedBox(
+                            width: 20.w,
+                            height: 20.h,
+                            child: const CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Próximo',
+                                style: TextStyle(
+                                  fontSize: 13.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFFFFFFFF),
+                                ),
+                              ),
+                              SizedBox(width: 8.w),
+                              Icon(
+                                Icons.arrow_forward,
+                                color: const Color(0xFFFFFFFF),
+                                size: 18.sp,
+                              ),
+                            ],
+                          ),
                   ),
+                ),
+              ),
 
-                  SizedBox(height: 10.h),
+              SizedBox(height: 10.h),
 
+                  // Link Orçamento multi-cidades
                   Center(
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onTap: () async {
+                        // 1. Modal de nome do orçamento
                         final budgetName =
                             await _showMultiCityBudgetNameModal();
                         if (budgetName == null || budgetName.isEmpty) return;
 
+                        // 2. Modal de seleção de cidades
                         if (!mounted) return;
                         final selectedCities =
                             await _showMultiCityCitySelectionModal();
                         if (selectedCities == null || selectedCities.isEmpty)
                           return;
 
+                        // 3. Navegar para tela de orçamento multi-cidades
                         if (!mounted) return;
                         await Modular.to.pushNamed(
                           '/budget/multi-city/census',
@@ -711,11 +710,10 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                     ),
                   ),
 
-                  SizedBox(height: 10.h),
-                ],
-              ),
-            ),
-          ],
+              // Padding inferior para safe area
+              SizedBox(height: 16.h),
+            ],
+          ),
         ),
       ),
     );

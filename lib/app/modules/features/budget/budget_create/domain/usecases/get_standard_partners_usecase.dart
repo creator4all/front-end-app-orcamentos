@@ -1,5 +1,6 @@
 ﻿import 'package:dartz/dartz.dart';
 
+import '../../../../../../shared/utils/string_utils.dart';
 import '../../../shared/errors/budget_failure.dart';
 import '../entities/partner_entity.dart';
 import '../repositories/partner_repository.dart';
@@ -24,7 +25,8 @@ class GetStandardPartnersUseCase {
             return true;
           }).toList();
 
-          activePartners.sort((a, b) => a.name.compareTo(b.name));
+          // Ordena alfabeticamente por nome (ignorando acentos)
+          activePartners.sort((a, b) => compareIgnoringAccents(a.name, b.name));
 
           return Right(activePartners);
         },

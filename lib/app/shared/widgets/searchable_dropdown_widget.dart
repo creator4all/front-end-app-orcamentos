@@ -1,6 +1,8 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../utils/string_utils.dart';
+
 class SearchableDropdownWidget extends StatefulWidget {
   final String label;
   final String hint;
@@ -70,7 +72,7 @@ class _SearchableDropdownWidgetState extends State<SearchableDropdownWidget> {
   List<String> _sortItems(List<String> items) {
     if (!widget.sortItems) return List<String>.from(items);
     final sorted = List<String>.from(items);
-    sorted.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    sorted.sort(compareIgnoringAccents);
     return sorted;
   }
 
