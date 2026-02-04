@@ -51,6 +51,9 @@ class UserProfile {
     );
   }
 
+  /// Converte para Map apenas os campos editáveis pelo usuário.
+  /// Campos como id, avatar, roleName, partnerName e status são
+  /// gerenciados pelo backend ou via endpoints específicos.
   Map<String, dynamic> toMap() {
     return {
       'usr_name': name,

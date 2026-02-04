@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 
 import '../../../../../shared/core/errors/failures.dart';
+import '../../../../../shared/utils/email_validator.dart';
 import '../repositories/auth_repository.dart';
 
 /// Caso de uso para solicitar recuperação de senha
@@ -23,17 +24,12 @@ class RequestPasswordResetUsecase {
     }
 
     // Validação de formato de email
-    if (!_isValidEmail(email)) {
+    if (!EmailValidator.isValid(email)) {
       print('❌ Validação falhou: email inválido');
       return const Left(ValidationFailure('Email inválido'));
     }
 
     print('✅ Validações OK - Chamando repository.requestPasswordReset()...');
     return repository.requestPasswordReset(email: email);
-  }
-
-  /// Valida o formato do email usando RegExp
-  bool _isValidEmail(String email) {
-    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
   }
 }

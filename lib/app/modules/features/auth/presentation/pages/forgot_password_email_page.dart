@@ -3,6 +3,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../../../shared/utils/email_validator.dart';
 import '../../../../../shared/widgets/custom_info_dialog.dart';
 import '../../../../../shared/widgets/custom_top_bar.dart';
 import '../stores/forgot_password_store.dart';
@@ -144,16 +145,7 @@ class _ForgotPasswordEmailPageState extends State<ForgotPasswordEmailPage> {
                           vertical: 12.h,
                         ),
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Por favor, digite seu e-mail';
-                        }
-                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                            .hasMatch(value)) {
-                          return 'Por favor, digite um e-mail válido';
-                        }
-                        return null;
-                      },
+                      validator: EmailValidator.getError,
                     ),
                   ],
                 ),

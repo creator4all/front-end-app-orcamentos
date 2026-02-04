@@ -3,6 +3,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:multimidiaapp/app/shared/utils/email_validator.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_info_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -133,15 +134,7 @@ class _LoginPageState extends State<LoginPage> {
               vertical: 12.h,
             ),
           ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Por favor, digite seu email';
-            }
-            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-              return 'Por favor, digite um email válido';
-            }
-            return null;
-          },
+          validator: EmailValidator.getError,
         ),
       ],
     );

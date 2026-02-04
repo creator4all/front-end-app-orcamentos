@@ -4,6 +4,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../../../widgets/index.dart';
+import '../../../../../shared/utils/email_validator.dart';
 import '../../../../../shared/widgets/custom_top_bar.dart';
 import '../../domain/entities/user_registration.dart';
 import '../stores/registration_store.dart';
@@ -240,16 +241,7 @@ class _UserRegistrationPageState extends State<UserRegistrationPage> {
                       label: 'E-mail:',
                       hintText: 'Informe seu email',
                       keyboardType: TextInputType.emailAddress,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Por favor, digite seu e-mail';
-                        }
-                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                            .hasMatch(value)) {
-                          return 'Por favor, digite um e-mail válido';
-                        }
-                        return null;
-                      },
+                      validator: EmailValidator.getError,
                     ),
                     SizedBox(height: 16.h),
 

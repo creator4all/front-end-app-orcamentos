@@ -4,6 +4,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:multimidiaapp/app/shared/utils/document_validators.dart';
+import 'package:multimidiaapp/app/shared/utils/email_validator.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_info_dialog.dart';
 import 'package:video_player/video_player.dart';
 
@@ -129,8 +130,7 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
     // E-mail
     if (_emailController.text.trim().isEmpty) {
       missingFields.add('E-mail');
-    } else if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-        .hasMatch(_emailController.text.trim())) {
+    } else if (!EmailValidator.isValid(_emailController.text.trim())) {
       missingFields.add('E-mail (formato inválido)');
     }
 
@@ -373,16 +373,7 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
                   isRequired: true,
                   hintText: 'Informe seu e-mail',
                   keyboardType: TextInputType.emailAddress,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor, digite seu e-mail';
-                    }
-                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                        .hasMatch(value)) {
-                      return 'Por favor, digite um e-mail válido';
-                    }
-                    return null;
-                  },
+                  validator: EmailValidator.getError,
                 ),
                 SizedBox(height: 16.h),
 

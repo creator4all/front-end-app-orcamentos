@@ -17,16 +17,7 @@ import 'custom_info_dialog.dart';
 import 'custom_modal.dart';
 
 /// Modal para exportar PDF com informações do vendedor e logo personalizada
-class ExportPdfModal extends StatefulWidget {
-  final int orcamentoId;
-  final GeneratePdfUseCase? generatePdfUseCase;
-
-  const ExportPdfModal({
-    super.key,
-    required this.orcamentoId,
-    this.generatePdfUseCase,
-  });
-
+abstract class ExportPdfModal {
   /// Método estático para mostrar o modal
   static Future<T?> show<T>({
     required BuildContext context,
@@ -40,19 +31,6 @@ class ExportPdfModal extends StatefulWidget {
         orcamentoId: orcamentoId,
         generatePdfUseCase: generatePdfUseCase,
       ),
-    );
-  }
-
-  @override
-  State<ExportPdfModal> createState() => _ExportPdfModalState();
-}
-
-class _ExportPdfModalState extends State<ExportPdfModal> {
-  @override
-  Widget build(BuildContext context) {
-    return _ExportPdfContent(
-      orcamentoId: widget.orcamentoId,
-      generatePdfUseCase: widget.generatePdfUseCase,
     );
   }
 }

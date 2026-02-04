@@ -89,21 +89,7 @@ abstract class _PartnerManagementStoreBase with Store {
     print('📋 [PartnerManagementStore] Carregando parceiros...');
 
     final result = await listPartnersUsecase(page: 1);
-
-    result.fold(
-      (failure) {
-        error = failure.message;
-        print('❌ [PartnerManagementStore] Erro: ${failure.message}');
-      },
-      (paginatedPartners) {
-        partners.addAll(paginatedPartners.partners);
-        currentPage = paginatedPartners.currentPage;
-        lastPage = paginatedPartners.lastPage;
-        totalPartners = paginatedPartners.total;
-        print(
-            '✅ [PartnerManagementStore] Carregados ${partners.length} parceiros');
-      },
-    );
+    _processResult(result, updateTotal: true);
 
     isLoading = false;
   }
@@ -119,7 +105,16 @@ abstract class _PartnerManagementStoreBase with Store {
     print('📋 [PartnerManagementStore] Carregando página $nextPage...');
 
     final result = await listPartnersUsecase(page: nextPage);
+    _processResult(result);
 
+    isLoadingMore = false;
+  }
+
+  /// Processa resultado da API e atualiza estado
+  void _processResult(
+    dynamic result, {
+    bool updateTotal = false,
+  }) {
     result.fold(
       (failure) {
         error = failure.message;
@@ -129,11 +124,12 @@ abstract class _PartnerManagementStoreBase with Store {
         partners.addAll(paginatedPartners.partners);
         currentPage = paginatedPartners.currentPage;
         lastPage = paginatedPartners.lastPage;
+        if (updateTotal) {
+          totalPartners = paginatedPartners.total;
+        }
         print(
-            '✅ [PartnerManagementStore] Carregados mais ${paginatedPartners.partners.length} parceiros');
+            '✅ [PartnerManagementStore] Carregados ${partners.length} parceiros');
       },
     );
-
-    isLoadingMore = false;
   }
 }

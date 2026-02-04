@@ -71,11 +71,8 @@ class ProductConfigDto {
 
   /// Factory para resposta da lista de produtos (formato diferente)
   factory ProductConfigDto.fromListJson(Map<String, dynamic> json) {
-    // API retorna ativo/status como int (1 = true, 0 = false)
-    final ativoValue = json['pro_ativo'];
-    final ativo = ativoValue == 1 || ativoValue == true;
-    final statusValue = json['pro_status'];
-    final status = statusValue == 1 || statusValue == true;
+    final ativo = _parseApiBool(json['pro_ativo']);
+    final status = _parseApiBool(json['pro_status']);
 
     return ProductConfigDto(
       id: json['pro_produtosId'] as int,
@@ -102,7 +99,7 @@ class ProductConfigDto {
     final indicadoresJson = json['indicadores'] as Map<String, dynamic>? ?? {};
     final indicadores = <String, bool>{};
     indicadoresJson.forEach((key, value) {
-      indicadores[key] = value == true || value == 1;
+      indicadores[key] = _parseApiBool(value);
     });
 
     // Parse produtos relacionados
@@ -115,11 +112,8 @@ class ProductConfigDto {
     final categoriaJson = json['categoria'] as Map<String, dynamic>?;
     final subcategoriaJson = json['subcategoria'] as Map<String, dynamic>?;
 
-    // API retorna ativo/status como int (1 = true, 0 = false)
-    final ativoValue = json['ativo'];
-    final ativo = ativoValue == 1 || ativoValue == true;
-    final statusValue = json['status'];
-    final status = statusValue == 1 || statusValue == true;
+    final ativo = _parseApiBool(json['ativo']);
+    final status = _parseApiBool(json['status']);
 
     return ProductConfigDto(
       id: json['id'] as int,
@@ -204,6 +198,11 @@ class ProductConfigDto {
     if (value is int) return value.toDouble();
     if (value is String) return double.tryParse(value) ?? 0.0;
     return 0.0;
+  }
+
+  /// Converte valores da API (int 0/1 ou bool) para bool.
+  static bool _parseApiBool(dynamic value) {
+    return value == 1 || value == true;
   }
 
   static double? _parseDoubleNullable(dynamic value) {
