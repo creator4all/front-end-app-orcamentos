@@ -1,33 +1,34 @@
-import 'package:dio/dio.dart';
-
+import '../app/shared/core/http/app_http_client.dart';
 import '../config/api_config.dart';
 
+/// Serviço de autenticação usando AppHttpClient
+///
+/// Centraliza operações de login e reset de senha.
 class AuthService {
-  final Dio _dio;
+  final AppHttpClient _client;
 
-  AuthService({Dio? dio}) : _dio = dio ?? Dio();
+  AuthService({required AppHttpClient client}) : _client = client;
 
-  // Authenticate user with API
+  /// Autenticação
   Future<Map<String, dynamic>> signIn(String email, String password) async {
     try {
-      final response = await _dio.post(
+      final response = await _client.post(
         ApiConfig.signInEndpoint,
         data: {
           'email': email,
           'password': password,
         },
-        options: Options(headers: ApiConfig.headers),
       );
 
-      if (response.statusCode == 200) {
+      if (response.isSuccess) {
         return {
           'success': true,
-          'data': response.data,
+          'data': response.body,
         };
       } else {
         return {
           'success': false,
-          'error': response.data?['message'] ?? 'Falha na autenticação',
+          'error': response.body['message'] ?? 'Falha na autenticação',
         };
       }
     } catch (e) {
@@ -38,26 +39,25 @@ class AuthService {
     }
   }
 
-  // Reset password
+  /// Reset de senha
   Future<Map<String, dynamic>> resetPassword(String email) async {
     try {
-      final response = await _dio.post(
+      final response = await _client.post(
         ApiConfig.resetPasswordEndpoint,
         data: {
           'email': email,
         },
-        options: Options(headers: ApiConfig.headers),
       );
 
-      if (response.statusCode == 200) {
+      if (response.isSuccess) {
         return {
           'success': true,
-          'data': response.data,
+          'data': response.body,
         };
       } else {
         return {
           'success': false,
-          'error': response.data?['message'] ?? 'Falha ao resetar senha',
+          'error': response.body['message'] ?? 'Falha ao resetar senha',
         };
       }
     } catch (e) {

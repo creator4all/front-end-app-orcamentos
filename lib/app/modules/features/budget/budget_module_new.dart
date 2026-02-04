@@ -1,9 +1,7 @@
 import 'package:flutter_modular/flutter_modular.dart';
 
 import '../../../../config/api_config.dart';
-import '../../../../services/api_service.dart';
 import '../../../shared/core/http/app_http_client.dart';
-import '../../../shared/core/http/dio_client.dart';
 import '../../../shared/core/http/dio_config_factory.dart';
 import '../../../shared/core/http/dio_http_client_impl.dart';
 import '../../../shared/core/utils/token_cache.dart';
@@ -95,11 +93,7 @@ import 'budget_multi_city/presentation/stores/multi_city_census_store.dart';
 class BudgetModuleNew extends Module {
   @override
   List<Bind> get binds => [
-        // ==================== CORE ====================
-        Bind.lazySingleton((i) => DioClient()),
-        Bind.lazySingleton((i) => ApiService(dio: i.get<DioClient>().dio)),
-
-        // ==================== NEW HTTP CLIENT (AppHttpClient) ====================
+        // ==================== CORE (AppHttpClient) ====================
         Bind.lazySingleton<AppHttpClient>(
           (i) => DioHttpClientImpl(
             DioConfigFactory.createDefault(
@@ -113,7 +107,7 @@ class BudgetModuleNew extends Module {
         // ==================== BUDGET LIST ====================
         // DataSources
         Bind.lazySingleton<BudgetRemoteDataSource>(
-          (i) => BudgetRemoteDataSourceImpl(i.get<ApiService>()),
+          (i) => BudgetRemoteDataSourceImpl(i.get<AppHttpClient>()),
         ),
 
         // Repositories
@@ -181,10 +175,10 @@ class BudgetModuleNew extends Module {
         // ==================== BUDGET CONFIG ====================
         // DataSources
         Bind.lazySingleton<BudgetDetailRemoteDataSource>(
-          (i) => BudgetDetailRemoteDataSourceImpl(i.get<ApiService>()),
+          (i) => BudgetDetailRemoteDataSourceImpl(i.get<AppHttpClient>()),
         ),
         Bind.lazySingleton<CensusRemoteDataSource>(
-          (i) => CensusRemoteDataSourceImpl(i.get<ApiService>()),
+          (i) => CensusRemoteDataSourceImpl(i.get<AppHttpClient>()),
         ),
 
         // Repositories
@@ -268,7 +262,7 @@ class BudgetModuleNew extends Module {
         // ==================== BUDGET EDIT ====================
         // DataSources
         Bind.lazySingleton<BudgetEditRemoteDataSource>(
-          (i) => BudgetEditRemoteDataSourceImpl(i.get<ApiService>()),
+          (i) => BudgetEditRemoteDataSourceImpl(i.get<AppHttpClient>()),
         ),
         Bind.lazySingleton<BudgetPdfRemoteDataSource>(
           (i) => BudgetPdfRemoteDataSourceImpl(i.get<AppHttpClient>()),
@@ -320,7 +314,7 @@ class BudgetModuleNew extends Module {
         // ==================== BUDGET MULTI-CITY ====================
         // DataSources
         Bind.lazySingleton<MultiCityBudgetRemoteDataSource>(
-          (i) => MultiCityBudgetRemoteDataSourceImpl(i.get<ApiService>()),
+          (i) => MultiCityBudgetRemoteDataSourceImpl(i.get<AppHttpClient>()),
         ),
 
         // Repositories

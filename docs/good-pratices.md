@@ -369,6 +369,17 @@ flutter:
 - Centralizar configurações no `ApiConfig`
 - Usar interceptors para funcionalidades transversais
 - Implementar retry logic para requests críticos
+- **Usar `queryParameters` ao invés de concatenação de URL:**
+```dart
+// ❌ RUIM - Concatenação manual
+final response = await dio.get('/api/users?page=$page&per_page=$perPage');
+
+// ✅ BOM - Usar queryParameters
+final response = await dio.get(
+  '/api/users',
+  queryParameters: {'page': page, 'per_page': perPage},
+);
+```
 
 ### 4. **Responsividade**
 - Sempre usar `ScreenUtil` para dimensões

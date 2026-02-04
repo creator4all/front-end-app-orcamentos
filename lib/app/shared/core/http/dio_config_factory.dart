@@ -2,7 +2,6 @@ import '../constants/http_constants.dart';
 import 'http_client_config.dart';
 import 'interceptors/auth_interceptor.dart';
 import 'interceptors/http_interceptor.dart';
-import 'interceptors/retry_interceptor.dart';
 import 'interceptors/version_checker_interceptor.dart';
 
 /// Factory para criar configurações do HttpClient
@@ -35,16 +34,6 @@ class DioConfigFactory {
           getToken: getToken,
           excludedPaths: ['/login', '/register', '/refresh-token'],
         ),
-
-      // Retry para requisições que falham temporariamente
-      RetryInterceptor(
-        maxRetries: 3,
-        retryDelays: [
-          const Duration(seconds: 1),
-          const Duration(seconds: 2),
-          const Duration(seconds: 3),
-        ],
-      ),
 
       // Adiciona interceptors customizados
       ...?additionalInterceptors,

@@ -1,6 +1,10 @@
+import 'dart:io' show Platform;
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../../widgets/custom_info_dialog.dart';
 import '../http_response.dart';
 import 'http_interceptor.dart';
 
@@ -30,6 +34,12 @@ class VersionCheckerInterceptor extends HttpInterceptor {
 
   bool _dialogIsVisible = false;
 
+  static const _playStoreUrl =
+      'https://play.google.com/store/apps/details?id=br.com.multimidiaeducacional.parceiro';
+
+  /// URL da App Store - aguardando finalização do review da Apple
+  static const _appStoreUrl = '';
+
   VersionCheckerInterceptor({
     required this.currentVersion,
     this.onUpdateRequired,
@@ -38,19 +48,16 @@ class VersionCheckerInterceptor extends HttpInterceptor {
 
   @override
   void onRequest(HttpRequestInfo request) {
-    // Adiciona versão do app nos headers de todas as requisições
     request.headers['App-Version'] = currentVersion;
-    request.headers['User-Agent'] = 'OrcamentosApp/$currentVersion';
+    request.headers['User-Agent'] = 'App-Orcamentos-$currentVersion';
   }
 
   @override
   void onResponse(HttpResponseBase response) {
-    // Status 426 = Upgrade Required (versão desatualizada)
     if (response.statusCode == 426) {
       _showUpdateDialog();
     }
 
-    // Verifica header de versão mínima requerida
     final requiredVersion = _getRequiredVersion(response.headers);
     if (requiredVersion != null && _isVersionOutdated(requiredVersion)) {
       _showUpdateDialog();
@@ -64,14 +71,12 @@ class VersionCheckerInterceptor extends HttpInterceptor {
     String responseMessage,
     String responsePayload,
   ) async {
-    // Verifica se o erro é por versão desatualizada
     if (error is DioException && error.response?.statusCode == 426) {
       _showUpdateDialog();
     }
     return false;
   }
 
-  /// Extrai versão mínima requerida dos headers
   String? _getRequiredVersion(Map<String, List<String>> headers) {
     for (var entry in headers.entries) {
       if (entry.key.toLowerCase() == 'x-required-version' ||
@@ -82,7 +87,6 @@ class VersionCheckerInterceptor extends HttpInterceptor {
     return null;
   }
 
-  /// Compara versões (formato: 1.2.3)
   bool _isVersionOutdated(String requiredVersion) {
     try {
       final current = currentVersion.split('.').map(int.parse).toList();
@@ -96,13 +100,12 @@ class VersionCheckerInterceptor extends HttpInterceptor {
         if (currentPart > requiredPart) return false;
       }
 
-      return false; // Versões iguais
+      return false;
     } catch (e) {
       return false;
     }
   }
 
-  /// Mostra diálogo de atualização obrigatória
   void _showUpdateDialog() {
     if (_dialogIsVisible) return;
 
@@ -118,27 +121,30 @@ class VersionCheckerInterceptor extends HttpInterceptor {
     if (onUpdateRequired != null) {
       onUpdateRequired!(context);
     } else {
-      // Diálogo padrão
-      showDialog(
+      CustomInfoDialog.show(
         context: context,
+        type: DialogType.warning,
+        title: 'Atualização Necessária',
+        message:
+            'Uma nova versão do app está disponível. Atualize para continuar usando.',
+        buttonText: 'ATUALIZAR',
         barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          title: const Text('Atualização Necessária'),
-          content: const Text(
-            'Uma nova versão do aplicativo está disponível. '
-            'Por favor, atualize para continuar usando.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                // Implementar lógica de redirecionamento para loja
-                // Exemplo: launch('https://play.google.com/store/apps/details?id=...');
-              },
-              child: const Text('ATUALIZAR'),
-            ),
-          ],
-        ),
+        onButtonPressed: _openStore,
       );
+    }
+  }
+
+  Future<void> _openStore() async {
+    final url = Platform.isIOS ? _appStoreUrl : _playStoreUrl;
+
+    if (url.isEmpty) {
+      debugPrint('⚠️ URL da loja não configurada para esta plataforma');
+      return;
+    }
+
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
   }
 }

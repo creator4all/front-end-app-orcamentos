@@ -43,8 +43,9 @@ class _ContactedProspectsPageState extends State<ContactedProspectsPage> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
+    final isReachingEndOfPage = _scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200;
+    if (isReachingEndOfPage) {
       _store.loadMoreContactedProspects();
     }
   }

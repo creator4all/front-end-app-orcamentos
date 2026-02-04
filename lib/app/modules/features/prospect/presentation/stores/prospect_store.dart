@@ -93,123 +93,97 @@ abstract class _ProspectStoreBase with Store {
 
   // ========== ACTIONS ==========
 
-  /// Carrega a lista inicial de prospects não contactados
-  @action
-  Future<void> loadProspects() async {
-    isLoading = true;
-    error = null;
-    currentPage = 1;
-    prospects.clear();
+  /// Função interna que centraliza a lógica de carregamento de prospects.
+  /// Elimina duplicação entre load inicial e paginação para ambas as listas.
+  Future<void> _loadProspectsInternal({
+    required bool isContacted,
+    required bool isLoadMore,
+  }) async {
+    // Seleciona variáveis baseado em isContacted
+    final targetList = isContacted ? contactedProspects : prospects;
+    final currentPageValue = isContacted ? currentPageContacted : currentPage;
 
-    print('📋 [ProspectStore] Carregando prospects não contactados...');
+    // Define página
+    final page = isLoadMore ? currentPageValue + 1 : 1;
 
-    final result = await listProspectsUsecase(page: 1, isContatado: false);
+    // Controla loading states
+    if (isLoadMore) {
+      if (isContacted) {
+        isLoadingMoreContacted = true;
+      } else {
+        isLoadingMore = true;
+      }
+    } else {
+      if (isContacted) {
+        isLoadingContacted = true;
+      } else {
+        isLoading = true;
+      }
+      error = null;
+      targetList.clear();
+    }
+
+    final result =
+        await listProspectsUsecase(page: page, isContatado: isContacted);
 
     result.fold(
       (failure) {
         error = failure.message;
-        print('❌ [ProspectStore] Erro: ${failure.message}');
       },
       (paginatedProspects) {
-        prospects.addAll(paginatedProspects.prospects);
-        currentPage = paginatedProspects.currentPage;
-        lastPage = paginatedProspects.lastPage;
-        totalProspects = paginatedProspects.total;
-        print('✅ [ProspectStore] Carregados ${prospects.length} prospects');
+        targetList.addAll(paginatedProspects.prospects);
+        if (isContacted) {
+          currentPageContacted = paginatedProspects.currentPage;
+          lastPageContacted = paginatedProspects.lastPage;
+          if (!isLoadMore) totalContactedProspects = paginatedProspects.total;
+        } else {
+          currentPage = paginatedProspects.currentPage;
+          lastPage = paginatedProspects.lastPage;
+          if (!isLoadMore) totalProspects = paginatedProspects.total;
+        }
       },
     );
 
-    isLoading = false;
+    // Reset loading states
+    if (isLoadMore) {
+      if (isContacted) {
+        isLoadingMoreContacted = false;
+      } else {
+        isLoadingMore = false;
+      }
+    } else {
+      if (isContacted) {
+        isLoadingContacted = false;
+      } else {
+        isLoading = false;
+      }
+    }
+  }
+
+  /// Carrega a lista inicial de prospects não contactados
+  @action
+  Future<void> loadProspects() async {
+    await _loadProspectsInternal(isContacted: false, isLoadMore: false);
   }
 
   /// Carrega mais prospects não contactados (scroll infinito)
   @action
   Future<void> loadMoreProspects() async {
     if (isLoadingMore || !hasMore) return;
-
-    isLoadingMore = true;
-    final nextPage = currentPage + 1;
-
-    print('📋 [ProspectStore] Carregando página $nextPage...');
-
-    final result =
-        await listProspectsUsecase(page: nextPage, isContatado: false);
-
-    result.fold(
-      (failure) {
-        error = failure.message;
-        print('❌ [ProspectStore] Erro: ${failure.message}');
-      },
-      (paginatedProspects) {
-        prospects.addAll(paginatedProspects.prospects);
-        currentPage = paginatedProspects.currentPage;
-        lastPage = paginatedProspects.lastPage;
-        print(
-            '✅ [ProspectStore] Carregados mais ${paginatedProspects.prospects.length} prospects');
-      },
-    );
-
-    isLoadingMore = false;
+    await _loadProspectsInternal(isContacted: false, isLoadMore: true);
   }
 
   /// Carrega a lista inicial de prospects contactados
   @action
   Future<void> loadContactedProspects() async {
-    isLoadingContacted = true;
-    error = null;
-    currentPageContacted = 1;
-    contactedProspects.clear();
-
-    print('📋 [ProspectStore] Carregando prospects contactados...');
-
-    final result = await listProspectsUsecase(page: 1, isContatado: true);
-
-    result.fold(
-      (failure) {
-        error = failure.message;
-        print('❌ [ProspectStore] Erro: ${failure.message}');
-      },
-      (paginatedProspects) {
-        contactedProspects.addAll(paginatedProspects.prospects);
-        currentPageContacted = paginatedProspects.currentPage;
-        lastPageContacted = paginatedProspects.lastPage;
-        totalContactedProspects = paginatedProspects.total;
-        print(
-            '✅ [ProspectStore] Carregados ${contactedProspects.length} prospects contactados');
-      },
-    );
-
-    isLoadingContacted = false;
+    await _loadProspectsInternal(isContacted: true, isLoadMore: false);
   }
 
   /// Carrega mais prospects contactados (scroll infinito)
   @action
   Future<void> loadMoreContactedProspects() async {
     if (isLoadingMoreContacted || !hasMoreContacted) return;
-
-    isLoadingMoreContacted = true;
-    final nextPage = currentPageContacted + 1;
-
-    print('📋 [ProspectStore] Carregando página $nextPage de contactados...');
-
-    final result =
-        await listProspectsUsecase(page: nextPage, isContatado: true);
-
-    result.fold(
-      (failure) {
-        error = failure.message;
-        print('❌ [ProspectStore] Erro: ${failure.message}');
-      },
-      (paginatedProspects) {
-        contactedProspects.addAll(paginatedProspects.prospects);
-        currentPageContacted = paginatedProspects.currentPage;
-        lastPageContacted = paginatedProspects.lastPage;
-        print(
-            '✅ [ProspectStore] Carregados mais ${paginatedProspects.prospects.length} prospects contactados');
-      },
-    );
-
-    isLoadingMoreContacted = false;
+    await _loadProspectsInternal(isContacted: true, isLoadMore: true);
   }
 
   /// Marca um prospect como contactado

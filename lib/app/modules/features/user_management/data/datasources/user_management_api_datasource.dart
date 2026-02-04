@@ -1,4 +1,5 @@
 import '../../../../../shared/core/http/app_http_client.dart';
+import '../../../../../shared/core/http/http_request_config.dart';
 import '../models/managed_user_dto.dart';
 import '../models/user_update_dto.dart';
 import 'user_management_datasource.dart';
@@ -19,7 +20,10 @@ class UserManagementApiDatasource implements UserManagementDatasource {
           '📋 [UserManagementApiDatasource] Listando usuários página $page...');
 
       final response = await httpClient.get(
-        '/api/parceiro/usuarios?page=$page&per_page=$perPage',
+        '/api/parceiro/usuarios',
+        config: HttpRequestConfig(
+          queryParameters: {'page': page, 'per_page': perPage},
+        ),
       );
 
       if (response.statusCode == 200) {
@@ -46,7 +50,10 @@ class UserManagementApiDatasource implements UserManagementDatasource {
           '📋 [UserManagementApiDatasource] Listando usuários do parceiro $partnerId página $page...');
 
       final response = await httpClient.get(
-        '/api/partners/$partnerId/usuarios?page=$page&per_page=$perPage',
+        '/api/partners/$partnerId/usuarios',
+        config: HttpRequestConfig(
+          queryParameters: {'page': page, 'per_page': perPage},
+        ),
       );
 
       if (response.statusCode == 200) {

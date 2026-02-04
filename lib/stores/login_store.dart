@@ -1,7 +1,9 @@
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:mobx/mobx.dart';
+
 import '../controllers/login_controller.dart';
-import '../services/auth_service.dart';
 import '../logics/login_logic.dart';
+import '../services/auth_service.dart';
 import 'auth_store.dart';
 
 // Include generated file
@@ -14,52 +16,52 @@ class LoginStore = _LoginStore with _$LoginStore;
 abstract class _LoginStore with Store {
   final AuthStore _authStore;
   late final LoginController _loginController;
-  
+
   _LoginStore(this._authStore) {
-    // Initialize controller with proper dependencies
-    final authService = AuthService();
+    // Usar AuthService registrado no Modular
+    final authService = Modular.get<AuthService>();
     final loginLogic = LoginLogic(authService);
     _loginController = LoginController(
       loginLogic: loginLogic,
       authStore: _authStore,
     );
   }
-  
+
   @observable
   bool isLoading = false;
-  
+
   @observable
   String? error;
-  
+
   @action
   void setLoading(bool loading) {
     isLoading = loading;
   }
-  
+
   @action
   void setError(String? errorMessage) {
     error = errorMessage;
   }
-  
+
   // Process login
   @action
   Future<bool> login(String email, String password) async {
     // Reset state
     setLoading(true);
     setError(null);
-    
+
     try {
       // Use controller to process login
       final success = await _loginController.login(email, password);
-      
+
       // Update loading state
       setLoading(false);
-      
+
       // Get error from auth store if login failed
       if (!success) {
         setError(_authStore.error);
       }
-      
+
       return success;
     } catch (e) {
       setLoading(false);
@@ -67,7 +69,7 @@ abstract class _LoginStore with Store {
       return false;
     }
   }
-  
+
   // Try auto login from stored credentials
   @action
   Future<bool> tryAutoLogin() async {
@@ -77,13 +79,13 @@ abstract class _LoginStore with Store {
       return false;
     }
   }
-  
+
   // Logout user
   @action
   Future<void> logout() async {
     await _loginController.logout();
   }
-  
+
   // Validate login input
   Map<String, dynamic> validateLoginInput(String email, String password) {
     return _loginController.validateLoginInput(email, password);

@@ -81,15 +81,6 @@ class _ImageViewerPageState extends State<ImageViewerPage> {
         ),
         backgroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          // TODO: Adicionar botão de compartilhar, baixar, etc
-          IconButton(
-            icon: const Icon(Icons.more_vert),
-            onPressed: () {
-              // Menu de opções
-            },
-          ),
-        ],
       ),
       body: PhotoView(
         imageProvider: NetworkImage(

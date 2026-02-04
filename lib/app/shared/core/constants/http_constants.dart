@@ -63,6 +63,10 @@ class HttpHeaders {
   static const contentType = 'Content-Type';
   static const accept = 'Accept';
   static const userAgent = 'User-Agent';
+
+  /// Valor padrão do User-Agent para evitar OTP em mobile
+  static const userAgentValue = 'App-Orcamentos-V1';
+
   static const acceptLanguage = 'Accept-Language';
   static const cacheControl = 'Cache-Control';
   static const contentLength = 'Content-Length';

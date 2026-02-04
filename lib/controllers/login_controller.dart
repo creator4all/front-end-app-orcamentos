@@ -1,3 +1,5 @@
+import 'package:flutter_modular/flutter_modular.dart';
+
 import '../entities/user_entity.dart';
 import '../logics/login_logic.dart';
 import '../services/auth_service.dart';
@@ -6,17 +8,17 @@ import '../stores/auth_store.dart';
 class LoginController {
   final LoginLogic _loginLogic;
   final AuthStore _authStore;
-  
-  LoginController({LoginLogic? loginLogic, required AuthStore authStore}) 
-      : _loginLogic = loginLogic ?? LoginLogic(AuthService()),
+
+  LoginController({LoginLogic? loginLogic, required AuthStore authStore})
+      : _loginLogic = loginLogic ?? LoginLogic(Modular.get<AuthService>()),
         _authStore = authStore;
-  
+
   // Process login
   Future<bool> login(String email, String password) async {
     try {
       // Call login logic
       final result = await _loginLogic.login(email, password);
-      
+
       if (result['success']) {
         // Update auth store with user data
         final user = result['user'] as UserEntity;
@@ -33,12 +35,12 @@ class LoginController {
       return false;
     }
   }
-  
+
   // Try auto login from stored credentials
   Future<bool> tryAutoLogin() async {
     try {
       final result = await _loginLogic.tryAutoLogin();
-      
+
       if (result['success']) {
         // Update auth store with user data
         final user = result['user'] as UserEntity;
@@ -50,13 +52,13 @@ class LoginController {
       return false;
     }
   }
-  
+
   // Logout user
   Future<void> logout() async {
     await _loginLogic.logout();
     _authStore.clearUser();
   }
-  
+
   // Validate login input
   Map<String, dynamic> validateLoginInput(String email, String password) {
     return _loginLogic.validateLoginInput(email, password);

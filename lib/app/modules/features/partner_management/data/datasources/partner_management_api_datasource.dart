@@ -1,4 +1,5 @@
 import '../../../../../shared/core/http/app_http_client.dart';
+import '../../../../../shared/core/http/http_request_config.dart';
 import '../models/partner_dto.dart';
 import 'partner_management_datasource.dart';
 
@@ -18,7 +19,10 @@ class PartnerManagementApiDatasource implements PartnerManagementDatasource {
           '📋 [PartnerManagementApiDatasource] Listando parceiros página $page...');
 
       final response = await httpClient.get(
-        '/api/partners?page=$page&per_page=$perPage',
+        '/api/partners',
+        config: HttpRequestConfig(
+          queryParameters: {'page': page, 'per_page': perPage},
+        ),
       );
 
       if (response.statusCode == 200) {

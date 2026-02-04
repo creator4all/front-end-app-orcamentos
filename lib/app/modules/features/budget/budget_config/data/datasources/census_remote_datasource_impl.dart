@@ -1,8 +1,9 @@
 import 'dart:typed_data';
 
-import 'package:dio/dio.dart';
+import 'package:multimidiaapp/app/shared/core/http/app_http_client.dart';
+import 'package:multimidiaapp/app/shared/core/http/http_request_config.dart';
+import 'package:multimidiaapp/app/shared/core/utils/token_cache.dart';
 import 'package:multimidiaapp/config/api_config.dart';
-import 'package:multimidiaapp/services/api_service.dart';
 
 import '../../domain/entities/censo_escolar_entity.dart';
 import '../../domain/entities/censo_group_entity.dart';
@@ -11,24 +12,29 @@ import '../models/budget_census_dto.dart';
 import '../models/census_data_dto.dart';
 import 'census_remote_datasource.dart';
 
+/// Implementação do datasource de censo usando AppHttpClient
 class CensusRemoteDataSourceImpl implements CensusRemoteDataSource {
-  final ApiService _apiService;
+  final AppHttpClient _client;
 
-  CensusRemoteDataSourceImpl(this._apiService);
+  CensusRemoteDataSourceImpl(this._client);
+
+  HttpRequestConfig get _config => HttpRequestConfig(
+        token: TokenCache.instance.getTokenOrEmpty(),
+      );
 
   @override
   Future<CensusDataDto> getCensusData(int cityId) async {
-    // Implement existing method logic if needed or keep existing if it was expected
-    // Assuming this retrieves summary data
-    final response = await _apiService.get(
+    final response = await _client.get(
       ApiConfig.censoPorCidadeEndpoint(cityId),
+      config: _config,
     );
 
-    if (response['success'] == true) {
-      final data = response['data']['dados'];
+    if (response.isSuccess) {
+      final data = response.body['dados'];
       return CensusDataDto.fromJson(data);
     } else {
-      throw Exception(response['error'] ?? 'Erro ao buscar dados do censo');
+      throw Exception(
+          response.body['error'] ?? 'Erro ao buscar dados do censo');
     }
   }
 
@@ -38,30 +44,28 @@ class CensusRemoteDataSourceImpl implements CensusRemoteDataSource {
     final queryParams = cityIds.map((id) => 'cidades[]=$id').join('&');
     final endpoint = '${ApiConfig.baseUrl}/api/censo/agregado?$queryParams';
 
-    final response = await _apiService.get(endpoint);
+    final response = await _client.get(endpoint, config: _config);
 
-    if (response['success'] == true) {
-      final data = response['data'];
-      // Assuming list return or map handling as per legacy service
-      // Legacy service returns map, here interface asks for List<DTO>
-      // For now, let's focus on the new methods required for the task
-      return []; // Placeholder for existing method not focus of task
+    if (response.isSuccess) {
+      return [];
     } else {
-      throw Exception(response['error'] ?? 'Erro ao buscar dados do censo');
+      throw Exception(
+          response.body['error'] ?? 'Erro ao buscar dados do censo');
     }
   }
 
   @override
   Future<CensoEscolarEntity> getCensusByCity(int cityId) async {
-    final response = await _apiService.get(
+    final response = await _client.get(
       ApiConfig.censoPorCidadeEndpoint(cityId),
+      config: _config,
     );
 
-    if (response['success'] == true) {
-      final dados = response['data']['dados'];
+    if (response.isSuccess) {
+      final dados = response.body['dados'];
       return _mapToCensoEscolarEntity(dados);
     } else {
-      throw Exception(response['error'] ?? 'Erro ao buscar censo escolar');
+      throw Exception(response.body['error'] ?? 'Erro ao buscar censo escolar');
     }
   }
 
@@ -82,16 +86,16 @@ class CensusRemoteDataSourceImpl implements CensusRemoteDataSource {
       'indices_etapa': indicesArray,
     };
 
-    final response = await _apiService.put(
+    final response = await _client.put(
       ApiConfig.censoPorCidadeEndpoint(cityId),
-      payload,
+      data: payload,
+      config: _config,
     );
 
-    if (response['success'] == true) {
-      // After update, fetch fresh data to return consistent entity
+    if (response.isSuccess) {
       return getCensusByCity(cityId);
     } else {
-      throw Exception(response['error'] ?? 'Erro ao atualizar índices');
+      throw Exception(response.body['error'] ?? 'Erro ao atualizar índices');
     }
   }
 
@@ -102,14 +106,10 @@ class CensusRemoteDataSourceImpl implements CensusRemoteDataSource {
 
     final List<dynamic> indicesList = json['indices_etapa'] ?? [];
 
-    // Preparar mapa de valores por etapa
     final Map<String, double> valoresPorEtapa = {};
-
-    // Agrupar por grupo
     final Map<int, CensoGroupEntity> groupsMap = {};
 
     for (var item in indicesList) {
-      // Map item
       final int indiceId = item['indice_etapa_id'] is int
           ? item['indice_etapa_id']
           : int.tryParse('${item['indice_etapa_id']}') ?? 0;
@@ -138,18 +138,16 @@ class CensusRemoteDataSourceImpl implements CensusRemoteDataSource {
           );
         }
 
-        // Add title to group
         final bool isProfessores = nomeEtapa.endsWith('P');
         final title = CensoTitleEntity(
           id: indiceId,
           nomeEtapa: nomeEtapa,
-          tituloExibicao: tituloEtapa, // Usa titulo_etapa da API
+          tituloExibicao: tituloEtapa,
           valor: valor,
           isProfessores: isProfessores,
           grupoId: groupId,
         );
 
-        // Check duplication?
         groupsMap[groupId]!.titulos.add(title);
       }
     }
@@ -179,65 +177,48 @@ class CensusRemoteDataSourceImpl implements CensusRemoteDataSource {
 
     final payload = {'indices': indicesArray};
 
-    final response = await _apiService.patch(
+    final response = await _client.patch(
       '${ApiConfig.baseUrl}/api/orcamentos/$budgetId/censo',
-      payload,
+      data: payload,
+      config: _config,
     );
 
-    if (response['success'] == true) {
-      final data = response['data'] as Map<String, dynamic>? ?? response;
+    if (response.isSuccess) {
+      final data = response.body as Map<String, dynamic>? ?? {};
       return BudgetCensusDto.fromJson(data);
     } else {
       throw Exception(
-          response['error'] ?? 'Erro ao atualizar censo do orçamento');
+          response.body['error'] ?? 'Erro ao atualizar censo do orçamento');
     }
   }
 
-  // Método _extractCityWithCensusFromResponse removido pois não é mais necessário com o retorno simplificado
-  // Método _mapCidadeDataToCensoEntity removido pois não é mais necessário com o retorno simplificado
-
   @override
   Future<BudgetCensusDto> getBudgetCensus(int budgetId) async {
-    final response = await _apiService.get(
+    final response = await _client.get(
       '${ApiConfig.baseUrl}/api/orcamentos/$budgetId/censo',
+      config: _config,
     );
 
-    if (response['success'] == true) {
-      final data = response['data'] as Map<String, dynamic>? ?? response;
+    if (response.isSuccess) {
+      final data = response.body as Map<String, dynamic>? ?? {};
       return BudgetCensusDto.fromJson(data);
     } else {
-      throw Exception(response['error'] ?? 'Erro ao buscar censo do orçamento');
+      throw Exception(
+          response.body['error'] ?? 'Erro ao buscar censo do orçamento');
     }
   }
 
   @override
   Future<Uint8List> exportCensusCsv(int budgetId) async {
-    final response = await _apiService.get(
-      '${ApiConfig.baseUrl}/api/orcamentos/$budgetId/censo/exportar',
-      responseType: ResponseType.bytes,
-    );
+    try {
+      final bytes = await _client.getBytes(
+        '${ApiConfig.baseUrl}/api/orcamentos/$budgetId/censo/exportar',
+        config: _config,
+      );
 
-    if (response['success'] == true) {
-      final data = response['data'];
-      if (data is List<int>) {
-        return Uint8List.fromList(data);
-      }
-      throw Exception('Formato de resposta inválido');
-    } else {
-      final error = response['error'] ?? 'Erro ao exportar censo';
-      final statusCode = response['statusCode'];
-
-      if (statusCode == 404) {
-        throw Exception('Orçamento não encontrado');
-      } else if (statusCode == 422) {
-        throw Exception('Orçamento não possui dados de censo');
-      } else if (statusCode == 401) {
-        throw Exception('Não autorizado');
-      } else if (statusCode == 403) {
-        throw Exception('Sem permissão para exportar censo');
-      }
-
-      throw Exception(error);
+      return Uint8List.fromList(bytes);
+    } catch (e) {
+      rethrow;
     }
   }
 }

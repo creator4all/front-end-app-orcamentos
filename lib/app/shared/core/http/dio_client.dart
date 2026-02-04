@@ -20,8 +20,6 @@ class DioClient {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'User-Agent':
-              'App-Orcamentos-V1', // User-Agent específico para evitar OTP
         },
       ),
     );

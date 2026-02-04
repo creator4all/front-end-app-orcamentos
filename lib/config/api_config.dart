@@ -13,7 +13,7 @@ class ApiConfig {
       'https://parceiro.multimidiaeducacional.com.br';
 
   // Ambiente atual - altere aqui para trocar o apontamento
-  static Environment _currentEnvironment = Environment.localCasa;
+  static Environment _currentEnvironment = Environment.production;
 
   /// Inicializa o ambiente em runtime (opcional)
   static void init(Environment environment) {
@@ -56,8 +56,6 @@ class ApiConfig {
   static Map<String, String> get headers => {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'User-Agent':
-            'App-Orcamentos-V1', // User-Agent específico para evitar OTP
       };
 
   // Headers with authentication token

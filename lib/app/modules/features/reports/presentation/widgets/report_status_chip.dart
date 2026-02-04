@@ -123,21 +123,14 @@ class ReportStatusChip extends StatelessWidget {
     );
   }
 
-  String _formatLabel(String label) {
-    // Converter para formato legível
-    switch (label.toLowerCase()) {
-      case 'aprovado':
-        return 'Aprovados';
-      case 'pendente':
-        return 'Pendentes';
-      case 'expirado':
-        return 'Expirados';
-      case 'nao_aprovado':
-        return 'Reprovados';
-      case 'arquivado':
-        return 'Arquivados';
-      default:
-        return label;
-    }
-  }
+  static const _statusLabels = {
+    'aprovado': 'Aprovados',
+    'pendente': 'Pendentes',
+    'expirado': 'Expirados',
+    'nao_aprovado': 'Reprovados',
+    'arquivado': 'Arquivados',
+  };
+
+  String _formatLabel(String label) =>
+      _statusLabels[label.toLowerCase()] ?? label;
 }

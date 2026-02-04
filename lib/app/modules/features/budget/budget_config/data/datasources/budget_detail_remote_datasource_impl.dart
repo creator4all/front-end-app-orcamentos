@@ -1,9 +1,10 @@
 import 'dart:convert';
 
-import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:multimidiaapp/app/shared/core/http/app_http_client.dart';
+import 'package:multimidiaapp/app/shared/core/http/http_request_config.dart';
+import 'package:multimidiaapp/app/shared/core/utils/token_cache.dart';
 
-import '../../../../../../../services/api_service.dart';
 import '../../../shared/models/budget_update_dto.dart';
 import '../models/budget_detail_dto.dart';
 import '../models/product_dto.dart';
@@ -15,10 +16,8 @@ List<ProductDTO> _parseProductsInIsolate(String jsonString) {
   try {
     final jsonResponse = jsonDecode(jsonString) as Map<String, dynamic>;
 
-    // Chave para encontrar a lista de produtos
     dynamic productList;
 
-    // Estratégia 1: Tentar encontrar 'data.dados.produtos'
     if (jsonResponse.containsKey('data')) {
       final data = jsonResponse['data'] as Map<String, dynamic>?;
       if (data != null && data.containsKey('dados')) {
@@ -27,66 +26,62 @@ List<ProductDTO> _parseProductsInIsolate(String jsonString) {
           productList = dados['produtos'];
         }
       }
-    }
-    // Estratégia 2: Tentar encontrar 'dados.produtos'
-    else if (jsonResponse.containsKey('dados')) {
+    } else if (jsonResponse.containsKey('dados')) {
       final dados = jsonResponse['dados'] as Map<String, dynamic>?;
       if (dados != null && dados.containsKey('produtos')) {
         productList = dados['produtos'];
       }
     }
 
-    // Se encontrou a lista e ela é uma lista
     if (productList != null && productList is List) {
       return productList
           .map((json) => ProductDTO.fromJson(json as Map<String, dynamic>))
           .toList();
     }
 
-    // Se não encontrou, retorna lista vazia
     return [];
   } catch (e) {
-    // Em caso de erro no parse, retorna lista vazia para não quebrar a app
-    // O ideal seria logar esse erro em um serviço de monitoramento
     return [];
   }
 }
 
-/// Implementação concreta do BudgetDetailRemoteDataSource usando Dio/ApiService
+/// Implementação concreta do BudgetDetailRemoteDataSource usando AppHttpClient
 class BudgetDetailRemoteDataSourceImpl implements BudgetDetailRemoteDataSource {
-  final ApiService apiService;
+  final AppHttpClient _client;
 
-  BudgetDetailRemoteDataSourceImpl(this.apiService);
+  BudgetDetailRemoteDataSourceImpl(this._client);
+
+  HttpRequestConfig get _config => HttpRequestConfig(
+        token: TokenCache.instance.getTokenOrEmpty(),
+      );
 
   @override
   Future<BudgetDetailDto> getBudgetById(int id) async {
     try {
-      final response = await apiService.get('/api/orcamentos/$id');
+      final response =
+          await _client.get('/api/orcamentos/$id', config: _config);
 
-      // Extrair dados da resposta
-      Map<String, dynamic> data;
+      if (response.isSuccess) {
+        final rawData = response.body;
+        Map<String, dynamic> data;
 
-      if (response.containsKey('dados')) {
-        // Caso: {dados: {...}}
-        data = response['dados'] as Map<String, dynamic>;
-      } else if (response.containsKey('data')) {
-        // Caso: {data: {...}}
-        final dataField = response['data'];
-        if (dataField is Map && dataField.containsKey('dados')) {
-          // Caso: {data: {dados: {...}}}
-          data = dataField['dados'] as Map<String, dynamic>;
+        if (rawData.containsKey('dados')) {
+          data = rawData['dados'] as Map<String, dynamic>;
+        } else if (rawData.containsKey('data')) {
+          final dataField = rawData['data'];
+          if (dataField is Map && dataField.containsKey('dados')) {
+            data = dataField['dados'] as Map<String, dynamic>;
+          } else {
+            data = dataField as Map<String, dynamic>;
+          }
         } else {
-          // Caso: {data: {...}} direto
-          data = dataField as Map<String, dynamic>;
+          data = rawData;
         }
-      } else {
-        // Caso: já é o objeto direto
-        data = response;
+
+        return BudgetDetailDto.fromJson(data);
       }
 
-      return BudgetDetailDto.fromJson(data);
-    } on DioException catch (e) {
-      throw _handleDioError(e);
+      throw Exception(response.body['error'] ?? 'Orçamento não encontrado');
     } catch (e) {
       rethrow;
     }
@@ -100,63 +95,27 @@ class BudgetDetailRemoteDataSourceImpl implements BudgetDetailRemoteDataSource {
       debugPrint(
           '🌐 [DataSource] GET /api/orcamentos/$budgetId/produtos-completos');
 
-      // ✅ Usar ResponseType.bytes para receber bytes crus
-      // Depois fazemos decode UTF-8 MANUAL para evitar corrupção de caracteres especiais
-      // Necessário porque JSON tem 114KB+ (5000+ linhas) e Dio não consegue fazer auto-parse
-      final response = await apiService.get(
+      // Usar getBytes para receber bytes crus
+      // Depois fazemos decode UTF-8 manual para preservar caracteres especiais
+      final bytes = await _client.getBytes(
         '/api/orcamentos/$budgetId/produtos-completos',
-        responseType: ResponseType.bytes,
+        config: _config,
       );
 
-      // Verificar se API retornou erro
-      if (response.containsKey('success') && response['success'] == false) {
-        final errorMsg =
-            response['error'] ?? response['message'] ?? 'Erro desconhecido';
-        debugPrint('❌ [DataSource] API retornou erro: $errorMsg');
-        throw Exception('Erro ao buscar produtos: $errorMsg');
-      }
-
-      // Extrair bytes da resposta
-      if (!response.containsKey('data')) {
-        debugPrint('❌ [DataSource] Resposta não contém dados em "data"');
-        throw Exception('Resposta da API em formato inválido');
-      }
-
-      final dynamic rawData = response['data'];
-
-      // Converter bytes para String com UTF-8 EXPLÍCITO
-      String jsonString;
-
-      if (rawData is List<int>) {
-        // ✅ DECODE UTF-8 MANUAL - Garante que caracteres especiais (ê, ó, á, ã) sejam preservados
-        jsonString = utf8.decode(rawData, allowMalformed: false);
-        debugPrint(
-            '📦 [DataSource] Bytes decodificados com UTF-8: ${jsonString.length} chars');
-      } else if (rawData is String) {
-        // Fallback: se já vier como string
-        jsonString = rawData;
-        debugPrint(
-            '⚠️ [DataSource] Dados já vieram como String: ${jsonString.length} chars');
-      } else {
-        debugPrint(
-            '❌ [DataSource] Tipo de dados inesperado: ${rawData.runtimeType}');
-        throw Exception('Formato de resposta inválido');
-      }
+      // Converter bytes para String com UTF-8 explícito
+      final jsonString = utf8.decode(bytes, allowMalformed: false);
+      debugPrint(
+          '📦 [DataSource] Bytes decodificados com UTF-8: ${jsonString.length} chars');
 
       debugPrint('🚀 [DataSource] Iniciando parse em Isolate com compute()...');
 
-      // 🚀 Parse assíncrono em isolate para não travar a UI
+      // Parse assíncrono em isolate para não travar a UI
       final produtos = await compute(_parseProductsInIsolate, jsonString);
 
       debugPrint(
           '✅ [DataSource] ${produtos.length} produtos parseados com sucesso via Isolate');
 
       return produtos;
-    } on DioException catch (e) {
-      debugPrint('❌ [DataSource] DioException: ${e.message}');
-      debugPrint('   Status: ${e.response?.statusCode}');
-      debugPrint('   Data: ${e.response?.data}');
-      throw _handleDioError(e);
     } catch (e, stackTrace) {
       debugPrint('❌ [DataSource] Exceção: $e');
       debugPrint('Stack: $stackTrace');
@@ -170,37 +129,35 @@ class BudgetDetailRemoteDataSourceImpl implements BudgetDetailRemoteDataSource {
     required int categoryId,
   }) async {
     try {
-      final response = await apiService.get(
+      final response = await _client.get(
         '/api/orcamentos/$budgetId/categorias/$categoryId/produtos',
+        config: _config,
       );
 
-      // Extrair dados da resposta
-      Map<String, dynamic> data;
+      if (response.isSuccess) {
+        final rawData = response.body;
+        Map<String, dynamic> data;
 
-      if (response.containsKey('dados')) {
-        data = response['dados'] as Map<String, dynamic>;
-      } else if (response.containsKey('data')) {
-        final dataField = response['data'];
-        if (dataField is Map && dataField.containsKey('dados')) {
-          data = dataField['dados'] as Map<String, dynamic>;
+        if (rawData.containsKey('dados')) {
+          data = rawData['dados'] as Map<String, dynamic>;
+        } else if (rawData.containsKey('data')) {
+          final dataField = rawData['data'];
+          if (dataField is Map && dataField.containsKey('dados')) {
+            data = dataField['dados'] as Map<String, dynamic>;
+          } else {
+            data = dataField as Map<String, dynamic>;
+          }
         } else {
-          data = dataField as Map<String, dynamic>;
+          data = rawData;
         }
-      } else {
-        data = response;
+
+        final produtosJson = data['produtos'] as List<dynamic>;
+        return produtosJson
+            .map((json) => ProductDTO.fromJson(json as Map<String, dynamic>))
+            .toList();
       }
 
-      // Extrair array de produtos
-      final produtosJson = data['produtos'] as List<dynamic>;
-
-      // Parsear cada produto (pode usar isolate aqui também se necessário)
-      final produtos = produtosJson
-          .map((json) => ProductDTO.fromJson(json as Map<String, dynamic>))
-          .toList();
-
-      return produtos;
-    } on DioException catch (e) {
-      throw _handleDioError(e);
+      throw Exception(response.body['error'] ?? 'Erro ao buscar produtos');
     } catch (e) {
       rethrow;
     }
@@ -216,7 +173,6 @@ class BudgetDetailRemoteDataSourceImpl implements BudgetDetailRemoteDataSource {
     List<int>? selectedProductIds,
   }) async {
     try {
-      // Montar body da requisição
       final Map<String, dynamic> body = {};
 
       if (name != null && name.isNotEmpty) {
@@ -232,7 +188,6 @@ class BudgetDetailRemoteDataSourceImpl implements BudgetDetailRemoteDataSource {
       }
 
       if (categoryStates != null) {
-        // Enviar apenas categorias ativas
         body['categorias_ativas'] = categoryStates.entries
             .where((e) => e.value)
             .map((e) => e.key)
@@ -243,14 +198,19 @@ class BudgetDetailRemoteDataSourceImpl implements BudgetDetailRemoteDataSource {
         body['produtos_selecionados'] = selectedProductIds;
       }
 
-      final response = await apiService.put('/api/orcamentos/$id', body);
+      final response = await _client.put(
+        '/api/orcamentos/$id',
+        data: body,
+        config: _config,
+      );
 
-      // Extrair dados da resposta - response já é Map<String, dynamic>
-      final data = response['dados'] ?? response['data'] ?? response;
+      if (response.isSuccess) {
+        final data =
+            response.body['dados'] ?? response.body['data'] ?? response.body;
+        return BudgetDetailDto.fromJson(Map<String, dynamic>.from(data as Map));
+      }
 
-      return BudgetDetailDto.fromJson(Map<String, dynamic>.from(data as Map));
-    } on DioException catch (e) {
-      throw _handleDioError(e);
+      throw Exception(response.body['error'] ?? 'Erro ao atualizar orçamento');
     } catch (e) {
       rethrow;
     }
@@ -262,57 +222,37 @@ class BudgetDetailRemoteDataSourceImpl implements BudgetDetailRemoteDataSource {
     required BudgetUpdateDto updateData,
   }) async {
     try {
-      // Converter DTO para JSON (apenas campos não-nulos)
       final body = updateData.toJson();
 
-      final response = await apiService.put('/api/orcamentos/$budgetId', body);
+      final response = await _client.put(
+        '/api/orcamentos/$budgetId',
+        data: body,
+        config: _config,
+      );
 
-      // Extrair dados da resposta
-      // response pode ser: {dados: {...}} ou {data: {dados: {...}}} ou {data: {...}}
-      Map<String, dynamic> data;
+      if (response.isSuccess) {
+        final rawData = response.body;
+        Map<String, dynamic> data;
 
-      if (response.containsKey('dados')) {
-        data = response['dados'] as Map<String, dynamic>;
-      } else if (response.containsKey('data')) {
-        final dataField = response['data'];
-        if (dataField is Map && dataField.containsKey('dados')) {
-          data = dataField['dados'] as Map<String, dynamic>;
+        if (rawData.containsKey('dados')) {
+          data = rawData['dados'] as Map<String, dynamic>;
+        } else if (rawData.containsKey('data')) {
+          final dataField = rawData['data'];
+          if (dataField is Map && dataField.containsKey('dados')) {
+            data = dataField['dados'] as Map<String, dynamic>;
+          } else {
+            data = dataField as Map<String, dynamic>;
+          }
         } else {
-          data = dataField as Map<String, dynamic>;
+          data = rawData;
         }
-      } else {
-        data = response;
+
+        return BudgetDetailDto.fromJson(data);
       }
 
-      return BudgetDetailDto.fromJson(data);
-    } on DioException catch (e) {
-      throw _handleDioError(e);
+      throw Exception(response.body['error'] ?? 'Erro ao atualizar orçamento');
     } catch (e) {
       rethrow;
-    }
-  }
-
-  /// Trata erros do Dio e lança exceções apropriadas
-  Exception _handleDioError(DioException error) {
-    switch (error.type) {
-      case DioExceptionType.connectionTimeout:
-      case DioExceptionType.sendTimeout:
-      case DioExceptionType.receiveTimeout:
-        return Exception('Timeout na conexão com o servidor');
-      case DioExceptionType.badResponse:
-        final statusCode = error.response?.statusCode;
-        if (statusCode == 404) {
-          return Exception('Orçamento não encontrado');
-        } else if (statusCode == 401 || statusCode == 403) {
-          return Exception('Não autorizado');
-        }
-        return Exception('Erro no servidor: ${error.response?.data}');
-      case DioExceptionType.cancel:
-        return Exception('Requisição cancelada');
-      case DioExceptionType.connectionError:
-        return Exception('Sem conexão com a internet');
-      default:
-        return Exception('Erro desconhecido: ${error.message}');
     }
   }
 }

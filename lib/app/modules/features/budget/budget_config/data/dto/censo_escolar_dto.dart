@@ -74,6 +74,7 @@ class CensoEscolarDto {
     return CensoEscolarEntity(
       cidadeId: cidade['idCidades'],
       cidadeNome: cidade['nome_cidade'],
+      censoAno: cidade['censo_ano'] as int?,
       grupos: grupos,
       valoresPorEtapa: valoresPorEtapa,
     );

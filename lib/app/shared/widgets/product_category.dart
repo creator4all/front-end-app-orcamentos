@@ -21,6 +21,9 @@ class ProductCategory extends StatelessWidget {
   final bool isSelected;
   final ValueChanged<bool?>? onCheckboxChanged;
 
+  /// When true, checkbox is disabled with gray styling (readonly mode for reports).
+  final bool isReadOnly;
+
   /// Optional tap handler for the trailing action area.
   final VoidCallback? onActionTap;
 
@@ -36,6 +39,7 @@ class ProductCategory extends StatelessWidget {
     required this.totalCount,
     this.isSelected = false,
     this.onCheckboxChanged,
+    this.isReadOnly = false,
     this.onActionTap,
     this.onCardTap,
   });
@@ -94,22 +98,27 @@ class ProductCategory extends StatelessWidget {
                           height: 20.h,
                           child: Checkbox(
                             value: isSelected,
-                            onChanged: onCheckboxChanged,
-                            activeColor: const Color(0xFF117BBD),
+                            onChanged: isReadOnly ? null : onCheckboxChanged,
+                            activeColor: isReadOnly
+                                ? Colors.grey[400]
+                                : const Color(0xFF117BBD),
                             checkColor: Colors.white,
                             fillColor: WidgetStateProperty.resolveWith<Color?>(
                               (Set<WidgetState> states) {
                                 if (states.contains(WidgetState.selected)) {
-                                  return const Color(0xFF117BBD);
+                                  return isReadOnly
+                                      ? Colors.grey[400]
+                                      : const Color(0xFF117BBD);
                                 }
-                                return Colors
-                                    .white; // White background when unselected
+                                return Colors.white;
                               },
                             ),
                             side: BorderSide(
-                              color: isSelected
-                                  ? const Color(0xFF117BBD)
-                                  : Colors.grey[300]!,
+                              color: isReadOnly
+                                  ? Colors.grey[400]!
+                                  : isSelected
+                                      ? const Color(0xFF117BBD)
+                                      : Colors.grey[300]!,
                               width: 2.0,
                             ),
                             materialTapTargetSize:

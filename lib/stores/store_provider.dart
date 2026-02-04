@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 
 import '../services/censo_service.dart';
 import '../services/geo_service.dart';
@@ -28,8 +29,10 @@ class StoreProvider extends InheritedWidget {
   }) {
     final authStore = AuthStore();
     final loginStore = LoginStore(authStore);
-    final geoStore = GeoStore(GeoService());
-    final censoStore = CensoStore(CensoService());
+
+    // Usar serviços registrados no Modular
+    final geoStore = GeoStore(Modular.get<GeoService>());
+    final censoStore = CensoStore(Modular.get<CensoService>());
 
     // Tentar auto-login quando o provider é criado
     _tentarAutoLogin(loginStore);

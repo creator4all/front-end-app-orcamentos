@@ -3,8 +3,9 @@ import 'dart:io';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:multimidiaapp/app/shared/core/http/app_http_client.dart';
+import 'package:multimidiaapp/app/shared/core/http/http_request_config.dart';
 import 'package:multimidiaapp/config/api_config.dart';
-import 'package:multimidiaapp/services/api_service.dart';
 
 import '../../domain/models/partner_profile.dart';
 
@@ -20,27 +21,34 @@ class ValidationException implements Exception {
 }
 
 class PartnerService {
-  final ApiService _api;
+  final AppHttpClient _client;
   final FlutterSecureStorage _storage;
 
-  PartnerService(this._api, this._storage);
+  PartnerService(this._client, this._storage);
+
+  Future<String?> _getToken() async {
+    return await _storage.read(key: 'auth_token');
+  }
 
   /// Listar todos os parceiros (apenas para administradores)
   Future<List<PartnerProfile>> listarTodos() async {
     print('🏢 Buscando lista de todos os parceiros...');
 
-    final token = await _storage.read(key: 'auth_token');
-    final res = await _api.get('/api/partners', token: token);
-    print('📡 Resposta da API: $res');
+    final token = await _getToken();
+    final response = await _client.get(
+      '/api/partners',
+      config: HttpRequestConfig(token: token),
+    );
+    print('📡 Resposta da API: ${response.body}');
 
     // Extrair dados da estrutura aninhada
     dynamic data;
 
-    if (res['data'] != null && res['data'] is Map) {
-      final innerData = res['data'] as Map<String, dynamic>;
+    if (response.body['data'] != null && response.body['data'] is Map) {
+      final innerData = response.body['data'] as Map<String, dynamic>;
       data = innerData['dados'] ?? innerData;
     } else {
-      data = res['dados'] ?? res;
+      data = response.body['dados'] ?? response.body;
     }
 
     print('🔍 Dados extraídos: $data');
@@ -64,18 +72,21 @@ class PartnerService {
   Future<PartnerProfile> obterParceiro() async {
     print('🏢 Buscando informações da empresa...');
 
-    final token = await _storage.read(key: 'auth_token');
-    final res = await _api.get('/api/parceiro/me', token: token);
-    print('📡 Resposta da API: $res');
+    final token = await _getToken();
+    final response = await _client.get(
+      '/api/parceiro/me',
+      config: HttpRequestConfig(token: token),
+    );
+    print('📡 Resposta da API: ${response.body}');
 
     // Extrair dados da estrutura aninhada: {success, data: {sucesso, dados}}
     Map<String, dynamic> data;
 
-    if (res['data'] != null && res['data'] is Map) {
-      final innerData = res['data'] as Map<String, dynamic>;
+    if (response.body['data'] != null && response.body['data'] is Map) {
+      final innerData = response.body['data'] as Map<String, dynamic>;
       data = innerData['dados'] ?? innerData;
     } else {
-      data = res['dados'] ?? res;
+      data = response.body['dados'] ?? response.body;
     }
 
     print('🔍 Dados extraídos: $data');
@@ -87,18 +98,22 @@ class PartnerService {
   Future<PartnerProfile> atualizarParceiro(Map<String, dynamic> dados) async {
     print('🌐 Atualizando empresa: $dados');
 
-    final token = await _storage.read(key: 'auth_token');
-    final res = await _api.put('/api/parceiro/me', dados, token: token);
-    print('📡 Resposta da API: $res');
+    final token = await _getToken();
+    final response = await _client.put(
+      '/api/parceiro/me',
+      data: dados,
+      config: HttpRequestConfig(token: token),
+    );
+    print('📡 Resposta da API: ${response.body}');
 
     // Extrair dados da estrutura aninhada
     Map<String, dynamic> data;
 
-    if (res['data'] != null && res['data'] is Map) {
-      final innerData = res['data'] as Map<String, dynamic>;
+    if (response.body['data'] != null && response.body['data'] is Map) {
+      final innerData = response.body['data'] as Map<String, dynamic>;
       data = innerData['dados'] ?? innerData;
     } else {
-      data = res['dados'] ?? res;
+      data = response.body['dados'] ?? response.body;
     }
 
     print('🔍 Dados extraídos: $data');
@@ -107,6 +122,7 @@ class PartnerService {
   }
 
   /// Upload de logo da empresa
+  /// Usa http package multipart porque AppHttpClient não suporta multipart forms
   Future<PartnerProfile> uploadLogo(File imageFile) async {
     print('📤 Fazendo upload do logo...');
 
@@ -119,7 +135,7 @@ class PartnerService {
     final extension = imageFile.path.split('.').last.toLowerCase();
     print('📝 Extensão do arquivo: $extension');
 
-    final token = await _storage.read(key: 'auth_token');
+    final token = await _getToken();
 
     if (token == null) {
       throw Exception('Token não encontrado');
@@ -132,8 +148,6 @@ class PartnerService {
     request.headers['Authorization'] = 'Bearer $token';
 
     // Adicionar arquivo com content-type explícito como image/jpeg
-    // O ImageCropper sempre converte para JPG, mas o nome do arquivo temporário
-    // pode confundir a detecção automática de MIME type
     final file = await http.MultipartFile.fromPath(
       'logo',
       imageFile.path,

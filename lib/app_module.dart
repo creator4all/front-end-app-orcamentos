@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:multimidiaapp/app/modules/features/auth/presentation/stores/forgot_password_store.dart';
@@ -31,14 +30,15 @@ import 'app/modules/features/profile/profile_module.dart';
 import 'app/modules/features/prospect/prospect_module.dart';
 import 'app/modules/features/reports/reports_module.dart';
 import 'app/modules/features/user_management/user_management_module.dart';
-import 'app/shared/core/http/app_http_client.dart'; // ✅ IMPORT NOVO HTTP CLIENT
-import 'app/shared/core/http/dio_client.dart';
+import 'app/shared/core/http/app_http_client.dart';
 import 'app/shared/core/http/dio_config_factory.dart';
 import 'app/shared/core/http/dio_http_client_impl.dart';
 import 'app/shared/core/http/http_client_config.dart';
 import 'app/shared/core/utils/token_cache.dart';
 import 'config/api_config.dart';
-import 'services/api_service.dart';
+import 'services/auth_service.dart';
+import 'services/censo_service.dart';
+import 'services/geo_service.dart';
 
 class AppModule extends Module {
   @override
@@ -59,13 +59,24 @@ class AppModule extends Module {
           (i) => DioHttpClientImpl(i.get<HttpClientConfig>()),
         ),
 
-        // ==================== CORE (LEGADO) ====================
+        // ==================== SERVICES (Usando AppHttpClient) ====================
 
-        // Core HTTP Client (Legado - ainda usado por alguns serviços)
-        Bind.singleton<Dio>((i) => DioClient().dio),
+        // Auth Service
+        Bind.singleton<AuthService>(
+          (i) => AuthService(client: i.get<AppHttpClient>()),
+        ),
 
-        // API Service
-        Bind.singleton<ApiService>((i) => ApiService(dio: i.get<Dio>())),
+        // Geo Service
+        Bind.singleton<GeoService>(
+          (i) => GeoService(client: i.get<AppHttpClient>()),
+        ),
+
+        // Censo Service
+        Bind.singleton<CensoService>(
+          (i) => CensoService(client: i.get<AppHttpClient>()),
+        ),
+
+        // ==================== CORE ====================
 
         // Secure Storage (compartilhado globalmente)
         Bind.singleton<FlutterSecureStorage>(
@@ -78,7 +89,6 @@ class AppModule extends Module {
         Bind.singleton<AuthDatasource>(
           (i) => AuthApiDatasource(
             httpClient: i.get<AppHttpClient>(),
-            dio: i.get<Dio>(),
             secureStorage: i.get<FlutterSecureStorage>(),
           ),
         ),
@@ -139,14 +149,14 @@ class AppModule extends Module {
 
         // Partner Service (compartilhado globalmente)
         Bind.singleton<PartnerService>(
-          (i) => PartnerService(i<ApiService>(), i<FlutterSecureStorage>()),
+          (i) => PartnerService(i<AppHttpClient>(), i<FlutterSecureStorage>()),
         ),
 
         // ==================== PROFILE SERVICE ====================
 
         // Profile Service (compartilhado globalmente para deletar conta)
         Bind.singleton<ProfileService>(
-          (i) => ProfileService(i<ApiService>()),
+          (i) => ProfileService(i<AppHttpClient>()),
         ),
       ];
 

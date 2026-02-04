@@ -1,5 +1,5 @@
 import 'package:flutter_modular/flutter_modular.dart';
-import 'package:multimidiaapp/services/api_service.dart';
+import 'package:multimidiaapp/app/shared/core/http/app_http_client.dart';
 
 import 'data/services/profile_service.dart';
 import 'presentation/pages/profile_page.dart';
@@ -10,7 +10,7 @@ class ProfileModule extends Module {
   List<Bind> get binds => [
         // Profile Service
         Bind.lazySingleton<ProfileService>(
-            (i) => ProfileService(i<ApiService>())),
+            (i) => ProfileService(i<AppHttpClient>())),
 
         // Profile Store
         Bind.lazySingleton<ProfileStore>(

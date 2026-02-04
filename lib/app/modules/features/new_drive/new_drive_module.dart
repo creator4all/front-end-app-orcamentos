@@ -1,6 +1,6 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 
+import '../../../shared/core/http/app_http_client.dart';
 import 'data/datasources/drive_remote_datasource.dart';
 import 'data/repositories/drive_repository_impl.dart';
 import 'domain/entities/drive_item.dart';
@@ -31,7 +31,7 @@ class NewDriveModule extends Module {
   List<Bind> get binds => [
         // DataSources
         Bind.singleton<DriveRemoteDataSource>(
-          (i) => DriveRemoteDataSourceImpl(i.get<Dio>()),
+          (i) => DriveRemoteDataSourceImpl(i.get<AppHttpClient>()),
         ),
 
         // Repositories

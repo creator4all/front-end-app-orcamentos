@@ -46,43 +46,20 @@ class ReportsApiDatasource implements ReportsDatasource {
     return data.map((json) => ReportUserDto.fromJson(json)).toList();
   }
 
-  /// Extrai a lista de dados do response, tratando diferentes estruturas
+  /// Extrai a lista de dados do response
+  /// Estrutura padrão da API: { dados: { data: [...] } }
   List<dynamic> _extractList(dynamic body) {
-    if (body is List) {
-      return body;
+    if (body is! Map<String, dynamic>) {
+      throw FormatException(
+          'Resposta inválida: esperado Map, recebido ${body.runtimeType}');
     }
 
-    if (body is Map<String, dynamic>) {
-      // Estrutura: { dados: { data: [...] } }
-      if (body['dados'] is Map<String, dynamic>) {
-        final dados = body['dados'] as Map<String, dynamic>;
-        if (dados['data'] is List) {
-          return dados['data'] as List<dynamic>;
-        }
-      }
-
-      // Estrutura: { data: [...] }
-      if (body['data'] is List) {
-        return body['data'] as List<dynamic>;
-      }
-
-      // Estrutura: { dados: [...] }
-      if (body['dados'] is List) {
-        return body['dados'] as List<dynamic>;
-      }
-
-      // Estrutura: { usuarios: [...] }
-      if (body['usuarios'] is List) {
-        return body['usuarios'] as List<dynamic>;
-      }
-
-      // Estrutura: { orcamentos: [...] }
-      if (body['orcamentos'] is List) {
-        return body['orcamentos'] as List<dynamic>;
-      }
+    final dados = body['dados'];
+    if (dados is Map<String, dynamic> && dados['data'] is List) {
+      return dados['data'] as List<dynamic>;
     }
 
-    return [];
+    throw FormatException('Estrutura de resposta inesperada: ${body.keys}');
   }
 
   @override

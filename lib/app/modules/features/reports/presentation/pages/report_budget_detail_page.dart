@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import '../../../../../shared/widgets/budget_summary_card.dart';
 import '../../../../../shared/widgets/custom_top_bar.dart';
 import '../../../../../shared/widgets/export_pdf_modal.dart';
+import '../../../../../shared/widgets/product_category.dart';
 import '../../../../../shared/widgets/status_tag_widget.dart';
 // Auth store
 import '../../../auth/presentation/stores/auth_store.dart';
@@ -18,7 +19,6 @@ import '../../../budget/budget_config/presentation/widgets/budget_skeleton.dart'
 import '../../../budget/budget_config/presentation/widgets/school_census_card.dart';
 // Widgets locais readonly
 import '../stores/report_budget_detail_store.dart';
-import '../widgets/report_product_category.dart';
 import '../widgets/report_products_modal.dart';
 import '../widgets/report_subcategories_modal.dart';
 
@@ -450,7 +450,8 @@ class _ReportBudgetDetailPageState extends State<ReportBudgetDetailPage> {
   /// Card de subcategoria
   Widget _buildSubcategoryCard(
       SubcategoryEntity subcategory, CategoryEntity parentCategory) {
-    return ReportProductCategory(
+    return ProductCategory(
+      isReadOnly: true,
       categoryIcon: const Icon(Icons.layers_outlined, color: Colors.black54),
       title: subcategory.nome,
       value: subcategory.formattedTotalValue,
@@ -464,7 +465,8 @@ class _ReportBudgetDetailPageState extends State<ReportBudgetDetailPage> {
 
   /// Card de categoria (não expandida)
   Widget _buildCategoryCard(CategoryEntity category) {
-    return ReportProductCategory(
+    return ProductCategory(
+      isReadOnly: true,
       categoryIcon: Icon(
         _getCategoryIcon(category.nome),
         color: Colors.black54,

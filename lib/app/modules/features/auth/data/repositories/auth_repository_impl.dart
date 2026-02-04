@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 
 import '../../../../../shared/core/errors/failures.dart';
+import '../../../../../shared/core/errors/http_exceptions.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_datasource.dart';
@@ -32,28 +33,31 @@ class AuthRepositoryImpl implements AuthRepository {
       print('✅ Model convertido para Entity');
 
       return Right(user);
+    } on UnauthorizedException {
+      print('❌ ERRO no AuthRepositoryImpl: Usuário não autorizado');
+      return const Left(AuthFailure('Email ou senha incorretos'));
+    } on ForbiddenException {
+      print('❌ ERRO no AuthRepositoryImpl: Conta desativada');
+      return const Left(
+          AuthFailure('Conta desativada. Contate o administrador.'));
+    } on ConnectionException {
+      print('❌ ERRO no AuthRepositoryImpl: Falha de conexão');
+      return const Left(NetworkFailure(
+          'Falha na conexão. Verifique sua internet e tente novamente.'));
+    } on TimeoutException {
+      print('❌ ERRO no AuthRepositoryImpl: Timeout');
+      return const Left(
+          NetworkFailure('Tempo de conexão esgotado. Tente novamente.'));
+    } on InternalServerException {
+      print('❌ ERRO no AuthRepositoryImpl: Erro do servidor');
+      return const Left(
+          ServerFailure('Erro no servidor. Tente novamente mais tarde.'));
+    } on HttpException catch (e) {
+      print('❌ ERRO no AuthRepositoryImpl: HTTP ${e.statusCode}');
+      return Left(ServerFailure('Erro ${e.statusCode}: ${e.message}'));
     } catch (e) {
       print('❌ ERRO no AuthRepositoryImpl: $e');
-      // Classificar o tipo de erro
-      if (e.toString().contains('Credenciais inválidas') ||
-          e.toString().contains('401')) {
-        return const Left(AuthFailure('Email ou senha incorretos'));
-      } else if (e.toString().contains('403') ||
-          e.toString().contains('desativada')) {
-        return const Left(
-            AuthFailure('Conta desativada. Contate o administrador.'));
-      } else if (e.toString().contains('internet') ||
-          e.toString().contains('conexão') ||
-          e.toString().contains('rede')) {
-        return const Left(NetworkFailure(
-            'Falha na conexão. Verifique sua internet e tente novamente.'));
-      } else if (e.toString().contains('500') ||
-          e.toString().contains('servidor')) {
-        return const Left(
-            ServerFailure('Erro no servidor. Tente novamente mais tarde.'));
-      } else {
-        return Left(ServerFailure('Erro ao fazer login: ${e.toString()}'));
-      }
+      return Left(ServerFailure('Erro ao fazer login: ${e.toString()}'));
     }
   }
 
@@ -77,19 +81,17 @@ class AuthRepositoryImpl implements AuthRepository {
       final user = userModel.toEntity();
 
       return Right(user);
+    } on UnauthorizedException {
+      return const Left(AuthFailure('Sessão expirada. Faça login novamente.'));
+    } on ConnectionException {
+      return const Left(NetworkFailure('Falha na conexão com o servidor'));
+    } on TimeoutException {
+      return const Left(NetworkFailure('Tempo de conexão esgotado'));
+    } on HttpException catch (e) {
+      return Left(ServerFailure('Erro ${e.statusCode}: ${e.message}'));
     } catch (e) {
-      if (e.toString().contains('Token não encontrado') ||
-          e.toString().contains('Sessão expirada') ||
-          e.toString().contains('401')) {
-        return const Left(
-            AuthFailure('Sessão expirada. Faça login novamente.'));
-      } else if (e.toString().contains('internet') ||
-          e.toString().contains('conexão')) {
-        return const Left(NetworkFailure('Falha na conexão com o servidor'));
-      } else {
-        return Left(
-            ServerFailure('Erro ao obter dados do usuário: ${e.toString()}'));
-      }
+      return Left(
+          ServerFailure('Erro ao obter dados do usuário: ${e.toString()}'));
     }
   }
 
@@ -114,13 +116,14 @@ class AuthRepositoryImpl implements AuthRepository {
 
       final isValid = await datasource.validateToken(token);
       return Right(isValid);
+    } on ConnectionException {
+      return const Left(NetworkFailure('Falha na conexão com o servidor'));
+    } on TimeoutException {
+      return const Left(NetworkFailure('Tempo de conexão esgotado'));
+    } on HttpException catch (e) {
+      return Left(ServerFailure('Erro ${e.statusCode}: ${e.message}'));
     } catch (e) {
-      if (e.toString().contains('internet') ||
-          e.toString().contains('conexão')) {
-        return const Left(NetworkFailure('Falha na conexão com o servidor'));
-      } else {
-        return Left(ServerFailure('Erro ao validar token: ${e.toString()}'));
-      }
+      return Left(ServerFailure('Erro ao validar token: ${e.toString()}'));
     }
   }
 
@@ -133,25 +136,24 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       await datasource.requestPasswordReset(email);
       return const Right(null);
+    } on ForbiddenException {
+      return const Left(AuthFailure(
+          'Usuário inativo ou não encontrado. Em caso de dúvidas, entre em contato conosco pelo suporte.'));
+    } on NotFoundException {
+      return const Left(AuthFailure(
+          'Usuário inativo ou não encontrado. Em caso de dúvidas, entre em contato conosco pelo suporte.'));
+    } on ConnectionException {
+      return const Left(NetworkFailure('Falha na conexão com o servidor'));
+    } on TimeoutException {
+      return const Left(NetworkFailure('Tempo de conexão esgotado'));
+    } on InternalServerException {
+      return const Left(
+          ServerFailure('Erro no servidor. Tente novamente mais tarde.'));
+    } on HttpException catch (e) {
+      return Left(ServerFailure('Erro ${e.statusCode}: ${e.message}'));
     } catch (e) {
-      // Tratar 403/usuário inativo com mensagem amigável
-      if (e.toString().contains('403') || e.toString().contains('inativo')) {
-        return const Left(AuthFailure(
-            'Usuário inativo ou não encontrado. Em caso de dúvidas, entre em contato conosco pelo suporte.'));
-      }
-      if (e.toString().contains('não encontrado')) {
-        return const Left(AuthFailure(
-            'Usuário inativo ou não encontrado. Em caso de dúvidas, entre em contato conosco pelo suporte.'));
-      } else if (e.toString().contains('internet') ||
-          e.toString().contains('conexão')) {
-        return const Left(NetworkFailure('Falha na conexão com o servidor'));
-      } else if (e.toString().contains('servidor')) {
-        return const Left(
-            ServerFailure('Erro no servidor. Tente novamente mais tarde.'));
-      } else {
-        return const Left(AuthFailure(
-            'Usuário inativo ou não encontrado. Em caso de dúvidas, entre em contato conosco pelo suporte.'));
-      }
+      return const Left(AuthFailure(
+          'Usuário inativo ou não encontrado. Em caso de dúvidas, entre em contato conosco pelo suporte.'));
     }
   }
 
@@ -160,16 +162,17 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       await datasource.resendOtpCode(email);
       return const Right(null);
+    } on TooManyRequestsException {
+      return const Left(
+          ValidationFailure('Aguarde antes de solicitar um novo código'));
+    } on ConnectionException {
+      return const Left(NetworkFailure('Falha na conexão com o servidor'));
+    } on TimeoutException {
+      return const Left(NetworkFailure('Tempo de conexão esgotado'));
+    } on HttpException catch (e) {
+      return Left(ServerFailure('Erro ${e.statusCode}: ${e.message}'));
     } catch (e) {
-      if (e.toString().contains('Aguarde')) {
-        return const Left(
-            ValidationFailure('Aguarde antes de solicitar um novo código'));
-      } else if (e.toString().contains('internet') ||
-          e.toString().contains('conexão')) {
-        return const Left(NetworkFailure('Falha na conexão com o servidor'));
-      } else {
-        return Left(ServerFailure('Erro ao reenviar código: ${e.toString()}'));
-      }
+      return Left(ServerFailure('Erro ao reenviar código: ${e.toString()}'));
     }
   }
 
@@ -181,15 +184,20 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       final isValid = await datasource.verifyOtpCode(email, otpCode);
       return Right(isValid);
+    } on UnauthorizedException {
+      return const Left(AuthFailure('Código OTP inválido ou expirado'));
+    } on BadRequestException {
+      return const Left(AuthFailure('Código OTP inválido ou expirado'));
+    } on NotFoundException {
+      return const Left(AuthFailure('Código OTP inválido ou expirado'));
+    } on ConnectionException {
+      return const Left(NetworkFailure('Falha na conexão com o servidor'));
+    } on TimeoutException {
+      return const Left(NetworkFailure('Tempo de conexão esgotado'));
+    } on HttpException catch (e) {
+      return Left(ServerFailure('Erro ${e.statusCode}: ${e.message}'));
     } catch (e) {
-      // Tratar todos os erros de verificação OTP com mensagem amigável
-      if (e.toString().contains('internet') ||
-          e.toString().contains('conexão')) {
-        return const Left(NetworkFailure('Falha na conexão com o servidor'));
-      } else {
-        // Qualquer outro erro (inválido, expirado, não encontrado) mostra mensagem amigável
-        return const Left(AuthFailure('Código OTP inválido ou expirado'));
-      }
+      return const Left(AuthFailure('Código OTP inválido ou expirado'));
     }
   }
 
@@ -204,19 +212,23 @@ class AuthRepositoryImpl implements AuthRepository {
       await datasource.resetPassword(
           email, otpCode, newPassword, confirmPassword);
       return const Right(null);
+    } on UnauthorizedException {
+      return const Left(AuthFailure('Código OTP inválido ou expirado'));
+    } on BadRequestException {
+      return const Left(AuthFailure('Código OTP inválido ou expirado'));
+    } on NotFoundException {
+      return const Left(AuthFailure('Código OTP inválido ou expirado'));
+    } on ConnectionException {
+      return const Left(NetworkFailure('Falha na conexão com o servidor'));
+    } on TimeoutException {
+      return const Left(NetworkFailure('Tempo de conexão esgotado'));
+    } on InternalServerException {
+      return const Left(
+          ServerFailure('Erro no servidor. Tente novamente mais tarde.'));
+    } on HttpException catch (e) {
+      return Left(ServerFailure('Erro ${e.statusCode}: ${e.message}'));
     } catch (e) {
-      // Tratar erros de reset com mensagens amigáveis
-      if (e.toString().contains('internet') ||
-          e.toString().contains('conexão')) {
-        return const Left(NetworkFailure('Falha na conexão com o servidor'));
-      } else if (e.toString().contains('servidor') ||
-          e.toString().contains('500')) {
-        return const Left(
-            ServerFailure('Erro no servidor. Tente novamente mais tarde.'));
-      } else {
-        // Qualquer outro erro mostra mensagem amigável
-        return const Left(AuthFailure('Código OTP inválido ou expirado'));
-      }
+      return const Left(AuthFailure('Código OTP inválido ou expirado'));
     }
   }
 
@@ -225,13 +237,14 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       final userModel = await datasource.removeAvatar();
       return Right(userModel.toEntity());
+    } on ConnectionException {
+      return const Left(NetworkFailure('Falha na conexão com o servidor'));
+    } on TimeoutException {
+      return const Left(NetworkFailure('Tempo de conexão esgotado'));
+    } on HttpException catch (e) {
+      return Left(ServerFailure('Erro ${e.statusCode}: ${e.message}'));
     } catch (e) {
-      if (e.toString().contains('internet') ||
-          e.toString().contains('conexão')) {
-        return const Left(NetworkFailure('Falha na conexão com o servidor'));
-      } else {
-        return Left(ServerFailure(e.toString()));
-      }
+      return Left(ServerFailure(e.toString()));
     }
   }
 }

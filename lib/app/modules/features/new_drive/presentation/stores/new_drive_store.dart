@@ -154,29 +154,23 @@ abstract class _NewDriveStoreBase with Store {
 
     try {
       if (getRecentItemsUseCase != null) {
-        // Usar UseCase real
         final result = await getRecentItemsUseCase!();
 
         result.fold(
-          (failure) {
-            errorMessage = failure.message;
-            isLoading = false;
-          },
+          (failure) => errorMessage = failure.message,
           (items) {
             allItems.clear();
             allItems.addAll(items);
-            isLoading = false;
           },
         );
       } else {
-        // Fallback para dados mockados
         await Future.delayed(const Duration(milliseconds: 500));
         allItems.clear();
         allItems.addAll(_getMockedRecentItems());
-        isLoading = false;
       }
     } catch (e) {
       errorMessage = 'Erro ao carregar itens compartilhados recentemente';
+    } finally {
       isLoading = false;
     }
   }
@@ -188,29 +182,23 @@ abstract class _NewDriveStoreBase with Store {
 
     try {
       if (getOwnFilesUseCase != null) {
-        // Usar UseCase real
         final result = await getOwnFilesUseCase!();
 
         result.fold(
-          (failure) {
-            errorMessage = failure.message;
-            isLoadingOwnFiles = false;
-          },
+          (failure) => errorMessage = failure.message,
           (items) {
             ownFiles.clear();
             ownFiles.addAll(items);
-            isLoadingOwnFiles = false;
           },
         );
       } else {
-        // Fallback para dados mockados
         await Future.delayed(const Duration(milliseconds: 500));
         ownFiles.clear();
         ownFiles.addAll(_getMockedRecentItems());
-        isLoadingOwnFiles = false;
       }
     } catch (e) {
       errorMessage = 'Erro ao carregar meus arquivos';
+    } finally {
       isLoadingOwnFiles = false;
     }
   }
@@ -222,27 +210,19 @@ abstract class _NewDriveStoreBase with Store {
 
     try {
       if (getFolderContentsUseCase != null) {
-        // Usar UseCase real
         final result = await getFolderContentsUseCase!(folderId);
 
         result.fold(
-          (failure) {
-            errorMessage = failure.message;
-            isLoadingFolder = false;
-          },
-          (folderItem) {
-            currentFolder = folderItem;
-            isLoadingFolder = false;
-          },
+          (failure) => errorMessage = failure.message,
+          (folderItem) => currentFolder = folderItem,
         );
       } else {
-        // Fallback para dados mockados
         await Future.delayed(const Duration(milliseconds: 500));
         currentFolder = _getMockedFolderItem();
-        isLoadingFolder = false;
       }
     } catch (e) {
       errorMessage = 'Erro ao carregar conteúdo da pasta';
+    } finally {
       isLoadingFolder = false;
     }
   }
@@ -306,15 +286,33 @@ abstract class _NewDriveStoreBase with Store {
     ]);
   }
 
-  /// Calcula tamanho total de uma lista de itens
+  /// Calcula tamanho total de uma lista de itens usando os valores reais da API
   String _calculateTotalSize(Iterable<DriveItem> items) {
     if (items.isEmpty) return '0 MB';
 
-    // Como o size já vem formatado (ex: "2.5 MB"), precisamos fazer parse
-    // Por enquanto, vamos retornar uma estimativa baseada na contagem
-    // TODO: Melhorar quando backend fornecer tamanho em bytes
-    final count = items.length;
-    return '${(count * 10.5).toStringAsFixed(1)} MB';
+    double totalMB = 0.0;
+    for (final item in items) {
+      totalMB += _parseSizeToMB(item.size);
+    }
+    return '${totalMB.toStringAsFixed(1)} MB';
+  }
+
+  /// Converte string de tamanho (ex: "2.5 MB", "500 KB") para megabytes
+  double _parseSizeToMB(String size) {
+    final regex = RegExp(r'([\d.]+)\s*(B|KB|MB|GB)', caseSensitive: false);
+    final match = regex.firstMatch(size);
+    if (match == null) return 0.0;
+
+    final value = double.tryParse(match.group(1)!) ?? 0.0;
+    final unit = match.group(2)!.toUpperCase();
+
+    return switch (unit) {
+      'B' => value / (1024 * 1024),
+      'KB' => value / 1024,
+      'MB' => value,
+      'GB' => value * 1024,
+      _ => 0.0,
+    };
   }
 
   @action

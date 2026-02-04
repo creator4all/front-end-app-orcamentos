@@ -44,9 +44,6 @@ class _SchoolCensusPageState
   bool _hasSavedChanges = false;
   bool _isExporting = false;
 
-  // Ano mockado conforme solicitado
-  static const String _mockYear = '2024';
-
   @override
   void initState() {
     super.initState();
@@ -346,7 +343,7 @@ class _SchoolCensusPageState
         ),
         SizedBox(height: 4.h),
         Text(
-          _mockYear,
+          store.censoEscolar?.censoAno?.toString() ?? '-',
           style: TextStyle(
             fontSize: 14.sp,
             fontWeight: FontWeight.w400,

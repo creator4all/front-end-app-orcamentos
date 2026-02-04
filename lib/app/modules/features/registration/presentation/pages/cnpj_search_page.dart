@@ -421,18 +421,8 @@ class _CnpjSearchPageState extends State<CnpjSearchPage> {
                       );
                     }
                   },
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor, digite o CPF ou CNPJ';
-                    }
-
-                    final digits = value.replaceAll(RegExp(r'[^0-9]'), '');
-                    if (digits.length != 11 && digits.length != 14) {
-                      return 'Documento inválido (CPF: 11 dígitos, CNPJ: 14 dígitos)';
-                    }
-
-                    return null;
-                  },
+                  validator: (value) =>
+                      DocumentValidators.getDocumentError(value ?? ''),
                 ),
                 SizedBox(height: 24.h),
 

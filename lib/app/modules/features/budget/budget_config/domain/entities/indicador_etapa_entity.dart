@@ -74,7 +74,5 @@ class IndicadorEtapaEntity extends Equatable {
   }
 
   @override
-  String toString() {
-    return 'IndicadorEtapaEntity(nomeEtapa: $nomeEtapa, grupoNome: $grupoNome, selecionado: $selecionado)';
-  }
+  bool get stringify => true;
 }

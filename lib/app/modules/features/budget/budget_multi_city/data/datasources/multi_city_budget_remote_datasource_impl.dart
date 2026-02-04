@@ -1,17 +1,23 @@
 import 'package:multimidiaapp/app/modules/features/budget/budget_config/domain/entities/censo_escolar_entity.dart';
 import 'package:multimidiaapp/app/modules/features/budget/budget_config/domain/entities/censo_group_entity.dart';
 import 'package:multimidiaapp/app/modules/features/budget/budget_config/domain/entities/censo_title_entity.dart';
+import 'package:multimidiaapp/app/shared/core/http/app_http_client.dart';
+import 'package:multimidiaapp/app/shared/core/http/http_request_config.dart';
+import 'package:multimidiaapp/app/shared/core/utils/token_cache.dart';
 import 'package:multimidiaapp/config/api_config.dart';
-import 'package:multimidiaapp/services/api_service.dart';
 
 import 'multi_city_budget_remote_datasource.dart';
 
-/// Implementação concreta do datasource multi-cidades
+/// Implementação concreta do datasource multi-cidades usando AppHttpClient
 class MultiCityBudgetRemoteDataSourceImpl
     implements MultiCityBudgetRemoteDataSource {
-  final ApiService _apiService;
+  final AppHttpClient _client;
 
-  MultiCityBudgetRemoteDataSourceImpl(this._apiService);
+  MultiCityBudgetRemoteDataSourceImpl(this._client);
+
+  HttpRequestConfig get _config => HttpRequestConfig(
+        token: TokenCache.instance.getTokenOrEmpty(),
+      );
 
   /// Constrói payload de cidades com overrides para envio à API
   List<Map<String, dynamic>> _buildCidadesPayload(
@@ -40,18 +46,18 @@ class MultiCityBudgetRemoteDataSourceImpl
   ) async {
     final Map<int, CensoEscolarEntity> result = {};
 
-    // Buscar censo para cada cidade individualmente
     for (final cidadeId in cidadeIds) {
-      final response = await _apiService.get(
+      final response = await _client.get(
         ApiConfig.censoPorCidadeEndpoint(cidadeId),
+        config: _config,
       );
 
-      if (response['success'] == true) {
-        final dados = response['data']['dados'];
+      if (response.isSuccess) {
+        final dados = response.body['dados'];
         result[cidadeId] = _mapToCensoEscolarEntity(dados);
       } else {
         throw Exception(
-          response['error'] ?? 'Erro ao buscar censo da cidade $cidadeId',
+          response.body['error'] ?? 'Erro ao buscar censo da cidade $cidadeId',
         );
       }
     }
@@ -71,17 +77,18 @@ class MultiCityBudgetRemoteDataSourceImpl
       'cidades': cidades,
     };
 
-    final response = await _apiService.post(
+    final response = await _client.post(
       '${ApiConfig.baseUrl}/api/orcamentos/multi-cidade/preview',
-      payload,
+      data: payload,
+      config: _config,
     );
 
-    if (response['success'] == true) {
-      final data = response['data'];
+    if (response.isSuccess) {
+      final data = response.body;
       return data['dados'] as Map<String, dynamic>? ??
           data as Map<String, dynamic>;
     } else {
-      throw Exception(response['error'] ?? 'Erro ao fazer preview');
+      throw Exception(response.body['error'] ?? 'Erro ao fazer preview');
     }
   }
 
@@ -106,26 +113,25 @@ class MultiCityBudgetRemoteDataSourceImpl
       payload['orc_partner_destino_id'] = partnerDestinoId;
     }
 
-    final response = await _apiService.post(
+    final response = await _client.post(
       '${ApiConfig.baseUrl}/api/orcamentos/multi-cidade',
-      payload,
+      data: payload,
+      config: _config,
     );
 
-    if (response['success'] == true) {
-      final data = response['data'];
+    if (response.isSuccess) {
+      final data = response.body;
       final dados = data['dados'] as Map<String, dynamic>? ?? data;
 
-      // Validar que temos o ID
       final id = dados['id'] ?? dados['orc_orcamentoId'];
       if (id == null) {
         throw Exception('ID do orçamento não retornado');
       }
 
-      // Retornar dados completos (categorias, cidades, censo_agregado)
       return dados;
     } else {
       throw Exception(
-          response['error'] ?? 'Erro ao criar orçamento multi-cidade');
+          response.body['error'] ?? 'Erro ao criar orçamento multi-cidade');
     }
   }
 
@@ -140,13 +146,14 @@ class MultiCityBudgetRemoteDataSourceImpl
       'cidades': cidades,
     };
 
-    final response = await _apiService.put(
+    final response = await _client.put(
       '${ApiConfig.baseUrl}/api/orcamentos/$budgetId',
-      payload,
+      data: payload,
+      config: _config,
     );
 
-    if (response['success'] != true) {
-      throw Exception(response['error'] ?? 'Erro ao atualizar cidades');
+    if (!response.isSuccess) {
+      throw Exception(response.body['error'] ?? 'Erro ao atualizar cidades');
     }
   }
 
@@ -158,10 +165,7 @@ class MultiCityBudgetRemoteDataSourceImpl
 
     final List<dynamic> indicesList = json['indices_etapa'] ?? [];
 
-    // Preparar mapa de valores por etapa
     final Map<String, double> valoresPorEtapa = {};
-
-    // Agrupar títulos por grupo
     final Map<int, List<CensoTitleEntity>> titlesPerGroup = {};
     final Map<int, String> groupNames = {};
 
@@ -171,7 +175,6 @@ class MultiCityBudgetRemoteDataSourceImpl
           : int.tryParse('${item['indice_etapa_id']}') ?? 0;
 
       final String nomeEtapa = (item['nome_etapa'] ?? '').toString();
-      // Fallback: usar nome_etapa se titulo_etapa estiver vazio
       String tituloEtapa = (item['titulo_etapa'] ?? '').toString();
       if (tituloEtapa.isEmpty) {
         tituloEtapa = nomeEtapa;
@@ -207,7 +210,6 @@ class MultiCityBudgetRemoteDataSourceImpl
       }
     }
 
-    // Criar entidades de grupo
     final List<CensoGroupEntity> grupos = titlesPerGroup.entries.map((entry) {
       return CensoGroupEntity(
         id: entry.key,

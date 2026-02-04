@@ -154,14 +154,9 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
       missingFields.add('CPF/CNPJ');
     } else {
       final document = _cnpjController.text.replaceAll(RegExp(r'[^0-9]'), '');
-      if (document.length != 11 && document.length != 14) {
-        missingFields.add('CPF/CNPJ (formato inválido)');
-      } else {
-        // Validar dígitos verificadores
-        final validationError = DocumentValidators.getDocumentError(document);
-        if (validationError != null) {
-          missingFields.add('CPF/CNPJ (documento inválido)');
-        }
+      final validationError = DocumentValidators.getDocumentError(document);
+      if (validationError != null) {
+        missingFields.add('CPF/CNPJ (documento inválido)');
       }
     }
 
@@ -439,16 +434,8 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
                       );
                     }
                   },
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor, digite seu CPF ou CNPJ';
-                    }
-                    final doc = value.replaceAll(RegExp(r'[^0-9]'), '');
-                    if (doc.length != 11 && doc.length != 14) {
-                      return 'CPF ou CNPJ inválido';
-                    }
-                    return null;
-                  },
+                  validator: (value) =>
+                      DocumentValidators.getDocumentError(value ?? ''),
                 ),
                 SizedBox(height: 24.h),
 

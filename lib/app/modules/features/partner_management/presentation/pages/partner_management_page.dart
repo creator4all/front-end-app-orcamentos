@@ -46,8 +46,9 @@ class _PartnerManagementPageState extends State<PartnerManagementPage> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
+    final isReachingEndOfPage = _scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200;
+    if (isReachingEndOfPage) {
       _store.loadMorePartners();
     }
   }

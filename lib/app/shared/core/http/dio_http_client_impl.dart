@@ -201,6 +201,47 @@ class DioHttpClientImpl implements AppHttpClient {
     }
   }
 
+  @override
+  Future<List<int>> getBytes(String url, {HttpRequestConfig? config}) async {
+    await NetworkUtils.validateInternet();
+
+    final options = _buildOptions('GET', config);
+    options.responseType = ResponseType.bytes;
+    options.receiveTimeout = config?.timeout ?? const Duration(minutes: 5);
+
+    final fullUrl = _buildUrl(url, config);
+
+    try {
+      final response = await _dio.get<List<int>>(
+        fullUrl,
+        options: options,
+        queryParameters: config?.queryParameters,
+        onReceiveProgress: config?.receiveProgress,
+      );
+
+      if (response.statusCode != null &&
+          response.statusCode! >= 200 &&
+          response.statusCode! < 300) {
+        return response.data ?? [];
+      }
+
+      throw HttpException(
+        message: 'Falha ao baixar arquivo',
+        statusCode: response.statusCode,
+        endpoint: fullUrl,
+      );
+    } on DioException catch (e) {
+      throw _handleDioException(e);
+    } catch (e) {
+      if (e is AppError) rethrow;
+      throw AppUnknownError(
+        message: 'Erro ao baixar bytes: ${e.toString()}',
+        data: e,
+        stackTrace: StackTrace.current,
+      );
+    }
+  }
+
   /// Constrói Options do Dio baseado na configuração
   Options _buildOptions(String method, HttpRequestConfig? config) {
     final headers = <String, dynamic>{};

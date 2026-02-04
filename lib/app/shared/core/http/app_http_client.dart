@@ -116,4 +116,18 @@ abstract class AppHttpClient {
     CancelDownload? cancelToken,
     HttpRequestConfig? config,
   });
+
+  /// Realiza uma requisição GET retornando bytes
+  ///
+  /// Útil para downloads de arquivos pequenos que serão mantidos em memória.
+  /// Para arquivos grandes, prefira o método [download].
+  ///
+  /// [url] - URL do arquivo
+  /// [config] - Configuração opcional (token, timeout, etc.)
+  ///
+  /// Retorna [List<int>] com os bytes do arquivo
+  Future<List<int>> getBytes(
+    String url, {
+    HttpRequestConfig? config,
+  });
 }

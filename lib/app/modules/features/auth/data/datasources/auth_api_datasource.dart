@@ -1,9 +1,9 @@
 import 'dart:convert';
 
-import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../../../../config/api_config.dart';
+import '../../../../../shared/core/constants/http_constants.dart';
 import '../../../../../shared/core/errors/http_exceptions.dart';
 import '../../../../../shared/core/http/app_http_client.dart';
 import '../../../../../shared/core/http/http_request_config.dart';
@@ -15,7 +15,6 @@ import 'auth_datasource.dart';
 /// Responsável por fazer chamadas HTTP e gerenciar armazenamento seguro
 class AuthApiDatasource implements AuthDatasource {
   final AppHttpClient httpClient;
-  final Dio dio; // Mantido temporariamente para getCurrentUser e outros métodos
   final FlutterSecureStorage secureStorage;
 
   // Keys para storage
@@ -24,14 +23,13 @@ class AuthApiDatasource implements AuthDatasource {
 
   AuthApiDatasource({
     required this.httpClient,
-    required this.dio,
     required this.secureStorage,
   });
 
   /// Configuração padrão para requisições HTTP
   /// User-Agent é obrigatório para evitar OTP em mobile
   HttpRequestConfig get _defaultConfig => HttpRequestConfig(
-        headers: {'User-Agent': 'App-Orcamentos-V1'},
+        headers: {HttpHeaders.userAgent: HttpHeaders.userAgentValue},
       );
 
   @override
@@ -82,18 +80,17 @@ class AuthApiDatasource implements AuthDatasource {
 
       return userModel;
     } on UnauthorizedException {
-      throw Exception('Credenciais inválidas. Verifique seu email e senha.');
+      rethrow;
     } on ForbiddenException {
-      throw Exception('Acesso negado. Conta pode estar desativada.');
+      rethrow;
     } on NotFoundException {
-      throw Exception('Serviço não encontrado. Tente novamente mais tarde.');
+      rethrow;
     } on InternalServerException {
-      throw Exception('Erro interno do servidor. Tente novamente mais tarde.');
+      rethrow;
     } on TimeoutException {
-      throw Exception('Tempo de conexão esgotado. Verifique sua internet.');
+      rethrow;
     } on ConnectionException {
-      throw Exception(
-          'Falha na conexão. Verifique sua internet e tente novamente.');
+      rethrow;
     } catch (e) {
       throw Exception('Erro inesperado ao fazer login: $e');
     }
@@ -106,13 +103,11 @@ class AuthApiDatasource implements AuthDatasource {
 
       if (token != null) {
         try {
-          await dio.post(
-            '${ApiConfig.baseUrl}/api/auth/logout',
-            options: Options(
-              headers: {
-                ...ApiConfig.headers,
-                'Authorization': 'Bearer $token',
-              },
+          await httpClient.post(
+            '/api/auth/logout',
+            config: HttpRequestConfig(
+              token: token,
+              headers: {HttpHeaders.userAgent: HttpHeaders.userAgentValue},
             ),
           );
         } catch (_) {
@@ -151,7 +146,10 @@ class AuthApiDatasource implements AuthDatasource {
 
       final response = await httpClient.get(
         '/api/perfil/me',
-        config: _defaultConfig,
+        config: HttpRequestConfig(
+          token: token,
+          headers: {HttpHeaders.userAgent: HttpHeaders.userAgentValue},
+        ),
       );
 
       if (response.statusCode == 200) {
@@ -173,14 +171,11 @@ class AuthApiDatasource implements AuthDatasource {
       } else {
         throw Exception('Falha ao obter dados do usuário');
       }
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 401) {
-        // Token inválido - força novo login
-        await secureStorage.delete(key: _tokenKey);
-        await secureStorage.delete(key: _userKey);
-        throw Exception('Sessão expirada. Faça login novamente.');
-      }
-      throw Exception('Erro ao obter usuário: ${e.message}');
+    } on UnauthorizedException {
+      // Token inválido - força novo login
+      await secureStorage.delete(key: _tokenKey);
+      await secureStorage.delete(key: _userKey);
+      throw Exception('Sessão expirada. Faça login novamente.');
     } catch (e) {
       throw Exception('Erro inesperado ao obter usuário: $e');
     }
@@ -198,30 +193,23 @@ class AuthApiDatasource implements AuthDatasource {
   @override
   Future<bool> validateToken(String token) async {
     try {
-      final response = await dio.get(
-        '${ApiConfig.baseUrl}/api/auth/validate',
-        options: Options(
-          headers: {
-            ...ApiConfig.headers,
-            'Authorization': 'Bearer $token',
-          },
+      final response = await httpClient.get(
+        '/api/auth/validate',
+        config: HttpRequestConfig(
+          token: token,
+          headers: {HttpHeaders.userAgent: HttpHeaders.userAgentValue},
         ),
       );
 
       if (response.statusCode == 200) {
-        final data = response.data;
-        if (data is Map<String, dynamic>) {
-          return data['valid'] == true || data['valido'] == true;
-        }
+        final data = response.body;
+        return data['valid'] == true || data['valido'] == true;
         return true; // Se retornou 200, consideramos válido
       }
 
       return false;
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 401) {
-        return false; // Token inválido
-      }
-      throw Exception('Erro ao validar token: ${e.message}');
+    } on UnauthorizedException {
+      return false; // Token inválido
     } catch (e) {
       throw Exception('Erro inesperado ao validar token: $e');
     }

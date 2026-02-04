@@ -10,6 +10,9 @@ class CensoEscolarEntity extends Equatable {
   /// Nome da cidade
   final String cidadeNome;
 
+  /// Ano de referência do censo
+  final int? censoAno;
+
   /// Grupos do censo (Infantil, Ensino Fundamental, EJA, etc.)
   final List<CensoGroupEntity> grupos;
 
@@ -19,6 +22,7 @@ class CensoEscolarEntity extends Equatable {
   const CensoEscolarEntity({
     required this.cidadeId,
     required this.cidadeNome,
+    this.censoAno,
     required this.grupos,
     required this.valoresPorEtapa,
   });
@@ -71,7 +75,8 @@ class CensoEscolarEntity extends Equatable {
   }
 
   @override
-  List<Object?> get props => [cidadeId, cidadeNome, grupos, valoresPorEtapa];
+  List<Object?> get props =>
+      [cidadeId, cidadeNome, censoAno, grupos, valoresPorEtapa];
 
   @override
   String toString() {

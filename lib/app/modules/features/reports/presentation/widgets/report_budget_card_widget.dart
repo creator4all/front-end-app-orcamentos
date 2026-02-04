@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../../../shared/utils/currency_utils.dart';
 import '../../../../../shared/widgets/days_remaining_widget.dart';
 import '../../../../../shared/widgets/status_tag_widget.dart';
 
@@ -146,7 +147,7 @@ class ReportBudgetCardWidget extends StatelessWidget {
                 Expanded(
                   flex: 2,
                   child: Text(
-                    _formatCurrency(totalValue),
+                    CurrencyUtils.formatBRL(totalValue),
                     style: TextStyle(
                       fontSize: 14.sp,
                       fontWeight: FontWeight.bold,
@@ -216,24 +217,5 @@ class ReportBudgetCardWidget extends StatelessWidget {
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
-  }
-
-  String _formatCurrency(double value) {
-    // Converte para string com 2 casas decimais
-    String valueString = value.toStringAsFixed(2);
-
-    // Separa parte inteira e decimal
-    List<String> parts = valueString.split('.');
-    String integerPart = parts[0];
-    String decimalPart = parts[1];
-
-    // Adiciona pontos para milhares
-    String formattedInteger = integerPart.replaceAllMapped(
-      RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-      (Match match) => '${match[1]}.',
-    );
-
-    // Retorna no formato brasileiro: R$999.999.999,99
-    return 'R\$ $formattedInteger,$decimalPart';
   }
 }

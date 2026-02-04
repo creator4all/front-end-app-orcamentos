@@ -9,8 +9,13 @@ import 'theme/app_theme.dart';
 
 void main() {
   runApp(
-    StoreProvider(
-      child: ModularApp(module: AppModule(), child: const MyApp()),
+    ModularApp(
+      module: AppModule(),
+      child: Builder(
+        builder: (context) => StoreProvider(
+          child: const MyApp(),
+        ),
+      ),
     ),
   );
 }
