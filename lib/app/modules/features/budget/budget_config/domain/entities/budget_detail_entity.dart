@@ -1,10 +1,14 @@
+import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:equatable/equatable.dart';
 
 import 'category_entity.dart';
 import 'product_selection_entity.dart';
 
+part 'budget_detail_entity.g.dart';
+
 /// Entidade que representa os detalhes completos de um orçamento
 /// Utilizada na tela de configuração para exibir e editar dados
+@CopyWith()
 class BudgetDetailEntity extends Equatable {
   /// ID do orçamento
   final int id;
@@ -121,41 +125,4 @@ class BudgetDetailEntity extends Equatable {
         categories,
         censoAgregado,
       ];
-
-  /// Cria uma cópia com campos alterados
-  BudgetDetailEntity copyWith({
-    int? id,
-    String? name,
-    int? validityDays,
-    DateTime? validityDate,
-    DateTime? creationDate,
-    String? status,
-    double? total,
-    int? userId,
-    int? partnerId,
-    List<int>? cityIds,
-    List<ProductSelectionEntity>? products,
-    Map<String, bool>? categoryStates,
-    List<CategoryEntity>? categories,
-    List<Map<String, dynamic>>? citiesData,
-    Map<String, double>? censoAgregado,
-  }) {
-    return BudgetDetailEntity(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      validityDays: validityDays ?? this.validityDays,
-      validityDate: validityDate ?? this.validityDate,
-      creationDate: creationDate ?? this.creationDate,
-      status: status ?? this.status,
-      total: total ?? this.total,
-      userId: userId ?? this.userId,
-      partnerId: partnerId ?? this.partnerId,
-      cityIds: cityIds ?? this.cityIds,
-      products: products ?? this.products,
-      categoryStates: categoryStates ?? this.categoryStates,
-      categories: categories ?? this.categories,
-      citiesData: citiesData ?? this.citiesData,
-      censoAgregado: censoAgregado ?? this.censoAgregado,
-    );
-  }
 }

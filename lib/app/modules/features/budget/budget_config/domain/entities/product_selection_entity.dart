@@ -1,6 +1,10 @@
+import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:equatable/equatable.dart';
 
+part 'product_selection_entity.g.dart';
+
 /// Entidade que representa um produto selecionado no orçamento
+@CopyWith()
 class ProductSelectionEntity extends Equatable {
   /// ID do produto
   final int productId;
@@ -43,23 +47,4 @@ class ProductSelectionEntity extends Equatable {
         isSelected,
         quantity,
       ];
-
-  /// Cria uma cópia com campos alterados
-  ProductSelectionEntity copyWith({
-    int? productId,
-    String? name,
-    String? category,
-    double? price,
-    bool? isSelected,
-    int? quantity,
-  }) {
-    return ProductSelectionEntity(
-      productId: productId ?? this.productId,
-      name: name ?? this.name,
-      category: category ?? this.category,
-      price: price ?? this.price,
-      isSelected: isSelected ?? this.isSelected,
-      quantity: quantity ?? this.quantity,
-    );
-  }
 }

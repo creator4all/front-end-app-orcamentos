@@ -1,7 +1,11 @@
+import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:equatable/equatable.dart';
+
+part 'censo_title_entity.g.dart';
 
 /// Entidade que representa um título/etapa do censo escolar
 /// Ex: "1º Ano", "2º Ano", "1º Ano P" (Professores)
+@CopyWith()
 class CensoTitleEntity extends Equatable {
   /// ID do título/etapa
   final int id;
@@ -41,25 +45,6 @@ class CensoTitleEntity extends Equatable {
   @override
   List<Object?> get props =>
       [id, nomeEtapa, tituloExibicao, valor, isProfessores, grupoId];
-
-  /// Cria uma cópia com valores modificados
-  CensoTitleEntity copyWith({
-    int? id,
-    String? nomeEtapa,
-    String? tituloExibicao,
-    double? valor,
-    bool? isProfessores,
-    int? grupoId,
-  }) {
-    return CensoTitleEntity(
-      id: id ?? this.id,
-      nomeEtapa: nomeEtapa ?? this.nomeEtapa,
-      tituloExibicao: tituloExibicao ?? this.tituloExibicao,
-      valor: valor ?? this.valor,
-      isProfessores: isProfessores ?? this.isProfessores,
-      grupoId: grupoId ?? this.grupoId,
-    );
-  }
 
   @override
   String toString() {

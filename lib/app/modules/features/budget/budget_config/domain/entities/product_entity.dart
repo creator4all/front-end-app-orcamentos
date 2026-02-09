@@ -1,9 +1,13 @@
+import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:equatable/equatable.dart';
 import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 
 import 'indicador_etapa_entity.dart';
 
+part 'product_entity.g.dart';
+
 /// Entidade que representa um produto no orçamento
+@CopyWith()
 class ProductEntity extends Equatable {
   final int id;
   final String codigo;
@@ -89,46 +93,6 @@ class ProductEntity extends Equatable {
         ativoOriginal,
         indicadoresEtapa,
       ];
-
-  ProductEntity copyWith({
-    int? id,
-    String? codigo,
-    String? solucao,
-    String? tipo,
-    bool? ativo,
-    double? valor,
-    String? indicacao,
-    String? tipoProduto,
-    int? ordem,
-    int? subcategoriaId,
-    bool? selecionado,
-    int? quantidade,
-    bool? temOverride,
-    String? observacoes,
-    double? valorOriginal,
-    bool? ativoOriginal,
-    List<IndicadorEtapaEntity>? indicadoresEtapa,
-  }) {
-    return ProductEntity(
-      id: id ?? this.id,
-      codigo: codigo ?? this.codigo,
-      solucao: solucao ?? this.solucao,
-      tipo: tipo ?? this.tipo,
-      ativo: ativo ?? this.ativo,
-      valor: valor ?? this.valor,
-      indicacao: indicacao ?? this.indicacao,
-      tipoProduto: tipoProduto ?? this.tipoProduto,
-      ordem: ordem ?? this.ordem,
-      subcategoriaId: subcategoriaId ?? this.subcategoriaId,
-      selecionado: selecionado ?? this.selecionado,
-      quantidade: quantidade ?? this.quantidade,
-      temOverride: temOverride ?? this.temOverride,
-      observacoes: observacoes ?? this.observacoes,
-      valorOriginal: valorOriginal ?? this.valorOriginal,
-      ativoOriginal: ativoOriginal ?? this.ativoOriginal,
-      indicadoresEtapa: indicadoresEtapa ?? this.indicadoresEtapa,
-    );
-  }
 
   @override
   bool get stringify => true;

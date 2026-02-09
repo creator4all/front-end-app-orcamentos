@@ -2,6 +2,8 @@ import 'package:mobx/mobx.dart';
 
 import '../../data/models/budget_census_dto.dart';
 import '../../domain/entities/censo_escolar_entity.dart';
+import '../../domain/entities/censo_group_entity.dart';
+import '../../domain/entities/censo_title_entity.dart';
 import '../../domain/usecases/get_budget_census_usecase.dart';
 import '../../domain/usecases/get_census_usecase.dart';
 import '../../domain/usecases/update_budget_census_usecase.dart';

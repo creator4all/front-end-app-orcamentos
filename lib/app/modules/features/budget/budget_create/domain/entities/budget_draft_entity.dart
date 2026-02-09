@@ -1,3 +1,4 @@
+import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:equatable/equatable.dart';
 
 import '../../../budget_config/domain/entities/category_entity.dart';
@@ -5,7 +6,10 @@ import 'cidade_entity.dart';
 import 'location_entity.dart';
 import 'orcamento_produto_entity.dart';
 
+part 'budget_draft_entity.g.dart';
+
 /// Entidade que representa um Orçamento em Rascunho
+@CopyWith()
 class BudgetDraftEntity extends Equatable {
   final int id;
   final int?
@@ -92,44 +96,4 @@ class BudgetDraftEntity extends Equatable {
 
   @override
   bool get stringify => true;
-
-  BudgetDraftEntity copyWith({
-    int? id,
-    int? partnerId,
-    String? partnerName,
-    LocationEntity? location,
-    String? responsibleName,
-    String? responsibleEmail,
-    DateTime? validityDate,
-    String? status,
-    DateTime? createdAt,
-    int? createdByUserId,
-    int? validityDays,
-    double? total,
-    bool? createdByAdmin,
-    DateTime? dataValidade,
-    CidadeEntity? cidade,
-    List<OrcamentoProdutoEntity>? orcamentoProdutos,
-    List<CategoryEntity>? categories,
-  }) {
-    return BudgetDraftEntity(
-      id: id ?? this.id,
-      partnerId: partnerId ?? this.partnerId,
-      partnerName: partnerName ?? this.partnerName,
-      location: location ?? this.location,
-      responsibleName: responsibleName ?? this.responsibleName,
-      responsibleEmail: responsibleEmail ?? this.responsibleEmail,
-      validityDate: validityDate ?? this.validityDate,
-      status: status ?? this.status,
-      createdAt: createdAt ?? this.createdAt,
-      createdByUserId: createdByUserId ?? this.createdByUserId,
-      validityDays: validityDays ?? this.validityDays,
-      total: total ?? this.total,
-      createdByAdmin: createdByAdmin ?? this.createdByAdmin,
-      dataValidade: dataValidade ?? this.dataValidade,
-      cidade: cidade ?? this.cidade,
-      orcamentoProdutos: orcamentoProdutos ?? this.orcamentoProdutos,
-      categories: categories ?? this.categories,
-    );
-  }
 }

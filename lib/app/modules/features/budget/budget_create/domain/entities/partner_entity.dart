@@ -1,7 +1,11 @@
+import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:equatable/equatable.dart';
+
+part 'partner_entity.g.dart';
 
 /// Entidade que representa um Parceiro no domínio de negócio
 /// Parceiros são empresas para as quais orçamentos podem ser criados
+@CopyWith()
 class PartnerEntity extends Equatable {
   final int id;
   final String name;
@@ -34,20 +38,4 @@ class PartnerEntity extends Equatable {
 
   @override
   bool get stringify => true;
-
-  PartnerEntity copyWith({
-    int? id,
-    String? name,
-    String? cnpj,
-    String? logo,
-    bool? isActive,
-  }) {
-    return PartnerEntity(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      cnpj: cnpj ?? this.cnpj,
-      logo: logo ?? this.logo,
-      isActive: isActive ?? this.isActive,
-    );
-  }
 }

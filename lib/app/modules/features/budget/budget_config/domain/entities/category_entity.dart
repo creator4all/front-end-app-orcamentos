@@ -1,10 +1,14 @@
+import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:equatable/equatable.dart';
 import 'package:intl/intl.dart';
 
 import 'statistics_entity.dart';
 import 'subcategory_entity.dart';
 
+part 'category_entity.g.dart';
+
 /// Entidade que representa uma categoria de produtos no orçamento
+@CopyWith()
 class CategoryEntity extends Equatable {
   /// ID da categoria
   final int id;
@@ -112,25 +116,6 @@ class CategoryEntity extends Equatable {
         subcategorias,
         estatisticas,
       ];
-
-  /// Cria uma cópia com campos alterados
-  CategoryEntity copyWith({
-    int? id,
-    String? nome,
-    int? ordem,
-    bool? expandido,
-    List<SubcategoryEntity>? subcategorias,
-    StatisticsEntity? estatisticas,
-  }) {
-    return CategoryEntity(
-      id: id ?? this.id,
-      nome: nome ?? this.nome,
-      ordem: ordem ?? this.ordem,
-      expandido: expandido ?? this.expandido,
-      subcategorias: subcategorias ?? this.subcategorias,
-      estatisticas: estatisticas ?? this.estatisticas,
-    );
-  }
 
   /// Atualiza uma subcategoria específica na lista
   CategoryEntity updateSubcategory(SubcategoryEntity updatedSubcategory) {

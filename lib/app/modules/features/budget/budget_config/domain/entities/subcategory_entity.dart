@@ -1,10 +1,14 @@
+import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:equatable/equatable.dart';
 import 'package:intl/intl.dart';
 
 import 'product_entity.dart';
 import 'statistics_entity.dart';
 
+part 'subcategory_entity.g.dart';
+
 /// Entidade que representa uma subcategoria de produtos
+@CopyWith()
 class SubcategoryEntity extends Equatable {
   /// ID único da subcategoria
   final int id;
@@ -115,23 +119,6 @@ class SubcategoryEntity extends Equatable {
 
   @override
   List<Object?> get props => [id, nome, ordem, produtos, estatisticas];
-
-  /// Cria uma cópia com campos alterados
-  SubcategoryEntity copyWith({
-    int? id,
-    String? nome,
-    int? ordem,
-    List<ProductEntity>? produtos,
-    StatisticsEntity? estatisticas,
-  }) {
-    return SubcategoryEntity(
-      id: id ?? this.id,
-      nome: nome ?? this.nome,
-      ordem: ordem ?? this.ordem,
-      produtos: produtos ?? this.produtos,
-      estatisticas: estatisticas ?? this.estatisticas,
-    );
-  }
 
   /// Atualiza um produto específico na lista
   SubcategoryEntity updateProduct(ProductEntity updatedProduct) {

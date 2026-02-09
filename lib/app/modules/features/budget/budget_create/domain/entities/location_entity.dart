@@ -1,6 +1,10 @@
+import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:equatable/equatable.dart';
 
+part 'location_entity.g.dart';
+
 /// Entidade que representa uma Localização (Estado + Cidade)
+@CopyWith()
 class LocationEntity extends Equatable {
   final String stateCode;
   final String stateName;
@@ -29,18 +33,4 @@ class LocationEntity extends Equatable {
 
   @override
   bool get stringify => true;
-
-  LocationEntity copyWith({
-    String? stateCode,
-    String? stateName,
-    String? cityCode,
-    String? cityName,
-  }) {
-    return LocationEntity(
-      stateCode: stateCode ?? this.stateCode,
-      stateName: stateName ?? this.stateName,
-      cityCode: cityCode ?? this.cityCode,
-      cityName: cityName ?? this.cityName,
-    );
-  }
 }

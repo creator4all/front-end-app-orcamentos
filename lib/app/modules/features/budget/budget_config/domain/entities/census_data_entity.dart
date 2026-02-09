@@ -1,6 +1,10 @@
+import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:equatable/equatable.dart';
 
+part 'census_data_entity.g.dart';
+
 /// Entidade que representa os dados do Censo Escolar de uma cidade
+@CopyWith()
 class CensusDataEntity extends Equatable {
   /// ID da cidade
   final int cityId;
@@ -45,21 +49,4 @@ class CensusDataEntity extends Equatable {
         totalStudents,
         gradeDistribution,
       ];
-
-  /// Cria uma cópia com campos alterados
-  CensusDataEntity copyWith({
-    int? cityId,
-    String? cityName,
-    int? totalClasses,
-    int? totalStudents,
-    Map<String, int>? gradeDistribution,
-  }) {
-    return CensusDataEntity(
-      cityId: cityId ?? this.cityId,
-      cityName: cityName ?? this.cityName,
-      totalClasses: totalClasses ?? this.totalClasses,
-      totalStudents: totalStudents ?? this.totalStudents,
-      gradeDistribution: gradeDistribution ?? this.gradeDistribution,
-    );
-  }
 }

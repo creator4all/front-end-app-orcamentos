@@ -1,8 +1,12 @@
+import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:equatable/equatable.dart';
+
+part 'indicador_etapa_entity.g.dart';
 
 /// Entidade que representa um indicador de etapa educacional
 ///
 /// Exemplo: "Pré-escola", "Ensino Fundamental", "Ensino Médio", etc.
+@CopyWith()
 class IndicadorEtapaEntity extends Equatable {
   /// ID do relacionamento produto_indicador
   final int produtoIndicadorId;
@@ -50,28 +54,6 @@ class IndicadorEtapaEntity extends Equatable {
         selecionado,
         valorPadrao,
       ];
-
-  /// Cria uma cópia com campos alterados
-  IndicadorEtapaEntity copyWith({
-    int? produtoIndicadorId,
-    int? indicadorId,
-    String? indicadorNome,
-    String? nomeEtapa,
-    int? grupoId,
-    String? grupoNome,
-    bool? selecionado,
-  }) {
-    return IndicadorEtapaEntity(
-      produtoIndicadorId: produtoIndicadorId ?? this.produtoIndicadorId,
-      indicadorId: indicadorId ?? this.indicadorId,
-      indicadorNome: indicadorNome ?? this.indicadorNome,
-      nomeEtapa: nomeEtapa ?? this.nomeEtapa,
-      grupoId: grupoId ?? this.grupoId,
-      grupoNome: grupoNome ?? this.grupoNome,
-      selecionado: selecionado ?? this.selecionado,
-      valorPadrao: valorPadrao, // Valor padrão não é alterável via copyWith
-    );
-  }
 
   @override
   bool get stringify => true;

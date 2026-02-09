@@ -1,9 +1,13 @@
+import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:equatable/equatable.dart';
 
 import 'censo_title_entity.dart';
 
+part 'censo_group_entity.g.dart';
+
 /// Entidade que representa um grupo do censo escolar
 /// Ex: "Infantil", "Ensino Fundamental", "EJA"
+@CopyWith()
 class CensoGroupEntity extends Equatable {
   /// ID do grupo
   final int id;
@@ -34,18 +38,5 @@ class CensoGroupEntity extends Equatable {
   @override
   String toString() {
     return 'CensoGroupEntity(id: $id, nome: $nome, titulos: $quantidadeTitulos, valor: R\$ $valorTotal)';
-  }
-
-  /// Cria uma cópia do grupo com os campos especificados alterados
-  CensoGroupEntity copyWith({
-    int? id,
-    String? nome,
-    List<CensoTitleEntity>? titulos,
-  }) {
-    return CensoGroupEntity(
-      id: id ?? this.id,
-      nome: nome ?? this.nome,
-      titulos: titulos ?? this.titulos,
-    );
   }
 }

@@ -1,7 +1,11 @@
+import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:equatable/equatable.dart';
 import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 
+part 'statistics_entity.g.dart';
+
 /// Estatísticas agregadas de produtos para exibição em resumos
+@CopyWith()
 class StatisticsEntity extends Equatable {
   final int totalProdutos;
   final int produtosSelecionados;
@@ -67,20 +71,6 @@ class StatisticsEntity extends Equatable {
         valorTotal,
         valorSelecionado,
       ];
-
-  StatisticsEntity copyWith({
-    int? totalProdutos,
-    int? produtosSelecionados,
-    double? valorTotal,
-    double? valorSelecionado,
-  }) {
-    return StatisticsEntity(
-      totalProdutos: totalProdutos ?? this.totalProdutos,
-      produtosSelecionados: produtosSelecionados ?? this.produtosSelecionados,
-      valorTotal: valorTotal ?? this.valorTotal,
-      valorSelecionado: valorSelecionado ?? this.valorSelecionado,
-    );
-  }
 
   factory StatisticsEntity.empty() {
     return const StatisticsEntity(
