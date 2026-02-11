@@ -8,8 +8,6 @@ import '../../../auth/presentation/stores/auth_store.dart';
 import '../stores/prospect_store.dart';
 import '../widgets/prospect_card_widget.dart';
 
-/// Página de empresas já contactadas
-/// Exibe prospects que já foram marcados como contactados
 class ContactedProspectsPage extends StatefulWidget {
   const ContactedProspectsPage({super.key});
 
@@ -28,10 +26,8 @@ class _ContactedProspectsPageState extends State<ContactedProspectsPage> {
     _store = Modular.get<ProspectStore>();
     _authStore = Modular.get<AuthStore>();
 
-    // Carregar prospects contactados ao iniciar
     _store.loadContactedProspects();
 
-    // Configurar scroll infinito
     _scrollController.addListener(_onScroll);
   }
 
@@ -84,7 +80,6 @@ class _ContactedProspectsPageState extends State<ContactedProspectsPage> {
               itemCount: _store.contactedProspects.length +
                   (_store.isLoadingMoreContacted ? 1 : 0),
               itemBuilder: (context, index) {
-                // Loading indicator no final
                 if (index == _store.contactedProspects.length) {
                   return Padding(
                     padding: EdgeInsets.symmetric(vertical: 16.h),
@@ -97,8 +92,7 @@ class _ContactedProspectsPageState extends State<ContactedProspectsPage> {
                 final prospect = _store.contactedProspects[index];
                 return ProspectCardWidget(
                   prospect: prospect,
-                  showContactButton:
-                      false, // Não mostra o botão de marcar contactado
+                  showContactButton: false,
                 );
               },
             ),

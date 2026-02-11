@@ -8,8 +8,6 @@ import '../../../auth/presentation/stores/auth_store.dart';
 import '../stores/prospect_store.dart';
 import '../widgets/prospect_card_widget.dart';
 
-/// Página principal de prospecção de parceiros
-/// Exibe prospects não contactados
 class ProspectListPage extends StatefulWidget {
   const ProspectListPage({super.key});
 
@@ -28,10 +26,8 @@ class _ProspectListPageState extends State<ProspectListPage> {
     _store = Modular.get<ProspectStore>();
     _authStore = Modular.get<AuthStore>();
 
-    // Carregar prospects ao iniciar
     _store.loadProspects();
 
-    // Configurar scroll infinito
     _scrollController.addListener(_onScroll);
   }
 
@@ -88,10 +84,7 @@ class _ProspectListPageState extends State<ProspectListPage> {
       ),
       body: Column(
         children: [
-          // Banner para empresas já contactadas
           _buildContactedBanner(),
-
-          // Lista de prospects
           Expanded(
             child: Observer(
               builder: (_) {
@@ -117,7 +110,6 @@ class _ProspectListPageState extends State<ProspectListPage> {
                     itemCount: _store.prospects.length +
                         (_store.isLoadingMore ? 1 : 0),
                     itemBuilder: (context, index) {
-                      // Loading indicator no final
                       if (index == _store.prospects.length) {
                         return Padding(
                           padding: EdgeInsets.symmetric(vertical: 16.h),

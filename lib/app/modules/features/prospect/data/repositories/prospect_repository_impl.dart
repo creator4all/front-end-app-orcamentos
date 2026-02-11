@@ -5,7 +5,6 @@ import '../../domain/entities/prospect_entity.dart';
 import '../../domain/repositories/prospect_repository.dart';
 import '../datasources/prospect_datasource.dart';
 
-/// Implementação concreta do repositório de prospecção
 class ProspectRepositoryImpl implements ProspectRepository {
   final ProspectDatasource datasource;
 

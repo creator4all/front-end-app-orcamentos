@@ -1,6 +1,5 @@
 import 'package:equatable/equatable.dart';
 
-/// Enum que representa a experiência do prospect com vendas públicas
 enum ExperienciaVendasPublicas {
   naoAtuo('nao_atuo', 'Não atuo'),
   simAtuando('sim_atuando', 'Sim, estou atuando'),
@@ -12,7 +11,6 @@ enum ExperienciaVendasPublicas {
 
   const ExperienciaVendasPublicas(this.value, this.label);
 
-  /// Converte string da API para enum
   static ExperienciaVendasPublicas fromString(String? value) {
     return ExperienciaVendasPublicas.values.firstWhere(
       (e) => e.value == value,
@@ -21,7 +19,6 @@ enum ExperienciaVendasPublicas {
   }
 }
 
-/// Entidade de domínio que representa um prospect de parceiro
 class ProspectEntity extends Equatable {
   final int id;
   final String nome;
@@ -47,7 +44,6 @@ class ProspectEntity extends Equatable {
     required this.updatedAt,
   });
 
-  /// Cria uma cópia da entidade com valores alterados
   ProspectEntity copyWith({
     int? id,
     String? nome,
@@ -74,7 +70,6 @@ class ProspectEntity extends Equatable {
     );
   }
 
-  /// Formata o telefone para exibição: (XX) XXXXX-XXXX ou (XX) XXXX-XXXX
   String get telefoneFormatado {
     final clean = telefone.replaceAll(RegExp(r'[^0-9]'), '');
     if (clean.length == 11) {
@@ -85,7 +80,6 @@ class ProspectEntity extends Equatable {
     return telefone;
   }
 
-  /// Formata o documento (CNPJ/CPF) para exibição
   String get documentoFormatado {
     final clean = documento.replaceAll(RegExp(r'[^0-9]'), '');
     if (clean.length == 14) {
@@ -116,7 +110,6 @@ class ProspectEntity extends Equatable {
   bool get stringify => true;
 }
 
-/// Entidade que representa a resposta paginada de prospects
 class PaginatedProspects extends Equatable {
   final List<ProspectEntity> prospects;
   final int currentPage;

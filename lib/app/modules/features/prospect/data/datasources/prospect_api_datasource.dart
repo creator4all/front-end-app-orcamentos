@@ -2,7 +2,6 @@ import '../../../../../shared/core/http/app_http_client.dart';
 import '../models/prospect_dto.dart';
 import 'prospect_datasource.dart';
 
-/// Implementação do datasource usando API HTTP
 class ProspectApiDatasource implements ProspectDatasource {
   final AppHttpClient httpClient;
 
@@ -14,9 +13,6 @@ class ProspectApiDatasource implements ProspectDatasource {
     bool? isContatado,
   }) async {
     try {
-      print('📋 [ProspectApiDatasource] Listando prospects página $page...');
-
-      // Monta a query string
       var queryParams = 'page=$page';
       if (isContatado != null) {
         queryParams += '&is_contatado=${isContatado ? 1 : 0}';
@@ -27,13 +23,11 @@ class ProspectApiDatasource implements ProspectDatasource {
       );
 
       if (response.statusCode == 200) {
-        print('✅ [ProspectApiDatasource] Prospects carregados com sucesso');
         return PaginatedProspectsDto.fromJson(response.body);
       }
 
       throw Exception('Erro ao listar prospects: ${response.statusCode}');
     } catch (e) {
-      print('❌ [ProspectApiDatasource] Erro ao listar prospects: $e');
       rethrow;
     }
   }
@@ -41,8 +35,6 @@ class ProspectApiDatasource implements ProspectDatasource {
   @override
   Future<ProspectDto> updateProspect(int id, bool isContatado) async {
     try {
-      print('📝 [ProspectApiDatasource] Atualizando prospect $id...');
-
       final payload = {
         'prp_is_contatado': isContatado,
       };
@@ -53,16 +45,12 @@ class ProspectApiDatasource implements ProspectDatasource {
       );
 
       if (response.statusCode == 200) {
-        print('✅ [ProspectApiDatasource] Prospect atualizado com sucesso');
-
-        // A API pode retornar o prospect atualizado no corpo
-        final data = response.body['dados'] ?? response.body;
+        final data = response.body['dados'];
         return ProspectDto.fromJson(data);
       }
 
       throw Exception('Erro ao atualizar prospect: ${response.statusCode}');
     } catch (e) {
-      print('❌ [ProspectApiDatasource] Erro ao atualizar prospect: $e');
       rethrow;
     }
   }

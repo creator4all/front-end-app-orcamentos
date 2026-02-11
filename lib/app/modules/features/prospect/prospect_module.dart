@@ -9,35 +9,27 @@ import 'presentation/pages/contacted_prospects_page.dart';
 import 'presentation/pages/prospect_list_page.dart';
 import 'presentation/stores/prospect_store.dart';
 
-/// Módulo de prospecção de parceiros
-/// Segue Clean Architecture com injeção de dependências
 class ProspectModule extends Module {
   @override
   List<Bind> get binds => [
-    // Datasource
-    Bind.lazySingleton<ProspectDatasource>(
-      (i) => ProspectApiDatasource(httpClient: i.get<AppHttpClient>()),
-    ),
-
-    // Repository
-    Bind.lazySingleton<ProspectRepository>(
-      (i) => ProspectRepositoryImpl(datasource: i.get<ProspectDatasource>()),
-    ),
-
-    // Store
-    Bind.lazySingleton<ProspectStore>(
-      (i) => ProspectStore(prospectRepository: i.get<ProspectRepository>()),
-    ),
-  ];
+        Bind.lazySingleton<ProspectDatasource>(
+          (i) => ProspectApiDatasource(httpClient: i.get<AppHttpClient>()),
+        ),
+        Bind.lazySingleton<ProspectRepository>(
+          (i) =>
+              ProspectRepositoryImpl(datasource: i.get<ProspectDatasource>()),
+        ),
+        Bind.lazySingleton<ProspectStore>(
+          (i) => ProspectStore(prospectRepository: i.get<ProspectRepository>()),
+        ),
+      ];
 
   @override
   List<ModularRoute> get routes => [
-    // Rota principal - lista de prospects não contactados
-    ChildRoute('/', child: (context, args) => const ProspectListPage()),
-    // Rota para empresas já contactadas
-    ChildRoute(
-      '/contacted',
-      child: (context, args) => const ContactedProspectsPage(),
-    ),
-  ];
+        ChildRoute('/', child: (context, args) => const ProspectListPage()),
+        ChildRoute(
+          '/contacted',
+          child: (context, args) => const ContactedProspectsPage(),
+        ),
+      ];
 }

@@ -5,7 +5,6 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/entities/prospect_entity.dart';
 
-/// Widget de card para exibir informações de um prospect
 class ProspectCardWidget extends StatelessWidget {
   final ProspectEntity prospect;
   final bool showContactButton;
@@ -20,7 +19,6 @@ class ProspectCardWidget extends StatelessWidget {
     this.onMarkContacted,
   });
 
-  /// Abre o WhatsApp com o número do prospect
   Future<void> _openWhatsApp(BuildContext context) async {
     final cleanNumber = prospect.telefone.replaceAll(RegExp(r'[^0-9]'), '');
     final whatsappUrl = Uri.parse('https://wa.me/55$cleanNumber');
@@ -50,7 +48,6 @@ class ProspectCardWidget extends StatelessWidget {
     }
   }
 
-  /// Abre o cliente de e-mail com o endereço do prospect
   Future<void> _openEmail(BuildContext context) async {
     final emailUrl = Uri.parse('mailto:${prospect.email}');
 
@@ -99,12 +96,8 @@ class ProspectCardWidget extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Data de cadastro
             _buildDateHeader(),
-
             SizedBox(height: 12.h),
-
-            // Nome do prospect
             Text(
               prospect.nome,
               style: TextStyle(
@@ -113,10 +106,7 @@ class ProspectCardWidget extends StatelessWidget {
                 color: const Color(0xFF333333),
               ),
             ),
-
             SizedBox(height: 12.h),
-
-            // Informações do prospect
             _buildInfoRow('Nome Empresa:', prospect.empresa),
             SizedBox(height: 6.h),
             _buildInfoRow('Já atuou?:', prospect.experiencia.label),
@@ -124,13 +114,9 @@ class ProspectCardWidget extends StatelessWidget {
             _buildInfoRow('Telefone:', prospect.telefoneFormatado),
             SizedBox(height: 6.h),
             _buildInfoRow('Cnpj:', prospect.documentoFormatado),
-
             SizedBox(height: 16.h),
-
-            // Botões de ação
             Row(
               children: [
-                // Botão WhatsApp
                 Expanded(
                   child: _buildActionButton(
                     label: 'Whatsapp',
@@ -139,10 +125,7 @@ class ProspectCardWidget extends StatelessWidget {
                     onPressed: () => _openWhatsApp(context),
                   ),
                 ),
-
                 SizedBox(width: 12.w),
-
-                // Botão E-mail
                 Expanded(
                   child: _buildActionButton(
                     label: 'E-mail',
@@ -153,8 +136,6 @@ class ProspectCardWidget extends StatelessWidget {
                 ),
               ],
             ),
-
-            // Botão "Já entrei em contato" (apenas se showContactButton = true)
             if (showContactButton) ...[
               SizedBox(height: 12.h),
               SizedBox(

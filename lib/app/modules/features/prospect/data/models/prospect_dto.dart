@@ -1,6 +1,5 @@
 import '../../domain/entities/prospect_entity.dart';
 
-/// DTO para parsing do JSON da API de prospecção
 class ProspectDto {
   final int prpId;
   final String prpNome;
@@ -26,7 +25,6 @@ class ProspectDto {
     required this.updatedAt,
   });
 
-  /// Cria o DTO a partir do JSON da API
   factory ProspectDto.fromJson(Map<String, dynamic> json) {
     return ProspectDto(
       prpId: json['prp_id'] as int,
@@ -44,7 +42,6 @@ class ProspectDto {
     );
   }
 
-  /// Converte o DTO para a entidade de domínio
   ProspectEntity toEntity() {
     return ProspectEntity(
       id: prpId,
@@ -62,7 +59,6 @@ class ProspectDto {
   }
 }
 
-/// DTO para a resposta paginada
 class PaginatedProspectsDto {
   final int currentPage;
   final int perPage;
@@ -78,23 +74,22 @@ class PaginatedProspectsDto {
     required this.data,
   });
 
-  /// Cria o DTO a partir do JSON da API
   factory PaginatedProspectsDto.fromJson(Map<String, dynamic> json) {
-    final dados = json['dados'] as Map<String, dynamic>;
-    final dataList = (dados['data'] as List<dynamic>?) ?? [];
+    final dados = json['dados'] ?? json;
+    final data = (dados['data'] as List<dynamic>?) ?? [];
+    final pagination = dados['pagination'] as Map<String, dynamic>? ?? {};
 
     return PaginatedProspectsDto(
-      currentPage: dados['current_page'] as int? ?? 1,
-      perPage: dados['per_page'] as int? ?? 15,
-      total: dados['total'] as int? ?? 0,
-      lastPage: dados['last_page'] as int? ?? 1,
-      data: dataList
+      currentPage: pagination['current_page'] as int? ?? 1,
+      perPage: pagination['per_page'] as int? ?? 15,
+      total: pagination['total'] as int? ?? 0,
+      lastPage: pagination['last_page'] as int? ?? 1,
+      data: data
           .map((item) => ProspectDto.fromJson(item as Map<String, dynamic>))
           .toList(),
     );
   }
 
-  /// Converte para a entidade paginada de domínio
   PaginatedProspects toEntity() {
     return PaginatedProspects(
       currentPage: currentPage,
