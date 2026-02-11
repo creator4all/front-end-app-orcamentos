@@ -1,6 +1,5 @@
 import 'package:equatable/equatable.dart';
 
-/// Entidade que representa um indicador de etapa educacional
 class IndicatorEntity extends Equatable {
   final int id;
   final String nome;
@@ -16,7 +15,6 @@ class IndicatorEntity extends Equatable {
   List<Object?> get props => [id, nome, titulo];
 }
 
-/// Entidade que representa um grupo de indicadores
 class IndicatorGroupEntity extends Equatable {
   final int id;
   final String nome;

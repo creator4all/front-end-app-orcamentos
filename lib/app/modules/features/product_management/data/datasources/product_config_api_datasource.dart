@@ -5,7 +5,6 @@ import '../models/product_config_dto.dart';
 import '../models/subcategory_dto.dart';
 import 'product_config_datasource.dart';
 
-/// Implementação do datasource usando API
 class ProductConfigApiDatasource implements ProductConfigDatasource {
   final AppHttpClient httpClient;
 
@@ -60,7 +59,6 @@ class ProductConfigApiDatasource implements ProductConfigDatasource {
     );
     final dados = response.body['dados'] as Map<String, dynamic>;
 
-    // Resposta do PUT usa formato de lista
     return ProductConfigDto.fromListJson(dados);
   }
 

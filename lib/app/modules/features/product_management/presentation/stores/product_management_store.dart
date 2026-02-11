@@ -8,11 +8,9 @@ import '../../domain/repositories/product_config_repository.dart';
 
 part 'product_management_store.g.dart';
 
-/// Store MobX para gerenciamento de produtos
 class ProductManagementStore = _ProductManagementStoreBase
     with _$ProductManagementStore;
 
-/// Enum para o nível de navegação atual
 enum NavigationLevel { categories, subcategories, products }
 
 abstract class _ProductManagementStoreBase with Store {
@@ -21,8 +19,6 @@ abstract class _ProductManagementStoreBase with Store {
   _ProductManagementStoreBase({
     required this.repository,
   });
-
-  // ============ Observable State ============
 
   @observable
   bool isLoading = false;
@@ -63,8 +59,6 @@ abstract class _ProductManagementStoreBase with Store {
   @observable
   bool isLoadingProductDetails = false;
 
-  // ============ Computed ============
-
   @computed
   String get pageTitle {
     switch (currentLevel) {
@@ -79,8 +73,6 @@ abstract class _ProductManagementStoreBase with Store {
 
   @computed
   bool get canGoBack => currentLevel != NavigationLevel.categories;
-
-  // ============ Actions ============
 
   @action
   Future<void> loadCategories() async {
@@ -182,7 +174,6 @@ abstract class _ProductManagementStoreBase with Store {
     result.fold(
       (failure) => errorMessage = failure.message,
       (data) {
-        // Atualiza o produto na lista
         final index = products.indexWhere((p) => p.id == data.id);
         if (index != -1) {
           products[index] = data;
@@ -210,7 +201,6 @@ abstract class _ProductManagementStoreBase with Store {
         products.clear();
         break;
       case NavigationLevel.categories:
-        // Já está no primeiro nível
         break;
     }
   }
@@ -236,7 +226,6 @@ abstract class _ProductManagementStoreBase with Store {
     result.fold(
       (failure) => errorMessage = failure.message,
       (_) {
-        // Atualiza o produto na lista local (status = pro_status)
         final index = products.indexWhere((p) => p.id == productId);
         if (index != -1) {
           products[index] = products[index].copyWith(status: status);

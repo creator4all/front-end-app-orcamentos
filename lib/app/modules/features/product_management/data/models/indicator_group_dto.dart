@@ -1,6 +1,5 @@
 import '../../domain/entities/indicator_group_entity.dart';
 
-/// DTO para parsing JSON de indicador individual
 class IndicatorDto {
   final int id;
   final String nome;
@@ -29,7 +28,6 @@ class IndicatorDto {
   }
 }
 
-/// DTO para parsing JSON de grupo de indicadores
 class IndicatorGroupDto {
   final int id;
   final String nome;

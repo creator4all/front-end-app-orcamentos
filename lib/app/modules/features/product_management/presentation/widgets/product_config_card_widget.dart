@@ -4,8 +4,6 @@ import 'package:intl/intl.dart';
 
 import '../../domain/entities/product_config_entity.dart';
 
-/// Card para exibição de produto na lista de produtos
-/// Redesigned: código em ênfase, nome como subtítulo, switch de status, ícone de info
 class ProductConfigCardWidget extends StatelessWidget {
   final ProductConfigEntity product;
   final VoidCallback? onInfoTap;
@@ -47,13 +45,11 @@ class ProductConfigCardWidget extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Informações do produto
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Código do livro (ênfase - negrito)
                 Text(
                   product.codigo,
                   style: TextStyle(
@@ -62,10 +58,7 @@ class ProductConfigCardWidget extends StatelessWidget {
                     color: const Color(0xFF484848),
                   ),
                 ),
-
                 SizedBox(height: 4.h),
-
-                // Nome do livro (subtítulo - sem negrito)
                 Text(
                   _capitalize(product.solucao),
                   style: TextStyle(
@@ -76,10 +69,7 @@ class ProductConfigCardWidget extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-
                 SizedBox(height: 6.h),
-
-                // Valor
                 Text(
                   _formatCurrency(product.valor),
                   style: TextStyle(
@@ -91,10 +81,7 @@ class ProductConfigCardWidget extends StatelessWidget {
               ],
             ),
           ),
-
           SizedBox(width: 8.w),
-
-          // Switch de ativar/desativar - Custom styled (usa product.status = pro_status)
           GestureDetector(
             onTap: () => onStatusChanged?.call(!product.status),
             child: AnimatedContainer(
@@ -132,10 +119,7 @@ class ProductConfigCardWidget extends StatelessWidget {
               ),
             ),
           ),
-
           SizedBox(width: 4.w),
-
-          // Ícone de informação
           GestureDetector(
             onTap: onInfoTap,
             child: Icon(

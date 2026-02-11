@@ -9,7 +9,6 @@ import '../../domain/repositories/product_config_repository.dart';
 import '../datasources/product_config_datasource.dart';
 import '../models/product_config_dto.dart';
 
-/// Implementação concreta do repositório de configuração de produtos
 class ProductConfigRepositoryImpl implements ProductConfigRepository {
   final ProductConfigDatasource datasource;
 

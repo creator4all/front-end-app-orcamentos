@@ -1,6 +1,5 @@
 import '../../domain/entities/subcategory_entity.dart';
 
-/// DTO para parsing JSON de subcategorias
 class SubcategoryDto {
   final int id;
   final String nome;
@@ -17,7 +16,6 @@ class SubcategoryDto {
   });
 
   factory SubcategoryDto.fromJson(Map<String, dynamic> json) {
-    // API retorna status como int (1 = true, 0 = false)
     final statusValue = json['sub_status'];
     final status = statusValue == 1 || statusValue == true;
 

@@ -1,6 +1,5 @@
 import '../../domain/entities/product_config_entity.dart';
 
-/// DTO para produto relacionado
 class RelatedProductDto {
   final int id;
   final String codigo;
@@ -15,8 +14,8 @@ class RelatedProductDto {
   factory RelatedProductDto.fromJson(Map<String, dynamic> json) {
     return RelatedProductDto(
       id: json['id'] as int? ?? 0,
-      codigo: json['code'] as String? ?? json['codigo'] as String? ?? '',
-      nome: json['name'] as String? ?? json['nome'] as String? ?? '',
+      codigo: json['codigo'] as String? ?? '',
+      nome: json['nome'] as String? ?? '',
     );
   }
 
@@ -29,7 +28,6 @@ class RelatedProductDto {
   }
 }
 
-/// DTO para parsing JSON de produto completo (para edição)
 class ProductConfigDto {
   final int id;
   final String codigo;
@@ -69,7 +67,6 @@ class ProductConfigDto {
     this.produtosRelacionados = const [],
   });
 
-  /// Factory para resposta da lista de produtos (formato diferente)
   factory ProductConfigDto.fromListJson(Map<String, dynamic> json) {
     final ativo = _parseApiBool(json['pro_ativo']);
     final status = _parseApiBool(json['pro_status']);
@@ -93,22 +90,18 @@ class ProductConfigDto {
     );
   }
 
-  /// Factory para resposta de detalhe do produto
   factory ProductConfigDto.fromDetailJson(Map<String, dynamic> json) {
-    // Parse indicadores
     final indicadoresJson = json['indicadores'] as Map<String, dynamic>? ?? {};
     final indicadores = <String, bool>{};
     indicadoresJson.forEach((key, value) {
       indicadores[key] = _parseApiBool(value);
     });
 
-    // Parse produtos relacionados
     final relatedList = json['relatedProducts'] as List<dynamic>? ?? [];
     final relacionados = relatedList
         .map((e) => RelatedProductDto.fromJson(e as Map<String, dynamic>))
         .toList();
 
-    // Parse categoria e subcategoria
     final categoriaJson = json['categoria'] as Map<String, dynamic>?;
     final subcategoriaJson = json['subcategoria'] as Map<String, dynamic>?;
 
@@ -159,7 +152,6 @@ class ProductConfigDto {
     );
   }
 
-  /// Converte entidade para JSON do PUT
   static Map<String, dynamic> toUpdateJson(ProductConfigEntity entity) {
     final json = <String, dynamic>{
       'pro_ativo': entity.ativo,
@@ -172,10 +164,8 @@ class ProductConfigDto {
       'pro_tipo_produto': entity.tipoProduto,
     };
 
-    // Campos condicionais por tipo
     if (entity.isLivro) {
       json['pro_isbn'] = entity.isbn;
-      // Indicadores para livro e tecnologia
       json['indicadores'] = entity.indicadores.entries
           .map((e) => {'id': e.key, 'valor': e.value})
           .toList();
@@ -200,7 +190,6 @@ class ProductConfigDto {
     return 0.0;
   }
 
-  /// Converte valores da API (int 0/1 ou bool) para bool.
   static bool _parseApiBool(dynamic value) {
     return value == 1 || value == true;
   }

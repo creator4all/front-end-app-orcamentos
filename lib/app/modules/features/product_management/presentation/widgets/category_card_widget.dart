@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-/// Card para exibição de categorias e subcategorias
-/// Design baseado na referência visual fornecida
 class CategoryCardWidget extends StatelessWidget {
   final String name;
   final String subtitle;
@@ -36,7 +34,6 @@ class CategoryCardWidget extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Ícone
             Container(
               width: 40.w,
               height: 40.w,
@@ -50,10 +47,7 @@ class CategoryCardWidget extends StatelessWidget {
                 color: const Color(0xFFEBEDFF),
               ),
             ),
-
             SizedBox(width: 12.w),
-
-            // Nome e subtítulo
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -71,8 +65,6 @@ class CategoryCardWidget extends StatelessWidget {
                 ],
               ),
             ),
-
-            // Seta
             Icon(
               Icons.chevron_right,
               size: 24.sp,

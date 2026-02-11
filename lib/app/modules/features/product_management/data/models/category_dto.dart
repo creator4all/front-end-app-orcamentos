@@ -1,6 +1,5 @@
 import '../../domain/entities/category_entity.dart';
 
-/// DTO para parsing JSON de categorias
 class CategoryDto {
   final int id;
   final String nome;
@@ -15,7 +14,6 @@ class CategoryDto {
   });
 
   factory CategoryDto.fromJson(Map<String, dynamic> json) {
-    // API retorna status como int (1 = true, 0 = false)
     final statusValue = json['cat_status'];
     final status = statusValue == 1 || statusValue == true;
 

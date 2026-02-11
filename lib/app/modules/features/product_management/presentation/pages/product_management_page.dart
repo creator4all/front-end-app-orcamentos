@@ -11,7 +11,6 @@ import '../widgets/category_card_widget.dart';
 import '../widgets/product_config_card_widget.dart';
 import '../widgets/product_edit_config_modal.dart';
 
-/// Página principal de gestão de produtos
 class ProductManagementPage extends StatefulWidget {
   const ProductManagementPage({super.key});
 
@@ -63,10 +62,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Breadcrumb
               if (_store.canGoBack) _buildBreadcrumb(),
-
-              // Título da seção
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
                 child: Text(
@@ -78,8 +74,6 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
                   ),
                 ),
               ),
-
-              // Lista de itens
               Expanded(child: _buildContent()),
             ],
           );
@@ -89,7 +83,6 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
   }
 
   Widget _buildBreadcrumb() {
-    // Scroll para o final após o build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_breadcrumbScrollController.hasClients) {
         _breadcrumbScrollController.jumpTo(

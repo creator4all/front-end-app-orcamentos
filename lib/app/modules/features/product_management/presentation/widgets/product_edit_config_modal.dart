@@ -5,7 +5,6 @@ import '../../../../../shared/widgets/custom_modal.dart';
 import '../../domain/entities/indicator_group_entity.dart';
 import '../../domain/entities/product_config_entity.dart';
 
-/// Modal de edição de produto - Refatorado para usar CustomModal
 class ProductEditConfigModal extends StatefulWidget {
   final ProductConfigEntity product;
   final String categoryName;
@@ -22,7 +21,6 @@ class ProductEditConfigModal extends StatefulWidget {
     required this.onSave,
   });
 
-  /// Mostra o modal usando CustomModal
   static Future<void> show({
     required BuildContext context,
     required ProductConfigEntity product,
@@ -89,39 +87,27 @@ class _ProductEditConfigModalState extends State<ProductEditConfigModal> {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Grupo e Sub-grupo (read-only)
         _buildReadOnlyField(
           'Grupo:',
           widget.categoryName,
           'Sub-grupo:',
           widget.subcategoryName,
         ),
-
         SizedBox(height: 16.h),
-
-        // Solução
         _buildTextField(
           label: 'Solução:',
           controller: _solucaoController,
         ),
-
         SizedBox(height: 16.h),
-
-        // Indicação
         _buildTextField(
           label: 'Indicação:',
           controller: _indicacaoController,
         ),
-
         SizedBox(height: 16.h),
-
-        // Tipo
         _buildTextField(
           label: 'Tipo:',
           controller: _tipoController,
         ),
-
-        // ISBN (apenas para livros)
         if (widget.product.isLivro) ...[
           SizedBox(height: 16.h),
           _buildTextField(
@@ -129,8 +115,6 @@ class _ProductEditConfigModalState extends State<ProductEditConfigModal> {
             controller: _isbnController,
           ),
         ],
-
-        // Percentual (apenas para serviços)
         if (widget.product.isServico) ...[
           SizedBox(height: 16.h),
           _buildTextField(
@@ -139,20 +123,11 @@ class _ProductEditConfigModalState extends State<ProductEditConfigModal> {
             keyboardType: TextInputType.number,
           ),
         ],
-
         SizedBox(height: 16.h),
-
-        // Marcado (Status)
         _buildStatusDropdown(),
-
         SizedBox(height: 24.h),
-
-        // Indicadores (apenas para livros e tecnologia)
         if (!widget.product.isServico) _buildIndicatorsSection(),
-
         SizedBox(height: 24.h),
-
-        // Save button
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
@@ -183,7 +158,6 @@ class _ProductEditConfigModalState extends State<ProductEditConfigModal> {
                   ),
           ),
         ),
-
         SizedBox(height: 16.h),
       ],
     );
@@ -292,9 +266,7 @@ class _ProductEditConfigModalState extends State<ProductEditConfigModal> {
             ),
             SizedBox(width: 8.w),
             GestureDetector(
-              onTap: () {
-                // TODO: Mostrar tooltip de informação
-              },
+              onTap: () {},
               child: Icon(
                 Icons.info_outline,
                 size: 18.sp,
@@ -368,7 +340,6 @@ class _ProductEditConfigModalState extends State<ProductEditConfigModal> {
     );
   }
 
-  /// Custom checkbox com bordas arredondadas, borda fina, cor de fundo #0028C1 quando selecionado
   Widget _buildCustomCheckbox({
     required bool value,
     required String label,

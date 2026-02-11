@@ -8,26 +8,19 @@ import 'domain/repositories/product_config_repository.dart';
 import 'presentation/pages/product_management_page.dart';
 import 'presentation/stores/product_management_store.dart';
 
-/// Módulo de gerenciamento de produtos
-/// Segue Clean Architecture com injeção de dependências
 class ProductManagementModule extends Module {
   @override
   List<Bind> get binds => [
-        // Datasource
         Bind.lazySingleton<ProductConfigDatasource>(
           (i) => ProductConfigApiDatasource(
             httpClient: i.get<AppHttpClient>(),
           ),
         ),
-
-        // Repository
         Bind.lazySingleton<ProductConfigRepository>(
           (i) => ProductConfigRepositoryImpl(
             datasource: i.get<ProductConfigDatasource>(),
           ),
         ),
-
-        // Store
         Bind.lazySingleton<ProductManagementStore>(
           (i) => ProductManagementStore(
             repository: i.get<ProductConfigRepository>(),

@@ -1,6 +1,5 @@
 import 'package:equatable/equatable.dart';
 
-/// Produto relacionado (para produtos do tipo serviço)
 class RelatedProductEntity extends Equatable {
   final int id;
   final String codigo;
@@ -16,15 +15,14 @@ class RelatedProductEntity extends Equatable {
   List<Object?> get props => [id, codigo, nome];
 }
 
-/// Entidade completa do produto para configuração/edição
 class ProductConfigEntity extends Equatable {
   final int id;
   final String codigo;
   final String solucao;
   final String indicacao;
-  final String tipo; // mensal, anual, horas
+  final String tipo;
   final double valor;
-  final String tipoProduto; // servico, livro, tecnologia
+  final String tipoProduto;
   final String? isbn;
   final double? percent;
   final bool ativo;
@@ -34,10 +32,8 @@ class ProductConfigEntity extends Equatable {
   final String? categoriaNome;
   final String? subcategoriaNome;
 
-  /// Mapa de indicadores: chave é o nome (ex: "ef1ano"), valor é true/false
   final Map<String, bool> indicadores;
 
-  /// Produtos relacionados (para serviços)
   final List<RelatedProductEntity> produtosRelacionados;
 
   const ProductConfigEntity({
@@ -60,16 +56,12 @@ class ProductConfigEntity extends Equatable {
     this.produtosRelacionados = const [],
   });
 
-  /// Verifica se o produto é do tipo serviço
   bool get isServico => tipoProduto.toLowerCase() == 'servico';
 
-  /// Verifica se o produto é do tipo livro
   bool get isLivro => tipoProduto.toLowerCase() == 'livro';
 
-  /// Verifica se o produto é do tipo tecnologia
   bool get isTecnologia => tipoProduto.toLowerCase() == 'tecnologia';
 
-  /// Cria uma cópia com valores alterados
   ProductConfigEntity copyWith({
     int? id,
     String? codigo,
