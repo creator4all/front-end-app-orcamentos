@@ -75,7 +75,7 @@ class PaginatedProspectsDto {
   });
 
   factory PaginatedProspectsDto.fromJson(Map<String, dynamic> json) {
-    final dados = json['dados'] ?? json;
+    final dados = json['dados'] as Map<String, dynamic>;
     final data = (dados['data'] as List<dynamic>?) ?? [];
     final pagination = dados['pagination'] as Map<String, dynamic>? ?? {};
 

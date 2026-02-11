@@ -83,10 +83,8 @@ class ProspectEntity extends Equatable {
   String get documentoFormatado {
     final clean = documento.replaceAll(RegExp(r'[^0-9]'), '');
     if (clean.length == 14) {
-      // CNPJ: XX.XXX.XXX/XXXX-XX
       return '${clean.substring(0, 2)}.${clean.substring(2, 5)}.${clean.substring(5, 8)}/${clean.substring(8, 12)}-${clean.substring(12)}';
     } else if (clean.length == 11) {
-      // CPF: XXX.XXX.XXX-XX
       return '${clean.substring(0, 3)}.${clean.substring(3, 6)}.${clean.substring(6, 9)}-${clean.substring(9)}';
     }
     return documento;

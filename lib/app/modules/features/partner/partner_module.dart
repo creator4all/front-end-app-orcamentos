@@ -7,7 +7,6 @@ import 'presentation/stores/partner_store.dart';
 class PartnerModule extends Module {
   @override
   List<Bind> get binds => [
-        // Partner Store
         Bind.lazySingleton<PartnerStore>(
           (i) => PartnerStore(i<PartnerService>()),
         ),

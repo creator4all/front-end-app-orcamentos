@@ -1,6 +1,8 @@
 import 'dart:io';
+
 import 'package:mobx/mobx.dart';
 import 'package:multimidiaapp/app/modules/features/partner/data/services/partner_service.dart';
+
 import '../../domain/models/partner_profile.dart';
 
 part 'partner_store.g.dart';
@@ -41,24 +43,12 @@ abstract class _PartnerStoreBase with Store {
     isLoading = true;
     error = null;
     try {
-      print('🔄 Carregando informações da empresa...');
       partner = await _service.obterParceiro();
-      
-      print('✅ Empresa carregada com sucesso!');
-      print('   Razão Social: ${partner!.legalName}');
-      print('   Nome Fantasia: ${partner!.tradeName}');
-      print('   Email: ${partner!.email}');
-      print('   CNPJ: ${partner!.cnpj}');
-      print('   Telefone: ${partner!.phone}');
-      
-      // Atualizar campos editáveis
+
       tradeName = partner!.tradeName;
       email = partner!.email ?? '';
       phone = partner!.phone;
-      
-      print('🔄 Controllers atualizados via reaction');
     } catch (e) {
-      print('❌ Erro ao carregar empresa: $e');
       error = e.toString();
     } finally {
       isLoading = false;
@@ -90,8 +80,6 @@ abstract class _PartnerStoreBase with Store {
     isSaving = true;
     error = null;
     try {
-      print('💾 Salvando informações da empresa...');
-      
       final dados = {
         'par_trade_name': tradeName,
         'par_email': email.isEmpty ? null : email,
@@ -99,16 +87,13 @@ abstract class _PartnerStoreBase with Store {
       };
 
       partner = await _service.atualizarParceiro(dados);
-      
-      // Atualizar campos com dados salvos
+
       tradeName = partner!.tradeName;
       email = partner!.email ?? '';
       phone = partner!.phone;
-      
-      print('✅ Empresa atualizada com sucesso');
+
       return true;
     } catch (e) {
-      print('❌ Erro ao salvar empresa: $e');
       error = e.toString();
       return false;
     } finally {
@@ -126,15 +111,11 @@ abstract class _PartnerStoreBase with Store {
     isSaving = true;
     error = null;
     try {
-      print('📤 Fazendo upload do logo...');
-      
       partner = await _service.uploadLogo(selectedLogo!);
       selectedLogo = null;
-      
-      print('✅ Logo atualizado com sucesso');
+
       return true;
     } catch (e) {
-      print('❌ Erro ao fazer upload do logo: $e');
       error = e.toString();
       return false;
     } finally {
