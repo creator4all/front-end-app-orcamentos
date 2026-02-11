@@ -3,8 +3,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../domain/entities/partner.dart';
 
-/// Widget que representa um card de parceiro na lista
-/// Exibe ícone de empresa, nome fantasia e botões de ação
 class PartnerCardWidget extends StatelessWidget {
   final Partner partner;
   final VoidCallback onUsersPressed;
@@ -40,10 +38,8 @@ class PartnerCardWidget extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header: Ícone + Nome
           Row(
             children: [
-              // Ícone de empresa (building)
               Container(
                 width: 48.w,
                 height: 48.h,
@@ -58,7 +54,6 @@ class PartnerCardWidget extends StatelessWidget {
                 ),
               ),
               SizedBox(width: 12.w),
-              // Nome fantasia
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -72,19 +67,14 @@ class PartnerCardWidget extends StatelessWidget {
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
-                    // Espaço reservado (sem segmento/categoria)
                   ],
                 ),
               ),
             ],
           ),
-
           SizedBox(height: 16.h),
-
-          // Botões de ação
           Row(
             children: [
-              // Botão Usuários
               Expanded(
                 child: _buildActionButton(
                   icon: Icons.people,
@@ -93,7 +83,6 @@ class PartnerCardWidget extends StatelessWidget {
                 ),
               ),
               SizedBox(width: 12.w),
-              // Botão Relatórios
               Expanded(
                 child: _buildActionButton(
                   icon: Icons.analytics_outlined,

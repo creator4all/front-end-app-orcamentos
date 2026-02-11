@@ -3,7 +3,6 @@ import '../../../../../shared/core/http/http_request_config.dart';
 import '../models/partner_dto.dart';
 import 'partner_management_datasource.dart';
 
-/// Implementação do datasource usando API HTTP
 class PartnerManagementApiDatasource implements PartnerManagementDatasource {
   final AppHttpClient httpClient;
 
@@ -15,9 +14,6 @@ class PartnerManagementApiDatasource implements PartnerManagementDatasource {
     required int perPage,
   }) async {
     try {
-      print(
-          '📋 [PartnerManagementApiDatasource] Listando parceiros página $page...');
-
       final response = await httpClient.get(
         '/api/partners',
         config: HttpRequestConfig(
@@ -26,14 +22,11 @@ class PartnerManagementApiDatasource implements PartnerManagementDatasource {
       );
 
       if (response.statusCode == 200) {
-        print(
-            '✅ [PartnerManagementApiDatasource] Parceiros carregados com sucesso');
         return PaginatedPartnersDto.fromJson(response.body);
       }
 
       throw Exception('Erro ao listar parceiros: ${response.statusCode}');
     } catch (e) {
-      print('❌ [PartnerManagementApiDatasource] Erro ao listar parceiros: $e');
       rethrow;
     }
   }

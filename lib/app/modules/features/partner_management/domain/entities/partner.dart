@@ -1,7 +1,5 @@
 import 'package:equatable/equatable.dart';
 
-/// Entidade de domínio que representa um Parceiro (empresa)
-/// Usada na tela de Gestão de Empresas (Admin)
 class Partner extends Equatable {
   final int id;
   final String legalName;
@@ -21,7 +19,6 @@ class Partner extends Equatable {
     required this.status,
   });
 
-  /// Cria uma cópia do parceiro com valores alterados
   Partner copyWith({
     int? id,
     String? legalName,
@@ -57,7 +54,6 @@ class Partner extends Equatable {
   bool get stringify => true;
 }
 
-/// Entidade que representa a resposta paginada de parceiros
 class PaginatedPartners extends Equatable {
   final List<Partner> partners;
   final int currentPage;

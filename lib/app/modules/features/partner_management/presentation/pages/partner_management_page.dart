@@ -9,8 +9,6 @@ import '../stores/partner_management_store.dart';
 import '../widgets/partner_card_widget.dart';
 import '../widgets/partner_skeleton.dart';
 
-/// Página de gestão de parceiros (empresas)
-/// Acessível apenas para Administradores
 class PartnerManagementPage extends StatefulWidget {
   const PartnerManagementPage({super.key});
 
@@ -30,10 +28,8 @@ class _PartnerManagementPageState extends State<PartnerManagementPage> {
     _store = Modular.get<PartnerManagementStore>();
     _authStore = Modular.get<AuthStore>();
 
-    // Carregar parceiros ao iniciar
     _store.loadPartners();
 
-    // Configurar scroll infinito
     _scrollController.addListener(_onScroll);
   }
 
@@ -54,12 +50,10 @@ class _PartnerManagementPageState extends State<PartnerManagementPage> {
   }
 
   void _onUsersPressed(int partnerId) {
-    // Navegar para a tela de usuários do parceiro
     Modular.to.pushNamed('/user-management/partner/$partnerId');
   }
 
   void _onReportsPressed(int partnerId, String partnerName) {
-    // Navegar para a tela de relatórios do parceiro
     Modular.to.pushNamed(
       '/reports/partner/$partnerId',
       arguments: {'partnerName': partnerName},
@@ -78,7 +72,6 @@ class _PartnerManagementPageState extends State<PartnerManagementPage> {
       ),
       body: Column(
         children: [
-          // Barra de busca
           Padding(
             padding: EdgeInsets.all(16.w),
             child: TextField(
@@ -108,17 +101,13 @@ class _PartnerManagementPageState extends State<PartnerManagementPage> {
               ),
             ),
           ),
-
-          // Lista de parceiros
           Expanded(
             child: Observer(
               builder: (_) {
-                // Skeleton durante loading inicial
                 if (_store.isLoading && _store.partners.isEmpty) {
                   return const PartnerSkeleton();
                 }
 
-                // Erro
                 if (_store.error != null && _store.partners.isEmpty) {
                   return Center(
                     child: Column(
@@ -156,7 +145,6 @@ class _PartnerManagementPageState extends State<PartnerManagementPage> {
                   );
                 }
 
-                // Lista vazia
                 if (_store.filteredPartners.isEmpty) {
                   return Center(
                     child: Column(
@@ -182,7 +170,6 @@ class _PartnerManagementPageState extends State<PartnerManagementPage> {
                   );
                 }
 
-                // Lista de parceiros
                 return RefreshIndicator(
                   onRefresh: _store.loadPartners,
                   child: ListView.builder(
@@ -191,7 +178,6 @@ class _PartnerManagementPageState extends State<PartnerManagementPage> {
                     itemCount: _store.filteredPartners.length +
                         (_store.isLoadingMore ? 1 : 0),
                     itemBuilder: (context, index) {
-                      // Loading indicator no final
                       if (index == _store.filteredPartners.length) {
                         return Padding(
                           padding: EdgeInsets.symmetric(vertical: 16.h),

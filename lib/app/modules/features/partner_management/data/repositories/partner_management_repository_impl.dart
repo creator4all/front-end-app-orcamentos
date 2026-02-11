@@ -5,7 +5,6 @@ import '../../domain/entities/partner.dart';
 import '../../domain/repositories/partner_management_repository.dart';
 import '../datasources/partner_management_datasource.dart';
 
-/// Implementação concreta do repositório de gerenciamento de parceiros
 class PartnerManagementRepositoryImpl implements PartnerManagementRepository {
   final PartnerManagementDatasource datasource;
 

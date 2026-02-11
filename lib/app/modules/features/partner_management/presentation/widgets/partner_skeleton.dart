@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
-/// Skeleton loading para tela de gestão de parceiros
-/// Exibe placeholders animados enquanto carrega dados
 class PartnerSkeleton extends StatelessWidget {
   const PartnerSkeleton({super.key});
 
@@ -39,10 +37,8 @@ class PartnerSkeleton extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header: Ícone + Nome
           Row(
             children: [
-              // Ícone placeholder
               Container(
                 width: 48.w,
                 height: 48.h,
@@ -52,7 +48,6 @@ class PartnerSkeleton extends StatelessWidget {
                 ),
               ),
               SizedBox(width: 12.w),
-              // Nome placeholder
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -68,10 +63,7 @@ class PartnerSkeleton extends StatelessWidget {
               ),
             ],
           ),
-
           SizedBox(height: 16.h),
-
-          // Botões placeholder
           Row(
             children: [
               Expanded(

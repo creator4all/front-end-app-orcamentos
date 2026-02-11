@@ -1,6 +1,5 @@
 import '../../domain/entities/partner.dart';
 
-/// DTO para parsing do JSON de parceiro da API
 class PartnerDto {
   final int id;
   final String legalName;
@@ -20,8 +19,6 @@ class PartnerDto {
     required this.status,
   });
 
-  /// Cria DTO a partir do JSON da API
-  /// GET /api/partners
   factory PartnerDto.fromJson(Map<String, dynamic> json) {
     return PartnerDto(
       id: json['par_partnerId'] ?? 0,
@@ -34,7 +31,6 @@ class PartnerDto {
     );
   }
 
-  /// Converte DTO para entidade de domínio
   Partner toEntity() {
     return Partner(
       id: id,
@@ -48,7 +44,6 @@ class PartnerDto {
   }
 }
 
-/// DTO para parsing da resposta paginada da API
 class PaginatedPartnersDto {
   final List<PartnerDto> partners;
   final int currentPage;
@@ -64,9 +59,8 @@ class PaginatedPartnersDto {
     required this.lastPage,
   });
 
-  /// Cria DTO a partir do JSON da API
   factory PaginatedPartnersDto.fromJson(Map<String, dynamic> json) {
-    final dados = json['dados'] ?? json;
+    final dados = json['dados'];
     final List<dynamic> dataList = dados['data'] ?? [];
     final pagination = dados['pagination'] ?? {};
 
@@ -79,7 +73,6 @@ class PaginatedPartnersDto {
     );
   }
 
-  /// Converte DTO para entidade de domínio
   PaginatedPartners toEntity() {
     return PaginatedPartners(
       partners: partners.map((dto) => dto.toEntity()).toList(),

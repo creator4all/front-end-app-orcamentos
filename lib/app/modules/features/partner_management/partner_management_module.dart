@@ -8,34 +8,28 @@ import 'domain/repositories/partner_management_repository.dart';
 import 'presentation/pages/partner_management_page.dart';
 import 'presentation/stores/partner_management_store.dart';
 
-/// Módulo de gerenciamento de parceiros (empresas)
-/// Acessível apenas para Administradores
 class PartnerManagementModule extends Module {
   @override
   List<Bind> get binds => [
-    // Datasource
-    Bind.lazySingleton<PartnerManagementDatasource>(
-      (i) => PartnerManagementApiDatasource(httpClient: i.get<AppHttpClient>()),
-    ),
-
-    // Repository
-    Bind.lazySingleton<PartnerManagementRepository>(
-      (i) => PartnerManagementRepositoryImpl(
-        datasource: i.get<PartnerManagementDatasource>(),
-      ),
-    ),
-
-    // Store
-    Bind.lazySingleton<PartnerManagementStore>(
-      (i) => PartnerManagementStore(
-        partnerManagementRepository: i.get<PartnerManagementRepository>(),
-      ),
-    ),
-  ];
+        Bind.lazySingleton<PartnerManagementDatasource>(
+          (i) => PartnerManagementApiDatasource(
+              httpClient: i.get<AppHttpClient>()),
+        ),
+        Bind.lazySingleton<PartnerManagementRepository>(
+          (i) => PartnerManagementRepositoryImpl(
+            datasource: i.get<PartnerManagementDatasource>(),
+          ),
+        ),
+        Bind.lazySingleton<PartnerManagementStore>(
+          (i) => PartnerManagementStore(
+            partnerManagementRepository: i.get<PartnerManagementRepository>(),
+          ),
+        ),
+      ];
 
   @override
   List<ModularRoute> get routes => [
-    // Rota principal
-    ChildRoute('/', child: (context, args) => const PartnerManagementPage()),
-  ];
+        ChildRoute('/',
+            child: (context, args) => const PartnerManagementPage()),
+      ];
 }
