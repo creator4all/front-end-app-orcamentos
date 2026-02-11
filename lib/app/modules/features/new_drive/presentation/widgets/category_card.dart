@@ -4,8 +4,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../domain/entities/drive_item.dart';
 import 'item_card_doc.dart';
 
-/// Card específico para exibir categorias de arquivos
-/// Reutiliza a estrutura do ItemCardDoc mas simplificada
 class CategoryCard extends StatelessWidget {
   final String categoryName;
   final DriveItemType categoryType;
@@ -40,7 +38,6 @@ class CategoryCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Ícone à esquerda
             Container(
               width: 32.w,
               height: 32.h,
@@ -55,14 +52,12 @@ class CategoryCard extends StatelessWidget {
               ),
             ),
             SizedBox(width: 8.w),
-            // Textos à direita (2 linhas)
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Linha 1: Nome da categoria
                   Text(
                     categoryName,
                     style: TextStyle(
@@ -74,7 +69,6 @@ class CategoryCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   SizedBox(height: 2.h),
-                  // Linha 2: Quantidade e tamanho
                   Text(
                     '$itemCount ${itemCount == 1 ? 'item' : 'itens'} • $totalSize',
                     style: TextStyle(
@@ -93,7 +87,6 @@ class CategoryCard extends StatelessWidget {
     );
   }
 
-  /// Retorna o ícone apropriado para cada tipo de categoria
   IconData _getIconForType(DriveItemType type) {
     switch (type) {
       case DriveItemType.document:

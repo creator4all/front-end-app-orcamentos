@@ -7,10 +7,7 @@ import 'package:multimidiaapp/app/shared/widgets/user_avatar_widget.dart';
 import '../../domain/entities/drive_item.dart';
 import '../stores/new_drive_store.dart';
 
-/// Modal de detalhes do arquivo
-/// Carrega detalhes da API ao abrir para obter sharedBy e downloadUrl
 class FileDetailsModal {
-  /// Exibe o modal de detalhes do arquivo
   static Future<void> show({
     required BuildContext context,
     required DriveItem item,
@@ -97,13 +94,11 @@ class _FileDetailsContentState extends State<_FileDetailsContent> {
 
   @override
   Widget build(BuildContext context) {
-    // Usar item detalhado se disponível, senão usar item original
     final item = _detailedItem ?? widget.item;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Ícone do tipo de arquivo
         Container(
           width: 64.w,
           height: 64.h,
@@ -118,8 +113,6 @@ class _FileDetailsContentState extends State<_FileDetailsContent> {
           ),
         ),
         SizedBox(height: 16.h),
-
-        // Nome completo do arquivo
         Text(
           item.name,
           style: TextStyle(
@@ -130,8 +123,6 @@ class _FileDetailsContentState extends State<_FileDetailsContent> {
           textAlign: TextAlign.center,
         ),
         SizedBox(height: 16.h),
-
-        // Tamanho do arquivo
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -151,8 +142,6 @@ class _FileDetailsContentState extends State<_FileDetailsContent> {
           ],
         ),
         SizedBox(height: 24.h),
-
-        // Seção "Compartilhado por" - com loading
         if (_isLoadingDetails) ...[
           Align(
             alignment: Alignment.centerLeft,
@@ -193,8 +182,6 @@ class _FileDetailsContentState extends State<_FileDetailsContent> {
             ),
           ),
           SizedBox(height: 12.h),
-
-          // Card do usuário que compartilhou
           Container(
             padding: EdgeInsets.all(12.w),
             decoration: BoxDecoration(
@@ -237,8 +224,6 @@ class _FileDetailsContentState extends State<_FileDetailsContent> {
           ),
           SizedBox(height: 24.h),
         ],
-
-        // Botões de ação
         _buildActionButton(
           icon: item.type == DriveItemType.folder
               ? Icons.folder_open

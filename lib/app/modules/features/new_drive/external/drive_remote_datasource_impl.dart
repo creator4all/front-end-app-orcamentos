@@ -4,10 +4,8 @@ import 'package:multimidiaapp/app/shared/core/utils/token_cache.dart';
 import 'package:multimidiaapp/config/api_config.dart';
 
 import '../data/datasources/drive_remote_datasource.dart';
-import '../data/models/drive_category_model.dart';
 import '../data/models/drive_item_model.dart';
 
-/// Implementação do datasource remoto usando AppHttpClient
 class DriveRemoteDataSourceImpl implements DriveRemoteDataSource {
   final AppHttpClient _client;
 
@@ -32,63 +30,6 @@ class DriveRemoteDataSourceImpl implements DriveRemoteDataSource {
       }
 
       throw Exception('Falha ao carregar itens recentes');
-    } catch (e) {
-      throw Exception('Erro na comunicação com servidor: $e');
-    }
-  }
-
-  @override
-  Future<List<DriveCategoryModel>> getCategories() async {
-    try {
-      final response = await _client.get(
-        '/api/drive/categories',
-        config: _config,
-      );
-
-      if (response.isSuccess) {
-        final List<dynamic> data = response.body['categories'] as List<dynamic>;
-        return data.map((json) => DriveCategoryModel.fromJson(json)).toList();
-      }
-
-      throw Exception('Falha ao carregar categorias');
-    } catch (e) {
-      throw Exception('Erro na comunicação com servidor: $e');
-    }
-  }
-
-  @override
-  Future<List<DriveItemModel>> searchFiles(String query) async {
-    try {
-      final response = await _client.get(
-        '/api/drive/search',
-        config: _config.copyWith(queryParameters: {'q': query}),
-      );
-
-      if (response.isSuccess) {
-        final List<dynamic> data = response.body['items'] as List<dynamic>;
-        return data.map((json) => DriveItemModel.fromJson(json)).toList();
-      }
-
-      throw Exception('Falha na busca de arquivos');
-    } catch (e) {
-      throw Exception('Erro na comunicação com servidor: $e');
-    }
-  }
-
-  @override
-  Future<List<DriveItemModel>> getFilesByCategory(String type) async {
-    try {
-      final response = await _client.get(
-        '/api/drive/files',
-        config: _config.copyWith(queryParameters: {'type': type}),
-      );
-
-      if (response.isSuccess) {
-        final List<dynamic> data = response.body['items'] as List<dynamic>;
-        return data.map((json) => DriveItemModel.fromJson(json)).toList();
-      }
-
-      throw Exception('Falha ao carregar arquivos da categoria');
     } catch (e) {
       throw Exception('Erro na comunicação com servidor: $e');
     }

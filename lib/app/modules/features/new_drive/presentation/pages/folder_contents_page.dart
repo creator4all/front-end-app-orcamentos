@@ -11,12 +11,6 @@ import '../stores/new_drive_store.dart';
 import '../widgets/drive_item_list_view.dart';
 import '../widgets/file_details_modal.dart';
 
-/// Página para exibir conteúdo de uma pasta
-///
-/// Permite ao usuário:
-/// - Ver todos os arquivos dentro de uma pasta específica
-/// - Navegar com breadcrumb
-/// - Abrir arquivos ou pastas aninhadas
 class FolderContentsPage extends StatefulWidget {
   final String folderId;
   final String? folderName;
@@ -40,7 +34,6 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
   @override
   void initState() {
     super.initState();
-    // Carregar conteúdo da pasta
     store.loadFolderContents(widget.folderId);
   }
 
@@ -83,10 +76,8 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
 
           return Column(
             children: [
-              // Breadcrumb (opcional)
               _buildBreadcrumb(folder),
 
-              // Barra de pesquisa
               Padding(
                 padding: EdgeInsets.symmetric(
                   horizontal: 10.w,
@@ -95,7 +86,6 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
                 child: _buildSearchField(),
               ),
 
-              // Texto informativo
               Padding(
                 padding: EdgeInsets.only(
                   left: 10.w,
@@ -115,7 +105,6 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
                 ),
               ),
 
-              // ListView dos itens
               Expanded(
                 child: DriveItemListView(
                   items: items,
@@ -129,7 +118,6 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
     );
   }
 
-  /// Breadcrumb para mostrar caminho dentro de pastas
   Widget _buildBreadcrumb(DriveItem folder) {
     return Padding(
       padding: EdgeInsets.symmetric(
@@ -140,11 +128,9 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            // Drive (Raiz)
             GestureDetector(
               onTap: () {
                 store.navigateToStackIndex(-1);
-                // Volta para a raiz (NewDrivePage)
                 Modular.to.popUntil(ModalRoute.withName('/drive/'));
               },
               child: Text(
@@ -156,7 +142,6 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
               ),
             ),
 
-            // Pilha de pastas
             Observer(
               builder: (_) {
                 return Row(
@@ -180,7 +165,6 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
                               ? null
                               : () {
                                   store.navigateToStackIndex(index);
-                                  // Volta N vezes no Navigator para chegar na pasta correta
                                   final pops =
                                       store.folderStack.length - 1 - index;
                                   for (var i = 0; i < pops; i++) {
@@ -211,7 +195,6 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
     );
   }
 
-  /// Campo de busca
   Widget _buildSearchField() {
     return Container(
       constraints: BoxConstraints(maxHeight: 50.h),
@@ -246,7 +229,6 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
     );
   }
 
-  /// Estado vazio
   Widget _buildEmptyState() {
     return Center(
       child: Column(
@@ -279,7 +261,6 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
     );
   }
 
-  /// Estado de erro
   Widget _buildErrorState() {
     return Center(
       child: Column(
@@ -323,10 +304,8 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
     );
   }
 
-  /// Trata clique em item
   void _handleItemTap(DriveItem item) {
     if (item.type == DriveItemType.folder) {
-      // Navegar para a pasta (Empilhar na store para o breadcrumb)
       store.navigateToFolder(item.id, item.name);
 
       Modular.to.pushNamed(
@@ -337,19 +316,16 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
         },
       );
     } else if (item.type == DriveItemType.video) {
-      // Navegar para video player
       Modular.to.pushNamed(
         './video-player',
         arguments: item,
       );
     } else if (item.type == DriveItemType.image) {
-      // Navegar para image viewer
       Modular.to.pushNamed(
         './image-viewer',
         arguments: item,
       );
     } else {
-      // Para arquivos, abrir modal de detalhes (conforme regra de negócio de arquivos)
       FileDetailsModal.show(
         context: context,
         item: item,

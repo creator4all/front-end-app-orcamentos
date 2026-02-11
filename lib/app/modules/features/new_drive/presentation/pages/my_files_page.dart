@@ -11,10 +11,6 @@ import '../stores/new_drive_store.dart';
 import '../widgets/drive_item_list_view.dart';
 import '../widgets/file_details_modal.dart';
 
-/// Página de meus arquivos
-///
-/// Exibe todos os arquivos enviados pelo usuário (apenas administradores)
-/// Layout idêntico ao CategoryDetailsPage
 class MyFilesPage extends StatefulWidget {
   const MyFilesPage({super.key});
 
@@ -32,9 +28,7 @@ class _MyFilesPageState extends State<MyFilesPage> {
   void initState() {
     super.initState();
 
-    // Verificar se é administrador
     if (!authStore.isAdmin) {
-      // Voltar se não for admin
       Future.delayed(const Duration(milliseconds: 100), () {
         if (mounted) {
           Modular.to.pop();
@@ -49,13 +43,11 @@ class _MyFilesPageState extends State<MyFilesPage> {
       return;
     }
 
-    // Definir modo de visualização
     store.setViewMode('my-files');
   }
 
   @override
   void dispose() {
-    // Limpar seleção ao sair da página
     store.clearViewMode();
     searchController.dispose();
     super.dispose();
@@ -80,7 +72,6 @@ class _MyFilesPageState extends State<MyFilesPage> {
 
           return Column(
             children: [
-              // Barra de pesquisa
               Padding(
                 padding: EdgeInsets.symmetric(
                   horizontal: 10.w,
@@ -89,7 +80,6 @@ class _MyFilesPageState extends State<MyFilesPage> {
                 child: _buildSearchField(),
               ),
 
-              // Texto "Arquivos que você enviou"
               Padding(
                 padding: EdgeInsets.only(
                   left: 10.w,
@@ -109,7 +99,6 @@ class _MyFilesPageState extends State<MyFilesPage> {
                 ),
               ),
 
-              // ListView dos itens
               Expanded(
                 child: DriveItemListView(
                   items: items,
@@ -124,7 +113,6 @@ class _MyFilesPageState extends State<MyFilesPage> {
     );
   }
 
-  /// Campo de pesquisa de arquivos
   Widget _buildSearchField() {
     return Container(
       constraints: BoxConstraints(maxHeight: 50.h),
@@ -160,7 +148,6 @@ class _MyFilesPageState extends State<MyFilesPage> {
     );
   }
 
-  /// Widget de estado vazio
   Widget _buildEmptyState() {
     return Center(
       child: Column(
@@ -184,7 +171,6 @@ class _MyFilesPageState extends State<MyFilesPage> {
     );
   }
 
-  /// Exibe modal de detalhes do arquivo
   void _showFileDetails(DriveItem item) {
     FileDetailsModal.show(
       context: context,
@@ -194,15 +180,11 @@ class _MyFilesPageState extends State<MyFilesPage> {
     );
   }
 
-  /// Realiza download do arquivo
   Future<void> _handleDownload(DriveItem item) async {
     await fileOpenerStore.openFile(item);
   }
-
-  /// Abre o arquivo ou navega para pasta/vídeo/imagem
   void _handleFileOpen(DriveItem item) {
     if (item.type == DriveItemType.folder) {
-      // Navegar para a pasta
       Modular.to.pushNamed(
         '/drive/folder',
         arguments: {
@@ -211,19 +193,16 @@ class _MyFilesPageState extends State<MyFilesPage> {
         },
       );
     } else if (item.type == DriveItemType.video) {
-      // Navegar para video player
       Modular.to.pushNamed(
         '/drive/video-player',
         arguments: item,
       );
     } else if (item.type == DriveItemType.image) {
-      // Navegar para image viewer
       Modular.to.pushNamed(
         '/drive/image-viewer',
         arguments: item,
       );
     } else {
-      // Download e abrir arquivo (documento, etc)
       fileOpenerStore.openFile(item);
     }
   }

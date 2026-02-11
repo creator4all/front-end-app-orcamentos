@@ -11,10 +11,6 @@ import '../stores/new_drive_store.dart';
 import '../widgets/drive_item_list_view.dart';
 import '../widgets/file_details_modal.dart';
 
-/// Página de todos os arquivos compartilhados
-///
-/// Exibe todos os arquivos compartilhados com o usuário (sem filtro de categoria)
-/// Layout idêntico ao CategoryDetailsPage
 class AllSharedFilesPage extends StatefulWidget {
   const AllSharedFilesPage({super.key});
 
@@ -31,13 +27,11 @@ class _AllSharedFilesPageState extends State<AllSharedFilesPage> {
   @override
   void initState() {
     super.initState();
-    // Definir modo de visualização
     store.setViewMode('all-shared');
   }
 
   @override
   void dispose() {
-    // Limpar seleção ao sair da página
     store.clearViewMode();
     searchController.dispose();
     super.dispose();
@@ -62,7 +56,6 @@ class _AllSharedFilesPageState extends State<AllSharedFilesPage> {
 
           return Column(
             children: [
-              // Barra de pesquisa
               Padding(
                 padding: EdgeInsets.symmetric(
                   horizontal: 10.w,
@@ -70,8 +63,6 @@ class _AllSharedFilesPageState extends State<AllSharedFilesPage> {
                 ),
                 child: _buildSearchField(),
               ),
-
-              // Texto "Arquivos compartilhados com você"
               Padding(
                 padding: EdgeInsets.only(
                   left: 10.w,
@@ -90,8 +81,6 @@ class _AllSharedFilesPageState extends State<AllSharedFilesPage> {
                   ),
                 ),
               ),
-
-              // ListView dos itens
               Expanded(
                 child: DriveItemListView(
                   items: items,
@@ -106,7 +95,6 @@ class _AllSharedFilesPageState extends State<AllSharedFilesPage> {
     );
   }
 
-  /// Campo de pesquisa de arquivos
   Widget _buildSearchField() {
     return Container(
       constraints: BoxConstraints(maxHeight: 50.h),
@@ -142,7 +130,6 @@ class _AllSharedFilesPageState extends State<AllSharedFilesPage> {
     );
   }
 
-  /// Widget de estado vazio
   Widget _buildEmptyState() {
     return Center(
       child: Column(
@@ -166,7 +153,6 @@ class _AllSharedFilesPageState extends State<AllSharedFilesPage> {
     );
   }
 
-  /// Exibe modal de detalhes do arquivo
   void _showFileDetails(DriveItem item) {
     FileDetailsModal.show(
       context: context,
@@ -176,15 +162,12 @@ class _AllSharedFilesPageState extends State<AllSharedFilesPage> {
     );
   }
 
-  /// Realiza download do arquivo
   Future<void> _handleDownload(DriveItem item) async {
     await fileOpenerStore.openFile(item);
   }
 
-  /// Abre o arquivo, navega para pasta ou video
   void _handleFileOpen(DriveItem item) {
     if (item.type == DriveItemType.folder) {
-      // Navegar para a pasta
       Modular.to.pushNamed(
         './folder',
         arguments: {
@@ -193,19 +176,16 @@ class _AllSharedFilesPageState extends State<AllSharedFilesPage> {
         },
       );
     } else if (item.type == DriveItemType.video) {
-      // Navegar para video player
       Modular.to.pushNamed(
         './video-player',
         arguments: item,
       );
     } else if (item.type == DriveItemType.image) {
-      // Navegar para image viewer
       Modular.to.pushNamed(
         './image-viewer',
         arguments: item,
       );
     } else {
-      // Download e abrir arquivo (documento, etc)
       fileOpenerStore.openFile(item);
     }
   }

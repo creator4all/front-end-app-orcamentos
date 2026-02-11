@@ -1,8 +1,6 @@
 import '../../domain/entities/drive_item.dart';
 
-/// Utilitários para conversão de tipos do Drive
 class DriveTypeUtils {
-  /// Converte DriveItemType para string (formato específico: document, video, etc)
   static String typeToString(DriveItemType type) {
     switch (type) {
       case DriveItemType.document:
@@ -16,7 +14,6 @@ class DriveTypeUtils {
     }
   }
 
-  /// Converte DriveItemType para string genérica (file/folder)
   static String typeToFileString(DriveItemType type) {
     return type == DriveItemType.folder ? 'folder' : 'file';
   }

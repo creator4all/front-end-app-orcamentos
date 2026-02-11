@@ -1,14 +1,10 @@
 import 'dart:typed_data';
 
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:multimidiaapp/app/shared/core/http/app_http_client.dart';
 
-/// Widget para exibir thumbnails que requerem autenticação
-///
-/// Usa Dio para baixar a imagem com o token de autenticação
-/// e a exibe usando MemoryImage
 class AuthenticatedThumbnail extends StatefulWidget {
   final String url;
   final BoxFit fit;
@@ -45,30 +41,14 @@ class _AuthenticatedThumbnailState extends State<AuthenticatedThumbnail> {
         _hasError = false;
       });
 
-      // Obter instância do Dio (que já tem o interceptor de autenticação)
-      final dio = Modular.get<Dio>();
+      final httpClient = Modular.get<AppHttpClient>();
+      final bytes = await httpClient.getBytes(widget.url);
 
-      // Fazer requisição para obter a imagem
-      final response = await dio.get<List<int>>(
-        widget.url,
-        options: Options(
-          responseType: ResponseType.bytes,
-        ),
-      );
-
-      if (response.statusCode == 200 && response.data != null) {
-        setState(() {
-          _imageBytes = Uint8List.fromList(response.data!);
-          _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _hasError = true;
-          _isLoading = false;
-        });
-      }
+      setState(() {
+        _imageBytes = Uint8List.fromList(bytes);
+        _isLoading = false;
+      });
     } catch (e) {
-      debugPrint('❌ Erro ao carregar thumbnail: $e');
       setState(() {
         _hasError = true;
         _isLoading = false;

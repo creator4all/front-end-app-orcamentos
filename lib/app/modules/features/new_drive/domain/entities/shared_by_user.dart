@@ -1,11 +1,10 @@
 import 'package:equatable/equatable.dart';
 
-/// Entidade que representa o usuário que compartilhou um item
 class SharedByUser extends Equatable {
   final int id;
   final String name;
   final String email;
-  final String? avatarUrl; // base64 ou null
+  final String? avatarUrl;
 
   const SharedByUser({
     required this.id,
@@ -13,6 +12,9 @@ class SharedByUser extends Equatable {
     required this.email,
     this.avatarUrl,
   });
+
+  @override
+  bool get stringify => true;
 
   @override
   List<Object?> get props => [id, name, email, avatarUrl];

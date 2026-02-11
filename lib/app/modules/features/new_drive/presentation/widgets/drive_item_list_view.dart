@@ -4,13 +4,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../domain/entities/drive_item.dart';
 import 'item_card_doc.dart';
 
-/// Widget reutilizável para exibir lista de itens do Drive
-///
-/// Encapsula o padrão comum de ListView.builder usado em várias páginas:
-/// - CategoryDetailsPage
-/// - AllSharedFilesPage
-/// - MyFilesPage
-/// - FolderContentsPage
 class DriveItemListView extends StatelessWidget {
   final List<DriveItem> items;
   final void Function(DriveItem item) onItemTap;

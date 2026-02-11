@@ -2,7 +2,6 @@ import 'package:equatable/equatable.dart';
 
 import 'drive_item.dart';
 
-/// Entidade que representa uma categoria de arquivos no drive
 class DriveCategory extends Equatable {
   final String id;
   final String name;
@@ -17,6 +16,9 @@ class DriveCategory extends Equatable {
     required this.itemCount,
     required this.totalSize,
   });
+
+  @override
+  bool get stringify => true;
 
   @override
   List<Object?> get props => [id, name, type, itemCount, totalSize];

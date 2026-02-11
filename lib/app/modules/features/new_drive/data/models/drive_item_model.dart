@@ -3,9 +3,6 @@ import '../../domain/entities/drive_item.dart';
 import '../../domain/entities/shared_by_user.dart';
 import '../utils/drive_type_utils.dart';
 
-/// DTO (Data Transfer Object) para DriveItem
-///
-/// Responsável pela conversão entre JSON e entidade de domínio
 class DriveItemModel {
   final String id;
   final String name;
@@ -39,57 +36,64 @@ class DriveItemModel {
     this.downloadUrl,
   });
 
-  /// Converte JSON para Model
   factory DriveItemModel.fromJson(Map<String, dynamic> json) {
-    try {
-      final fileData = json['file_data'] as Map<String, dynamic>?;
-      final parent = json['parent'] as Map<String, dynamic>?;
-      final childrenJson = json['children'] as List<dynamic>?;
+    final isHierarchyFormat = json.containsKey('ite_itemId');
 
-      // Suporta ambas as convenções de nomes: com prefixo (ite_) e sem (camelCase)
-      final id = (json['ite_itemId'] ?? json['id']).toString();
-      final name = (json['ite_name'] ?? json['name']) as String;
-      final type = (json['ite_type'] ?? json['type']) as String;
-      final mimeType = (json['ite_mimeType'] ?? json['mimeType']) as String?;
-      final size = ((json['ite_size'] ?? json['size']) as int?) ?? 0;
-      final createdAt = (json['created_at'] ?? json['createdAt']) as String;
-      final updatedAt = (json['updated_at'] ?? json['updatedAt']) as String;
-      final parentId = ((json['ite_parentId'] ?? json['parentId']) as int?);
-
-      print(
-          '[DriveItemModel] Parseando item: id=$id, name=$name, type=$type, childrenCount=${childrenJson?.length ?? 0}');
-
-      return DriveItemModel(
-        id: id,
-        name: name,
-        type: type,
-        mimeType: mimeType,
-        size: size, // ✅ Trata null como 0 (para pastas)
-        thumbnailPath: fileData?['thumbnailPath'] as String?,
-        createdAt: createdAt,
-        updatedAt: updatedAt,
-        hasChildren: childrenJson != null && childrenJson.isNotEmpty,
-        parentId: parentId,
-        parentName: parent?['ite_name'] ?? parent?['name'] as String?,
-        children: childrenJson != null
-            ? (childrenJson)
-                .map((child) =>
-                    DriveItemModel.fromJson(child as Map<String, dynamic>))
-                .toList()
-            : null,
-        // Suporta tanto 'sharedBy' quanto 'user' (fallback para API atual)
-        sharedBy: json['sharedBy'] as Map<String, dynamic>? ??
-            json['user'] as Map<String, dynamic>?,
-        downloadUrl: json['downloadUrl'] as String?,
-      );
-    } catch (e) {
-      print('[DriveItemModel] ERRO ao parsear: $e');
-      print('[DriveItemModel] JSON: $json');
-      rethrow;
+    if (isHierarchyFormat) {
+      return DriveItemModel._fromHierarchyJson(json);
     }
+    return DriveItemModel._fromListJson(json);
   }
 
-  /// Converte Model para JSON
+  factory DriveItemModel._fromListJson(Map<String, dynamic> json) {
+    final fileData = json['fileData'] as Map<String, dynamic>?;
+    final parent = json['parent'] as Map<String, dynamic>?;
+    final sharedBy = json['sharedBy'] as Map<String, dynamic>?;
+
+    return DriveItemModel(
+      id: json['id'].toString(),
+      name: json['name'] as String,
+      type: json['type'] as String,
+      mimeType: json['mimeType'] as String?,
+      size: (json['size'] as int?) ?? 0,
+      thumbnailPath: fileData?['thumbnailPath'] as String?,
+      createdAt: json['createdAt'] as String,
+      updatedAt: json['updatedAt'] as String,
+      hasChildren: json['hasChildren'] as bool? ?? false,
+      parentId: json['parentId'] as int?,
+      parentName: parent?['name'] as String?,
+      children: null,
+      sharedBy: sharedBy,
+      downloadUrl: json['downloadUrl'] as String?,
+    );
+  }
+
+  factory DriveItemModel._fromHierarchyJson(Map<String, dynamic> json) {
+    final fileData = json['file_data'] as Map<String, dynamic>?;
+    final childrenJson = json['children'] as List<dynamic>?;
+    final user = json['user'] as Map<String, dynamic>?;
+
+    return DriveItemModel(
+      id: json['ite_itemId'].toString(),
+      name: json['ite_name'] as String,
+      type: json['ite_type'] as String,
+      mimeType: json['ite_mimeType'] as String?,
+      size: (json['ite_size'] as int?) ?? 0,
+      thumbnailPath: fileData?['fi_thumbnailPath'] as String?,
+      createdAt: json['created_at'] as String,
+      updatedAt: json['updated_at'] as String,
+      hasChildren: childrenJson != null && childrenJson.isNotEmpty,
+      parentId: json['ite_parentId'] as int?,
+      parentName: null,
+      children: childrenJson
+          ?.map(
+              (child) => DriveItemModel.fromJson(child as Map<String, dynamic>))
+          .toList(),
+      sharedBy: user,
+      downloadUrl: null,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -110,7 +114,6 @@ class DriveItemModel {
     };
   }
 
-  /// Converte Model para Entity
   DriveItem toEntity() {
     return DriveItem(
       id: id,
@@ -119,48 +122,55 @@ class DriveItemModel {
       size: _formatSize(size),
       lastViewed: DateTime.parse(updatedAt),
       thumbnailUrl: '${ApiConfig.baseUrl}/api/files/$id/thumbnail',
-      itemCount:
-          hasChildren ? 0 : null, // TODO: Implementar contagem real para pastas
       parentId: parentId,
       parentName: parentName,
       children: children?.map((child) => child.toEntity()).toList(),
-      sharedBy: sharedBy != null
-          ? SharedByUser(
-              // Suporta campos com prefixo usr_ (API atual) e sem prefixo (formato sharedBy)
-              id: (sharedBy!['usr_userId'] ?? sharedBy!['id']) as int,
-              name: (sharedBy!['usr_name'] ?? sharedBy!['name']) as String,
-              email: (sharedBy!['usr_email'] ?? sharedBy!['email']) as String,
-              avatarUrl: (sharedBy!['usr_avatar'] ?? sharedBy!['avatarUrl'])
-                  as String?,
-            )
-          : null,
+      sharedBy: _parseSharedByUser(),
       downloadUrl: downloadUrl,
     );
   }
 
-  /// Converte Entity para Model
+  SharedByUser? _parseSharedByUser() {
+    if (sharedBy == null) return null;
+
+    final isUserFormat = sharedBy!.containsKey('usr_userId');
+
+    if (isUserFormat) {
+      return SharedByUser(
+        id: sharedBy!['usr_userId'] as int,
+        name: sharedBy!['usr_name'] as String,
+        email: sharedBy!['usr_email'] as String,
+        avatarUrl: sharedBy!['usr_avatar'] as String?,
+      );
+    }
+
+    return SharedByUser(
+      id: sharedBy!['id'] as int,
+      name: sharedBy!['name'] as String,
+      email: sharedBy!['email'] as String,
+      avatarUrl: sharedBy!['avatarUrl'] as String?,
+    );
+  }
+
   factory DriveItemModel.fromEntity(DriveItem entity) {
     return DriveItemModel(
       id: entity.id,
       name: entity.name,
       type: DriveTypeUtils.typeToFileString(entity.type),
       mimeType: null,
-      size: 0, // TODO: Parse do size string
+      size: 0,
       thumbnailPath: entity.thumbnailUrl,
       createdAt: entity.lastViewed.toIso8601String(),
       updatedAt: entity.lastViewed.toIso8601String(),
-      hasChildren: entity.itemCount != null && entity.itemCount! > 0,
+      hasChildren: entity.children != null && entity.children!.isNotEmpty,
     );
   }
 
-  /// Parse tipo baseado no mimeType e type
   static DriveItemType _parseTypeFromMime(String type, String? mimeType) {
-    // Se for pasta
     if (type == 'folder' || type == 'directory') {
       return DriveItemType.folder;
     }
 
-    // Se for arquivo, verifica o mimeType
     if (mimeType == null) return DriveItemType.document;
 
     if (mimeType.startsWith('video/')) {
@@ -172,7 +182,6 @@ class DriveItemModel {
     }
   }
 
-  /// Formata tamanho de bytes para string legível
   static String _formatSize(int bytes) {
     if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';

@@ -4,7 +4,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../domain/entities/drive_item.dart';
 import 'authenticated_thumbnail.dart';
 
-/// Configuração de cores para cada tipo de item
 class DriveItemColors {
   final Color backgroundColor;
   final Color iconColor;
@@ -34,7 +33,6 @@ class DriveItemColors {
     iconColor: Color(0xFFFFD932),
   );
 
-  /// Retorna as cores baseadas no tipo de item
   static DriveItemColors fromType(DriveItemType type) {
     switch (type) {
       case DriveItemType.document:
@@ -49,11 +47,6 @@ class DriveItemColors {
   }
 }
 
-/// Componente reutilizável para exibir itens do drive
-///
-/// Suporta duas variantes:
-/// 1. Icon-based: Ícone colorido no topo esquerdo (padrão para documentos, imagens e pastas)
-/// 2. Image-based: Thumbnail de imagem quando o item é um vídeo
 class ItemCardDoc extends StatelessWidget {
   final DriveItem item;
   final VoidCallback? onTap;
@@ -76,7 +69,6 @@ class ItemCardDoc extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Determina se deve usar variante com imagem (apenas para vídeos)
     final bool hasImage = item.type == DriveItemType.video &&
         item.thumbnailUrl != null &&
         item.thumbnailUrl!.isNotEmpty;
@@ -98,7 +90,6 @@ class ItemCardDoc extends StatelessWidget {
     );
   }
 
-  /// Variante com ícone colorido - layout horizontal compacto
   Widget _buildIconVariant() {
     final colors = DriveItemColors.fromType(item.type);
 
@@ -107,7 +98,6 @@ class ItemCardDoc extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Ícone à esquerda
           Container(
             width: 36.w,
             height: 36.h,
@@ -122,13 +112,11 @@ class ItemCardDoc extends StatelessWidget {
             ),
           ),
           SizedBox(width: 12.w),
-          // Nome e metadata (expande para preencher espaço)
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Nome do item
                 Text(
                   item.name,
                   style: TextStyle(
@@ -140,13 +128,11 @@ class ItemCardDoc extends StatelessWidget {
                   overflow: maxNameLines != null ? TextOverflow.ellipsis : null,
                 ),
                 SizedBox(height: 4.h),
-                // Metadata row (tamanho e data)
                 _buildMetadataRow(),
               ],
             ),
           ),
           SizedBox(width: 8.w),
-          // Menu de três pontos (condicional)
           if (showMenu)
             GestureDetector(
               onTap: onMenuTap,
@@ -161,13 +147,11 @@ class ItemCardDoc extends StatelessWidget {
     );
   }
 
-  /// Variante com imagem de thumbnail
   Widget _buildImageVariant() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Container da imagem com menu sobreposto
         Stack(
           children: [
             ClipRRect(
@@ -185,7 +169,6 @@ class ItemCardDoc extends StatelessWidget {
                 ),
               ),
             ),
-            // Menu posicionado sobre a imagem (condicional)
             if (showMenu)
               Positioned(
                 top: 8.h,
@@ -208,14 +191,12 @@ class ItemCardDoc extends StatelessWidget {
               ),
           ],
         ),
-        // Informações do item
         Padding(
           padding: EdgeInsets.all(12.w),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Nome do item
               Text(
                 item.name,
                 style: TextStyle(
@@ -227,7 +208,6 @@ class ItemCardDoc extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
               SizedBox(height: 4.h),
-              // Metadata row
               _buildMetadataRow(),
             ],
           ),
@@ -236,7 +216,6 @@ class ItemCardDoc extends StatelessWidget {
     );
   }
 
-  /// Constrói a row de metadata (tamanho • data de compartilhamento ou tamanho • contagem)
   Widget _buildMetadataRow() {
     final formattedDate = item.getFormattedDate();
     return Text(
@@ -250,7 +229,6 @@ class ItemCardDoc extends StatelessWidget {
     );
   }
 
-  /// Retorna o ícone apropriado para cada tipo de item
   IconData _getIconForType(DriveItemType type) {
     switch (type) {
       case DriveItemType.document:
