@@ -6,7 +6,6 @@ import 'data/repositories/drive_repository_impl.dart';
 import 'domain/entities/drive_item.dart';
 import 'domain/repositories/drive_repository.dart';
 import 'domain/usecases/download_and_open_file_usecase.dart';
-import 'domain/usecases/get_file_details_usecase.dart';
 import 'domain/usecases/get_folder_contents_usecase.dart';
 import 'domain/usecases/get_own_files_usecase.dart';
 import 'domain/usecases/get_recent_items_usecase.dart';
@@ -29,106 +28,93 @@ import 'presentation/stores/new_drive_store.dart';
 class NewDriveModule extends Module {
   @override
   List<Bind> get binds => [
-        // DataSources
-        Bind.singleton<DriveRemoteDataSource>(
-          (i) => DriveRemoteDataSourceImpl(i.get<AppHttpClient>()),
-        ),
+    // DataSources
+    Bind.singleton<DriveRemoteDataSource>(
+      (i) => DriveRemoteDataSourceImpl(i.get<AppHttpClient>()),
+    ),
 
-        // Repositories
-        Bind.singleton<DriveRepository>(
-          (i) => DriveRepositoryImpl(
-            remoteDataSource: i.get<DriveRemoteDataSource>(),
-          ),
-        ),
+    // Repositories
+    Bind.singleton<DriveRepository>(
+      (i) =>
+          DriveRepositoryImpl(remoteDataSource: i.get<DriveRemoteDataSource>()),
+    ),
 
-        // Use Cases
-        Bind.singleton<GetRecentItemsUseCase>(
-          (i) => GetRecentItemsUseCase(i.get<DriveRepository>()),
-        ),
-        Bind.singleton<GetOwnFilesUseCase>(
-          (i) => GetOwnFilesUseCase(i.get<DriveRepository>()),
-        ),
-        Bind.singleton<GetFolderContentsUseCase>(
-          (i) => GetFolderContentsUseCase(i.get<DriveRepository>()),
-        ),
-        Bind.singleton<DownloadAndOpenFileUsecase>(
-          (i) => DownloadAndOpenFileUsecase(i.get<DriveRepository>()),
-        ),
-        Bind.singleton<GetFileDetailsUseCase>(
-          (i) => GetFileDetailsUseCase(i.get<DriveRepository>()),
-        ),
+    // Use Cases
+    Bind.singleton<GetRecentItemsUseCase>(
+      (i) => GetRecentItemsUseCase(i.get<DriveRepository>()),
+    ),
+    Bind.singleton<GetOwnFilesUseCase>(
+      (i) => GetOwnFilesUseCase(i.get<DriveRepository>()),
+    ),
+    Bind.singleton<GetFolderContentsUseCase>(
+      (i) => GetFolderContentsUseCase(i.get<DriveRepository>()),
+    ),
+    Bind.singleton<DownloadAndOpenFileUsecase>(
+      (i) => DownloadAndOpenFileUsecase(i.get<DriveRepository>()),
+    ),
 
-        // Stores
-        Bind.singleton<NewDriveStore>(
-          (i) => NewDriveStore(
-            getRecentItemsUseCase: i.get<GetRecentItemsUseCase>(),
-            getOwnFilesUseCase: i.get<GetOwnFilesUseCase>(),
-            getFolderContentsUseCase: i.get<GetFolderContentsUseCase>(),
-            getFileDetailsUseCase: i.get<GetFileDetailsUseCase>(),
-          ),
-        ),
-        Bind.singleton<FileOpenerStore>(
-          (i) => FileOpenerStore(i.get<DownloadAndOpenFileUsecase>()),
-        ),
-      ];
+    // Stores
+    Bind.singleton<NewDriveStore>(
+      (i) => NewDriveStore(
+        getRecentItemsUseCase: i.get<GetRecentItemsUseCase>(),
+        getOwnFilesUseCase: i.get<GetOwnFilesUseCase>(),
+        getFolderContentsUseCase: i.get<GetFolderContentsUseCase>(),
+        driveRepository: i.get<DriveRepository>(),
+      ),
+    ),
+    Bind.singleton<FileOpenerStore>(
+      (i) => FileOpenerStore(i.get<DownloadAndOpenFileUsecase>()),
+    ),
+  ];
 
   @override
   List<ModularRoute> get routes => [
-        // Rota principal do módulo
-        ChildRoute(
-          '/',
-          child: (context, args) => const NewDrivePage(),
-        ),
+    // Rota principal do módulo
+    ChildRoute('/', child: (context, args) => const NewDrivePage()),
 
-        // Reprodução de vídeo com streaming
-        ChildRoute(
-          '/video-player',
-          child: (context, args) => VideoPlayerPage(item: args.data),
-        ),
+    // Reprodução de vídeo com streaming
+    ChildRoute(
+      '/video-player',
+      child: (context, args) => VideoPlayerPage(item: args.data),
+    ),
 
-        // Visualização de imagem com zoom
-        ChildRoute(
-          '/image-viewer',
-          child: (context, args) => ImageViewerPage(item: args.data),
-        ),
+    // Visualização de imagem com zoom
+    ChildRoute(
+      '/image-viewer',
+      child: (context, args) => ImageViewerPage(item: args.data),
+    ),
 
-        // Detalhes de categoria com lista de itens
-        ChildRoute(
-          '/category',
-          child: (context, args) {
-            // Recebe o DriveItemType via arguments
-            final categoryType =
-                args.data as DriveItemType? ?? DriveItemType.document;
-            return CategoryDetailsPage(categoryType: categoryType);
-          },
-        ),
+    // Detalhes de categoria com lista de itens
+    ChildRoute(
+      '/category',
+      child: (context, args) {
+        // Recebe o DriveItemType via arguments
+        final categoryType =
+            args.data as DriveItemType? ?? DriveItemType.document;
+        return CategoryDetailsPage(categoryType: categoryType);
+      },
+    ),
 
-        // Meus arquivos (apenas administrador)
-        ChildRoute(
-          '/my-files',
-          child: (context, args) => const MyFilesPage(),
-        ),
+    // Meus arquivos (apenas administrador)
+    ChildRoute('/my-files', child: (context, args) => const MyFilesPage()),
 
-        // Todos os arquivos compartilhados
-        ChildRoute(
-          '/shared-files',
-          child: (context, args) => const AllSharedFilesPage(),
-        ),
+    // Todos os arquivos compartilhados
+    ChildRoute(
+      '/shared-files',
+      child: (context, args) => const AllSharedFilesPage(),
+    ),
 
-        // Conteúdo de uma pasta
-        ChildRoute(
-          '/folder',
-          child: (context, args) {
-            final folderId = args.data?['folderId'] as String? ?? '';
-            final folderName = args.data?['folderName'] as String?;
-            return FolderContentsPage(
-              folderId: folderId,
-              folderName: folderName,
-            );
-          },
-        ),
+    // Conteúdo de uma pasta
+    ChildRoute(
+      '/folder',
+      child: (context, args) {
+        final folderId = args.data?['folderId'] as String? ?? '';
+        final folderName = args.data?['folderName'] as String?;
+        return FolderContentsPage(folderId: folderId, folderName: folderName);
+      },
+    ),
 
-        // TODO: Adicionar rotas para:
-        // - Detalhes de arquivo
-      ];
+    // TODO: Adicionar rotas para:
+    // - Detalhes de arquivo
+  ];
 }

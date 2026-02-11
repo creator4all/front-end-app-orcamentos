@@ -2,7 +2,7 @@ import 'package:mobx/mobx.dart';
 
 import '../../domain/entities/drive_category.dart';
 import '../../domain/entities/drive_item.dart';
-import '../../domain/usecases/get_file_details_usecase.dart';
+import '../../domain/repositories/drive_repository.dart';
 import '../../domain/usecases/get_folder_contents_usecase.dart';
 import '../../domain/usecases/get_own_files_usecase.dart';
 import '../../domain/usecases/get_recent_items_usecase.dart';
@@ -22,13 +22,13 @@ abstract class _NewDriveStoreBase with Store {
   final GetRecentItemsUseCase? getRecentItemsUseCase;
   final GetOwnFilesUseCase? getOwnFilesUseCase;
   final GetFolderContentsUseCase? getFolderContentsUseCase;
-  final GetFileDetailsUseCase? getFileDetailsUseCase;
+  final DriveRepository? driveRepository;
 
   _NewDriveStoreBase({
     this.getRecentItemsUseCase,
     this.getOwnFilesUseCase,
     this.getFolderContentsUseCase,
-    this.getFileDetailsUseCase,
+    this.driveRepository,
   });
 
   // Observables
@@ -75,8 +75,9 @@ abstract class _NewDriveStoreBase with Store {
   @computed
   List<DriveItem> get recentItems {
     // Retorna os 4 itens compartilhados mais recentemente (apenas raiz)
-    final sorted = allItems.where((item) => item.parentId == null).toList()
-      ..sort((a, b) => b.lastViewed.compareTo(a.lastViewed));
+    final sorted =
+        allItems.where((item) => item.parentId == null).toList()
+          ..sort((a, b) => b.lastViewed.compareTo(a.lastViewed));
     return sorted.take(4).toList();
   }
 
@@ -87,8 +88,9 @@ abstract class _NewDriveStoreBase with Store {
       return [];
     }
     return allItems
-        .where((item) =>
-            item.type == selectedCategoryType && item.parentId == null)
+        .where(
+          (item) => item.type == selectedCategoryType && item.parentId == null,
+        )
         .toList();
   }
 
@@ -156,13 +158,10 @@ abstract class _NewDriveStoreBase with Store {
       if (getRecentItemsUseCase != null) {
         final result = await getRecentItemsUseCase!();
 
-        result.fold(
-          (failure) => errorMessage = failure.message,
-          (items) {
-            allItems.clear();
-            allItems.addAll(items);
-          },
-        );
+        result.fold((failure) => errorMessage = failure.message, (items) {
+          allItems.clear();
+          allItems.addAll(items);
+        });
       } else {
         await Future.delayed(const Duration(milliseconds: 500));
         allItems.clear();
@@ -184,13 +183,10 @@ abstract class _NewDriveStoreBase with Store {
       if (getOwnFilesUseCase != null) {
         final result = await getOwnFilesUseCase!();
 
-        result.fold(
-          (failure) => errorMessage = failure.message,
-          (items) {
-            ownFiles.clear();
-            ownFiles.addAll(items);
-          },
-        );
+        result.fold((failure) => errorMessage = failure.message, (items) {
+          ownFiles.clear();
+          ownFiles.addAll(items);
+        });
       } else {
         await Future.delayed(const Duration(milliseconds: 500));
         ownFiles.clear();
@@ -246,13 +242,17 @@ abstract class _NewDriveStoreBase with Store {
 
     // Calcular tamanho total por categoria
     final documentsSize = _calculateTotalSize(
-        rootItems.where((item) => item.type == DriveItemType.document));
+      rootItems.where((item) => item.type == DriveItemType.document),
+    );
     final imagesSize = _calculateTotalSize(
-        rootItems.where((item) => item.type == DriveItemType.image));
+      rootItems.where((item) => item.type == DriveItemType.image),
+    );
     final videosSize = _calculateTotalSize(
-        rootItems.where((item) => item.type == DriveItemType.video));
+      rootItems.where((item) => item.type == DriveItemType.video),
+    );
     final foldersSize = _calculateTotalSize(
-        rootItems.where((item) => item.type == DriveItemType.folder));
+      rootItems.where((item) => item.type == DriveItemType.folder),
+    );
 
     categories.addAll([
       DriveCategory(
@@ -330,16 +330,13 @@ abstract class _NewDriveStoreBase with Store {
   /// Busca detalhes de um arquivo específico
   /// Retorna DriveItem com sharedBy e downloadUrl preenchidos
   Future<DriveItem?> getFileDetails(String fileId) async {
-    if (getFileDetailsUseCase == null) return null;
+    if (driveRepository == null) return null;
 
-    final result = await getFileDetailsUseCase!(fileId);
-    return result.fold(
-      (failure) {
-        errorMessage = failure.message;
-        return null;
-      },
-      (item) => item,
-    );
+    final result = await driveRepository!.getFileDetails(fileId);
+    return result.fold((failure) {
+      errorMessage = failure.message;
+      return null;
+    }, (item) => item);
   }
 
   @action

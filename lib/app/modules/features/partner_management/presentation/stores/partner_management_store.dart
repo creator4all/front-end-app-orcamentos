@@ -1,7 +1,7 @@
 import 'package:mobx/mobx.dart';
 
 import '../../domain/entities/partner.dart';
-import '../../domain/usecases/list_partners_usecase.dart';
+import '../../domain/repositories/partner_management_repository.dart';
 
 part 'partner_management_store.g.dart';
 
@@ -10,11 +10,9 @@ class PartnerManagementStore = _PartnerManagementStoreBase
     with _$PartnerManagementStore;
 
 abstract class _PartnerManagementStoreBase with Store {
-  final ListPartnersUsecase listPartnersUsecase;
+  final PartnerManagementRepository partnerManagementRepository;
 
-  _PartnerManagementStoreBase({
-    required this.listPartnersUsecase,
-  });
+  _PartnerManagementStoreBase({required this.partnerManagementRepository});
 
   // ========== OBSERVABLES ==========
 
@@ -88,7 +86,7 @@ abstract class _PartnerManagementStoreBase with Store {
 
     print('📋 [PartnerManagementStore] Carregando parceiros...');
 
-    final result = await listPartnersUsecase(page: 1);
+    final result = await partnerManagementRepository.listPartners(page: 1);
     _processResult(result, updateTotal: true);
 
     isLoading = false;
@@ -104,17 +102,16 @@ abstract class _PartnerManagementStoreBase with Store {
 
     print('📋 [PartnerManagementStore] Carregando página $nextPage...');
 
-    final result = await listPartnersUsecase(page: nextPage);
+    final result = await partnerManagementRepository.listPartners(
+      page: nextPage,
+    );
     _processResult(result);
 
     isLoadingMore = false;
   }
 
   /// Processa resultado da API e atualiza estado
-  void _processResult(
-    dynamic result, {
-    bool updateTotal = false,
-  }) {
+  void _processResult(dynamic result, {bool updateTotal = false}) {
     result.fold(
       (failure) {
         error = failure.message;
@@ -128,7 +125,8 @@ abstract class _PartnerManagementStoreBase with Store {
           totalPartners = paginatedPartners.total;
         }
         print(
-            '✅ [PartnerManagementStore] Carregados ${partners.length} parceiros');
+          '✅ [PartnerManagementStore] Carregados ${partners.length} parceiros',
+        );
       },
     );
   }

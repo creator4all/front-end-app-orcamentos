@@ -12,7 +12,7 @@ import '../../../../../../shared/widgets/custom_top_bar.dart';
 import '../../../../../../shared/widgets/searchable_dropdown_widget.dart';
 import '../../domain/entities/censo_escolar_entity.dart';
 import '../../domain/entities/censo_group_entity.dart';
-import '../../domain/usecases/export_census_csv_usecase.dart';
+import '../../domain/repositories/census_repository.dart';
 import '../stores/school_census_store.dart';
 import '../widgets/census_data_section_widget.dart';
 
@@ -104,9 +104,10 @@ class _SchoolCensusPageState
 
     return censo.grupos
         .map((group) {
-          final studentTitles = group.titulos
-              .where((title) => !title.nomeEtapa.endsWith('P'))
-              .toList();
+          final studentTitles =
+              group.titulos
+                  .where((title) => !title.nomeEtapa.endsWith('P'))
+                  .toList();
           return CensoGroupEntity(
             id: group.id,
             nome: group.nome,
@@ -124,9 +125,10 @@ class _SchoolCensusPageState
 
     return censo.grupos
         .map((group) {
-          final professorTitles = group.titulos
-              .where((title) => title.nomeEtapa.endsWith('P'))
-              .toList();
+          final professorTitles =
+              group.titulos
+                  .where((title) => title.nomeEtapa.endsWith('P'))
+                  .toList();
           return CensoGroupEntity(
             id: group.id,
             nome: group.nome,
@@ -160,25 +162,27 @@ class _SchoolCensusPageState
         appBar: CustomTopBar(
           title: 'Censo escolar',
           showBackButton: true,
-          actionButton: widget.budgetId != null
-              ? IconButton(
-                  onPressed: _isExporting ? null : _handleExportCsv,
-                  icon: _isExporting
-                      ? SizedBox(
-                          width: 20.sp,
-                          height: 20.sp,
-                          child: const CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Color(0xFF117BBD),
-                          ),
-                        )
-                      : Icon(
-                          Icons.share,
-                          color: const Color(0xFF117BBD),
-                          size: 24.sp,
-                        ),
-                )
-              : null,
+          actionButton:
+              widget.budgetId != null
+                  ? IconButton(
+                    onPressed: _isExporting ? null : _handleExportCsv,
+                    icon:
+                        _isExporting
+                            ? SizedBox(
+                              width: 20.sp,
+                              height: 20.sp,
+                              child: const CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Color(0xFF117BBD),
+                              ),
+                            )
+                            : Icon(
+                              Icons.share,
+                              color: const Color(0xFF117BBD),
+                              size: 24.sp,
+                            ),
+                  )
+                  : null,
         ),
         body: SafeArea(
           child: Observer(
@@ -232,7 +236,6 @@ class _SchoolCensusPageState
 
                             // Aviso de modo agregado (REMOVIDO EM FAVOR DO DIALOG)
                             // if (store.isAggregatedView) _buildAggregatedModeWarning(),
-
                             SizedBox(height: 16.h),
                             _buildStudentsSections(),
                             _buildProfessorsSections(),
@@ -293,16 +296,18 @@ class _SchoolCensusPageState
               height: 24.h,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12.r),
-                color: store.isEditMode
-                    ? const Color(0xFF117BBD)
-                    : const Color(0xFFE0E0E0),
+                color:
+                    store.isEditMode
+                        ? const Color(0xFF117BBD)
+                        : const Color(0xFFE0E0E0),
               ),
               child: AnimatedAlign(
                 duration: const Duration(milliseconds: 300),
                 curve: Curves.easeInOut,
-                alignment: store.isEditMode
-                    ? Alignment.centerRight
-                    : Alignment.centerLeft,
+                alignment:
+                    store.isEditMode
+                        ? Alignment.centerRight
+                        : Alignment.centerLeft,
                 child: Container(
                   width: 20.w,
                   height: 20.h,
@@ -359,16 +364,19 @@ class _SchoolCensusPageState
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: studentGroups
-          .map((group) => CensusDataSectionWidget.withId(
-                group: group,
-                isEditMode: store.isEditMode && !store.isAggregatedView,
-                controllers: _controllers,
-                onItemChanged: (entry) {
-                  store.updateValue(entry.key, entry.value);
-                },
-              ))
-          .toList(),
+      children:
+          studentGroups
+              .map(
+                (group) => CensusDataSectionWidget.withId(
+                  group: group,
+                  isEditMode: store.isEditMode && !store.isAggregatedView,
+                  controllers: _controllers,
+                  onItemChanged: (entry) {
+                    store.updateValue(entry.key, entry.value);
+                  },
+                ),
+              )
+              .toList(),
     );
   }
 
@@ -393,14 +401,16 @@ class _SchoolCensusPageState
           ),
         ),
         SizedBox(height: 8.h),
-        ...professorGroups.map((group) => CensusDataSectionWidget.withId(
-              group: group,
-              isEditMode: store.isEditMode && !store.isAggregatedView,
-              controllers: _controllers,
-              onItemChanged: (entry) {
-                store.updateValue(entry.key, entry.value);
-              },
-            )),
+        ...professorGroups.map(
+          (group) => CensusDataSectionWidget.withId(
+            group: group,
+            isEditMode: store.isEditMode && !store.isAggregatedView,
+            controllers: _controllers,
+            onItemChanged: (entry) {
+              store.updateValue(entry.key, entry.value);
+            },
+          ),
+        ),
       ],
     );
   }
@@ -419,23 +429,24 @@ class _SchoolCensusPageState
           padding: EdgeInsets.symmetric(vertical: 12.h),
           disabledBackgroundColor: Colors.grey,
         ),
-        child: store.isSaving
-            ? SizedBox(
-                width: 20.sp,
-                height: 20.sp,
-                child: const CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+        child:
+            store.isSaving
+                ? SizedBox(
+                  width: 20.sp,
+                  height: 20.sp,
+                  child: const CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+                : Text(
+                  'Salvar',
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
                 ),
-              )
-            : Text(
-                'Salvar',
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
       ),
     );
   }
@@ -484,8 +495,8 @@ class _SchoolCensusPageState
     setState(() => _isExporting = true);
 
     try {
-      final useCase = Modular.get<ExportCensusCsvUseCase>();
-      final result = await useCase(widget.budgetId!);
+      final repository = Modular.get<CensusRepository>();
+      final result = await repository.exportCensusCsv(widget.budgetId!);
 
       result.fold(
         (failure) {
@@ -507,10 +518,9 @@ class _SchoolCensusPageState
             await file.writeAsBytes(csvBytes);
 
             // Compartilhar
-            await Share.shareXFiles(
-              [XFile(file.path)],
-              subject: 'Censo Escolar - Orçamento ${widget.budgetId}',
-            );
+            await Share.shareXFiles([
+              XFile(file.path),
+            ], subject: 'Censo Escolar - Orçamento ${widget.budgetId}');
           } catch (e) {
             if (mounted) {
               CustomInfoDialog.show(

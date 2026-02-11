@@ -1,7 +1,7 @@
 import 'package:mobx/mobx.dart';
 
 import '../../domain/entities/report_budget.dart';
-import '../../domain/usecases/get_user_budgets_usecase.dart';
+import '../../domain/repositories/reports_repository.dart';
 import 'report_filter_store.dart';
 
 part 'report_budget_list_store.g.dart';
@@ -14,11 +14,11 @@ class ReportBudgetListStore = _ReportBudgetListStoreBase
     with _$ReportBudgetListStore;
 
 abstract class _ReportBudgetListStoreBase with Store {
-  final GetUserBudgetsUsecase getUserBudgetsUsecase;
+  final ReportsRepository reportsRepository;
   final ReportFilterStore filterStore;
 
   _ReportBudgetListStoreBase({
-    required this.getUserBudgetsUsecase,
+    required this.reportsRepository,
     required this.filterStore,
   });
 
@@ -56,8 +56,9 @@ abstract class _ReportBudgetListStoreBase with Store {
     var result = allBudgets.toList();
 
     // Filtrar arquivados separadamente (mutuamente exclusivo)
-    final isArchivedFilterActive =
-        filterStore.selectedStatuses.contains('arquivado');
+    final isArchivedFilterActive = filterStore.selectedStatuses.contains(
+      'arquivado',
+    );
     if (isArchivedFilterActive) {
       // Se "arquivado" está selecionado, mostrar APENAS arquivados
       result = result.where((budget) => budget.isArchived).toList();
@@ -69,11 +70,14 @@ abstract class _ReportBudgetListStoreBase with Store {
     // Filtrar por busca
     if (filterStore.budgetSearchQuery.isNotEmpty) {
       final query = filterStore.budgetSearchQuery.toLowerCase();
-      result = result
-          .where((budget) =>
-              (budget.nome?.toLowerCase().contains(query) ?? false) ||
-              budget.codigo.toLowerCase().contains(query))
-          .toList();
+      result =
+          result
+              .where(
+                (budget) =>
+                    (budget.nome?.toLowerCase().contains(query) ?? false) ||
+                    budget.codigo.toLowerCase().contains(query),
+              )
+              .toList();
     }
 
     // Filtrar por status (exceto arquivado que já foi tratado)
@@ -83,10 +87,13 @@ abstract class _ReportBudgetListStoreBase with Store {
           filterStore.selectedStatuses.where((s) => s != 'arquivado').toSet();
 
       if (statusFilters.isNotEmpty) {
-        result = result
-            .where(
-                (budget) => statusFilters.contains(budget.status.toLowerCase()))
-            .toList();
+        result =
+            result
+                .where(
+                  (budget) =>
+                      statusFilters.contains(budget.status.toLowerCase()),
+                )
+                .toList();
       }
     }
 
@@ -138,7 +145,7 @@ abstract class _ReportBudgetListStoreBase with Store {
     isLoading = true;
     error = null;
 
-    final result = await getUserBudgetsUsecase(
+    final result = await reportsRepository.getUserBudgets(
       userId,
       dataInicio: filterStore.dataInicio,
       dataFim: filterStore.dataFim,

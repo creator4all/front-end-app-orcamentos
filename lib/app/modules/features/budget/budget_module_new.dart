@@ -18,18 +18,14 @@ import 'budget_config/domain/repositories/budget_detail_repository.dart';
 import 'budget_config/domain/repositories/census_repository.dart';
 import 'budget_config/domain/services/product_calculation_service.dart';
 import 'budget_config/domain/usecases/calculate_totals_usecase.dart';
-import 'budget_config/domain/usecases/export_census_csv_usecase.dart';
 import 'budget_config/domain/usecases/finalize_budget_usecase.dart';
 import 'budget_config/domain/usecases/get_all_budget_products_usecase.dart';
 import 'budget_config/domain/usecases/get_budget_census_usecase.dart';
 import 'budget_config/domain/usecases/get_budget_detail_usecase.dart';
 import 'budget_config/domain/usecases/get_category_products_usecase.dart';
 import 'budget_config/domain/usecases/get_census_data_usecase.dart';
-import 'budget_config/domain/usecases/get_census_usecase.dart';
 import 'budget_config/domain/usecases/save_budget_usecase.dart';
 import 'budget_config/domain/usecases/toggle_category_usecase.dart';
-import 'budget_config/domain/usecases/update_budget_census_usecase.dart';
-import 'budget_config/domain/usecases/update_census_usecase.dart';
 import 'budget_config/presentation/pages/config_new_budget_page.dart';
 import 'budget_config/presentation/pages/school_census_page.dart';
 import 'budget_config/presentation/stores/budget_config_store.dart';
@@ -61,7 +57,6 @@ import 'budget_edit/domain/repositories/budget_edit_repository.dart';
 import 'budget_edit/domain/repositories/budget_pdf_repository.dart';
 import 'budget_edit/domain/repositories/indicators_repository.dart';
 import 'budget_edit/domain/usecases/generate_pdf_usecase.dart';
-import 'budget_edit/domain/usecases/get_all_budget_products_for_edit_usecase.dart';
 import 'budget_edit/domain/usecases/get_budget_for_edit_usecase.dart';
 import 'budget_edit/domain/usecases/save_indicators_usecase.dart';
 import 'budget_edit/domain/usecases/update_budget_usecase.dart';
@@ -72,9 +67,6 @@ import 'budget_list/data/datasources/budget_remote_datasource.dart';
 import 'budget_list/data/datasources/budget_remote_datasource_impl.dart';
 import 'budget_list/data/repositories/budget_list_repository_impl.dart';
 import 'budget_list/domain/repositories/budget_list_repository.dart';
-import 'budget_list/domain/usecases/delete_budget_usecase.dart';
-import 'budget_list/domain/usecases/get_budget_by_id_usecase.dart';
-import 'budget_list/domain/usecases/get_budgets_usecase.dart';
 import 'budget_list/domain/usecases/rename_budget_usecase.dart';
 import 'budget_list/presentation/pages/budget_list_page.dart';
 import 'budget_list/presentation/stores/budget_list_store.dart';
@@ -93,317 +85,296 @@ import 'budget_multi_city/presentation/stores/multi_city_census_store.dart';
 class BudgetModuleNew extends Module {
   @override
   List<Bind> get binds => [
-        // ==================== CORE (AppHttpClient) ====================
-        Bind.lazySingleton<AppHttpClient>(
-          (i) => DioHttpClientImpl(
-            DioConfigFactory.createDefault(
-              baseUrl: ApiConfig.baseUrl,
-              getToken: () => TokenCache.instance.getTokenOrEmpty(),
-              enableLogger: true,
-            ),
-          ),
+    // ==================== CORE (AppHttpClient) ====================
+    Bind.lazySingleton<AppHttpClient>(
+      (i) => DioHttpClientImpl(
+        DioConfigFactory.createDefault(
+          baseUrl: ApiConfig.baseUrl,
+          getToken: () => TokenCache.instance.getTokenOrEmpty(),
+          enableLogger: true,
         ),
+      ),
+    ),
 
-        // ==================== BUDGET LIST ====================
-        // DataSources
-        Bind.lazySingleton<BudgetRemoteDataSource>(
-          (i) => BudgetRemoteDataSourceImpl(i.get<AppHttpClient>()),
-        ),
+    // ==================== BUDGET LIST ====================
+    // DataSources
+    Bind.lazySingleton<BudgetRemoteDataSource>(
+      (i) => BudgetRemoteDataSourceImpl(i.get<AppHttpClient>()),
+    ),
 
-        // Repositories
-        Bind.lazySingleton<BudgetListRepository>(
-          (i) => BudgetListRepositoryImpl(i.get<BudgetRemoteDataSource>()),
-        ),
+    // Repositories
+    Bind.lazySingleton<BudgetListRepository>(
+      (i) => BudgetListRepositoryImpl(i.get<BudgetRemoteDataSource>()),
+    ),
 
-        // UseCases
-        Bind.lazySingleton(
-          (i) => GetBudgetsUseCase(i.get<BudgetListRepository>()),
-        ),
-        Bind.lazySingleton(
-          (i) => GetBudgetByIdUseCase(i.get<BudgetListRepository>()),
-        ),
-        Bind.lazySingleton(
-          (i) => RenameBudgetUseCase(i.get<BudgetListRepository>()),
-        ),
-        Bind.lazySingleton(
-          (i) => DeleteBudgetUseCase(i.get<BudgetListRepository>()),
-        ),
+    // UseCases
+    Bind.lazySingleton(
+      (i) => RenameBudgetUseCase(i.get<BudgetListRepository>()),
+    ),
 
-        // Stores
-        Bind.lazySingleton(
-          (i) => BudgetListStore(
-            getBudgetsUseCase: i.get<GetBudgetsUseCase>(),
-            renameBudgetUseCase: i.get<RenameBudgetUseCase>(),
-            deleteBudgetUseCase: i.get<DeleteBudgetUseCase>(),
-          ),
-        ),
+    // Stores
+    Bind.lazySingleton(
+      (i) => BudgetListStore(
+        budgetListRepository: i.get<BudgetListRepository>(),
+        renameBudgetUseCase: i.get<RenameBudgetUseCase>(),
+      ),
+    ),
 
-        // ==================== BUDGET CREATE ====================
-        // DataSources
-        Bind.lazySingleton<PartnerRemoteDataSource>(
-          (i) => PartnerRemoteDataSourceImpl(i.get<AppHttpClient>()),
-        ),
-        Bind.lazySingleton<BudgetDraftRemoteDataSource>(
-          (i) => BudgetDraftRemoteDataSourceImpl(i.get<AppHttpClient>()),
-        ),
+    // ==================== BUDGET CREATE ====================
+    // DataSources
+    Bind.lazySingleton<PartnerRemoteDataSource>(
+      (i) => PartnerRemoteDataSourceImpl(i.get<AppHttpClient>()),
+    ),
+    Bind.lazySingleton<BudgetDraftRemoteDataSource>(
+      (i) => BudgetDraftRemoteDataSourceImpl(i.get<AppHttpClient>()),
+    ),
 
-        // Repositories
-        Bind.lazySingleton<PartnerRepository>(
-          (i) => PartnerRepositoryImpl(i.get<PartnerRemoteDataSource>()),
-        ),
-        Bind.lazySingleton<BudgetDraftRepository>(
-          (i) =>
-              BudgetDraftRepositoryImpl(i.get<BudgetDraftRemoteDataSource>()),
-        ),
+    // Repositories
+    Bind.lazySingleton<PartnerRepository>(
+      (i) => PartnerRepositoryImpl(i.get<PartnerRemoteDataSource>()),
+    ),
+    Bind.lazySingleton<BudgetDraftRepository>(
+      (i) => BudgetDraftRepositoryImpl(i.get<BudgetDraftRemoteDataSource>()),
+    ),
 
-        // UseCases
-        Bind.lazySingleton<GetStandardPartnersUseCase>(
-          (i) => GetStandardPartnersUseCase(i.get<PartnerRepository>()),
-        ),
-        Bind.lazySingleton<CreateDraftBudgetUseCase>(
-          (i) => CreateDraftBudgetUseCase(i.get<BudgetDraftRepository>()),
-        ),
+    // UseCases
+    Bind.lazySingleton<GetStandardPartnersUseCase>(
+      (i) => GetStandardPartnersUseCase(i.get<PartnerRepository>()),
+    ),
+    Bind.lazySingleton<CreateDraftBudgetUseCase>(
+      (i) => CreateDraftBudgetUseCase(i.get<BudgetDraftRepository>()),
+    ),
 
-        // Stores
-        Bind.lazySingleton<BudgetCreateStore>(
-          (i) => BudgetCreateStore(
-            getStandardPartnersUseCase: i.get<GetStandardPartnersUseCase>(),
-            createDraftBudgetUseCase: i.get<CreateDraftBudgetUseCase>(),
-          ),
-        ),
+    // Stores
+    Bind.lazySingleton<BudgetCreateStore>(
+      (i) => BudgetCreateStore(
+        getStandardPartnersUseCase: i.get<GetStandardPartnersUseCase>(),
+        createDraftBudgetUseCase: i.get<CreateDraftBudgetUseCase>(),
+      ),
+    ),
 
-        // ==================== BUDGET CONFIG ====================
-        // DataSources
-        Bind.lazySingleton<BudgetDetailRemoteDataSource>(
-          (i) => BudgetDetailRemoteDataSourceImpl(i.get<AppHttpClient>()),
-        ),
-        Bind.lazySingleton<CensusRemoteDataSource>(
-          (i) => CensusRemoteDataSourceImpl(i.get<AppHttpClient>()),
-        ),
+    // ==================== BUDGET CONFIG ====================
+    // DataSources
+    Bind.lazySingleton<BudgetDetailRemoteDataSource>(
+      (i) => BudgetDetailRemoteDataSourceImpl(i.get<AppHttpClient>()),
+    ),
+    Bind.lazySingleton<CensusRemoteDataSource>(
+      (i) => CensusRemoteDataSourceImpl(i.get<AppHttpClient>()),
+    ),
 
-        // Repositories
-        Bind.lazySingleton<BudgetDetailRepository>(
-          (i) =>
-              BudgetDetailRepositoryImpl(i.get<BudgetDetailRemoteDataSource>()),
-        ),
-        Bind.lazySingleton<CensusRepository>(
-          (i) => CensusRepositoryImpl(i.get<CensusRemoteDataSource>()),
-        ),
+    // Repositories
+    Bind.lazySingleton<BudgetDetailRepository>(
+      (i) => BudgetDetailRepositoryImpl(i.get<BudgetDetailRemoteDataSource>()),
+    ),
+    Bind.lazySingleton<CensusRepository>(
+      (i) => CensusRepositoryImpl(i.get<CensusRemoteDataSource>()),
+    ),
 
-        // UseCases
-        Bind.lazySingleton<GetBudgetDetailUseCase>(
-          (i) => GetBudgetDetailUseCase(i.get<BudgetDetailRepository>()),
-        ),
-        Bind.lazySingleton<GetAllBudgetProductsUseCase>(
-          (i) => GetAllBudgetProductsUseCase(i.get<BudgetDetailRepository>()),
-        ),
-        Bind.lazySingleton<GetCategoryProductsUseCase>(
-          (i) => GetCategoryProductsUseCase(i.get<BudgetDetailRepository>()),
-        ),
-        Bind.lazySingleton<GetCensusDataUseCase>(
-          (i) => GetCensusDataUseCase(i.get<CensusRepository>()),
-        ),
-        Bind.lazySingleton<ToggleCategoryUseCase>(
-          (i) => ToggleCategoryUseCase(),
-        ),
-        Bind.lazySingleton<CalculateTotalsUseCase>(
-          (i) => CalculateTotalsUseCase(),
-        ),
-        Bind.lazySingleton<FinalizeBudgetUseCase>(
-          (i) => FinalizeBudgetUseCase(i.get<BudgetDetailRepository>()),
-        ),
-        Bind.lazySingleton<SaveBudgetUseCase>(
-          (i) => SaveBudgetUseCase(i.get<BudgetDetailRepository>()),
-        ),
-        Bind.lazySingleton(
-          (i) => GetCensusUseCase(i.get<CensusRepository>()),
-        ),
-        Bind.lazySingleton(
-          (i) => UpdateCensusUseCase(i.get<CensusRepository>()),
-        ),
-        Bind.lazySingleton(
-          (i) => UpdateBudgetCensusUseCase(i.get<CensusRepository>()),
-        ),
-        Bind.lazySingleton(
-          (i) => GetBudgetCensusUseCase(i.get<CensusRemoteDataSource>()),
-        ),
-        Bind.lazySingleton(
-          (i) => ExportCensusCsvUseCase(i.get<CensusRepository>()),
-        ),
+    // UseCases
+    Bind.lazySingleton<GetBudgetDetailUseCase>(
+      (i) => GetBudgetDetailUseCase(i.get<BudgetDetailRepository>()),
+    ),
+    Bind.lazySingleton<GetAllBudgetProductsUseCase>(
+      (i) => GetAllBudgetProductsUseCase(i.get<BudgetDetailRepository>()),
+    ),
+    Bind.lazySingleton<GetCategoryProductsUseCase>(
+      (i) => GetCategoryProductsUseCase(i.get<BudgetDetailRepository>()),
+    ),
+    Bind.lazySingleton<GetCensusDataUseCase>(
+      (i) => GetCensusDataUseCase(i.get<CensusRepository>()),
+    ),
+    Bind.lazySingleton<ToggleCategoryUseCase>((i) => ToggleCategoryUseCase()),
+    Bind.lazySingleton<CalculateTotalsUseCase>((i) => CalculateTotalsUseCase()),
+    Bind.lazySingleton<FinalizeBudgetUseCase>(
+      (i) => FinalizeBudgetUseCase(i.get<BudgetDetailRepository>()),
+    ),
+    Bind.lazySingleton<SaveBudgetUseCase>(
+      (i) => SaveBudgetUseCase(i.get<BudgetDetailRepository>()),
+    ),
+    Bind.lazySingleton(
+      (i) => GetBudgetCensusUseCase(i.get<CensusRemoteDataSource>()),
+    ),
 
-        // Services
-        Bind.lazySingleton<ProductCalculationService>(
-          (i) => const ProductCalculationService(),
-        ),
+    // Services
+    Bind.lazySingleton<ProductCalculationService>(
+      (i) => const ProductCalculationService(),
+    ),
 
-        // Stores
-        Bind.lazySingleton<BudgetConfigStore>(
-          (i) => BudgetConfigStore(
-            getBudgetDetailUseCase: i.get<GetBudgetDetailUseCase>(),
-            getCategoryProductsUseCase: i.get<GetCategoryProductsUseCase>(),
-            getCensusDataUseCase: i.get<GetCensusDataUseCase>(),
-            toggleCategoryUseCase: i.get<ToggleCategoryUseCase>(),
-            calculateTotalsUseCase: i.get<CalculateTotalsUseCase>(),
-            finalizeBudgetUseCase: i.get<FinalizeBudgetUseCase>(),
-            saveBudgetUseCase: i.get<SaveBudgetUseCase>(),
-            calculationService: i.get<ProductCalculationService>(),
-          ),
-        ),
+    // Stores
+    Bind.lazySingleton<BudgetConfigStore>(
+      (i) => BudgetConfigStore(
+        getBudgetDetailUseCase: i.get<GetBudgetDetailUseCase>(),
+        getCategoryProductsUseCase: i.get<GetCategoryProductsUseCase>(),
+        getCensusDataUseCase: i.get<GetCensusDataUseCase>(),
+        toggleCategoryUseCase: i.get<ToggleCategoryUseCase>(),
+        calculateTotalsUseCase: i.get<CalculateTotalsUseCase>(),
+        finalizeBudgetUseCase: i.get<FinalizeBudgetUseCase>(),
+        saveBudgetUseCase: i.get<SaveBudgetUseCase>(),
+        calculationService: i.get<ProductCalculationService>(),
+      ),
+    ),
 
-        Bind.lazySingleton(
-          (i) => SchoolCensusStore(
-            i.get<GetCensusUseCase>(),
-            i.get<UpdateCensusUseCase>(),
-            i.get<UpdateBudgetCensusUseCase>(),
-            i.get<GetBudgetCensusUseCase>(),
-          ),
-        ),
+    Bind.lazySingleton(
+      (i) => SchoolCensusStore(
+        i.get<CensusRepository>(),
+        i.get<GetBudgetCensusUseCase>(),
+      ),
+    ),
 
-        // ==================== BUDGET EDIT ====================
-        // DataSources
-        Bind.lazySingleton<BudgetEditRemoteDataSource>(
-          (i) => BudgetEditRemoteDataSourceImpl(i.get<AppHttpClient>()),
-        ),
-        Bind.lazySingleton<BudgetPdfRemoteDataSource>(
-          (i) => BudgetPdfRemoteDataSourceImpl(i.get<AppHttpClient>()),
-        ),
-        Bind.lazySingleton<IndicatorsRemoteDataSource>(
-          (i) => IndicatorsRemoteDataSourceImpl(i.get<AppHttpClient>()),
-        ),
+    // ==================== BUDGET EDIT ====================
+    // DataSources
+    Bind.lazySingleton<BudgetEditRemoteDataSource>(
+      (i) => BudgetEditRemoteDataSourceImpl(i.get<AppHttpClient>()),
+    ),
+    Bind.lazySingleton<BudgetPdfRemoteDataSource>(
+      (i) => BudgetPdfRemoteDataSourceImpl(i.get<AppHttpClient>()),
+    ),
+    Bind.lazySingleton<IndicatorsRemoteDataSource>(
+      (i) => IndicatorsRemoteDataSourceImpl(i.get<AppHttpClient>()),
+    ),
 
-        // Repositories
-        Bind.lazySingleton<BudgetEditRepository>(
-          (i) => BudgetEditRepositoryImpl(i.get<BudgetEditRemoteDataSource>()),
-        ),
-        Bind.lazySingleton<BudgetPdfRepository>(
-          (i) => BudgetPdfRepositoryImpl(i.get<BudgetPdfRemoteDataSource>()),
-        ),
-        Bind.lazySingleton<IndicatorsRepository>(
-          (i) => IndicatorsRepositoryImpl(i.get<IndicatorsRemoteDataSource>()),
-        ),
+    // Repositories
+    Bind.lazySingleton<BudgetEditRepository>(
+      (i) => BudgetEditRepositoryImpl(i.get<BudgetEditRemoteDataSource>()),
+    ),
+    Bind.lazySingleton<BudgetPdfRepository>(
+      (i) => BudgetPdfRepositoryImpl(i.get<BudgetPdfRemoteDataSource>()),
+    ),
+    Bind.lazySingleton<IndicatorsRepository>(
+      (i) => IndicatorsRepositoryImpl(i.get<IndicatorsRemoteDataSource>()),
+    ),
 
-        // UseCases
-        Bind.lazySingleton<GetBudgetForEditUseCase>(
-          (i) => GetBudgetForEditUseCase(i.get<BudgetEditRepository>()),
-        ),
-        Bind.lazySingleton<GetAllBudgetProductsForEditUseCase>(
-          (i) =>
-              GetAllBudgetProductsForEditUseCase(i.get<BudgetEditRepository>()),
-        ),
-        Bind.lazySingleton<UpdateBudgetUseCase>(
-          (i) => UpdateBudgetUseCase(i.get<BudgetEditRepository>()),
-        ),
-        Bind.lazySingleton<GeneratePdfUseCase>(
-          (i) => GeneratePdfUseCase(i.get<BudgetPdfRepository>()),
-        ),
-        Bind.lazySingleton<SaveIndicatorsUseCase>(
-          (i) => SaveIndicatorsUseCase(i.get<IndicatorsRepository>()),
-        ),
+    // UseCases
+    Bind.lazySingleton<GetBudgetForEditUseCase>(
+      (i) => GetBudgetForEditUseCase(i.get<BudgetEditRepository>()),
+    ),
+    Bind.lazySingleton<UpdateBudgetUseCase>(
+      (i) => UpdateBudgetUseCase(i.get<BudgetEditRepository>()),
+    ),
+    Bind.lazySingleton<GeneratePdfUseCase>(
+      (i) => GeneratePdfUseCase(i.get<BudgetPdfRepository>()),
+    ),
+    Bind.lazySingleton<SaveIndicatorsUseCase>(
+      (i) => SaveIndicatorsUseCase(i.get<IndicatorsRepository>()),
+    ),
 
-        // Stores
-        Bind.lazySingleton<BudgetEditStore>(
-          (i) => BudgetEditStore(
-            getBudgetForEditUseCase: i.get<GetBudgetForEditUseCase>(),
-            updateBudgetUseCase: i.get<UpdateBudgetUseCase>(),
-            getCensusDataUseCase: i.get<GetCensusDataUseCase>(),
-            authStore: Modular.get<AuthStore>(),
-            calculationService: i.get<ProductCalculationService>(),
-          ),
-        ),
+    // Stores
+    Bind.lazySingleton<BudgetEditStore>(
+      (i) => BudgetEditStore(
+        getBudgetForEditUseCase: i.get<GetBudgetForEditUseCase>(),
+        updateBudgetUseCase: i.get<UpdateBudgetUseCase>(),
+        getCensusDataUseCase: i.get<GetCensusDataUseCase>(),
+        authStore: Modular.get<AuthStore>(),
+        calculationService: i.get<ProductCalculationService>(),
+      ),
+    ),
 
-        // ==================== BUDGET MULTI-CITY ====================
-        // DataSources
-        Bind.lazySingleton<MultiCityBudgetRemoteDataSource>(
-          (i) => MultiCityBudgetRemoteDataSourceImpl(i.get<AppHttpClient>()),
-        ),
+    // ==================== BUDGET MULTI-CITY ====================
+    // DataSources
+    Bind.lazySingleton<MultiCityBudgetRemoteDataSource>(
+      (i) => MultiCityBudgetRemoteDataSourceImpl(i.get<AppHttpClient>()),
+    ),
 
-        // Repositories
-        Bind.lazySingleton<MultiCityBudgetRepository>(
-          (i) => MultiCityBudgetRepositoryImpl(
-              i.get<MultiCityBudgetRemoteDataSource>()),
-        ),
+    // Repositories
+    Bind.lazySingleton<MultiCityBudgetRepository>(
+      (i) => MultiCityBudgetRepositoryImpl(
+        i.get<MultiCityBudgetRemoteDataSource>(),
+      ),
+    ),
 
-        // UseCases
-        Bind.lazySingleton<GetMultiCityCensusUseCase>(
-          (i) => GetMultiCityCensusUseCase(i.get<MultiCityBudgetRepository>()),
-        ),
-        Bind.lazySingleton<CreateMultiCityBudgetUseCase>(
-          (i) =>
-              CreateMultiCityBudgetUseCase(i.get<MultiCityBudgetRepository>()),
-        ),
+    // UseCases
+    Bind.lazySingleton<GetMultiCityCensusUseCase>(
+      (i) => GetMultiCityCensusUseCase(i.get<MultiCityBudgetRepository>()),
+    ),
+    Bind.lazySingleton<CreateMultiCityBudgetUseCase>(
+      (i) => CreateMultiCityBudgetUseCase(i.get<MultiCityBudgetRepository>()),
+    ),
 
-        // Stores
-        Bind.lazySingleton<MultiCityCensusStore>(
-          (i) => MultiCityCensusStore(
-            i.get<GetMultiCityCensusUseCase>(),
-            i.get<CreateMultiCityBudgetUseCase>(),
-            Modular.get<
-                AuthStore>(), // ✅ Injeção do AuthStore para obter usuário logado
-          ),
-        ),
-      ];
+    // Stores
+    Bind.lazySingleton<MultiCityCensusStore>(
+      (i) => MultiCityCensusStore(
+        i.get<GetMultiCityCensusUseCase>(),
+        i.get<CreateMultiCityBudgetUseCase>(),
+        Modular.get<
+          AuthStore
+        >(), // ✅ Injeção do AuthStore para obter usuário logado
+      ),
+    ),
+  ];
 
   @override
   List<ModularRoute> get routes => [
-        // Budget List
-        ChildRoute('/', child: (context, args) => const BudgetListPage()),
+    // Budget List
+    ChildRoute('/', child: (context, args) => const BudgetListPage()),
 
-        // Budget Create
-        ChildRoute('/new', child: (context, args) => const NewBudgetPage()),
+    // Budget Create
+    ChildRoute('/new', child: (context, args) => const NewBudgetPage()),
 
-        // Budget Config
-        ChildRoute('/config/:budgetId', child: (context, args) {
-          final budgetId = int.parse(args.params['budgetId']);
-          final arguments = args.data as Map<String, dynamic>?;
-          final location = arguments?['location'] as Map<String, dynamic>?;
+    // Budget Config
+    ChildRoute(
+      '/config/:budgetId',
+      child: (context, args) {
+        final budgetId = int.parse(args.params['budgetId']);
+        final arguments = args.data as Map<String, dynamic>?;
+        final location = arguments?['location'] as Map<String, dynamic>?;
 
-          return ConfigNewBudgetPage(
-            budgetId: budgetId,
-            cityName: location?['cityName'],
-            stateName: location?['stateName'],
-          );
-        }),
+        return ConfigNewBudgetPage(
+          budgetId: budgetId,
+          cityName: location?['cityName'],
+          stateName: location?['stateName'],
+        );
+      },
+    ),
 
-        // School Census (suporta single e multi-city)
-        ChildRoute('/census/:cityId', child: (context, args) {
-          final cityId = int.parse(args.params['cityId']);
-          // Extrai argumentos
-          final argsData = args.data as Map<String, dynamic>?;
-          final censoEscolar = argsData?['censoEscolar'] as CensoEscolarEntity?;
-          final budgetId = argsData?['budgetId'] as int?;
-          final isMultiCityMode =
-              argsData?['isMultiCityMode'] as bool? ?? false;
-          final onCensusUpdated =
-              argsData?['onCensusUpdated'] as Function(CensoEscolarEntity)?;
+    // School Census (suporta single e multi-city)
+    ChildRoute(
+      '/census/:cityId',
+      child: (context, args) {
+        final cityId = int.parse(args.params['cityId']);
+        // Extrai argumentos
+        final argsData = args.data as Map<String, dynamic>?;
+        final censoEscolar = argsData?['censoEscolar'] as CensoEscolarEntity?;
+        final budgetId = argsData?['budgetId'] as int?;
+        final isMultiCityMode = argsData?['isMultiCityMode'] as bool? ?? false;
+        final onCensusUpdated =
+            argsData?['onCensusUpdated'] as Function(CensoEscolarEntity)?;
 
-          return SchoolCensusPage(
-            cityId: cityId,
-            budgetId: budgetId,
-            censoInicial: censoEscolar,
-            onCensusUpdated: onCensusUpdated,
-            isMultiCityMode: isMultiCityMode,
-          );
-        }),
+        return SchoolCensusPage(
+          cityId: cityId,
+          budgetId: budgetId,
+          censoInicial: censoEscolar,
+          onCensusUpdated: onCensusUpdated,
+          isMultiCityMode: isMultiCityMode,
+        );
+      },
+    ),
 
-        // Budget Edit
-        ChildRoute('/edit/:budgetId', child: (context, args) {
-          final budgetId = int.parse(args.params['budgetId']);
-          return EditBudgetPage(budgetId: budgetId);
-        }),
+    // Budget Edit
+    ChildRoute(
+      '/edit/:budgetId',
+      child: (context, args) {
+        final budgetId = int.parse(args.params['budgetId']);
+        return EditBudgetPage(budgetId: budgetId);
+      },
+    ),
 
-        // Multi-City Census
-        ChildRoute('/multi-city/census', child: (context, args) {
-          final argsData = args.data as Map<String, dynamic>?;
-          final budgetName = argsData?['budgetName'] as String? ?? 'Orçamento';
-          final budgetId = argsData?['budgetId'] as int?;
-          final selectedCities = (argsData?['selectedCities'] as List<dynamic>?)
-                  ?.cast<Map<String, dynamic>>() ??
-              [];
-          return MultiCityCensusPage(
-            budgetName: budgetName,
-            budgetId: budgetId,
-            selectedCities: selectedCities,
-          );
-        }),
-      ];
+    // Multi-City Census
+    ChildRoute(
+      '/multi-city/census',
+      child: (context, args) {
+        final argsData = args.data as Map<String, dynamic>?;
+        final budgetName = argsData?['budgetName'] as String? ?? 'Orçamento';
+        final budgetId = argsData?['budgetId'] as int?;
+        final selectedCities =
+            (argsData?['selectedCities'] as List<dynamic>?)
+                ?.cast<Map<String, dynamic>>() ??
+            [];
+        return MultiCityCensusPage(
+          budgetName: budgetName,
+          budgetId: budgetId,
+          selectedCities: selectedCities,
+        );
+      },
+    ),
+  ];
 }

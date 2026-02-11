@@ -3,8 +3,7 @@ import 'package:mobx/mobx.dart';
 import '../../domain/entities/company.dart';
 import '../../domain/entities/partner_request.dart';
 import '../../domain/entities/user_registration.dart';
-import '../../domain/usecases/register_user_usecase.dart';
-import '../../domain/usecases/request_partner_usecase.dart';
+import '../../domain/repositories/registration_repository.dart';
 import '../../domain/usecases/verify_document_usecase.dart';
 
 part 'registration_store.g.dart';
@@ -14,13 +13,11 @@ class RegistrationStore = _RegistrationStoreBase with _$RegistrationStore;
 
 abstract class _RegistrationStoreBase with Store {
   final VerifyDocumentUseCase verifyDocumentUseCase;
-  final RegisterUserUseCase registerUserUseCase;
-  final RequestPartnerUseCase requestPartnerUseCase;
+  final RegistrationRepository registrationRepository;
 
   _RegistrationStoreBase({
     required this.verifyDocumentUseCase,
-    required this.registerUserUseCase,
-    required this.requestPartnerUseCase,
+    required this.registrationRepository,
   });
 
   // ============================================
@@ -107,7 +104,7 @@ abstract class _RegistrationStoreBase with Store {
     registerUserError = null;
     registerUserSuccess = false;
 
-    final result = await registerUserUseCase(registration);
+    final result = await registrationRepository.registerUser(registration);
 
     result.fold(
       (failure) {
@@ -130,7 +127,7 @@ abstract class _RegistrationStoreBase with Store {
     requestPartnerError = null;
     requestPartnerSuccess = false;
 
-    final result = await requestPartnerUseCase(request);
+    final result = await registrationRepository.requestPartner(request);
 
     result.fold(
       (failure) {

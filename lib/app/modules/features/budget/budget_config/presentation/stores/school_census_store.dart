@@ -4,25 +4,19 @@ import '../../data/models/budget_census_dto.dart';
 import '../../domain/entities/censo_escolar_entity.dart';
 import '../../domain/entities/censo_group_entity.dart';
 import '../../domain/entities/censo_title_entity.dart';
+import '../../domain/repositories/census_repository.dart';
 import '../../domain/usecases/get_budget_census_usecase.dart';
-import '../../domain/usecases/get_census_usecase.dart';
-import '../../domain/usecases/update_budget_census_usecase.dart';
-import '../../domain/usecases/update_census_usecase.dart';
 
 part 'school_census_store.g.dart';
 
 class SchoolCensusStore = _SchoolCensusStoreBase with _$SchoolCensusStore;
 
 abstract class _SchoolCensusStoreBase with Store {
-  final GetCensusUseCase _getCensusUseCase;
-  final UpdateCensusUseCase _updateCensusUseCase;
-  final UpdateBudgetCensusUseCase? _updateBudgetCensusUseCase;
+  final CensusRepository _censusRepository;
   final GetBudgetCensusUseCase? _getBudgetCensusUseCase;
 
   _SchoolCensusStoreBase(
-    this._getCensusUseCase,
-    this._updateCensusUseCase, [
-    this._updateBudgetCensusUseCase,
+    this._censusRepository, [
     this._getBudgetCensusUseCase,
   ]);
 
@@ -103,20 +97,20 @@ abstract class _SchoolCensusStoreBase with Store {
 
     // Opção agregada sempre primeiro
     if (isMultiCity && cidades.length > 1) {
-      options.add(DropdownCityOption(
-        id: null,
-        name: 'Todas as cidades (Agregado)',
-        isAggregated: true,
-      ));
+      options.add(
+        DropdownCityOption(
+          id: null,
+          name: 'Todas as cidades (Agregado)',
+          isAggregated: true,
+        ),
+      );
     }
 
     // Cidades individuais
     for (final city in cidades) {
-      options.add(DropdownCityOption(
-        id: city.id,
-        name: city.nome,
-        isAggregated: false,
-      ));
+      options.add(
+        DropdownCityOption(id: city.id, name: city.nome, isAggregated: false),
+      );
     }
 
     return options;
@@ -136,15 +130,12 @@ abstract class _SchoolCensusStoreBase with Store {
     error = null;
     isMultiCity = false;
 
-    final result = await _getCensusUseCase(cityId);
+    final result = await _censusRepository.getCensusByCity(cityId);
 
-    result.fold(
-      (l) => error = l.message,
-      (r) {
-        censoEscolar = r;
-        _initEditedValues();
-      },
-    );
+    result.fold((l) => error = l.message, (r) {
+      censoEscolar = r;
+      _initEditedValues();
+    });
     isLoading = false;
   }
 
@@ -188,56 +179,50 @@ abstract class _SchoolCensusStoreBase with Store {
     error = null;
 
     // Usar endpoint budget-scoped se budgetId estiver definido
-    if (budgetId != null && _updateBudgetCensusUseCase != null) {
-      final updateResult = await _updateBudgetCensusUseCase.call(
+    if (budgetId != null) {
+      final updateResult = await _censusRepository.updateBudgetCensusIndices(
         budgetId: budgetId!,
         cityId: censoEscolar!.cidadeId,
-        indices: editedValues,
+        updatedIndices: editedValues,
       );
 
-      updateResult.fold(
-        (l) => error = l.message,
-        (r) {
-          // Atualizar dados multi-cidade no store
-          isMultiCity = r.multiCidade;
+      updateResult.fold((l) => error = l.message, (r) {
+        // Atualizar dados multi-cidade no store
+        isMultiCity = r.multiCidade;
 
-          // Atualizar lista de cidades usando o factory fromEntity para preservar índices
-          cidades.clear();
-          for (var cityEntity in r.cidades) {
-            cidades.add(CidadeCensoDto.fromEntity(cityEntity));
-          }
+        // Atualizar lista de cidades usando o factory fromEntity para preservar índices
+        cidades.clear();
+        for (var cityEntity in r.cidades) {
+          cidades.add(CidadeCensoDto.fromEntity(cityEntity));
+        }
 
-          // Atualizar censo agregado
-          censoAgregado.clear();
-          censoAgregado.addAll(r.censoAgregado);
+        // Atualizar censo agregado
+        censoAgregado.clear();
+        censoAgregado.addAll(r.censoAgregado);
 
-          isEditMode = false;
-          _initEditedValues();
+        isEditMode = false;
+        _initEditedValues();
 
-          // Re-selecionar cidade para atualizar censoEscolar da UI com os novos dados
-          selectCity(selectedCityId);
-        },
-      );
+        // Re-selecionar cidade para atualizar censoEscolar da UI com os novos dados
+        selectCity(selectedCityId);
+      });
     } else {
       // Fallback para endpoint legacy (por cidade)
-      final legacyResult = await _updateCensusUseCase(
-        cityId: censoEscolar!.cidadeId,
-        indices: editedValues,
+      final legacyResult = await _censusRepository.updateCensusIndices(
+        censoEscolar!.cidadeId,
+        editedValues,
       );
 
-      legacyResult.fold(
-        (l) => error = l.message,
-        (r) {
-          censoEscolar = r;
-          isEditMode = false;
-          _initEditedValues();
+      legacyResult.fold((l) => error = l.message, (r) {
+        censoEscolar = r;
+        isEditMode = false;
+        _initEditedValues();
 
-          // Atualizar cidade na lista se for multi-cidade
-          if (isMultiCity && selectedCityId != null) {
-            _updateCityInList(r);
-          }
-        },
-      );
+        // Atualizar cidade na lista se for multi-cidade
+        if (isMultiCity && selectedCityId != null) {
+          _updateCityInList(r);
+        }
+      });
     }
 
     isSaving = false;
@@ -334,13 +319,16 @@ abstract class _SchoolCensusStoreBase with Store {
     final aggregatedEntity = firstCity.toEntity();
 
     // Atualizar valores com censo agregado
-    final updatedGroups = aggregatedEntity.grupos.map((group) {
-      final updatedTitles = group.titulos.map((title) {
-        final aggregatedValue = censoAgregado[title.nomeEtapa] ?? title.valor;
-        return title.copyWith(valor: aggregatedValue);
-      }).toList();
-      return group.copyWith(titulos: updatedTitles);
-    }).toList();
+    final updatedGroups =
+        aggregatedEntity.grupos.map((group) {
+          final updatedTitles =
+              group.titulos.map((title) {
+                final aggregatedValue =
+                    censoAgregado[title.nomeEtapa] ?? title.valor;
+                return title.copyWith(valor: aggregatedValue);
+              }).toList();
+          return group.copyWith(titulos: updatedTitles);
+        }).toList();
 
     censoEscolar = CensoEscolarEntity(
       cidadeId: 0, // ID 0 indica agregado

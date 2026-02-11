@@ -3,7 +3,6 @@ import 'package:mobx/mobx.dart';
 import '../../domain/entities/report_budget.dart';
 import '../../domain/entities/report_user.dart';
 import '../../domain/repositories/reports_repository.dart';
-import '../../domain/usecases/get_partner_users_usecase.dart';
 import 'report_filter_store.dart';
 
 part 'report_user_list_store.g.dart';
@@ -15,12 +14,10 @@ part 'report_user_list_store.g.dart';
 class ReportUserListStore = _ReportUserListStoreBase with _$ReportUserListStore;
 
 abstract class _ReportUserListStoreBase with Store {
-  final GetPartnerUsersUsecase getPartnerUsersUsecase;
   final ReportsRepository reportsRepository;
   final ReportFilterStore filterStore;
 
   _ReportUserListStoreBase({
-    required this.getPartnerUsersUsecase,
     required this.reportsRepository,
     required this.filterStore,
   });
@@ -54,12 +51,15 @@ abstract class _ReportUserListStoreBase with Store {
       result = allUsers.toList();
     } else {
       final query = filterStore.userSearchQuery.toLowerCase();
-      result = allUsers
-          .where((user) =>
-              user.nome.toLowerCase().contains(query) ||
-              user.email.toLowerCase().contains(query) ||
-              user.cargo.toLowerCase().contains(query))
-          .toList();
+      result =
+          allUsers
+              .where(
+                (user) =>
+                    user.nome.toLowerCase().contains(query) ||
+                    user.email.toLowerCase().contains(query) ||
+                    user.cargo.toLowerCase().contains(query),
+              )
+              .toList();
     }
 
     // Ordenar por nome alfabeticamente
@@ -93,7 +93,7 @@ abstract class _ReportUserListStoreBase with Store {
     isLoading = true;
     error = null;
 
-    final result = await getPartnerUsersUsecase(
+    final result = await reportsRepository.getPartnerUsers(
       partnerId,
       dataInicio: filterStore.dataInicio,
       dataFim: filterStore.dataFim,
@@ -148,33 +148,40 @@ abstract class _ReportUserListStoreBase with Store {
     }
 
     // Atualizar cada usuário com os contadores calculados
-    final updatedUsers = allUsers.map((user) {
-      final budgets = userBudgets[user.id] ?? [];
-      final aprovados =
-          budgets.where((b) => b.status.toLowerCase() == 'aprovado').length;
-      final pendentes =
-          budgets.where((b) => b.status.toLowerCase() == 'pendente').length;
-      final expirados =
-          budgets.where((b) => b.status.toLowerCase() == 'expirado').length;
-      final naoAprovados = budgets
-          .where((b) =>
-              b.status.toLowerCase() == 'nao_aprovado' ||
-              b.status.toLowerCase() == 'não aprovado')
-          .length;
-      final totalVendas = budgets.fold<double>(0.0, (sum, b) => sum + b.total);
+    final updatedUsers =
+        allUsers.map((user) {
+          final budgets = userBudgets[user.id] ?? [];
+          final aprovados =
+              budgets.where((b) => b.status.toLowerCase() == 'aprovado').length;
+          final pendentes =
+              budgets.where((b) => b.status.toLowerCase() == 'pendente').length;
+          final expirados =
+              budgets.where((b) => b.status.toLowerCase() == 'expirado').length;
+          final naoAprovados =
+              budgets
+                  .where(
+                    (b) =>
+                        b.status.toLowerCase() == 'nao_aprovado' ||
+                        b.status.toLowerCase() == 'não aprovado',
+                  )
+                  .length;
+          final totalVendas = budgets.fold<double>(
+            0.0,
+            (sum, b) => sum + b.total,
+          );
 
-      return ReportUser(
-        id: user.id,
-        nome: user.nome,
-        email: user.email,
-        cargo: user.cargo,
-        totalVendas: totalVendas,
-        aprovados: aprovados,
-        pendentes: pendentes,
-        expirados: expirados,
-        naoAprovados: naoAprovados,
-      );
-    }).toList();
+          return ReportUser(
+            id: user.id,
+            nome: user.nome,
+            email: user.email,
+            cargo: user.cargo,
+            totalVendas: totalVendas,
+            aprovados: aprovados,
+            pendentes: pendentes,
+            expirados: expirados,
+            naoAprovados: naoAprovados,
+          );
+        }).toList();
 
     allUsers.clear();
     allUsers.addAll(updatedUsers);

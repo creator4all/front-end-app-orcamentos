@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 
+import '../../../../../../shared/core/constants/http_constants.dart';
 import '../../../shared/errors/budget_failure.dart';
 import '../../domain/entities/partner_entity.dart';
 import '../../domain/repositories/partner_repository.dart';
@@ -48,19 +49,20 @@ class PartnerRepositoryImpl implements PartnerRepository {
     }
 
     if (message.contains('Não autorizado') ||
-        message.contains('401') ||
+        message.contains('${HttpStatusCodes.unauthorized}') ||
         message.contains('Acesso negado') ||
-        message.contains('403')) {
+        message.contains('${HttpStatusCodes.forbidden}')) {
       return UnauthorizedFailure(message);
     }
 
     if (message.contains('não encontrado') ||
-        message.contains('404') ||
+        message.contains('${HttpStatusCodes.notFound}') ||
         message.contains('Parceiro não encontrado')) {
       return NotFoundFailure(message);
     }
 
-    if (message.contains('Erro no servidor') || message.contains('500')) {
+    if (message.contains('Erro no servidor') ||
+        message.contains('${HttpStatusCodes.internalServerError}')) {
       return ServerFailure(message);
     }
 

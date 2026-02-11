@@ -1,8 +1,7 @@
 import 'package:mobx/mobx.dart';
 
 import '../../domain/entities/prospect_entity.dart';
-import '../../domain/usecases/list_prospects_usecase.dart';
-import '../../domain/usecases/mark_contacted_usecase.dart';
+import '../../domain/repositories/prospect_repository.dart';
 
 part 'prospect_store.g.dart';
 
@@ -10,13 +9,9 @@ part 'prospect_store.g.dart';
 class ProspectStore = _ProspectStoreBase with _$ProspectStore;
 
 abstract class _ProspectStoreBase with Store {
-  final ListProspectsUsecase listProspectsUsecase;
-  final MarkContactedUsecase markContactedUsecase;
+  final ProspectRepository prospectRepository;
 
-  _ProspectStoreBase({
-    required this.listProspectsUsecase,
-    required this.markContactedUsecase,
-  });
+  _ProspectStoreBase({required this.prospectRepository});
 
   // ========== OBSERVABLES ==========
 
@@ -123,8 +118,10 @@ abstract class _ProspectStoreBase with Store {
       targetList.clear();
     }
 
-    final result =
-        await listProspectsUsecase(page: page, isContatado: isContacted);
+    final result = await prospectRepository.getProspects(
+      page: page,
+      isContatado: isContacted,
+    );
 
     result.fold(
       (failure) {
@@ -194,9 +191,10 @@ abstract class _ProspectStoreBase with Store {
     error = null;
 
     print(
-        '📝 [ProspectStore] Marcando prospect $prospectId como contactado...');
+      '📝 [ProspectStore] Marcando prospect $prospectId como contactado...',
+    );
 
-    final result = await markContactedUsecase(prospectId);
+    final result = await prospectRepository.markAsContacted(prospectId);
 
     bool success = false;
 

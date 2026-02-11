@@ -1,8 +1,7 @@
 import 'package:mobx/mobx.dart';
 
 import '../../domain/entities/budget_entity.dart';
-import '../../domain/usecases/delete_budget_usecase.dart';
-import '../../domain/usecases/get_budgets_usecase.dart';
+import '../../domain/repositories/budget_list_repository.dart';
 import '../../domain/usecases/rename_budget_usecase.dart';
 
 part 'budget_list_store.g.dart';
@@ -10,14 +9,12 @@ part 'budget_list_store.g.dart';
 class BudgetListStore = _BudgetListStoreBase with _$BudgetListStore;
 
 abstract class _BudgetListStoreBase with Store {
-  final GetBudgetsUseCase getBudgetsUseCase;
+  final BudgetListRepository budgetListRepository;
   final RenameBudgetUseCase renameBudgetUseCase;
-  final DeleteBudgetUseCase deleteBudgetUseCase;
 
   _BudgetListStoreBase({
-    required this.getBudgetsUseCase,
+    required this.budgetListRepository,
     required this.renameBudgetUseCase,
-    required this.deleteBudgetUseCase,
   });
 
   @observable
@@ -51,8 +48,7 @@ abstract class _BudgetListStoreBase with Store {
     try {
       print('🔄 [Store] Carregando orçamentos da API...');
 
-      // Chamar UseCase ao invés do service
-      final result = await getBudgetsUseCase(status: status);
+      final result = await budgetListRepository.getBudgets(status: status);
 
       // Tratar resultado com Either
       result.fold(
@@ -152,7 +148,7 @@ abstract class _BudgetListStoreBase with Store {
     try {
       print('🗑️ [Store] Excluindo orçamento ID: $budgetId');
 
-      final result = await deleteBudgetUseCase(budgetId);
+      final result = await budgetListRepository.deleteBudget(budgetId);
 
       result.fold(
         (failure) {
@@ -221,34 +217,36 @@ abstract class _BudgetListStoreBase with Store {
 
     // 4. Se houver filtros de status selecionados, aplicar (OR entre eles)
     if (statusFilters.isNotEmpty) {
-      filtered = filtered.where((item) {
-        final status = item.status.toLowerCase();
+      filtered =
+          filtered.where((item) {
+            final status = item.status.toLowerCase();
 
-        // Mapear filtros para status da API
-        return statusFilters.any((filter) {
-          switch (filter) {
-            case 'pendente':
-              return status == 'pendente';
-            case 'expirado':
-              return status == 'expirado';
-            case 'nao_aprovado':
-              return status == 'nao_aprovado';
-            case 'aprovado':
-              return status == 'aprovado';
-            default:
-              return false;
-          }
-        });
-      }).toList();
+            // Mapear filtros para status da API
+            return statusFilters.any((filter) {
+              switch (filter) {
+                case 'pendente':
+                  return status == 'pendente';
+                case 'expirado':
+                  return status == 'expirado';
+                case 'nao_aprovado':
+                  return status == 'nao_aprovado';
+                case 'aprovado':
+                  return status == 'aprovado';
+                default:
+                  return false;
+              }
+            });
+          }).toList();
     }
 
     // 5. Depois filtrar por texto de busca (se houver)
     if (searchQuery.isNotEmpty) {
-      filtered = filtered.where((item) {
-        final nome = item.nome?.toLowerCase() ?? '';
-        final query = searchQuery.toLowerCase();
-        return nome.contains(query);
-      }).toList();
+      filtered =
+          filtered.where((item) {
+            final nome = item.nome?.toLowerCase() ?? '';
+            final query = searchQuery.toLowerCase();
+            return nome.contains(query);
+          }).toList();
     }
 
     items.clear();

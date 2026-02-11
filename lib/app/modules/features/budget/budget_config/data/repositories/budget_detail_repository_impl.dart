@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 
+import '../../../../../../shared/core/constants/http_constants.dart';
 import '../../../shared/errors/budget_failure.dart';
 import '../../../shared/models/budget_update_dto.dart';
 import '../../domain/entities/budget_detail_entity.dart';
@@ -129,13 +130,14 @@ class BudgetDetailRepositoryImpl implements BudgetDetailRepository {
       return ServerFailure(message);
     }
 
-    if (message.contains('não encontrado') || message.contains('404')) {
+    if (message.contains('não encontrado') ||
+        message.contains('${HttpStatusCodes.notFound}')) {
       return const NotFoundFailure('Orçamento não encontrado');
     }
 
     if (message.contains('Não autorizado') ||
-        message.contains('401') ||
-        message.contains('403')) {
+        message.contains('${HttpStatusCodes.unauthorized}') ||
+        message.contains('${HttpStatusCodes.forbidden}')) {
       return const UnauthorizedFailure('Acesso negado');
     }
 

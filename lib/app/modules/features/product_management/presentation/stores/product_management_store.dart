@@ -4,13 +4,7 @@ import '../../domain/entities/category_entity.dart';
 import '../../domain/entities/indicator_group_entity.dart';
 import '../../domain/entities/product_config_entity.dart';
 import '../../domain/entities/subcategory_entity.dart';
-import '../../domain/usecases/get_categories_usecase.dart';
-import '../../domain/usecases/get_indicators_usecase.dart';
-import '../../domain/usecases/get_product_details_usecase.dart';
-import '../../domain/usecases/get_products_usecase.dart';
-import '../../domain/usecases/get_subcategories_usecase.dart';
-import '../../domain/usecases/update_product_status_usecase.dart';
-import '../../domain/usecases/update_product_usecase.dart';
+import '../../domain/repositories/product_config_repository.dart';
 
 part 'product_management_store.g.dart';
 
@@ -22,22 +16,10 @@ class ProductManagementStore = _ProductManagementStoreBase
 enum NavigationLevel { categories, subcategories, products }
 
 abstract class _ProductManagementStoreBase with Store {
-  final GetCategoriesUsecase getCategoriesUsecase;
-  final GetSubcategoriesUsecase getSubcategoriesUsecase;
-  final GetProductsUsecase getProductsUsecase;
-  final GetProductDetailsUsecase getProductDetailsUsecase;
-  final UpdateProductUsecase updateProductUsecase;
-  final UpdateProductStatusUsecase updateProductStatusUsecase;
-  final GetIndicatorsUsecase getIndicatorsUsecase;
+  final ProductConfigRepository repository;
 
   _ProductManagementStoreBase({
-    required this.getCategoriesUsecase,
-    required this.getSubcategoriesUsecase,
-    required this.getProductsUsecase,
-    required this.getProductDetailsUsecase,
-    required this.updateProductUsecase,
-    required this.updateProductStatusUsecase,
-    required this.getIndicatorsUsecase,
+    required this.repository,
   });
 
   // ============ Observable State ============
@@ -105,7 +87,7 @@ abstract class _ProductManagementStoreBase with Store {
     isLoading = true;
     errorMessage = null;
 
-    final result = await getCategoriesUsecase();
+    final result = await repository.getCategories();
 
     result.fold(
       (failure) => errorMessage = failure.message,
@@ -125,7 +107,7 @@ abstract class _ProductManagementStoreBase with Store {
     isLoading = true;
     errorMessage = null;
 
-    final result = await getSubcategoriesUsecase(category.id);
+    final result = await repository.getSubcategories(category.id);
 
     result.fold(
       (failure) => errorMessage = failure.message,
@@ -145,7 +127,7 @@ abstract class _ProductManagementStoreBase with Store {
     isLoading = true;
     errorMessage = null;
 
-    final result = await getProductsUsecase(subcategory.id);
+    final result = await repository.getProducts(subcategory.id);
 
     result.fold(
       (failure) => errorMessage = failure.message,
@@ -164,7 +146,7 @@ abstract class _ProductManagementStoreBase with Store {
     isLoadingProductDetails = true;
     errorMessage = null;
 
-    final result = await getProductDetailsUsecase(productId);
+    final result = await repository.getProductDetails(productId);
 
     result.fold(
       (failure) => errorMessage = failure.message,
@@ -178,7 +160,7 @@ abstract class _ProductManagementStoreBase with Store {
   Future<void> loadIndicators() async {
     if (indicatorGroups.isNotEmpty) return;
 
-    final result = await getIndicatorsUsecase();
+    final result = await repository.getIndicators();
 
     result.fold(
       (failure) => errorMessage = failure.message,
@@ -194,7 +176,7 @@ abstract class _ProductManagementStoreBase with Store {
     isSaving = true;
     errorMessage = null;
 
-    final result = await updateProductUsecase(product);
+    final result = await repository.updateProduct(product);
 
     bool success = false;
     result.fold(
@@ -248,7 +230,7 @@ abstract class _ProductManagementStoreBase with Store {
     isSaving = true;
     errorMessage = null;
 
-    final result = await updateProductStatusUsecase(productId, status);
+    final result = await repository.updateProductStatus(productId, status);
 
     bool success = false;
     result.fold(

@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 
+import '../../../../../../shared/core/constants/http_constants.dart';
 import '../../../../../../shared/errors/http_exception.dart';
 import '../../../shared/errors/budget_failure.dart';
 import '../../domain/entities/budget_draft_entity.dart';
@@ -44,14 +45,14 @@ class BudgetDraftRepositoryImpl implements BudgetDraftRepository {
   BudgetFailure _mapExceptionToFailure(Object exception) {
     if (exception is HttpException) {
       switch (exception.statusCode) {
-        case 401:
-        case 403:
+        case HttpStatusCodes.unauthorized:
+        case HttpStatusCodes.forbidden:
           return UnauthorizedFailure(exception.message);
-        case 404:
+        case HttpStatusCodes.notFound:
           return NotFoundFailure(exception.message);
-        case 422:
+        case HttpStatusCodes.unprocessableEntity:
           return ValidationFailure(exception.message);
-        case >= 500:
+        case >= HttpStatusCodes.internalServerError:
           return ServerFailure(exception.message);
         default:
           return ServerFailure(

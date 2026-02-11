@@ -4,9 +4,8 @@ import 'package:mobx/mobx.dart';
 
 import '../../../../../shared/core/utils/token_cache.dart';
 import '../../domain/entities/user.dart';
-import '../../domain/usecases/get_current_user_usecase.dart';
+import '../../domain/repositories/auth_repository.dart';
 import '../../domain/usecases/login_usecase.dart';
-import '../../domain/usecases/logout_usecase.dart';
 
 part 'auth_store.g.dart';
 
@@ -16,14 +15,12 @@ class AuthStore = _AuthStoreBase with _$AuthStore;
 
 abstract class _AuthStoreBase with Store {
   final LoginUsecase loginUsecase;
-  final LogoutUsecase logoutUsecase;
-  final GetCurrentUserUsecase getCurrentUserUsecase;
+  final AuthRepository authRepository;
   final FlutterSecureStorage secureStorage;
 
   _AuthStoreBase({
     required this.loginUsecase,
-    required this.logoutUsecase,
-    required this.getCurrentUserUsecase,
+    required this.authRepository,
     required this.secureStorage,
   });
 
@@ -133,26 +130,35 @@ abstract class _AuthStoreBase with Store {
 
           // === DEBUG: Informações do usuário após buscar /me ===
           print(
-              '╔════════════════════════════════════════════════════════════════╗');
+            '╔════════════════════════════════════════════════════════════════╗',
+          );
           print(
-              '║            LOGIN COMPLETO - DADOS DO USUÁRIO                  ║');
+            '║            LOGIN COMPLETO - DADOS DO USUÁRIO                  ║',
+          );
           print(
-              '╠════════════════════════════════════════════════════════════════╣');
+            '╠════════════════════════════════════════════════════════════════╣',
+          );
           print('║ ID:          ${currentUser!.id.toString().padRight(48)}║');
           print('║ Nome:        ${currentUser!.name.padRight(48)}║');
           print('║ Email:       ${currentUser!.email.padRight(48)}║');
           print(
-              '║ Role:        ${(currentUser!.role?.name ?? 'NÃO DEFINIDA').padRight(48)}║');
+            '║ Role:        ${(currentUser!.role?.name ?? 'NÃO DEFINIDA').padRight(48)}║',
+          );
           print(
-              '║ Partner:     ${(currentUser!.partner?.tradeName ?? 'N/A').padRight(48)}║');
+            '║ Partner:     ${(currentUser!.partner?.tradeName ?? 'N/A').padRight(48)}║',
+          );
           print(
-              '║ Status:      ${(currentUser!.status ? 'ATIVO' : 'INATIVO').padRight(48)}║');
+            '║ Status:      ${(currentUser!.status ? 'ATIVO' : 'INATIVO').padRight(48)}║',
+          );
           print(
-              '║ Avatar:      ${(currentUser!.avatar ?? 'N/A').padRight(48)}║');
+            '║ Avatar:      ${(currentUser!.avatar ?? 'N/A').padRight(48)}║',
+          );
           print(
-              '║ Telefone:    ${(currentUser!.phone ?? 'N/A').padRight(48)}║');
+            '║ Telefone:    ${(currentUser!.phone ?? 'N/A').padRight(48)}║',
+          );
           print(
-              '╚════════════════════════════════════════════════════════════════╝');
+            '╚════════════════════════════════════════════════════════════════╝',
+          );
 
           // Navegar para a tela principal
           Modular.to.pushReplacementNamed('/budget/');
@@ -172,7 +178,7 @@ abstract class _AuthStoreBase with Store {
     isLoading = true;
     errorMessage = null;
 
-    final result = await logoutUsecase();
+    final result = await authRepository.logout();
 
     result.fold(
       (failure) {
@@ -215,7 +221,7 @@ abstract class _AuthStoreBase with Store {
       print('⚠️ [AuthStore] Erro ao carregar token: $e');
     }
 
-    final result = await getCurrentUserUsecase();
+    final result = await authRepository.getCurrentUser();
 
     result.fold(
       (failure) {
@@ -234,22 +240,29 @@ abstract class _AuthStoreBase with Store {
 
         // === DEBUG: Usuário carregado do cache/storage ===
         print(
-            '╔════════════════════════════════════════════════════════════════╗');
+          '╔════════════════════════════════════════════════════════════════╗',
+        );
         print(
-            '║        USUÁRIO CARREGADO DO CACHE - DADOS DO USUÁRIO         ║');
+          '║        USUÁRIO CARREGADO DO CACHE - DADOS DO USUÁRIO         ║',
+        );
         print(
-            '╠════════════════════════════════════════════════════════════════╣');
+          '╠════════════════════════════════════════════════════════════════╣',
+        );
         print('║ ID:          ${user.id.toString().padRight(48)}║');
         print('║ Nome:        ${user.name.padRight(48)}║');
         print('║ Email:       ${user.email.padRight(48)}║');
         print(
-            '║ Role:        ${(user.role?.name ?? 'NÃO DEFINIDA').padRight(48)}║');
+          '║ Role:        ${(user.role?.name ?? 'NÃO DEFINIDA').padRight(48)}║',
+        );
         print(
-            '║ Partner:     ${(user.partner?.tradeName ?? 'N/A').padRight(48)}║');
+          '║ Partner:     ${(user.partner?.tradeName ?? 'N/A').padRight(48)}║',
+        );
         print(
-            '║ Status:      ${(user.status ? 'ATIVO' : 'INATIVO').padRight(48)}║');
+          '║ Status:      ${(user.status ? 'ATIVO' : 'INATIVO').padRight(48)}║',
+        );
         print(
-            '╚════════════════════════════════════════════════════════════════╝');
+          '╚════════════════════════════════════════════════════════════════╝',
+        );
       },
     );
   }

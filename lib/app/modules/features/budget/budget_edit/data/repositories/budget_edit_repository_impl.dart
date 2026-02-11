@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 
+import '../../../../../../shared/core/constants/http_constants.dart';
 import '../../../budget_config/data/models/product_dto.dart';
 import '../../../budget_config/domain/entities/product_entity.dart';
 import '../../../shared/errors/budget_failure.dart';
@@ -40,11 +41,10 @@ class BudgetEditRepositoryImpl implements BudgetEditRepository {
       final produtosJson = productsData['produtos'] as List<dynamic>? ?? [];
 
       // Parsear cada produto usando ProductDTO
-      final produtos =
-          produtosJson
-              .map((json) => ProductDTO.fromJson(json as Map<String, dynamic>))
-              .map((dto) => dto.toEntity())
-              .toList();
+      final produtos = produtosJson
+          .map((json) => ProductDTO.fromJson(json as Map<String, dynamic>))
+          .map((dto) => dto.toEntity())
+          .toList();
 
       return Right(produtos);
     } on Exception catch (e) {
@@ -121,7 +121,7 @@ class BudgetEditRepositoryImpl implements BudgetEditRepository {
 
   @override
   Future<Either<BudgetFailure, BudgetEditEntity>>
-  versionMultiCityBudgetWithDto({
+      versionMultiCityBudgetWithDto({
     required int budgetId,
     required BudgetUpdateDto updateData,
   }) async {
@@ -146,13 +146,14 @@ class BudgetEditRepositoryImpl implements BudgetEditRepository {
       return ServerFailure(message);
     }
 
-    if (message.contains('não encontrado') || message.contains('404')) {
+    if (message.contains('não encontrado') ||
+        message.contains('${HttpStatusCodes.notFound}')) {
       return const NotFoundFailure('Orçamento não encontrado');
     }
 
     if (message.contains('Não autorizado') ||
-        message.contains('401') ||
-        message.contains('403')) {
+        message.contains('${HttpStatusCodes.unauthorized}') ||
+        message.contains('${HttpStatusCodes.forbidden}')) {
       return const UnauthorizedFailure('Acesso negado');
     }
 
