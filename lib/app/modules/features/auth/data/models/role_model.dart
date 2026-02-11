@@ -4,8 +4,6 @@ import '../../domain/entities/role.dart';
 
 part 'role_model.g.dart';
 
-/// Model de dados (DTO) para Role
-/// Responsável por serialização/deserialização JSON e conversão para Entity
 @CopyWith()
 class RoleModel {
   final int id;
@@ -22,29 +20,28 @@ class RoleModel {
     this.updatedAt,
   });
 
-  /// Cria um RoleModel a partir de JSON da API
+  /// Chaves conforme contrato do backend (`GET /api/perfil/me` → campo `role`)
   factory RoleModel.fromJson(Map<String, dynamic> json) {
     return RoleModel(
-      id: json['rol_roleId'] ?? json['id'] ?? 0,
-      name: json['rol_name'] ?? json['name'] ?? '',
-      description: json['rol_description'] ?? json['description'] ?? '',
+      id: json['rol_roleId'] as int,
+      name: json['rol_name'] as String,
+      description: json['rol_description'] as String,
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );
   }
 
-  /// Converte RoleModel para JSON
+  /// Chaves alinhadas com a API para garantir round-trip do cache local
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'name': name,
-      'description': description,
+      'rol_roleId': id,
+      'rol_name': name,
+      'rol_description': description,
       'created_at': createdAt,
       'updated_at': updatedAt,
     };
   }
 
-  /// Converte RoleModel para Entity (Domain)
   Role toEntity() {
     return Role(
       id: id,
@@ -55,7 +52,6 @@ class RoleModel {
     );
   }
 
-  /// Cria RoleModel a partir de Entity (Domain)
   factory RoleModel.fromEntity(Role role) {
     return RoleModel(
       id: role.id,

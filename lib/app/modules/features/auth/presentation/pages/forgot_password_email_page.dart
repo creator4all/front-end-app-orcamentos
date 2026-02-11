@@ -26,7 +26,6 @@ class _ForgotPasswordEmailPageState extends State<ForgotPasswordEmailPage> {
   @override
   void initState() {
     super.initState();
-    // Resetar store ao entrar na página
     store.reset();
   }
 
@@ -54,8 +53,6 @@ class _ForgotPasswordEmailPageState extends State<ForgotPasswordEmailPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 SizedBox(height: 32.h),
-
-                // Ícone de email
                 Center(
                   child: Container(
                     width: 80.w,
@@ -72,8 +69,6 @@ class _ForgotPasswordEmailPageState extends State<ForgotPasswordEmailPage> {
                   ),
                 ),
                 SizedBox(height: 24.h),
-
-                // Título
                 Text(
                   'Digite seu e-mail',
                   style: TextStyle(
@@ -84,8 +79,6 @@ class _ForgotPasswordEmailPageState extends State<ForgotPasswordEmailPage> {
                   textAlign: TextAlign.center,
                 ),
                 SizedBox(height: 12.h),
-
-                // Descrição
                 Text(
                   'Enviaremos um código de 6 dígitos para o seu e-mail cadastrado.',
                   style: TextStyle(
@@ -95,8 +88,6 @@ class _ForgotPasswordEmailPageState extends State<ForgotPasswordEmailPage> {
                   textAlign: TextAlign.center,
                 ),
                 SizedBox(height: 32.h),
-
-                // Campo de email
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -150,8 +141,6 @@ class _ForgotPasswordEmailPageState extends State<ForgotPasswordEmailPage> {
                   ],
                 ),
                 SizedBox(height: 32.h),
-
-                // Botão de enviar
                 Observer(
                   builder: (_) => SizedBox(
                     height: 48.h,
@@ -184,10 +173,7 @@ class _ForgotPasswordEmailPageState extends State<ForgotPasswordEmailPage> {
                     ),
                   ),
                 ),
-
                 SizedBox(height: 32.h),
-
-                // Link para voltar ao login
                 Center(
                   child: TextButton(
                     onPressed: () => Navigator.of(context).pop(),
@@ -213,10 +199,8 @@ class _ForgotPasswordEmailPageState extends State<ForgotPasswordEmailPage> {
       final success = await store.requestPasswordReset();
 
       if (success && mounted) {
-        // Navegar para página de OTP
         Modular.to.pushNamed('/auth/forgot-password/otp');
       } else if (!success && mounted) {
-        // Mostrar erro
         CustomInfoDialog.show(
           context: context,
           type: DialogType.error,

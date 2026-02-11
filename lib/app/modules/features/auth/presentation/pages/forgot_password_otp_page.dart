@@ -26,7 +26,6 @@ class _ForgotPasswordOtpPageState extends State<ForgotPasswordOtpPage> {
   @override
   void initState() {
     super.initState();
-    // Iniciar timer se ainda não foi iniciado
     if (store.resendCountdown == 0) {
       store.startResendTimer();
     }
@@ -61,8 +60,6 @@ class _ForgotPasswordOtpPageState extends State<ForgotPasswordOtpPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               SizedBox(height: 32.h),
-
-              // Ícone de código
               Center(
                 child: Container(
                   width: 80.w,
@@ -79,8 +76,6 @@ class _ForgotPasswordOtpPageState extends State<ForgotPasswordOtpPage> {
                 ),
               ),
               SizedBox(height: 24.h),
-
-              // Título
               Text(
                 'Digite o código',
                 style: TextStyle(
@@ -91,8 +86,6 @@ class _ForgotPasswordOtpPageState extends State<ForgotPasswordOtpPage> {
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 12.h),
-
-              // Descrição
               Observer(
                 builder: (_) => Text(
                   'Enviamos um código de 6 dígitos para\n${store.email}',
@@ -104,15 +97,11 @@ class _ForgotPasswordOtpPageState extends State<ForgotPasswordOtpPage> {
                 ),
               ),
               SizedBox(height: 32.h),
-
-              // Campos de OTP
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: List.generate(6, (index) => _buildOtpField(index)),
               ),
               SizedBox(height: 32.h),
-
-              // Botão de verificar
               Observer(
                 builder: (_) => SizedBox(
                   height: 48.h,
@@ -146,8 +135,6 @@ class _ForgotPasswordOtpPageState extends State<ForgotPasswordOtpPage> {
                 ),
               ),
               SizedBox(height: 24.h),
-
-              // Link de reenviar código
               Observer(
                 builder: (_) => Center(
                   child: store.canResendOtp
@@ -171,10 +158,7 @@ class _ForgotPasswordOtpPageState extends State<ForgotPasswordOtpPage> {
                         ),
                 ),
               ),
-
               SizedBox(height: 32.h),
-
-              // Texto de ajuda
               Center(
                 child: Text(
                   'Não recebeu o código? Verifique a caixa de spam.',
@@ -227,14 +211,11 @@ class _ForgotPasswordOtpPageState extends State<ForgotPasswordOtpPage> {
         ],
         onChanged: (value) {
           if (value.isNotEmpty && index < 5) {
-            // Mover para próximo campo
             _focusNodes[index + 1].requestFocus();
           } else if (value.isEmpty && index > 0) {
-            // Mover para campo anterior
             _focusNodes[index - 1].requestFocus();
           }
 
-          // Atualizar código no store
           store.setOtpCode(_otpCode);
         },
       ),
@@ -256,7 +237,6 @@ class _ForgotPasswordOtpPageState extends State<ForgotPasswordOtpPage> {
     final success = await store.verifyOtpCode();
 
     if (success && mounted) {
-      // Navegar para página de nova senha
       Modular.to.pushNamed('/auth/forgot-password/new-password');
     } else if (!success && mounted) {
       CustomInfoDialog.show(
@@ -265,7 +245,6 @@ class _ForgotPasswordOtpPageState extends State<ForgotPasswordOtpPage> {
         title: 'Código Inválido',
         message: store.errorMessage ?? 'O código informado está incorreto.',
       );
-      // Limpar campos
       for (final controller in _controllers) {
         controller.clear();
       }

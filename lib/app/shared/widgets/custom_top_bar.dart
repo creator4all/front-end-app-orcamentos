@@ -5,8 +5,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../modules/features/auth/presentation/stores/auth_store.dart';
-import '../../modules/features/profile/data/services/profile_service.dart';
+import '../../modules/features/profile/domain/repositories/profile_repository.dart';
 import '../core/utils/token_cache.dart';
+import 'custom_info_dialog.dart';
 import 'delete_account_modal.dart';
 import 'profile_modal.dart';
 import 'user_avatar_widget.dart';
@@ -146,11 +147,11 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
         await authStore!.logout();
       } catch (e) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Erro ao fazer logout: $e'),
-              backgroundColor: Colors.red,
-            ),
+          CustomInfoDialog.show(
+            context: context,
+            type: DialogType.error,
+            title: 'Erro ao sair',
+            message: 'Erro ao fazer logout: $e',
           );
         }
       }
@@ -222,7 +223,7 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   Future<void> _handleDeleteAccount(BuildContext context) async {
-    final profileService = Modular.get<ProfileService>();
+    final repository = Modular.get<ProfileRepository>();
     const secureStorage = FlutterSecureStorage();
 
     await showDialog(
@@ -231,38 +232,44 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
       builder: (dialogContext) => DeleteAccountModal(
         userName: authStore?.userDisplayName ?? 'Usuário',
         onConfirmDelete: () async {
-          try {
-            // Chamar API para deletar conta
-            final mensagem = await profileService.deletarConta();
-            print('✅ Conta deletada: $mensagem');
+          final result = await repository.deleteAccount();
 
-            // Limpar tokens
-            await secureStorage.delete(key: 'auth_token');
-            await secureStorage.delete(key: 'user_data');
-            TokenCache.instance.clearToken();
-            print('✅ Tokens limpos');
+          result.fold(
+            (failure) {
+              if (dialogContext.mounted) {
+                Navigator.of(dialogContext).pop();
+              }
+              if (context.mounted) {
+                CustomInfoDialog.show(
+                  context: context,
+                  type: DialogType.error,
+                  title: 'Erro ao excluir conta',
+                  message: failure.message,
+                );
+              }
+            },
+            (mensagem) async {
+              await secureStorage.delete(key: 'auth_token');
+              await secureStorage.delete(key: 'user_data');
+              TokenCache.instance.clearToken();
 
-            // Fechar modal
-            if (dialogContext.mounted) {
-              Navigator.of(dialogContext).pop();
-            }
+              if (dialogContext.mounted) {
+                Navigator.of(dialogContext).pop();
+              }
 
-            // Mostrar mensagem de sucesso
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(mensagem),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            }
-
-            // Redirecionar para login
-            Modular.to.pushReplacementNamed('/auth/login');
-          } catch (e) {
-            print('❌ Erro ao deletar conta: $e');
-            rethrow;
-          }
+              if (context.mounted) {
+                CustomInfoDialog.show(
+                  context: context,
+                  type: DialogType.success,
+                  title: 'Conta excluída',
+                  message: mensagem,
+                  onButtonPressed: () {
+                    Modular.to.pushReplacementNamed('/auth/login');
+                  },
+                );
+              }
+            },
+          );
         },
         onCancel: () => Navigator.of(dialogContext).pop(),
       ),

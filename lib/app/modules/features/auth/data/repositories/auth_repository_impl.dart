@@ -6,9 +6,6 @@ import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_datasource.dart';
 
-/// Implementação concreta do AuthRepository
-/// Coordena o DataSource e converte Models em Entities
-/// Trata exceções e retorna Either<Failure, Success>
 class AuthRepositoryImpl implements AuthRepository {
   final AuthDatasource datasource;
 
@@ -19,44 +16,32 @@ class AuthRepositoryImpl implements AuthRepository {
     required String email,
     required String password,
   }) async {
-    print('📚 AuthRepositoryImpl.login() iniciado');
     try {
-      print('📞 Chamando datasource.login()...');
       final userModel = await datasource.login(
         email: email,
         password: password,
       );
 
-      print('✅ Datasource retornou UserModel');
-      // Converter Model para Entity
       final user = userModel.toEntity();
-      print('✅ Model convertido para Entity');
 
       return Right(user);
     } on UnauthorizedException {
-      print('❌ ERRO no AuthRepositoryImpl: Usuário não autorizado');
       return const Left(AuthFailure('Email ou senha incorretos'));
     } on ForbiddenException {
-      print('❌ ERRO no AuthRepositoryImpl: Conta desativada');
       return const Left(
           AuthFailure('Conta desativada. Contate o administrador.'));
     } on ConnectionException {
-      print('❌ ERRO no AuthRepositoryImpl: Falha de conexão');
       return const Left(NetworkFailure(
           'Falha na conexão. Verifique sua internet e tente novamente.'));
     } on TimeoutException {
-      print('❌ ERRO no AuthRepositoryImpl: Timeout');
       return const Left(
           NetworkFailure('Tempo de conexão esgotado. Tente novamente.'));
     } on InternalServerException {
-      print('❌ ERRO no AuthRepositoryImpl: Erro do servidor');
       return const Left(
           ServerFailure('Erro no servidor. Tente novamente mais tarde.'));
     } on HttpException catch (e) {
-      print('❌ ERRO no AuthRepositoryImpl: HTTP ${e.statusCode}');
       return Left(ServerFailure('Erro ${e.statusCode}: ${e.message}'));
     } catch (e) {
-      print('❌ ERRO no AuthRepositoryImpl: $e');
       return Left(ServerFailure('Erro ao fazer login: ${e.toString()}'));
     }
   }
@@ -74,10 +59,8 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Either<Failure, User>> getCurrentUser() async {
     try {
-      // Sempre buscar da API para garantir dados atualizados
       final userModel = await datasource.getCurrentUser(forceRefresh: true);
 
-      // Converter Model para Entity
       final user = userModel.toEntity();
 
       return Right(user);
@@ -126,8 +109,6 @@ class AuthRepositoryImpl implements AuthRepository {
       return Left(ServerFailure('Erro ao validar token: ${e.toString()}'));
     }
   }
-
-  // ===== Métodos para Recuperação de Senha =====
 
   @override
   Future<Either<Failure, void>> requestPasswordReset({

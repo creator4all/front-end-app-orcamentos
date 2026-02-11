@@ -30,7 +30,6 @@ class _ProfilePageState extends State<ProfilePage> {
   final TextEditingController _cargoController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
 
-  // Variáveis de erro para validação
   String? _nameError;
   String? _emailError;
   String? _cargoError;
@@ -42,7 +41,6 @@ class _ProfilePageState extends State<ProfilePage> {
     _store = Modular.get<ProfileStore>();
     _authStore = Modular.get<AuthStore>();
 
-    // Observar mudanças no perfil e atualizar controllers
     reaction(
       (_) => _store.profile,
       (profile) {
@@ -51,7 +49,6 @@ class _ProfilePageState extends State<ProfilePage> {
           _emailController.text = _store.email;
           _cargoController.text = _store.cargo;
           _phoneController.text = _store.phone;
-          print('🔄 Controllers atualizados via reaction');
         }
       },
     );
@@ -68,10 +65,9 @@ class _ProfilePageState extends State<ProfilePage> {
     super.dispose();
   }
 
-  // Formatar telefone (XX) XXXXX-XXXX
   String _formatPhone(String value) {
     value = value.replaceAll(RegExp(r'[^0-9]'), '');
-    // Limitar a 11 dígitos (DDD + 9 dígitos)
+
     if (value.length > 11) {
       value = value.substring(0, 11);
     }
@@ -92,7 +88,6 @@ class _ProfilePageState extends State<ProfilePage> {
       );
 
       if (image != null) {
-        // Abrir editor de recorte
         final CroppedFile? croppedFile = await ImageCropper().cropImage(
           sourcePath: image.path,
           compressFormat: ImageCompressFormat.jpg,
@@ -117,10 +112,8 @@ class _ProfilePageState extends State<ProfilePage> {
         if (croppedFile != null) {
           _store.setSelectedAvatar(File(croppedFile.path));
 
-          // Fazer upload automaticamente
           final success = await _store.uploadAvatar();
           if (success && mounted) {
-            // ✅ Recarregar dados do usuário na AuthStore
             await _authStore.loadCurrentUser();
 
             if (!mounted) return;
@@ -169,7 +162,6 @@ class _ProfilePageState extends State<ProfilePage> {
     if (confirm == true) {
       final success = await _store.removeAvatar();
       if (success) {
-        // Atualizar store global (AuthStore)
         await _authStore.loadCurrentUser();
         if (mounted) {
           CustomInfoDialog.show(
@@ -192,11 +184,9 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  // Validar campos obrigatórios
   bool _validateFields() {
     bool isValid = true;
 
-    // Validar Nome
     if (_nameController.text.trim().isEmpty) {
       setState(() => _nameError = 'Nome é obrigatório');
       isValid = false;
@@ -204,7 +194,6 @@ class _ProfilePageState extends State<ProfilePage> {
       setState(() => _nameError = null);
     }
 
-    // Validar E-mail
     if (_emailController.text.trim().isEmpty) {
       setState(() => _emailError = 'E-mail é obrigatório');
       isValid = false;
@@ -216,7 +205,6 @@ class _ProfilePageState extends State<ProfilePage> {
       setState(() => _emailError = null);
     }
 
-    // Validar Cargo
     if (_cargoController.text.trim().isEmpty) {
       setState(() => _cargoError = 'Cargo é obrigatório');
       isValid = false;
@@ -224,7 +212,6 @@ class _ProfilePageState extends State<ProfilePage> {
       setState(() => _cargoError = null);
     }
 
-    // Validar Telefone
     if (_phoneController.text.trim().isEmpty) {
       setState(() => _phoneError = 'Telefone é obrigatório');
       isValid = false;
@@ -236,12 +223,10 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _save() async {
-    // Validar campos obrigatórios antes de salvar
     if (!_validateFields()) {
       return;
     }
 
-    // Atualizar store com valores dos controllers
     _store.setName(_nameController.text.trim());
     _store.setEmail(_emailController.text.trim());
     _store.setCargo(_cargoController.text.trim());
@@ -252,7 +237,6 @@ class _ProfilePageState extends State<ProfilePage> {
     if (!mounted) return;
 
     if (success) {
-      // ✅ Recarregar dados do usuário na AuthStore
       await _authStore.loadCurrentUser();
 
       if (!mounted) return;
@@ -309,8 +293,6 @@ class _ProfilePageState extends State<ProfilePage> {
               child: Column(
                 children: [
                   SizedBox(height: 20.h),
-
-                  // 1. AVATAR NO TOPO
                   Stack(
                     alignment: Alignment.center,
                     children: [
@@ -340,13 +322,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                     ],
                   ),
-
-                  SizedBox(height: 16.h),
-
-                  // 2. BADGES (FUNÇÃO E PARCEIRO) - REMOVIDO PARA A MODAL
                   SizedBox(height: 24.h),
-
-                  // 3. BOTÕES DE AÇÃO (FOTO)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -386,10 +362,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       ],
                     ],
                   ),
-
                   SizedBox(height: 32.h),
-
-                  // Nome
                   CustomTextField(
                     controller: _nameController,
                     label: 'Nome',
@@ -398,10 +371,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     errorText: _nameError,
                     height: 50.h,
                   ),
-
                   SizedBox(height: 16.h),
-
-                  // Email
                   CustomTextField(
                     controller: _emailController,
                     label: 'E-mail',
@@ -411,10 +381,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     errorText: _emailError,
                     height: 50.h,
                   ),
-
                   SizedBox(height: 16.h),
-
-                  // Cargo
                   CustomTextField(
                     controller: _cargoController,
                     label: 'Cargo',
@@ -423,10 +390,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     errorText: _cargoError,
                     height: 50.h,
                   ),
-
                   SizedBox(height: 16.h),
-
-                  // Telefone
                   CustomTextField(
                     controller: _phoneController,
                     label: 'Telefone',
@@ -446,10 +410,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       }
                     },
                   ),
-
                   SizedBox(height: 32.h),
-
-                  // Botão Salvar
                   SizedBox(
                     width: double.infinity,
                     height: 50.h,
@@ -479,7 +440,6 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                     ),
                   ),
-
                   SizedBox(height: 32.h),
                 ],
               ),

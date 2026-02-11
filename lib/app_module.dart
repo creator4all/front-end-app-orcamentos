@@ -23,7 +23,10 @@ import 'app/modules/features/budget/budget_module_new.dart'; // NOVO - Clean Arc
 import 'app/modules/features/new_drive/new_drive_module.dart'; // NOVO - Clean Architecture
 import 'app/modules/features/partner/data/services/partner_service.dart';
 import 'app/modules/features/partner/partner_module.dart';
-import 'app/modules/features/profile/data/services/profile_service.dart';
+import 'app/modules/features/profile/data/datasources/profile_api_datasource.dart';
+import 'app/modules/features/profile/data/datasources/profile_datasource.dart';
+import 'app/modules/features/profile/data/repositories/profile_repository_impl.dart';
+import 'app/modules/features/profile/domain/repositories/profile_repository.dart';
 import 'app/modules/features/profile/profile_module.dart';
 import 'app/modules/features/prospect/prospect_module.dart';
 import 'app/modules/features/reports/reports_module.dart';
@@ -41,143 +44,147 @@ import 'services/geo_service.dart';
 class AppModule extends Module {
   @override
   List<Bind> get binds => [
-    // ==================== NOVO HTTP CLIENT ====================
+        // ==================== NOVO HTTP CLIENT ====================
 
-    // Configuração do cliente HTTP
-    Bind.singleton<HttpClientConfig>(
-      (i) => DioConfigFactory.createDefault(
-        baseUrl: ApiConfig.baseUrl,
-        getToken: () => TokenCache.instance.getTokenOrEmpty(),
-        enableLogger: _isDebugMode(),
-      ),
-    ),
+        // Configuração do cliente HTTP
+        Bind.singleton<HttpClientConfig>(
+          (i) => DioConfigFactory.createDefault(
+            baseUrl: ApiConfig.baseUrl,
+            getToken: () => TokenCache.instance.getTokenOrEmpty(),
+            enableLogger: _isDebugMode(),
+          ),
+        ),
 
-    // Cliente HTTP (implementação concreta do AppHttpClient)
-    Bind.singleton<AppHttpClient>(
-      (i) => DioHttpClientImpl(i.get<HttpClientConfig>()),
-    ),
+        // Cliente HTTP (implementação concreta do AppHttpClient)
+        Bind.singleton<AppHttpClient>(
+          (i) => DioHttpClientImpl(i.get<HttpClientConfig>()),
+        ),
 
-    // ==================== SERVICES (Usando AppHttpClient) ====================
+        // ==================== SERVICES (Usando AppHttpClient) ====================
 
-    // Auth Service
-    Bind.singleton<AuthService>(
-      (i) => AuthService(client: i.get<AppHttpClient>()),
-    ),
+        // Auth Service
+        Bind.singleton<AuthService>(
+          (i) => AuthService(client: i.get<AppHttpClient>()),
+        ),
 
-    // Geo Service
-    Bind.singleton<GeoService>(
-      (i) => GeoService(client: i.get<AppHttpClient>()),
-    ),
+        // Geo Service
+        Bind.singleton<GeoService>(
+          (i) => GeoService(client: i.get<AppHttpClient>()),
+        ),
 
-    // Censo Service
-    Bind.singleton<CensoService>(
-      (i) => CensoService(client: i.get<AppHttpClient>()),
-    ),
+        // Censo Service
+        Bind.singleton<CensoService>(
+          (i) => CensoService(client: i.get<AppHttpClient>()),
+        ),
 
-    // ==================== CORE ====================
+        // ==================== CORE ====================
 
-    // Secure Storage (compartilhado globalmente)
-    Bind.singleton<FlutterSecureStorage>((i) => const FlutterSecureStorage()),
+        // Secure Storage (compartilhado globalmente)
+        Bind.singleton<FlutterSecureStorage>(
+            (i) => const FlutterSecureStorage()),
 
-    // ==================== AUTH (Compartilhado Globalmente) ====================
+        // ==================== AUTH (Compartilhado Globalmente) ====================
 
-    // DataSource
-    Bind.singleton<AuthDatasource>(
-      (i) => AuthApiDatasource(
-        httpClient: i.get<AppHttpClient>(),
-        secureStorage: i.get<FlutterSecureStorage>(),
-      ),
-    ),
+        // DataSource
+        Bind.singleton<AuthDatasource>(
+          (i) => AuthApiDatasource(
+            httpClient: i.get<AppHttpClient>(),
+            secureStorage: i.get<FlutterSecureStorage>(),
+          ),
+        ),
 
-    // Repository
-    Bind.singleton<AuthRepository>(
-      (i) => AuthRepositoryImpl(i.get<AuthDatasource>()),
-    ),
+        // Repository
+        Bind.singleton<AuthRepository>(
+          (i) => AuthRepositoryImpl(i.get<AuthDatasource>()),
+        ),
 
-    // Use Cases
-    Bind.singleton<LoginUsecase>((i) => LoginUsecase(i.get<AuthRepository>())),
+        // Use Cases
+        Bind.singleton<LoginUsecase>(
+            (i) => LoginUsecase(i.get<AuthRepository>())),
 
-    // Forgot Password Use Cases
-    Bind.singleton<RequestPasswordResetUsecase>(
-      (i) => RequestPasswordResetUsecase(i.get<AuthRepository>()),
-    ),
-    Bind.singleton<ResendOtpCodeUsecase>(
-      (i) => ResendOtpCodeUsecase(i.get<AuthRepository>()),
-    ),
-    Bind.singleton<VerifyOtpCodeUsecase>(
-      (i) => VerifyOtpCodeUsecase(i.get<AuthRepository>()),
-    ),
-    Bind.singleton<ResetPasswordUsecase>(
-      (i) => ResetPasswordUsecase(i.get<AuthRepository>()),
-    ),
+        // Forgot Password Use Cases
+        Bind.singleton<RequestPasswordResetUsecase>(
+          (i) => RequestPasswordResetUsecase(i.get<AuthRepository>()),
+        ),
+        Bind.singleton<ResendOtpCodeUsecase>(
+          (i) => ResendOtpCodeUsecase(i.get<AuthRepository>()),
+        ),
+        Bind.singleton<VerifyOtpCodeUsecase>(
+          (i) => VerifyOtpCodeUsecase(i.get<AuthRepository>()),
+        ),
+        Bind.singleton<ResetPasswordUsecase>(
+          (i) => ResetPasswordUsecase(i.get<AuthRepository>()),
+        ),
 
-    // Store (Disponível para todos os módulos)
-    Bind.singleton<AuthStore>(
-      (i) => AuthStore(
-        loginUsecase: i.get<LoginUsecase>(),
-        authRepository: i.get<AuthRepository>(),
-        secureStorage: i.get<FlutterSecureStorage>(),
-      ),
-    ),
+        // Store (Disponível para todos os módulos)
+        Bind.singleton<AuthStore>(
+          (i) => AuthStore(
+            loginUsecase: i.get<LoginUsecase>(),
+            authRepository: i.get<AuthRepository>(),
+            secureStorage: i.get<FlutterSecureStorage>(),
+          ),
+        ),
 
-    // Forgot Password Store
-    Bind.singleton<ForgotPasswordStore>(
-      (i) => ForgotPasswordStore(
-        i.get<RequestPasswordResetUsecase>(),
-        i.get<ResendOtpCodeUsecase>(),
-        i.get<VerifyOtpCodeUsecase>(),
-        i.get<ResetPasswordUsecase>(),
-      ),
-    ),
+        // Forgot Password Store
+        Bind.singleton<ForgotPasswordStore>(
+          (i) => ForgotPasswordStore(
+            i.get<RequestPasswordResetUsecase>(),
+            i.get<ResendOtpCodeUsecase>(),
+            i.get<VerifyOtpCodeUsecase>(),
+            i.get<ResetPasswordUsecase>(),
+          ),
+        ),
 
-    // ==================== PARTNER SERVICE ====================
+        // ==================== PARTNER SERVICE ====================
 
-    // Partner Service (compartilhado globalmente)
-    Bind.singleton<PartnerService>(
-      (i) => PartnerService(i<AppHttpClient>(), i<FlutterSecureStorage>()),
-    ),
+        // Partner Service (compartilhado globalmente)
+        Bind.singleton<PartnerService>(
+          (i) => PartnerService(i<AppHttpClient>(), i<FlutterSecureStorage>()),
+        ),
 
-    // ==================== PROFILE SERVICE ====================
+        // ==================== PROFILE (Compartilhado para custom_top_bar) ====================
 
-    // Profile Service (compartilhado globalmente para deletar conta)
-    Bind.singleton<ProfileService>((i) => ProfileService(i<AppHttpClient>())),
-  ];
+        Bind.singleton<ProfileDatasource>(
+            (i) => ProfileApiDatasource(i<AppHttpClient>())),
+        Bind.singleton<ProfileRepository>(
+            (i) => ProfileRepositoryImpl(i<ProfileDatasource>())),
+      ];
 
   @override
   List<ModularRoute> get routes => [
-    // Auth Module
-    ModuleRoute('/auth', module: AuthModule()),
+        // Auth Module
+        ModuleRoute('/auth', module: AuthModule()),
 
-    // Budget Module - Clean Architecture
-    ModuleRoute('/budget', module: BudgetModuleNew()),
+        // Budget Module - Clean Architecture
+        ModuleRoute('/budget', module: BudgetModuleNew()),
 
-    // Profile Module
-    ModuleRoute('/profile', module: ProfileModule()),
+        // Profile Module
+        ModuleRoute('/profile', module: ProfileModule()),
 
-    // Partner Module
-    ModuleRoute('/partner', module: PartnerModule()),
+        // Partner Module
+        ModuleRoute('/partner', module: PartnerModule()),
 
-    // Drive Module - Clean Architecture
-    ModuleRoute('/drive', module: NewDriveModule()),
+        // Drive Module - Clean Architecture
+        ModuleRoute('/drive', module: NewDriveModule()),
 
-    // User Management Module - Gestão de Usuários
-    ModuleRoute('/user-management', module: UserManagementModule()),
+        // User Management Module - Gestão de Usuários
+        ModuleRoute('/user-management', module: UserManagementModule()),
 
-    // Partner Management Module - Gestão de Parceiros (Admin)
-    ModuleRoute('/partner-management', module: PartnerManagementModule()),
+        // Partner Management Module - Gestão de Parceiros (Admin)
+        ModuleRoute('/partner-management', module: PartnerManagementModule()),
 
-    // Prospect Module - Prospecção de Parceiros
-    ModuleRoute('/prospect', module: ProspectModule()),
+        // Prospect Module - Prospecção de Parceiros
+        ModuleRoute('/prospect', module: ProspectModule()),
 
-    // Product Management Module - Gestão de Produtos (Admin)
-    ModuleRoute('/product-management', module: ProductManagementModule()),
+        // Product Management Module - Gestão de Produtos (Admin)
+        ModuleRoute('/product-management', module: ProductManagementModule()),
 
-    // Reports Module - Relatórios de Orçamentos (Admin)
-    ModuleRoute('/reports', module: ReportsModule()),
+        // Reports Module - Relatórios de Orçamentos (Admin)
+        ModuleRoute('/reports', module: ReportsModule()),
 
-    // Redirect to auth by default
-    RedirectRoute('/', to: '/auth/login'),
-  ];
+        // Redirect to auth by default
+        RedirectRoute('/', to: '/auth/login'),
+      ];
 
   /// Verifica se está em modo debug
   bool _isDebugMode() {

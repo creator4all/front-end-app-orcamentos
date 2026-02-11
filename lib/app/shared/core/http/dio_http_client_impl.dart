@@ -242,6 +242,30 @@ class DioHttpClientImpl implements AppHttpClient {
     }
   }
 
+  @override
+  Future<HttpResponse> uploadFile(
+    String url, {
+    required String filePath,
+    required String fileField,
+    HttpRequestConfig? config,
+  }) async {
+    final extension = filePath.split('.').last.toLowerCase();
+    final mimeSubtype = extension == 'png' ? 'png' : 'jpeg';
+
+    final formData = FormData.fromMap({
+      fileField: await MultipartFile.fromFile(
+        filePath,
+        contentType: DioMediaType('image', mimeSubtype),
+      ),
+    });
+
+    final uploadConfig = (config ?? HttpRequestConfig()).copyWith(
+      contentType: 'multipart/form-data',
+    );
+
+    return _executeRequest('POST', url, formData, uploadConfig);
+  }
+
   /// Constrói Options do Dio baseado na configuração
   Options _buildOptions(String method, HttpRequestConfig? config) {
     final headers = <String, dynamic>{};
@@ -258,8 +282,12 @@ class DioHttpClientImpl implements AppHttpClient {
       headers['Authorization'] = 'Bearer $token';
     }
 
-    // Define Content-Type
-    headers['Content-Type'] = config?.contentType ?? 'application/json';
+    // Quando contentType é multipart/form-data, Dio precisa definir
+    // o header automaticamente (inclui boundary gerado pelo FormData)
+    final contentType = config?.contentType;
+    if (contentType != 'multipart/form-data') {
+      headers['Content-Type'] = contentType ?? 'application/json';
+    }
 
     return Options(
       method: method,

@@ -9,7 +9,6 @@ import '../../domain/usecases/verify_otp_code_usecase.dart';
 
 part 'forgot_password_store.g.dart';
 
-/// Store MobX para gerenciamento de estado do fluxo de recuperação de senha
 class ForgotPasswordStore = _ForgotPasswordStoreBase with _$ForgotPasswordStore;
 
 abstract class _ForgotPasswordStoreBase with Store {
@@ -25,10 +24,7 @@ abstract class _ForgotPasswordStoreBase with Store {
     this._resetPasswordUsecase,
   );
 
-  // Timer para countdown de reenvio
   Timer? _resendTimer;
-
-  // ===== Observables =====
 
   @observable
   String email = '';
@@ -51,78 +47,60 @@ abstract class _ForgotPasswordStoreBase with Store {
   @observable
   int resendCountdown = 0;
 
-  // ===== Computed =====
-
-  /// Verifica se pode reenviar OTP (countdown zerado)
   @computed
   bool get canResendOtp => resendCountdown == 0;
 
-  /// Verifica se a senha atende aos requisitos
   @computed
   bool get isPasswordValid => ResetPasswordUsecase.isPasswordValid(newPassword);
 
-  /// Verifica se as senhas conferem
   @computed
   bool get passwordsMatch =>
       newPassword.isNotEmpty && newPassword == confirmPassword;
 
-  /// Verifica requisito: mínimo 6 caracteres
   @computed
   bool get hasMinLength => ResetPasswordUsecase.hasMinLength(newPassword);
 
-  /// Verifica requisito: pelo menos 1 letra maiúscula
   @computed
   bool get hasUppercase => ResetPasswordUsecase.hasUppercase(newPassword);
 
-  /// Verifica requisito: pelo menos 1 caractere especial
   @computed
   bool get hasSpecialChar => ResetPasswordUsecase.hasSpecialChar(newPassword);
 
-  /// Verifica se pode enviar nova senha (todos requisitos atendidos)
   @computed
   bool get canSubmitNewPassword =>
       isPasswordValid && passwordsMatch && !isLoading;
 
-  // ===== Actions =====
-
-  /// Atualiza o email
   @action
   void setEmail(String value) {
     email = value;
     errorMessage = null;
   }
 
-  /// Atualiza o código OTP
   @action
   void setOtpCode(String value) {
     otpCode = value;
     errorMessage = null;
   }
 
-  /// Atualiza a nova senha
   @action
   void setNewPassword(String value) {
     newPassword = value;
     errorMessage = null;
   }
 
-  /// Atualiza a confirmação de senha
   @action
   void setConfirmPassword(String value) {
     confirmPassword = value;
     errorMessage = null;
   }
 
-  /// Limpa a mensagem de erro
   @action
   void clearError() {
     errorMessage = null;
   }
 
-  /// Solicita recuperação de senha (envia OTP para email)
   @action
   Future<bool> requestPasswordReset() async {
-    print('🔑 ForgotPasswordStore.requestPasswordReset()');
     isLoading = true;
     errorMessage = null;
 
@@ -133,22 +111,17 @@ abstract class _ForgotPasswordStoreBase with Store {
     return result.fold(
       (failure) {
         errorMessage = failure.message;
-        print('❌ Erro: ${failure.message}');
         return false;
       },
       (_) {
-        print('✅ Email enviado com sucesso');
         startResendTimer();
         return true;
       },
     );
   }
 
-  /// Reenvia código OTP
   @action
   Future<bool> resendOtpCode() async {
-    print('🔄 ForgotPasswordStore.resendOtpCode()');
-
     if (!canResendOtp) {
       errorMessage = 'Aguarde $resendCountdown segundos para reenviar';
       return false;
@@ -164,21 +137,17 @@ abstract class _ForgotPasswordStoreBase with Store {
     return result.fold(
       (failure) {
         errorMessage = failure.message;
-        print('❌ Erro: ${failure.message}');
         return false;
       },
       (_) {
-        print('✅ Código reenviado com sucesso');
         startResendTimer();
         return true;
       },
     );
   }
 
-  /// Verifica código OTP
   @action
   Future<bool> verifyOtpCode() async {
-    print('🔢 ForgotPasswordStore.verifyOtpCode()');
     isLoading = true;
     errorMessage = null;
 
@@ -192,12 +161,10 @@ abstract class _ForgotPasswordStoreBase with Store {
     return result.fold(
       (failure) {
         errorMessage = failure.message;
-        print('❌ Erro: ${failure.message}');
         return false;
       },
       (isValid) {
         if (isValid) {
-          print('✅ Código válido');
           return true;
         } else {
           errorMessage = 'Código inválido';
@@ -207,10 +174,8 @@ abstract class _ForgotPasswordStoreBase with Store {
     );
   }
 
-  /// Redefine a senha
   @action
   Future<bool> resetPassword() async {
-    print('🔑 ForgotPasswordStore.resetPassword()');
     isLoading = true;
     errorMessage = null;
 
@@ -226,23 +191,18 @@ abstract class _ForgotPasswordStoreBase with Store {
     return result.fold(
       (failure) {
         errorMessage = failure.message;
-        print('❌ Erro: ${failure.message}');
         return false;
       },
       (_) {
-        print('✅ Senha redefinida com sucesso');
         return true;
       },
     );
   }
 
-  /// Inicia o timer de countdown para reenvio (60 segundos)
+  // Regra de negócio: intervalo de 60s entre reenvios de OTP
   @action
   void startResendTimer() {
-    // Cancelar timer anterior se existir
     _resendTimer?.cancel();
-
-    // Iniciar countdown de 60 segundos
     resendCountdown = 60;
 
     _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -254,7 +214,6 @@ abstract class _ForgotPasswordStoreBase with Store {
     });
   }
 
-  /// Reseta o store para estado inicial
   @action
   void reset() {
     email = '';
@@ -267,7 +226,6 @@ abstract class _ForgotPasswordStoreBase with Store {
     _resendTimer?.cancel();
   }
 
-  /// Dispose do timer
   void dispose() {
     _resendTimer?.cancel();
   }

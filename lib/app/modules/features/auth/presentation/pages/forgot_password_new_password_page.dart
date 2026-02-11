@@ -51,8 +51,6 @@ class _ForgotPasswordNewPasswordPageState
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 SizedBox(height: 16.h),
-
-                // Ícone de segurança
                 Center(
                   child: Container(
                     width: 80.w,
@@ -69,8 +67,6 @@ class _ForgotPasswordNewPasswordPageState
                   ),
                 ),
                 SizedBox(height: 24.h),
-
-                // Título
                 Text(
                   'Crie uma nova senha',
                   style: TextStyle(
@@ -81,8 +77,6 @@ class _ForgotPasswordNewPasswordPageState
                   textAlign: TextAlign.center,
                 ),
                 SizedBox(height: 12.h),
-
-                // Descrição
                 Text(
                   'Sua nova senha deve atender aos requisitos abaixo.',
                   style: TextStyle(
@@ -92,8 +86,6 @@ class _ForgotPasswordNewPasswordPageState
                   textAlign: TextAlign.center,
                 ),
                 SizedBox(height: 32.h),
-
-                // Campo de nova senha
                 _buildPasswordField(
                   label: 'Nova Senha',
                   controller: _passwordController,
@@ -104,12 +96,8 @@ class _ForgotPasswordNewPasswordPageState
                   onChanged: store.setNewPassword,
                 ),
                 SizedBox(height: 16.h),
-
-                // Indicadores de requisitos
                 _buildPasswordRequirements(),
                 SizedBox(height: 24.h),
-
-                // Campo de confirmação de senha
                 _buildPasswordField(
                   label: 'Confirmar Senha',
                   controller: _confirmPasswordController,
@@ -121,8 +109,6 @@ class _ForgotPasswordNewPasswordPageState
                   onChanged: store.setConfirmPassword,
                 ),
                 SizedBox(height: 8.h),
-
-                // Indicador de senhas conferem
                 Observer(
                   builder: (_) {
                     if (store.confirmPassword.isEmpty) {
@@ -155,8 +141,6 @@ class _ForgotPasswordNewPasswordPageState
                   },
                 ),
                 SizedBox(height: 32.h),
-
-                // Botão de confirmar
                 Observer(
                   builder: (_) => SizedBox(
                     height: 48.h,
@@ -329,7 +313,6 @@ class _ForgotPasswordNewPasswordPageState
     final success = await store.resetPassword();
 
     if (success && mounted) {
-      // Mostrar sucesso e redirecionar para login
       await CustomInfoDialog.show(
         context: context,
         type: DialogType.success,
@@ -338,9 +321,7 @@ class _ForgotPasswordNewPasswordPageState
             'Sua senha foi alterada com sucesso. Faça login com sua nova senha.',
         buttonText: 'Ir para Login',
         onButtonPressed: () {
-          // Resetar store
           store.reset();
-          // Navegar para login removendo todas as rotas anteriores
           Modular.to.navigate('/auth/login');
         },
       );

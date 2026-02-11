@@ -130,4 +130,17 @@ abstract class AppHttpClient {
     String url, {
     HttpRequestConfig? config,
   });
+
+  /// Envia um arquivo via multipart/form-data
+  ///
+  /// [url] - Endpoint da requisição
+  /// [filePath] - Caminho absoluto do arquivo no dispositivo
+  /// [fileField] - Nome do campo do arquivo no form (ex: 'avatar', 'logo')
+  /// [config] - Configuração opcional (token, timeout, etc.)
+  Future<HttpResponse> uploadFile(
+    String url, {
+    required String filePath,
+    required String fileField,
+    HttpRequestConfig? config,
+  });
 }

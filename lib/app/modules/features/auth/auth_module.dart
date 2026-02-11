@@ -13,20 +13,14 @@ import 'presentation/pages/login_page.dart';
 /// Este módulo contém apenas as rotas específicas de autenticação.
 class AuthModule extends Module {
   @override
-  List<Bind> get binds => [
-        // Todos os binds foram movidos para o AppModule
-        // para serem compartilhados globalmente
-      ];
+  List<Bind> get binds => [];
 
   @override
   List<ModularRoute> get routes => [
-        // Rota de login
         ChildRoute(
           '/login',
           child: (context, args) => const LoginPage(),
         ),
-
-        // Rotas de recuperação de senha
         ChildRoute(
           '/forgot-password',
           child: (context, args) => const ForgotPasswordEmailPage(),
@@ -39,11 +33,7 @@ class AuthModule extends Module {
           '/forgot-password/new-password',
           child: (context, args) => const ForgotPasswordNewPasswordPage(),
         ),
-
-        // Rota de cadastro/registro
         ModuleRoute('/register', module: RegistrationModule()),
-
-        // Rota padrão redireciona para login
         RedirectRoute('/', to: '/login'),
       ];
 }

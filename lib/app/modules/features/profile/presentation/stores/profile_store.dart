@@ -1,17 +1,17 @@
 import 'dart:io';
 
 import 'package:mobx/mobx.dart';
-import 'package:multimidiaapp/app/modules/features/profile/data/services/profile_service.dart';
 
-import '../../domain/models/user_profile.dart';
+import '../../domain/entities/user_profile.dart';
+import '../../domain/repositories/profile_repository.dart';
 
 part 'profile_store.g.dart';
 
 class ProfileStore = _ProfileStore with _$ProfileStore;
 
 abstract class _ProfileStore with Store {
-  final ProfileService _service;
-  _ProfileStore(this._service);
+  final ProfileRepository _repository;
+  _ProfileStore(this._repository);
 
   @observable
   bool isLoading = false;
@@ -47,30 +47,21 @@ abstract class _ProfileStore with Store {
   Future<void> fetch() async {
     isLoading = true;
     error = null;
-    try {
-      print('🔄 Carregando perfil...');
-      profile = await _service.obterPerfil();
 
-      // Preencher campos editáveis
-      name = profile!.name;
-      email = profile!.email;
-      cargo = profile!.cargo ?? '';
-      phone = profile!.phone ?? '';
+    final result = await _repository.getProfile();
 
-      print('✅ Perfil carregado com sucesso!');
-      print('   ID: ${profile!.id}');
-      print('   Nome: ${profile!.name}');
-      print('   Email: ${profile!.email}');
-      print('   Cargo: ${profile!.cargo}');
-      print('   Phone: ${profile!.phone}');
-      print('   Role: ${profile!.roleName}');
-      print('   Partner: ${profile!.partnerName}');
-    } catch (e) {
-      print('❌ Erro ao carregar perfil: $e');
-      error = e.toString();
-    } finally {
-      isLoading = false;
-    }
+    result.fold(
+      (failure) => error = failure.message,
+      (userProfile) {
+        profile = userProfile;
+        name = userProfile.name;
+        email = userProfile.email;
+        cargo = userProfile.cargo ?? '';
+        phone = userProfile.phone ?? '';
+      },
+    );
+
+    isLoading = false;
   }
 
   @action
@@ -102,33 +93,31 @@ abstract class _ProfileStore with Store {
   Future<bool> save() async {
     isSaving = true;
     error = null;
-    try {
-      print('💾 Salvando perfil...');
 
-      final dados = {
-        'usr_name': name,
-        'usr_email': email,
-        'usr_cargo': cargo.isEmpty ? null : cargo,
-        'usr_phone': phone.isEmpty ? null : phone,
-      };
+    final dados = {
+      'usr_name': name,
+      'usr_email': email,
+      'usr_cargo': cargo.isEmpty ? null : cargo,
+      'usr_phone': phone.isEmpty ? null : phone,
+    };
 
-      profile = await _service.atualizarPerfil(dados);
+    final result = await _repository.updateProfile(dados);
 
-      // Atualizar campos com dados salvos
-      name = profile!.name;
-      email = profile!.email;
-      cargo = profile!.cargo ?? '';
-      phone = profile!.phone ?? '';
+    bool success = false;
+    result.fold(
+      (failure) => error = failure.message,
+      (userProfile) {
+        profile = userProfile;
+        name = userProfile.name;
+        email = userProfile.email;
+        cargo = userProfile.cargo ?? '';
+        phone = userProfile.phone ?? '';
+        success = true;
+      },
+    );
 
-      print('✅ Perfil atualizado com sucesso');
-      return true;
-    } catch (e) {
-      print('❌ Erro ao salvar perfil: $e');
-      error = e.toString();
-      return false;
-    } finally {
-      isSaving = false;
-    }
+    isSaving = false;
+    return success;
   }
 
   @action
@@ -140,41 +129,41 @@ abstract class _ProfileStore with Store {
 
     isUploadingAvatar = true;
     error = null;
-    try {
-      print('📤 Fazendo upload do avatar...');
 
-      profile = await _service.uploadAvatar(selectedAvatar!);
-      selectedAvatar = null;
+    final result = await _repository.uploadAvatar(selectedAvatar!);
 
-      print('✅ Avatar atualizado com sucesso');
-      return true;
-    } catch (e) {
-      print('❌ Erro ao fazer upload do avatar: $e');
-      error = e.toString();
-      return false;
-    } finally {
-      isUploadingAvatar = false;
-    }
+    bool success = false;
+    result.fold(
+      (failure) => error = failure.message,
+      (userProfile) {
+        profile = userProfile;
+        selectedAvatar = null;
+        success = true;
+      },
+    );
+
+    isUploadingAvatar = false;
+    return success;
   }
 
   @action
   Future<bool> removeAvatar() async {
     isUploadingAvatar = true;
     error = null;
-    try {
-      print('🗑️ Removendo avatar...');
 
-      profile = await _service.removerAvatar();
+    final result = await _repository.removeAvatar();
 
-      print('✅ Avatar removido com sucesso');
-      return true;
-    } catch (e) {
-      print('❌ Erro ao remover avatar: $e');
-      error = e.toString();
-      return false;
-    } finally {
-      isUploadingAvatar = false;
-    }
+    bool success = false;
+    result.fold(
+      (failure) => error = failure.message,
+      (userProfile) {
+        profile = userProfile;
+        success = true;
+      },
+    );
+
+    isUploadingAvatar = false;
+    return success;
   }
 
   @action

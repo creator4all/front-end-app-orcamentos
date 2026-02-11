@@ -1,7 +1,5 @@
 import 'package:equatable/equatable.dart';
 
-/// Entidade de domínio que representa um Partner (Parceiro/Empresa)
-/// Esta é uma entidade pura sem dependências externas
 class Partner extends Equatable {
   final int id;
   final String legalName;

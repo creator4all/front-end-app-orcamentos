@@ -6,8 +6,6 @@ import 'role_model.dart';
 
 part 'user_model.g.dart';
 
-/// Model de dados (DTO) para User
-/// Responsável por serialização/deserialização JSON e conversão para Entity
 @CopyWith()
 class UserModel {
   final int id;
@@ -23,7 +21,6 @@ class UserModel {
   final String? createdAt;
   final String? updatedAt;
 
-  // ⭐ Objetos aninhados
   final PartnerModel? partner;
   final RoleModel? role;
 
@@ -44,58 +41,41 @@ class UserModel {
     this.role,
   });
 
-  /// Cria um UserModel a partir de JSON da API
   factory UserModel.fromJson(Map<String, dynamic> json) {
-    print('🔧 UserModel.fromJson - JSON recebido:');
-    print('   Chaves disponíveis: ${json.keys.toList()}');
-
-    final model = UserModel(
-      id: json['usr_userId'] ?? json['id'] ?? 0,
-      name: json['usr_name'] ?? json['name'] ?? '',
-      email: json['usr_email'] ?? json['email'] ?? '',
-      status: json['usr_status'] ?? json['status'] ?? false,
-      delete: json['usr_delete'] ?? json['delete'] ?? false,
-      avatar: json['usr_avatar'] ?? json['avatar'],
-      avatarBase64: json['usr_avatar_base64'],
-      cargo: json['usr_cargo'] ?? json['cargo'],
-      phone: json['usr_phone'] ?? json['phone'],
-      deletedAt:
-          json['usr_deleted_at']?.toString() ?? json['deleted_at']?.toString(),
+    return UserModel(
+      id: json['usr_userId'] as int,
+      name: json['usr_name'] as String,
+      email: json['usr_email'] as String,
+      status: json['usr_status'] as bool? ?? false,
+      delete: json['usr_delete'] as bool? ?? false,
+      avatar: json['usr_avatar'] as String?,
+      avatarBase64: json['usr_avatar_base64'] as String?,
+      cargo: json['usr_cargo'] as String?,
+      phone: json['usr_phone'] as String?,
+      deletedAt: json['usr_deleted_at']?.toString(),
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
-
-      // ⭐ PROCESSAR PARTNER ANINHADO
       partner: json['partner'] != null
           ? PartnerModel.fromJson(json['partner'] as Map<String, dynamic>)
           : null,
-
-      // ⭐ PROCESSAR ROLE ANINHADO
       role: json['role'] != null
           ? RoleModel.fromJson(json['role'] as Map<String, dynamic>)
           : null,
     );
-
-    print('✅ UserModel criado:');
-    print('   ID=${model.id}, Nome=${model.name}');
-    print('   Role=${model.role?.name ?? "N/A"}');
-    print('   Partner=${model.partner?.tradeName ?? "N/A"}');
-
-    return model;
   }
 
-  /// Converte UserModel para JSON
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'name': name,
-      'email': email,
-      'status': status,
-      'delete': delete,
-      'avatar': avatar,
+      'usr_userId': id,
+      'usr_name': name,
+      'usr_email': email,
+      'usr_status': status,
+      'usr_delete': delete,
+      'usr_avatar': avatar,
       'usr_avatar_base64': avatarBase64,
-      'cargo': cargo,
-      'phone': phone,
-      'deleted_at': deletedAt,
+      'usr_cargo': cargo,
+      'usr_phone': phone,
+      'usr_deleted_at': deletedAt,
       'created_at': createdAt,
       'updated_at': updatedAt,
       'partner': partner?.toJson(),
@@ -103,7 +83,6 @@ class UserModel {
     };
   }
 
-  /// Converte UserModel para Entity (Domain)
   User toEntity() {
     return User(
       id: id,
@@ -123,7 +102,6 @@ class UserModel {
     );
   }
 
-  /// Cria UserModel a partir de Entity (Domain)
   factory UserModel.fromEntity(User user) {
     return UserModel(
       id: user.id,

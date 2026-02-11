@@ -11,13 +11,10 @@ import '../../../../../shared/core/utils/token_cache.dart';
 import '../models/user_model.dart';
 import 'auth_datasource.dart';
 
-/// Implementação do DataSource de autenticação
-/// Responsável por fazer chamadas HTTP e gerenciar armazenamento seguro
 class AuthApiDatasource implements AuthDatasource {
   final AppHttpClient httpClient;
   final FlutterSecureStorage secureStorage;
 
-  // Keys para storage
   static const String _tokenKey = 'auth_token';
   static const String _userKey = 'user_data';
 
@@ -26,8 +23,6 @@ class AuthApiDatasource implements AuthDatasource {
     required this.secureStorage,
   });
 
-  /// Configuração padrão para requisições HTTP
-  /// User-Agent é obrigatório para evitar OTP em mobile
   HttpRequestConfig get _defaultConfig => HttpRequestConfig(
         headers: {HttpHeaders.userAgent: HttpHeaders.userAgentValue},
       );
@@ -65,7 +60,6 @@ class AuthApiDatasource implements AuthDatasource {
           value: token,
         );
 
-        // TokenCache permite acesso síncrono ao token nos interceptors
         TokenCache.instance.setToken(token);
       } else {
         throw Exception('Token não retornado pela API de login');
@@ -110,9 +104,7 @@ class AuthApiDatasource implements AuthDatasource {
               headers: {HttpHeaders.userAgent: HttpHeaders.userAgentValue},
             ),
           );
-        } catch (_) {
-          // Ignora erro da API - sempre limpa dados locais
-        }
+        } catch (_) {}
       }
 
       await secureStorage.delete(key: _tokenKey);
@@ -138,9 +130,7 @@ class AuthApiDatasource implements AuthDatasource {
           try {
             final userJson = jsonDecode(cachedUser) as Map<String, dynamic>;
             return UserModel.fromJson(userJson);
-          } catch (_) {
-            // Cache corrompido - buscar da API
-          }
+          } catch (_) {}
         }
       }
 
@@ -154,11 +144,7 @@ class AuthApiDatasource implements AuthDatasource {
 
       if (response.statusCode == 200) {
         final data = response.body;
-
-        // API pode retornar dentro de 'dados' ou diretamente
-        final userData = data.containsKey('dados')
-            ? data['dados'] as Map<String, dynamic>
-            : data;
+        final userData = data['dados'] as Map<String, dynamic>;
 
         final userModel = UserModel.fromJson(userData);
 
@@ -172,7 +158,6 @@ class AuthApiDatasource implements AuthDatasource {
         throw Exception('Falha ao obter dados do usuário');
       }
     } on UnauthorizedException {
-      // Token inválido - força novo login
       await secureStorage.delete(key: _tokenKey);
       await secureStorage.delete(key: _userKey);
       throw Exception('Sessão expirada. Faça login novamente.');
@@ -203,19 +188,17 @@ class AuthApiDatasource implements AuthDatasource {
 
       if (response.statusCode == 200) {
         final data = response.body;
-        return data['valid'] == true || data['valido'] == true;
-        return true; // Se retornou 200, consideramos válido
+        final dados = data['dados'] as Map<String, dynamic>?;
+        return dados?['valido'] == true;
       }
 
       return false;
     } on UnauthorizedException {
-      return false; // Token inválido
+      return false;
     } catch (e) {
       throw Exception('Erro inesperado ao validar token: $e');
     }
   }
-
-  // ===== Métodos para Recuperação de Senha =====
 
   @override
   Future<void> requestPasswordReset(String email) async {
@@ -272,9 +255,8 @@ class AuthApiDatasource implements AuthDatasource {
       );
 
       final data = response.body;
-      return data['valid'] == true ||
-          data['valido'] == true ||
-          response.statusCode == 200;
+      final dados = data['dados'] as Map<String, dynamic>?;
+      return dados?['valido'] == true;
     } on UnauthorizedException {
       throw Exception('Código OTP inválido');
     } on BadRequestException {
@@ -333,9 +315,7 @@ class AuthApiDatasource implements AuthDatasource {
 
       if (response.statusCode == 200) {
         final data = response.body;
-        final userData = data.containsKey('dados')
-            ? data['dados'] as Map<String, dynamic>
-            : data;
+        final userData = data['dados'] as Map<String, dynamic>;
 
         final userModel = UserModel.fromJson(userData);
 

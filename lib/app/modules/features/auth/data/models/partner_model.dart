@@ -4,8 +4,6 @@ import '../../domain/entities/partner.dart';
 
 part 'partner_model.g.dart';
 
-/// Model de dados (DTO) para Partner
-/// Responsável por serialização/deserialização JSON e conversão para Entity
 @CopyWith()
 class PartnerModel {
   final int id;
@@ -32,39 +30,38 @@ class PartnerModel {
     this.updatedAt,
   });
 
-  /// Cria um PartnerModel a partir de JSON da API
+  /// Chaves conforme contrato do backend (`GET /api/perfil/me` → campo `partner`)
   factory PartnerModel.fromJson(Map<String, dynamic> json) {
     return PartnerModel(
-      id: json['par_partnerId'] ?? json['id'] ?? 0,
-      legalName: json['par_legal_name'] ?? json['legal_name'] ?? '',
-      tradeName: json['par_trade_name'] ?? json['trade_name'] ?? '',
-      email: json['par_email'] ?? json['email'] ?? '',
-      phone: json['par_phone'] ?? json['phone'] ?? '',
-      logo: json['par_logo'] ?? json['logo'],
-      cnpj: json['par_cnpj'] ?? json['cnpj'] ?? '',
-      status: json['par_status'] ?? json['status'] ?? false,
+      id: json['par_partnerId'] as int,
+      legalName: json['par_legal_name'] as String,
+      tradeName: json['par_trade_name'] as String,
+      email: json['par_email'] as String? ?? '',
+      phone: json['par_phone'] as String,
+      logo: json['par_logo'] as String?,
+      cnpj: json['par_cnpj'] as String,
+      status: json['par_status'] as bool? ?? false,
       createdAt: json['created_at']?.toString(),
       updatedAt: json['updated_at']?.toString(),
     );
   }
 
-  /// Converte PartnerModel para JSON
+  /// Chaves alinhadas com a API para garantir round-trip do cache local
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'legal_name': legalName,
-      'trade_name': tradeName,
-      'email': email,
-      'phone': phone,
-      'logo': logo,
-      'cnpj': cnpj,
-      'status': status,
+      'par_partnerId': id,
+      'par_legal_name': legalName,
+      'par_trade_name': tradeName,
+      'par_email': email,
+      'par_phone': phone,
+      'par_logo': logo,
+      'par_cnpj': cnpj,
+      'par_status': status,
       'created_at': createdAt,
       'updated_at': updatedAt,
     };
   }
 
-  /// Converte PartnerModel para Entity (Domain)
   Partner toEntity() {
     return Partner(
       id: id,
@@ -80,7 +77,6 @@ class PartnerModel {
     );
   }
 
-  /// Cria PartnerModel a partir de Entity (Domain)
   factory PartnerModel.fromEntity(Partner partner) {
     return PartnerModel(
       id: partner.id,

@@ -3,8 +3,6 @@ import 'package:equatable/equatable.dart';
 import 'partner.dart';
 import 'role.dart';
 
-/// Entidade de domínio que representa um usuário do sistema
-/// Esta é uma entidade pura sem dependências externas
 class User extends Equatable {
   final int id;
   final String name;
