@@ -115,22 +115,17 @@ abstract class _UserManagementStoreBase with Store {
     users.clear();
     pendingChanges.clear();
 
-    print(
-        '📋 [UserManagementStore] Carregando usuários... partnerId=$partnerId');
-
     final result = await listUsersUsecase(page: 1, partnerId: partnerId);
 
     result.fold(
       (failure) {
         error = failure.message;
-        print('❌ [UserManagementStore] Erro: ${failure.message}');
       },
       (paginatedUsers) {
         users.addAll(paginatedUsers.users);
         currentPage = paginatedUsers.currentPage;
         lastPage = paginatedUsers.lastPage;
         totalUsers = paginatedUsers.total;
-        print('✅ [UserManagementStore] Carregados ${users.length} usuários');
       },
     );
 
@@ -145,21 +140,16 @@ abstract class _UserManagementStoreBase with Store {
     isLoadingMore = true;
     final nextPage = currentPage + 1;
 
-    print('📋 [UserManagementStore] Carregando página $nextPage...');
-
     final result = await listUsersUsecase(page: nextPage, partnerId: partnerId);
 
     result.fold(
       (failure) {
         error = failure.message;
-        print('❌ [UserManagementStore] Erro: ${failure.message}');
       },
       (paginatedUsers) {
         users.addAll(paginatedUsers.users);
         currentPage = paginatedUsers.currentPage;
         lastPage = paginatedUsers.lastPage;
-        print(
-            '✅ [UserManagementStore] Carregados mais ${paginatedUsers.users.length} usuários');
       },
     );
 
@@ -192,9 +182,6 @@ abstract class _UserManagementStoreBase with Store {
         status: status,
       );
     }
-
-    print(
-        '📝 [UserManagementStore] Status do usuário $userId alterado para $status');
   }
 
   /// Atualiza a role de um usuário localmente
@@ -223,9 +210,6 @@ abstract class _UserManagementStoreBase with Store {
         roleId: roleId,
       );
     }
-
-    print(
-        '📝 [UserManagementStore] Role do usuário $userId alterado para $roleName (ID: $roleId)');
   }
 
   /// Salva todas as alterações pendentes
@@ -242,8 +226,6 @@ abstract class _UserManagementStoreBase with Store {
     isSaving = true;
     error = null;
 
-    print('💾 [UserManagementStore] Salvando $changesCount alterações...');
-
     final updates = pendingChanges.values.toList();
     final result = await updateUsersUsecase(updates);
 
@@ -252,12 +234,10 @@ abstract class _UserManagementStoreBase with Store {
     result.fold(
       (failure) {
         error = failure.message;
-        print('❌ [UserManagementStore] Erro ao salvar: ${failure.message}');
       },
       (success) {
         updateResult = success;
         pendingChanges.clear();
-        print('✅ [UserManagementStore] Salvo com sucesso: ${success.message}');
       },
     );
 

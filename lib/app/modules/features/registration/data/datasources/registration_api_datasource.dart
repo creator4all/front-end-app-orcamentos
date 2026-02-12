@@ -22,7 +22,6 @@ class RegistrationApiDatasource implements RegistrationDatasource {
 
       return const VerifyDocumentResponse(existe: false);
     } catch (e) {
-      print('❌ Erro ao verificar documento: $e');
       rethrow;
     }
   }
@@ -41,7 +40,6 @@ class RegistrationApiDatasource implements RegistrationDatasource {
 
       throw Exception('Erro ao cadastrar usuário: ${response.statusCode}');
     } catch (e) {
-      print('❌ Erro ao cadastrar usuário: $e');
       rethrow;
     }
   }
@@ -59,7 +57,6 @@ class RegistrationApiDatasource implements RegistrationDatasource {
             'Erro ao enviar solicitação de parceria: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ Erro ao solicitar parceria: $e');
       rethrow;
     }
   }

@@ -2,8 +2,8 @@ import 'package:equatable/equatable.dart';
 
 enum ExperienciaVendasPublicas {
   naoAtuo('nao_atuo', 'Não atuo'),
-  simAtuando('sim_atuando', 'Sim, estou atuando'),
-  simPassado('sim_passado', 'Sim, atuei no passado'),
+  atuando('atuando', 'Sim, estou atuando'),
+  atueiPassado('atuei_passado', 'Sim, atuei no passado'),
   naoNuncaAtuei('nao_nunca_atuei', 'Não, nunca atuei');
 
   final String value;

@@ -6,8 +6,6 @@ import '../../domain/repositories/user_management_repository.dart';
 import '../datasources/user_management_datasource.dart';
 import '../models/user_update_dto.dart';
 
-/// Implementação do repositório de gerenciamento de usuários
-/// Converte dados do datasource em entidades de domínio e trata erros
 class UserManagementRepositoryImpl implements UserManagementRepository {
   final UserManagementDatasource datasource;
 
@@ -22,7 +20,6 @@ class UserManagementRepositoryImpl implements UserManagementRepository {
       final result = await datasource.listUsers(page: page, perPage: perPage);
       return Right(result.toEntity());
     } catch (e) {
-      print('❌ [UserManagementRepositoryImpl] Erro ao listar usuários: $e');
       return Left(ServerFailure(e.toString()));
     }
   }
@@ -41,8 +38,6 @@ class UserManagementRepositoryImpl implements UserManagementRepository {
       );
       return Right(result.toEntity());
     } catch (e) {
-      print(
-          '❌ [UserManagementRepositoryImpl] Erro ao listar usuários do parceiro: $e');
       return Left(ServerFailure(e.toString()));
     }
   }
@@ -56,7 +51,6 @@ class UserManagementRepositoryImpl implements UserManagementRepository {
       final result = await datasource.updateUsers(dtos);
       return Right(result.toEntity());
     } catch (e) {
-      print('❌ [UserManagementRepositoryImpl] Erro ao atualizar usuários: $e');
       return Left(ServerFailure(e.toString()));
     }
   }

@@ -54,7 +54,5 @@ class ReportUser extends Equatable {
       ];
 
   @override
-  String toString() {
-    return 'ReportUser(id: $id, nome: $nome, cargo: $cargo, totalVendas: $totalVendas)';
-  }
+  bool get stringify => true;
 }

@@ -52,8 +52,7 @@ class VerifyDocumentResponse {
   });
 
   factory VerifyDocumentResponse.fromJson(Map<String, dynamic> json) {
-    // A API retorna os dados dentro de 'dados'
-    final data = json['dados'] ?? json;
+    final data = json['dados'] as Map<String, dynamic>;
 
     return VerifyDocumentResponse(
       existe: data['existe'] ?? false,

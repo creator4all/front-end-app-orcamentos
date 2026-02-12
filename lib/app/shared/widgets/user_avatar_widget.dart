@@ -67,9 +67,7 @@ class UserAvatarWidget extends StatelessWidget {
       try {
         final base64Data = avatarBase64!.split(',').last;
         imageProvider = MemoryImage(base64Decode(base64Data));
-      } catch (e) {
-        print('Erro ao decodificar avatar: $e');
-      }
+      } catch (e) {}
     }
 
     // Se tem imagem, exibir

@@ -4,7 +4,6 @@ import '../models/managed_user_dto.dart';
 import '../models/user_update_dto.dart';
 import 'user_management_datasource.dart';
 
-/// Implementação do datasource usando API HTTP
 class UserManagementApiDatasource implements UserManagementDatasource {
   final AppHttpClient httpClient;
 
@@ -15,28 +14,18 @@ class UserManagementApiDatasource implements UserManagementDatasource {
     required int page,
     required int perPage,
   }) async {
-    try {
-      print(
-          '📋 [UserManagementApiDatasource] Listando usuários página $page...');
+    final response = await httpClient.get(
+      '/api/parceiro/usuarios',
+      config: HttpRequestConfig(
+        queryParameters: {'page': page, 'per_page': perPage},
+      ),
+    );
 
-      final response = await httpClient.get(
-        '/api/parceiro/usuarios',
-        config: HttpRequestConfig(
-          queryParameters: {'page': page, 'per_page': perPage},
-        ),
-      );
-
-      if (response.statusCode == 200) {
-        print(
-            '✅ [UserManagementApiDatasource] Usuários carregados com sucesso');
-        return PaginatedUsersDto.fromJson(response.body);
-      }
-
-      throw Exception('Erro ao listar usuários: ${response.statusCode}');
-    } catch (e) {
-      print('❌ [UserManagementApiDatasource] Erro ao listar usuários: $e');
-      rethrow;
+    if (response.statusCode == 200) {
+      return PaginatedUsersDto.fromJson(response.body);
     }
+
+    throw Exception('Erro ao listar usuários: ${response.statusCode}');
   }
 
   @override
@@ -45,58 +34,37 @@ class UserManagementApiDatasource implements UserManagementDatasource {
     required int page,
     required int perPage,
   }) async {
-    try {
-      print(
-          '📋 [UserManagementApiDatasource] Listando usuários do parceiro $partnerId página $page...');
+    final response = await httpClient.get(
+      '/api/partners/$partnerId/usuarios',
+      config: HttpRequestConfig(
+        queryParameters: {'page': page, 'per_page': perPage},
+      ),
+    );
 
-      final response = await httpClient.get(
-        '/api/partners/$partnerId/usuarios',
-        config: HttpRequestConfig(
-          queryParameters: {'page': page, 'per_page': perPage},
-        ),
-      );
-
-      if (response.statusCode == 200) {
-        print(
-            '✅ [UserManagementApiDatasource] Usuários do parceiro carregados com sucesso');
-        return PaginatedUsersDto.fromJson(response.body);
-      }
-
-      throw Exception(
-          'Erro ao listar usuários do parceiro: ${response.statusCode}');
-    } catch (e) {
-      print(
-          '❌ [UserManagementApiDatasource] Erro ao listar usuários do parceiro: $e');
-      rethrow;
+    if (response.statusCode == 200) {
+      return PaginatedUsersDto.fromJson(response.body);
     }
+
+    throw Exception(
+        'Erro ao listar usuários do parceiro: ${response.statusCode}');
   }
 
   @override
   Future<UpdateUsersResponseDto> updateUsers(
       List<UserUpdateDto> updates) async {
-    try {
-      print(
-          '💾 [UserManagementApiDatasource] Atualizando ${updates.length} usuários...');
+    final payload = {
+      'usuarios': updates.map((u) => u.toJson()).toList(),
+    };
 
-      final payload = {
-        'usuarios': updates.map((u) => u.toJson()).toList(),
-      };
+    final response = await httpClient.patch(
+      '/api/parceiro/usuarios',
+      data: payload,
+    );
 
-      final response = await httpClient.patch(
-        '/api/parceiro/usuarios',
-        data: payload,
-      );
-
-      if (response.statusCode == 200) {
-        print(
-            '✅ [UserManagementApiDatasource] Usuários atualizados com sucesso');
-        return UpdateUsersResponseDto.fromJson(response.body);
-      }
-
-      throw Exception('Erro ao atualizar usuários: ${response.statusCode}');
-    } catch (e) {
-      print('❌ [UserManagementApiDatasource] Erro ao atualizar usuários: $e');
-      rethrow;
+    if (response.statusCode == 200) {
+      return UpdateUsersResponseDto.fromJson(response.body);
     }
+
+    throw Exception('Erro ao atualizar usuários: ${response.statusCode}');
   }
 }

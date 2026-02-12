@@ -23,7 +23,7 @@ class ReportBudgetDto {
     required this.codigo,
     required this.dataOrcamento,
     this.dataValidade,
-    required this.diasRestantes,
+    this.diasRestantes = 0,
     required this.total,
     required this.status,
     this.isArchived = false,
@@ -31,68 +31,80 @@ class ReportBudgetDto {
     this.usuarioId = 0,
   });
 
-  /// Cria um DTO a partir do JSON da API.
-  factory ReportBudgetDto.fromJson(Map<String, dynamic> json) {
-    // Parsear datas
-    DateTime? parseDate(dynamic value) {
-      if (value == null) return null;
-      if (value is DateTime) return value;
-      if (value is String) {
-        return DateTime.tryParse(value);
-      }
-      return null;
-    }
-
-    // Parsear valores numéricos
-    double parseDouble(dynamic value) {
-      if (value == null) return 0.0;
-      if (value is double) return value;
-      if (value is int) return value.toDouble();
-      return double.tryParse(value.toString()) ?? 0.0;
-    }
-
-    int parseInt(dynamic value) {
-      if (value == null) return 0;
-      if (value is int) return value;
-      if (value is double) return value.toInt();
-      return int.tryParse(value.toString()) ?? 0;
-    }
-
-    // Calcular dias restantes se não vier da API
-    int diasRestantes =
-        parseInt(json['dias_restantes'] ?? json['diasRestantes']);
-    final dataValidade =
-        parseDate(json['data_validade'] ?? json['dataValidade']);
+  /// Factory para o endpoint `/api/orcamentos`.
+  ///
+  /// Chaves: `id`, `nome`, `status`, `total`, `data_validade`,
+  /// `dias_validade`, `is_archived`, `cidades`, `usuario.id`
+  factory ReportBudgetDto.fromOrcamentoJson(Map<String, dynamic> json) {
+    final dataValidade = _parseDate(json['data_validade']);
+    int diasRestantes = _parseInt(json['dias_validade']);
     if (diasRestantes == 0 && dataValidade != null) {
-      final hoje = DateTime.now();
-      final hojeDate = DateTime(hoje.year, hoje.month, hoje.day);
-      diasRestantes = dataValidade.difference(hojeDate).inDays;
-      if (diasRestantes < 0) diasRestantes = 0;
+      diasRestantes = _calcularDiasRestantes(dataValidade);
     }
 
-    // Gerar código se não vier da API
-    String codigo = json['codigo'] ?? json['orc_codigo'] ?? '';
-    if (codigo.isEmpty) {
-      final id = json['id'] ?? json['orc_id'] ?? 0;
-      codigo = 'ORC-${id.toString().padLeft(3, '0')}';
-    }
+    final usuario = json['usuario'] as Map<String, dynamic>?;
 
     return ReportBudgetDto(
-      id: json['id'] ?? json['orc_id'] ?? json['orc_orcamentoId'] ?? 0,
-      nome: json['nome'] ?? json['orc_nome'] ?? json['titulo'],
-      codigo: codigo,
-      dataOrcamento: parseDate(json['data_orcamento'] ?? json['created_at']) ??
-          DateTime.now(),
+      id: json['id'] ?? 0,
+      nome: json['nome'],
+      codigo: _gerarCodigo(json['id'] ?? 0),
+      dataOrcamento: _parseDate(json['data_validade']) ?? DateTime.now(),
       dataValidade: dataValidade,
       diasRestantes: diasRestantes,
-      total: parseDouble(
-          json['total'] ?? json['orc_total'] ?? json['valor_total']),
-      status: json['status'] ?? json['orc_status'] ?? 'pendente',
-      isArchived: json['is_archived'] ?? json['arquivado'] ?? false,
-      cidadesCount:
-          parseInt(json['cidades_count'] ?? json['cidadesCount'] ?? 1),
-      usuarioId: parseInt(json['orc_usuario_id'] ?? json['usuario_id'] ?? 0),
+      total: _parseDouble(json['total']),
+      status: json['status'] ?? 'pendente',
+      isArchived: json['is_archived'] ?? false,
+      cidadesCount: _parseInt(json['cidades']),
+      usuarioId: _parseInt(usuario?['id']),
     );
+  }
+
+  /// Factory para o endpoint `/api/relatorios/partners/{id}/vendas`.
+  ///
+  /// Chaves: `orc_orcamentoId`, `orc_nome`, `orc_status`,
+  /// `orc_total`, `orc_usuario_id`, `created_at`
+  factory ReportBudgetDto.fromVendasJson(Map<String, dynamic> json) {
+    return ReportBudgetDto(
+      id: json['orc_orcamentoId'] ?? 0,
+      nome: json['orc_nome'],
+      codigo: _gerarCodigo(json['orc_orcamentoId'] ?? 0),
+      dataOrcamento: _parseDate(json['created_at']) ?? DateTime.now(),
+      total: _parseDouble(json['orc_total']),
+      status: json['orc_status'] ?? 'pendente',
+      usuarioId: _parseInt(json['orc_usuario_id']),
+    );
+  }
+
+  static DateTime? _parseDate(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    if (value is String) return DateTime.tryParse(value);
+    return null;
+  }
+
+  static double _parseDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    return double.tryParse(value.toString()) ?? 0.0;
+  }
+
+  static int _parseInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    return int.tryParse(value.toString()) ?? 0;
+  }
+
+  static int _calcularDiasRestantes(DateTime dataValidade) {
+    final hoje = DateTime.now();
+    final hojeDate = DateTime(hoje.year, hoje.month, hoje.day);
+    final dias = dataValidade.difference(hojeDate).inDays;
+    return dias < 0 ? 0 : dias;
+  }
+
+  static String _gerarCodigo(dynamic id) {
+    return 'ORC-${id.toString().padLeft(3, '0')}';
   }
 
   /// Converte o DTO para a entidade de domínio.

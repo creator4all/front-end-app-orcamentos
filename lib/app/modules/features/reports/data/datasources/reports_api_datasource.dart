@@ -46,8 +46,11 @@ class ReportsApiDatasource implements ReportsDatasource {
     return data.map((json) => ReportUserDto.fromJson(json)).toList();
   }
 
-  /// Extrai a lista de dados do response
-  /// Estrutura padrão da API: { dados: { data: [...] } }
+  /// Extrai a lista de dados do response.
+  ///
+  /// Suporta duas estruturas:
+  /// - Paginada: `{ dados: { data: [...] } }` (endpoint de usuários)
+  /// - Lista direta: `{ dados: [...] }` (endpoints de orçamentos e vendas)
   List<dynamic> _extractList(dynamic body) {
     if (body is! Map<String, dynamic>) {
       throw FormatException(
@@ -55,8 +58,13 @@ class ReportsApiDatasource implements ReportsDatasource {
     }
 
     final dados = body['dados'];
+
     if (dados is Map<String, dynamic> && dados['data'] is List) {
       return dados['data'] as List<dynamic>;
+    }
+
+    if (dados is List) {
+      return dados;
     }
 
     throw FormatException('Estrutura de resposta inesperada: ${body.keys}');
@@ -69,7 +77,6 @@ class ReportsApiDatasource implements ReportsDatasource {
     DateTime? dataFim,
     String? status,
   }) async {
-    // Montar query parameters
     final queryParams = <String, dynamic>{};
     queryParams['usuario_id'] = userId.toString();
     if (dataInicio != null) {
@@ -82,16 +89,14 @@ class ReportsApiDatasource implements ReportsDatasource {
       queryParams['orc_status'] = status;
     }
 
-    // Endpoint correto: /api/orcamentos com filtro de usuário
     final response = await httpClient.get(
       '/api/orcamentos',
       config: HttpRequestConfig(queryParameters: queryParams),
     );
 
-    // Extrair lista de orçamentos usando helper
     final List<dynamic> data = _extractList(response.body);
 
-    return data.map((json) => ReportBudgetDto.fromJson(json)).toList();
+    return data.map((json) => ReportBudgetDto.fromOrcamentoJson(json)).toList();
   }
 
   @override
@@ -100,7 +105,6 @@ class ReportsApiDatasource implements ReportsDatasource {
     DateTime? dataInicio,
     DateTime? dataFim,
   }) async {
-    // Montar query parameters
     final queryParams = <String, dynamic>{};
     if (dataInicio != null) {
       queryParams['data_inicio'] = _dateFormat.format(dataInicio);
@@ -109,15 +113,13 @@ class ReportsApiDatasource implements ReportsDatasource {
       queryParams['data_fim'] = _dateFormat.format(dataFim);
     }
 
-    // Endpoint: /api/relatorios/partners/{id}/vendas
     final response = await httpClient.get(
       '/api/relatorios/partners/$partnerId/vendas',
       config: HttpRequestConfig(queryParameters: queryParams),
     );
 
-    // Extrair lista de orçamentos usando helper
     final List<dynamic> data = _extractList(response.body);
 
-    return data.map((json) => ReportBudgetDto.fromJson(json)).toList();
+    return data.map((json) => ReportBudgetDto.fromVendasJson(json)).toList();
   }
 }

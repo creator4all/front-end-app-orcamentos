@@ -72,7 +72,5 @@ class BudgetEntity extends Equatable {
       ];
 
   @override
-  String toString() {
-    return 'BudgetEntity(id: $id, nome: $nome, status: $status, isArchived: $isArchived, total: $total)';
-  }
+  bool get stringify => true;
 }

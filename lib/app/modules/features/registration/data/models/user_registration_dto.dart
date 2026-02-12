@@ -57,9 +57,10 @@ class UserRegistrationResponse {
   });
 
   factory UserRegistrationResponse.fromJson(Map<String, dynamic> json) {
-    final usuario = json['usuario'] as Map<String, dynamic>?;
+    final dados = json['dados'] as Map<String, dynamic>;
+    final usuario = dados['usuario'] as Map<String, dynamic>?;
     return UserRegistrationResponse(
-      mensagem: json['mensagem'] ?? '',
+      mensagem: dados['mensagem'] ?? '',
       userId: usuario?['id'],
       nome: usuario?['nome'],
       email: usuario?['email'],

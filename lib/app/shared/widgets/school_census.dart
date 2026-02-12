@@ -37,7 +37,6 @@ class SchoolCensus extends StatelessWidget {
 
     return GestureDetector(
       onTap: () {
-        print('DEBUG: School Census card tapped');
         onActionTap?.call();
       },
       child: CardBase(

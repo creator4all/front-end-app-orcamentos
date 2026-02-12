@@ -59,7 +59,5 @@ class ReportBudget extends Equatable {
       ];
 
   @override
-  String toString() {
-    return 'ReportBudget(id: $id, nome: $nome, codigo: $codigo, status: $status, total: $total)';
-  }
+  bool get stringify => true;
 }
