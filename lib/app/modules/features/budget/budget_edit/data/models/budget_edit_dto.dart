@@ -63,22 +63,18 @@ class BudgetEditDto {
           cities.add(cidade);
         }
       }
-    }
-    // ✅ Caso de criação/retorno onde 'cidade' vem como objeto na raiz (singular)
-    else if (json['cidade'] != null && json['cidade'] is Map) {
+    } else if (json['cidade'] != null && json['cidade'] is Map) {
       final cidadeMap = json['cidade'] as Map<String, dynamic>;
-      final cidadeId = cidadeMap['idCidades'] ?? json['orc_cidade_id'] as int;
-      final cidadeName = cidadeMap['nome_cidade'] ?? 'Cidade $cidadeId';
+      final cidadeId = cidadeMap['id'] as int;
+      final cidadeName = cidadeMap['nome'] ?? 'Cidade $cidadeId';
 
       cities.add(cidadeId);
 
-      // Extrair indicadores de 'cidades_has_indice_etapa'
       List<dynamic> indicadoresRaw = [];
       if (cidadeMap['cidades_has_indice_etapa'] != null) {
         indicadoresRaw = cidadeMap['cidades_has_indice_etapa'] as List;
       }
 
-      // Mapear para estrutura simplificada de indicadores esperada pelo app
       final indicadores = indicadoresRaw.map((ind) {
         final grupoObj = ind['grupo'] as Map<String, dynamic>?;
         final nomeGrupo = grupoObj?['nome_grupo'] ?? '';
@@ -94,16 +90,12 @@ class BudgetEditDto {
         };
       }).toList();
 
-      // Armazenar dados completos da cidade com ambos formatos (raw e simplificado)
       citiesData.add({
-        ...cidadeMap, // Dados completos para _parseCensoEscolarFromCitiesData
+        ...cidadeMap,
         'id': cidadeId,
         'nome': cidadeName,
-        'indicadores':
-            indicadores, // Formato simplificado para SchoolCensusCard
+        'indicadores': indicadores,
       });
-    } else if (json['orc_cidade_id'] != null) {
-      cities.add(json['orc_cidade_id'] as int);
     }
 
     // Parse censo
@@ -112,33 +104,29 @@ class BudgetEditDto {
       census = CensusDataDto.fromJson(json['censo']);
     }
 
-    // ✅ Parse censo_agregado para orçamentos multi-cidade
-    final censoAgregadoJson =
-        json['censo_agregado'] as Map<String, dynamic>? ?? {};
-    final censoAgregado = censoAgregadoJson.map(
-      (key, value) => MapEntry(key, (value as num).toDouble()),
-    );
-    if (censoAgregado.isNotEmpty) {
-      print(
-          '✅ [BudgetEditDTO] censo_agregado parseado: ${censoAgregado.length} etapas');
+    // A API pode retornar censo_agregado como [] (vazio) ou como Map
+    Map<String, double> censoAgregado = {};
+    final censoAgregadoRaw = json['censo_agregado'];
+    if (censoAgregadoRaw is Map<String, dynamic>) {
+      censoAgregado = censoAgregadoRaw.map(
+        (key, value) => MapEntry(key, (value as num).toDouble()),
+      );
     }
 
     return BudgetEditDto(
-      id: json['orc_orcamentoId'] ?? 0,
-      name: json['nome'] ?? json['orc_nome'],
-      validityDays: json['orc_dias_validade'] ?? json['dias_validade'] ?? 30,
-      validityDate: json['orc_data_validade'] != null
-          ? DateTime.tryParse(json['orc_data_validade'])
+      id: json['id'] ?? 0,
+      name: json['nome'],
+      validityDays: json['dias_validade'] ?? 30,
+      validityDate: json['data_validade'] != null
+          ? DateTime.tryParse(json['data_validade'])
           : null,
-      creationDate: json['orc_data_criacao'] != null
-          ? DateTime.tryParse(json['orc_data_criacao'])
-          : (json['created_at'] != null
-              ? DateTime.tryParse(json['created_at'])
-              : null),
-      status: json['orc_status'] ?? json['status'] ?? 'pendente',
-      total: (json['orc_total'] ?? json['total'] ?? 0.0).toDouble(),
-      userId: json['orc_usuario_id'] ?? json['usuario_id'] ?? 0,
-      partnerId: json['orc_partner_destino_id'] ?? json['partner_id'],
+      creationDate: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'])
+          : null,
+      status: json['status'] ?? 'pendente',
+      total: (json['total'] ?? 0.0).toDouble(),
+      userId: json['usuario_id'] ?? 0,
+      partnerId: json['partner_id'],
       cityIds: cities,
       citiesDataRaw: citiesData,
       products: productsList,

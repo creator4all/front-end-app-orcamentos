@@ -18,10 +18,8 @@ class BudgetDetailDto {
   final List<ProductSelectionDto> products;
   final Map<String, bool> categoryStates;
   final List<CategoryDTO> categories;
-  final List<Map<String, dynamic>>
-      citiesData; // ✅ Dados completos das cidades com indicadores
-  final Map<String, double>
-      censoAgregado; // ✅ Censo agregado para orçamentos multi-cidade
+  final List<Map<String, dynamic>> citiesData;
+  final Map<String, double> censoAgregado;
 
   BudgetDetailDto({
     required this.id,
@@ -43,180 +41,62 @@ class BudgetDetailDto {
 
   /// Cria DTO a partir do JSON da API
   factory BudgetDetailDto.fromJson(Map<String, dynamic> json) {
-    // Parse produtos
     final List<ProductSelectionDto> productsList = [];
 
-    // 1. Tenta formato 'orcamentoProdutos' / 'orcamento_produtos' (Estrutura completa do PHP/Eloquent)
-    final orcProdutos = json['orcamentoProdutos'] ?? json['orcamento_produtos'];
-    if (orcProdutos != null && orcProdutos is List) {
-      for (final item in orcProdutos) {
-        if (item is Map<String, dynamic>) {
-          final prod = item['produto'] as Map<String, dynamic>? ?? {};
-          final sub = prod['subcategoria'] as Map<String, dynamic>? ?? {};
-          final cat = sub['categoria'] as Map<String, dynamic>? ?? {};
+    final Map<String, bool> categoryStates = {};
 
-          // Parse indicadores selecionados do pivô ou do produto se necessário
-          // Por enquanto, deixamos vazio pois o foco aqui é a lista de seleção
-          // A extração completa de indicadores acontece via ProductDTO nas categorias
-
-          productsList.add(ProductSelectionDto(
-            productId: item['op_produto_id'] ??
-                prod['pro_produtosId'] ??
-                item['op_produto_id'] ??
-                0,
-            name: prod['pro_solucao'] ?? prod['solucao'] ?? '',
-            category: cat['cat_nome'] ?? cat['nome'] ?? '',
-            price: (prod['pro_valor'] ?? prod['valor'] ?? 0).toDouble(),
-            isSelected:
-                item['op_selecionado'] == 1 || item['op_selecionado'] == true,
-            quantity: item['op_quantidade'] ?? 0,
-            indicadoresEtapa: [],
-          ));
-        }
-      }
-    }
-    // 2. Formatos simplificados antigos
-    else if (json['produtos'] != null && json['produtos'] is List) {
-      productsList.addAll(
-        (json['produtos'] as List).map(
-          (p) => ProductSelectionDto.fromJson(Map<String, dynamic>.from(p)),
-        ),
-      );
-    } else if (json['produtos_selecionados'] != null &&
-        json['produtos_selecionados'] is List) {
-      productsList.addAll(
-        (json['produtos_selecionados'] as List).map(
-          (p) => ProductSelectionDto.fromJson(Map<String, dynamic>.from(p)),
-        ),
-      );
-    }
-
-    // Parse estados de categorias
-    final Map<String, bool> categories = {};
-    if (json['categorias'] != null && json['categorias'] is Map) {
-      (json['categorias'] as Map).forEach((key, value) {
-        categories[key.toString()] = value == true || value == 1;
-      });
-    } else if (json['categorias_ativas'] != null &&
-        json['categorias_ativas'] is List) {
-      for (final cat in json['categorias_ativas']) {
-        categories[cat.toString()] = true;
-      }
-    }
-
-    // Parse cidades
     final List<int> cities = [];
     final List<Map<String, dynamic>> citiesDataList = [];
 
+    // Formato canônico: array de objetos em 'cidades'
     if (json['cidades'] != null && json['cidades'] is List) {
-      print('🔍 [BudgetDetailDTO] Parseando cidades...');
       for (final cidade in json['cidades'] as List) {
-        if (cidade is int) {
-          // Cidade é um ID simples
-          cities.add(cidade);
-          print('   ✅ Cidade ID: $cidade');
-          citiesDataList.add({
-            'id': cidade,
-            'nome': 'Cidade $cidade',
-            'indicadores': [],
-          });
-        } else if (cidade is Map<String, dynamic>) {
-          // Cidade é um objeto com {id, nome, indicadores}
+        if (cidade is Map<String, dynamic>) {
           final cidadeId = cidade['id'] as int;
           cities.add(cidadeId);
-          final cidadeName = cidade['nome'] ?? 'Cidade $cidadeId';
-          final indicadores = (cidade['indicadores'] ?? []) as List;
-
-          print('   ✅ Cidade: $cidadeName (ID: $cidadeId)');
-          print('      📊 Indicadores: ${indicadores.length}');
-
           citiesDataList.add({
             'id': cidadeId,
-            'nome': cidadeName,
-            'indicadores': indicadores,
+            'nome': cidade['nome'] ?? 'Cidade $cidadeId',
+            'indicadores': (cidade['indicadores'] ?? []) as List,
           });
         }
       }
-      print('✅ [BudgetDetailDTO] Total de cidades: ${cities.length}');
-    } else if (json['cidade'] != null && json['cidade'] is Map) {
-      // ✅ Caso de criação/retorno simples onde 'cidade' vem como objeto na raiz
+    }
+    // Fallback: objeto singular 'cidade' na raiz (contrato canônico single-city)
+    else if (json['cidade'] != null && json['cidade'] is Map) {
       final cidadeMap = json['cidade'] as Map<String, dynamic>;
-      final cidadeId = cidadeMap['idCidades'] ?? json['orc_cidade_id'] as int;
-      final cidadeName = cidadeMap['nome_cidade'] ?? 'Cidade $cidadeId';
-
+      final cidadeId = cidadeMap['id'] as int;
       cities.add(cidadeId);
-
-      // Extrair indicadores de 'cidades_has_indice_etapa'
-      List<dynamic> indicadoresRaw = [];
-      if (cidadeMap['cidades_has_indice_etapa'] != null) {
-        indicadoresRaw = cidadeMap['cidades_has_indice_etapa'] as List;
-      }
-
-      // Mapear para estrutura simplificada de indicadores esperada pelo app
-      final indicadores = indicadoresRaw.map((ind) {
-        // Tenta extrair grupo
-        final grupoObj = ind['grupo'] as Map<String, dynamic>?;
-        final nomeGrupo = grupoObj?['nome_grupo'] ?? '';
-        final idGrupo = grupoObj?['grupo_id'] ?? 0;
-
-        // Parsear etapa_valor como double (API retorna String "305.00")
-        final valorRaw = ind['pivot']?['etapa_valor'] ?? 0;
-        final valor = valorRaw is num
-            ? valorRaw.toDouble()
-            : double.tryParse(valorRaw.toString()) ?? 0.0;
-
-        return {
-          'id': ind['idindice_etapa'],
-          'nome': ind['nome_etapa'],
-          'valor': valor,
-          'grupo_id': idGrupo,
-          'grupo_nome': nomeGrupo,
-        };
-      }).toList();
-
-      print(
-          '✅ [BudgetDetailDTO] Cidade extraída do root: $cidadeName (ID: $cidadeId)');
-      print('   📊 Indicadores com grupo: ${indicadores.length}');
-
       citiesDataList.add({
         'id': cidadeId,
-        'nome': cidadeName,
-        'indicadores': indicadores,
+        'nome': cidadeMap['nome'] ?? 'Cidade $cidadeId',
+        'indicadores': (cidadeMap['indices'] ?? []) as List,
       });
-    } else if (json['orc_cidade_id'] != null) {
-      cities.add(json['orc_cidade_id'] as int);
+    } else if (json['cidade_id'] != null) {
+      final cidadeId = json['cidade_id'] as int;
+      cities.add(cidadeId);
       citiesDataList.add({
-        'id': json['orc_cidade_id'] as int,
-        'nome': 'Cidade ${json['orc_cidade_id']}',
+        'id': cidadeId,
+        'nome': 'Cidade $cidadeId',
         'indicadores': [],
       });
     }
 
-    // ✅ Parse categorias com subcategorias e produtos
     final List<CategoryDTO> categoriesList = [];
     if (json['categorias'] != null && json['categorias'] is List) {
-      print(
-          '🔍 [BudgetDetailDTO] Parseando ${(json['categorias'] as List).length} categorias...');
       categoriesList.addAll(
         (json['categorias'] as List).map(
           (c) => CategoryDTO.fromJson(Map<String, dynamic>.from(c)),
         ),
       );
-      print(
-          '✅ [BudgetDetailDTO] ${categoriesList.length} categorias parseadas');
-    } else {
-      print('⚠️ [BudgetDetailDTO] Nenhuma categoria encontrada no JSON!');
     }
 
-    // 🆕 FALLBACK: Se productsList estiver vazia, tentar extrair da árvore de categorias
-    if (productsList.isEmpty && categoriesList.isNotEmpty) {
-      print(
-          '⚠️ [BudgetDetailDTO] Lista de produtos vazia na raiz, extraindo das categorias...');
+    // Extrair produtos selecionados da árvore de categorias
+    if (categoriesList.isNotEmpty) {
       for (final cat in categoriesList) {
         for (final sub in cat.subcategorias) {
           for (final prod in sub.produtos) {
             if (prod.selecionado) {
-              // Converter ProductDTO para ProductSelectionDto
               productsList.add(ProductSelectionDto(
                 productId: prod.id,
                 name: prod.solucao,
@@ -236,40 +116,33 @@ class BudgetDetailDto {
           }
         }
       }
-      print(
-          '✅ [BudgetDetailDTO] ${productsList.length} produtos extraídos das categorias.');
     }
 
-    // ✅ Parse censo_agregado para orçamentos multi-cidade
     final censoAgregadoJson =
         json['censo_agregado'] as Map<String, dynamic>? ?? {};
     final censoAgregado = censoAgregadoJson.map(
       (key, value) => MapEntry(key, (value as num).toDouble()),
     );
-    if (censoAgregado.isNotEmpty) {
-      print(
-          '✅ [BudgetDetailDTO] censo_agregado parseado: ${censoAgregado.length} etapas');
-    }
+
+    final usuarioJson = json['usuario'] as Map<String, dynamic>?;
 
     return BudgetDetailDto(
-      id: json['id'] ?? 0,
-      name: json['nome'] ?? json['orc_nome'],
-      validityDays: json['orc_dias_validade'] ?? json['dias_validade'] ?? 30,
-      validityDate: json['orc_data_validade'] != null
-          ? DateTime.tryParse(json['orc_data_validade'])
+      id: json['id'] as int? ?? 0,
+      name: json['nome'] as String?,
+      validityDays: json['dias_validade'] as int? ?? 30,
+      validityDate: json['data_validade'] != null
+          ? DateTime.tryParse(json['data_validade'] as String)
           : null,
-      creationDate: json['orc_data_criacao'] != null
-          ? DateTime.tryParse(json['orc_data_criacao'])
-          : (json['created_at'] != null
-              ? DateTime.tryParse(json['created_at'])
-              : null),
-      status: json['orc_status'] ?? json['status'] ?? 'rascunho',
-      total: (json['orc_total'] ?? json['total'] ?? 0.0).toDouble(),
-      userId: json['orc_usuario_id'] ?? json['usuario_id'] ?? 0,
-      partnerId: json['orc_partner_destino_id'] ?? json['partner_id'],
+      creationDate: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'] as String)
+          : null,
+      status: json['status'] as String? ?? 'rascunho',
+      total: (json['total'] as num?)?.toDouble() ?? 0.0,
+      userId: usuarioJson?['id'] as int? ?? 0,
+      partnerId: json['partner_destino_id'] as int?,
       cityIds: cities,
       products: productsList,
-      categoryStates: categories,
+      categoryStates: categoryStates,
       categories: categoriesList,
       citiesData: citiesDataList,
       censoAgregado: censoAgregado,

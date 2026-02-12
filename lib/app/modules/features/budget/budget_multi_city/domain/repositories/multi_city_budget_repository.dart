@@ -11,13 +11,6 @@ abstract class MultiCityBudgetRepository {
     List<int> cidadeIds,
   );
 
-  /// Preview do orçamento multi-cidades (sem salvar)
-  Future<Either<BudgetFailure, Map<String, dynamic>>> previewMultiCidade({
-    required String nome,
-    required List<int> cidadeIds,
-    required Map<int, Map<int, double>> overridesPorCidade,
-  });
-
   /// Cria um novo orçamento multi-cidades
   /// Retorna os dados completos do orçamento criado (categorias, cidades, censo_agregado)
   Future<Either<BudgetFailure, Map<String, dynamic>>> criarMultiCidade({
@@ -27,12 +20,5 @@ abstract class MultiCityBudgetRepository {
     required List<int> cidadeIds,
     required Map<int, Map<int, double>> overridesPorCidade,
     int? partnerDestinoId,
-  });
-
-  /// Atualiza as cidades de um orçamento existente
-  Future<Either<BudgetFailure, void>> atualizarCidades({
-    required int budgetId,
-    required List<int> cidadeIds,
-    required Map<int, Map<int, double>> overridesPorCidade,
   });
 }

@@ -46,29 +46,25 @@ class ProductDTO {
   /// Suporta tanto formato completo quanto simplificado (criação de orçamento)
   factory ProductDTO.fromJson(Map<String, dynamic> json) {
     try {
-      // Parse cada campo com fallbacks para formato simplificado e formato do banco (prefixo pro_)
-      final int id = json['id'] ?? json['pro_produtosId'] as int;
+      final int id = json['id'] as int;
       final String codigo = (json['codigo'] ?? '') as String;
-      final String solucao =
-          (json['solucao'] ?? json['pro_solucao'] ?? '') as String;
+      final String solucao = (json['solucao'] ?? '') as String;
       final String tipo = (json['tipo'] ?? '') as String;
 
-      // 'ativo' pode vir como 'ativo', 'status' ou 'pro_status'
-      final dynamic rawAtivo =
-          json['ativo'] ?? json['status'] ?? json['pro_status'];
+      final dynamic rawAtivo = json['ativo'];
       final bool ativo = rawAtivo is bool ? rawAtivo : (rawAtivo == 1);
 
-      final double valor = (json['valor'] ?? json['pro_valor'] ?? 0).toDouble();
-      final String indicacao =
-          (json['indicacao'] ?? json['pro_indicacao'] ?? '') as String;
+      final double valor = (json['valor'] as num? ?? 0).toDouble();
+      final String indicacao = (json['indicacao'] ?? '') as String;
       final String tipoProduto = (json['tipo_produto'] ?? '') as String;
 
-      // Parse defensivo: ordem pode vir null, vazio ou 0
       final int ordem = (json['ordem'] as int?) ?? 0;
-      final int subcategoriaId =
-          (json['subcategoria_id'] ?? json['pro_subcategoria_id'] as int?) ?? 0;
+      final int subcategoriaId = (json['subcategoria_id'] as int?) ?? 0;
 
-      // Extrair selecionado/quantidade de 'orcamento_produto' ou diretamente
+      // GET /orcamentos/{id} retorna selecionado/quantidade dentro de
+      // `orcamento_produto`; GET /orcamentos/{id}/produtos-completos e
+      // GET /orcamentos/{id}/categorias/{catId}/produtos retornam na raiz.
+      // Mantido até unificação do contrato backend.
       final orcProduto = json['orcamento_produto'] as Map<String, dynamic>?;
       final bool selecionado =
           (orcProduto?['selecionado'] ?? json['selecionado']) as bool? ?? true;
@@ -85,10 +81,8 @@ class ProductDTO {
           (json['valor_original'] as num?)?.toDouble() ?? valor;
       final bool ativoOriginal = (json['ativo_original'] as bool?) ?? ativo;
 
-      // Parse indicadores - suporta 'indicadores_etapa' ou 'indicadores'
       List<IndicadorEtapaEntity> indicadoresEtapa = [];
 
-      // Primeiro tenta formato completo 'indicadores_etapa'
       if (json['indicadores_etapa'] != null &&
           json['indicadores_etapa'] is List) {
         indicadoresEtapa = (json['indicadores_etapa'] as List<dynamic>)
@@ -96,56 +90,28 @@ class ProductDTO {
                 IndicadorEtapaDTO.fromJson(item as Map<String, dynamic>)
                     .toEntity())
             .toList();
-      }
-      // Depois tenta formato simplificado 'indicadores' (retorno da criação ou carregamento completo)
-      else if (json['indicadores'] != null && json['indicadores'] is List) {
+      } else if (json['indicadores'] != null && json['indicadores'] is List) {
+        // GET /orcamentos/{id} usa `indicadores_etapa` (formato acima);
+        // GET /orcamentos/{id}/categorias/{catId}/produtos usa `indicadores`
+        // com objeto aninhado `indicador_etapa`. Chaves `titulo` vs `nome`
+        // também variam entre endpoints. Mantido até unificação do contrato.
         indicadoresEtapa = (json['indicadores'] as List<dynamic>).map((item) {
           final ind = item as Map<String, dynamic>;
+          final indEtapa = ind['indicador_etapa'] as Map<String, dynamic>?;
+          final grupo = indEtapa?['grupo'] as Map<String, dynamic>?;
 
-          // Tentar extrair o objeto aninhado indicador_etapa (pode vir como 'indicador_etapa' ou 'indicadorEtapa')
-          final indEtapa = (ind['indicador_etapa'] ?? ind['indicadorEtapa'])
-              as Map<String, dynamic>?;
-
-          // Tentar extrair o objeto aninhado grupo (dentro de indicador_etapa)
-          final grupo = (indEtapa?['grupo']) as Map<String, dynamic>?;
-
-          // Extração de IDs e Valores com fallback para nomes de colunas do banco (que aparecem no select)
-          final prodIndId = ind['id'] ?? ind['prd_produtos_indicadoresId'] ?? 0;
-          final valor = ind['selecionado'] ?? false;
-
-          final indId = indEtapa?['id'] ?? indEtapa?['ine_indicadoresId'] ?? 0;
-          final indNome = indEtapa?['nome'] ?? indEtapa?['ine_nome'] ?? '';
-          final indTitulo =
-              indEtapa?['titulo'] ?? indEtapa?['ine_titulo'] ?? indNome;
-
-          // Tenta extrair ID do grupo do objeto grupo ou diretamente do indicadorEtapa (FK)
-          final grpId = grupo?['id'] ??
-              grupo?['gru_gruposId'] ??
-              indEtapa?['gru_gruposId'] ??
-              0;
-          final grpNome = grupo?['nome'] ??
-              grupo?['gru_grupo_nome'] ??
-              grupo?['nome_grupo'] ??
-              '';
-
-          // Conversão segura de booleano (pode vir 0/1 do banco)
-          bool selecionado = false;
-          if (valor is bool) {
-            selecionado = valor;
-          } else if (valor is int) {
-            selecionado = valor == 1;
-          }
+          final bool selecionado = ind['selecionado'] is bool
+              ? ind['selecionado'] as bool
+              : (ind['selecionado'] == 1);
 
           return IndicadorEtapaEntity(
-            produtoIndicadorId: prodIndId is int
-                ? prodIndId
-                : int.tryParse(prodIndId.toString()) ?? 0,
-            indicadorId:
-                indId is int ? indId : int.tryParse(indId.toString()) ?? 0,
-            indicadorNome: indTitulo.toString(),
-            nomeEtapa: indNome.toString(),
-            grupoId: grpId is int ? grpId : int.tryParse(grpId.toString()) ?? 0,
-            grupoNome: grpNome.toString(),
+            produtoIndicadorId: ind['id'] as int? ?? 0,
+            indicadorId: indEtapa?['id'] as int? ?? 0,
+            indicadorNome:
+                (indEtapa?['titulo'] ?? indEtapa?['nome'] ?? '') as String,
+            nomeEtapa: (indEtapa?['nome'] ?? '') as String,
+            grupoId: grupo?['id'] as int? ?? 0,
+            grupoNome: (grupo?['nome'] ?? grupo?['nome_grupo'] ?? '') as String,
             selecionado: selecionado,
           );
         }).toList();

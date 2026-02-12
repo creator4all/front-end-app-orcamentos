@@ -63,22 +63,24 @@ class ProdutoDto {
         .toList();
 
     // Parse subcategoria
-    final subcategoriaJson = json['subcategoria'] as Map<String, dynamic>? ?? {};
+    final subcategoriaJson =
+        json['subcategoria'] as Map<String, dynamic>? ?? {};
 
     // Parse orcamento_produto (novo formato)
     OrcamentoProdutoInfo? orcamentoProduto;
-    final orcamentoProdutoJson = json['orcamento_produto'] as Map<String, dynamic>?;
+    final orcamentoProdutoJson =
+        json['orcamento_produto'] as Map<String, dynamic>?;
     if (orcamentoProdutoJson != null) {
       orcamentoProduto = OrcamentoProdutoInfo.fromJson(orcamentoProdutoJson);
     }
 
     return ProdutoDto(
-      id: (json['id'] as num?)?.toInt() ?? (json['pro_produtosId'] as num?)?.toInt() ?? 0,
-      status: json['status'] as bool? ?? json['pro_status'] as bool? ?? false,
-      valor: double.tryParse(json['valor']?.toString() ?? json['pro_valor']?.toString() ?? '0') ?? 0.0,
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      status: json['status'] as bool? ?? false,
+      valor: (json['valor'] as num?)?.toDouble() ?? 0.0,
       subcategoriaId: (json['pro_subcategoria_id'] as num?)?.toInt() ?? 0,
-      solucao: json['solucao'] as String? ?? json['pro_solucao'] as String? ?? '',
-      indicacao: json['indicacao'] as String? ?? json['pro_indicacao'] as String? ?? '',
+      solucao: json['solucao'] as String? ?? '',
+      indicacao: json['indicacao'] as String? ?? '',
       indicadores: indicadores,
       subcategoria: SubcategoriaDto.fromJson(subcategoriaJson),
       orcamentoProduto: orcamentoProduto,
@@ -101,19 +103,15 @@ class ProdutoDto {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'pro_produtosId': id,
       'status': status,
-      'pro_status': status,
       'valor': valor,
-      'pro_valor': valor.toString(),
       'pro_subcategoria_id': subcategoriaId,
       'solucao': solucao,
-      'pro_solucao': solucao,
       'indicacao': indicacao,
-      'pro_indicacao': indicacao,
       'indicadores': indicadores.map((dto) => dto.toJson()).toList(),
       'subcategoria': subcategoria.toJson(),
-      if (orcamentoProduto != null) 'orcamento_produto': orcamentoProduto!.toJson(),
+      if (orcamentoProduto != null)
+        'orcamento_produto': orcamentoProduto!.toJson(),
     };
   }
 }

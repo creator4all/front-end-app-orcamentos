@@ -18,13 +18,12 @@ class ProfileApiDatasource implements ProfileDatasource {
     return await _storage.read(key: 'auth_token');
   }
 
-  /// A API retorna `{success, data: {sucesso, dados: {...}}}` ou variações.
   Map<String, dynamic> _extractProfileData(Map<String, dynamic> body) {
     if (body['data'] != null && body['data'] is Map) {
       final innerData = body['data'] as Map<String, dynamic>;
-      return (innerData['dados'] ?? innerData) as Map<String, dynamic>;
+      return innerData['dados'] as Map<String, dynamic>;
     }
-    return (body['dados'] ?? body) as Map<String, dynamic>;
+    return body['dados'] as Map<String, dynamic>;
   }
 
   @override

@@ -53,7 +53,7 @@ class UpdateUsersResponseDto {
 
   /// Cria DTO a partir do JSON da API
   factory UpdateUsersResponseDto.fromJson(Map<String, dynamic> json) {
-    final dados = json['dados'] ?? json;
+    final dados = json['dados'] as Map<String, dynamic>;
 
     // Garantir que atualizados seja uma lista de int
     final atualizadosList = dados['atualizados'] ?? [];

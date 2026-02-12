@@ -8,7 +8,6 @@ import '../../domain/entities/product_entity.dart';
 import '../../domain/repositories/budget_detail_repository.dart';
 import '../datasources/budget_detail_remote_datasource.dart';
 
-/// Implementação concreta do BudgetDetailRepository
 class BudgetDetailRepositoryImpl implements BudgetDetailRepository {
   final BudgetDetailRemoteDataSource remoteDataSource;
 
@@ -36,7 +35,6 @@ class BudgetDetailRepositoryImpl implements BudgetDetailRepository {
         budgetId: budgetId,
       );
 
-      // Converter DTOs para Entities
       final entities = dtos.map((dto) => dto.toEntity()).toList();
 
       return Right(entities);
@@ -56,7 +54,6 @@ class BudgetDetailRepositoryImpl implements BudgetDetailRepository {
         categoryId: categoryId,
       );
 
-      // Converter DTOs para Entities
       final entities = dtos.map((dto) => dto.toEntity()).toList();
 
       return Right(entities);
@@ -75,7 +72,6 @@ class BudgetDetailRepositoryImpl implements BudgetDetailRepository {
     List<int>? selectedProductIds,
   }) async {
     try {
-      print('📦 [Repository] Atualizando orçamento ID: $id');
 
       final dto = await remoteDataSource.updateBudget(
         id: id,
@@ -88,11 +84,8 @@ class BudgetDetailRepositoryImpl implements BudgetDetailRepository {
 
       final entity = dto.toEntity();
 
-      print('✅ [Repository] Orçamento atualizado e convertido');
-
       return Right(entity);
     } on Exception catch (e) {
-      print('❌ [Repository] Erro: $e');
       return Left(_mapExceptionToFailure(e));
     }
   }
@@ -103,9 +96,6 @@ class BudgetDetailRepositoryImpl implements BudgetDetailRepository {
     required BudgetUpdateDto updateData,
   }) async {
     try {
-      print('📦 [Repository] Atualizando orçamento ID: $budgetId com DTO');
-      print('   📝 Dados: ${updateData.toString()}');
-
       final dto = await remoteDataSource.updateBudgetWithDto(
         budgetId: budgetId,
         updateData: updateData,
@@ -113,16 +103,12 @@ class BudgetDetailRepositoryImpl implements BudgetDetailRepository {
 
       final entity = dto.toEntity();
 
-      print('✅ [Repository] Orçamento atualizado com sucesso via DTO');
-
       return Right(entity);
     } on Exception catch (e) {
-      print('❌ [Repository] Erro ao atualizar com DTO: $e');
       return Left(_mapExceptionToFailure(e));
     }
   }
 
-  /// Mapeia exceções para failures
   BudgetFailure _mapExceptionToFailure(Exception exception) {
     final message = exception.toString().replaceAll('Exception: ', '');
 

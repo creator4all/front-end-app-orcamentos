@@ -100,9 +100,8 @@ class CensusRemoteDataSourceImpl implements CensusRemoteDataSource {
   }
 
   CensoEscolarEntity _mapToCensoEscolarEntity(Map<String, dynamic> json) {
-    final int cidadeId =
-        json['id'] is int ? json['id'] : int.tryParse('${json['id']}') ?? 0;
-    final String cidadeNome = (json['nome'] ?? '').toString();
+    final int cidadeId = json['id'] as int? ?? 0;
+    final String cidadeNome = (json['nome'] ?? '') as String;
 
     final List<dynamic> indicesList = json['indices_etapa'] ?? [];
 
@@ -110,25 +109,17 @@ class CensusRemoteDataSourceImpl implements CensusRemoteDataSource {
     final Map<int, CensoGroupEntity> groupsMap = {};
 
     for (var item in indicesList) {
-      final int indiceId = item['indice_etapa_id'] is int
-          ? item['indice_etapa_id']
-          : int.tryParse('${item['indice_etapa_id']}') ?? 0;
-
-      final String nomeEtapa = (item['nome_etapa'] ?? '').toString();
-      final String tituloEtapa = (item['titulo_etapa'] ?? '').toString();
-
-      final double valor = item['valor'] is double
-          ? item['valor']
-          : double.tryParse('${item['valor']}') ?? 0.0;
+      final int indiceId = item['indice_etapa_id'] as int? ?? 0;
+      final String nomeEtapa = (item['nome_etapa'] ?? '') as String;
+      final String tituloEtapa = (item['titulo_etapa'] ?? '') as String;
+      final double valor = (item['valor'] as num? ?? 0).toDouble();
 
       valoresPorEtapa[nomeEtapa] = valor;
 
       final groupJson = item['grupo'];
       if (groupJson != null) {
-        final int groupId = groupJson['grupo_id'] is int
-            ? groupJson['grupo_id']
-            : int.tryParse('${groupJson['grupo_id']}') ?? 0;
-        final String groupName = (groupJson['nome_grupo'] ?? '').toString();
+        final int groupId = groupJson['grupo_id'] as int? ?? 0;
+        final String groupName = (groupJson['nome_grupo'] ?? '') as String;
 
         if (!groupsMap.containsKey(groupId)) {
           groupsMap[groupId] = CensoGroupEntity(

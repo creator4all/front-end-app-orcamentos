@@ -57,7 +57,7 @@ class BudgetDraftRemoteDataSourceImpl implements BudgetDraftRemoteDataSource {
       );
     }
 
-    var data = response.body['dados'] ?? response.body['data'];
+    var data = response.body['dados'];
 
     if (data == null) {
       throw Exception('Orçamento não encontrado');

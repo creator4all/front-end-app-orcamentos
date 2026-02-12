@@ -23,24 +23,6 @@ class MultiCityBudgetRepositoryImpl implements MultiCityBudgetRepository {
   }
 
   @override
-  Future<Either<BudgetFailure, Map<String, dynamic>>> previewMultiCidade({
-    required String nome,
-    required List<int> cidadeIds,
-    required Map<int, Map<int, double>> overridesPorCidade,
-  }) async {
-    try {
-      final result = await _dataSource.previewMultiCidade(
-        nome: nome,
-        cidadeIds: cidadeIds,
-        overridesPorCidade: overridesPorCidade,
-      );
-      return Right(result);
-    } catch (e) {
-      return Left(ServerFailure(e.toString()));
-    }
-  }
-
-  @override
   Future<Either<BudgetFailure, Map<String, dynamic>>> criarMultiCidade({
     required String nome,
     required int diasValidade,
@@ -59,24 +41,6 @@ class MultiCityBudgetRepositoryImpl implements MultiCityBudgetRepository {
         partnerDestinoId: partnerDestinoId,
       );
       return Right(result);
-    } catch (e) {
-      return Left(ServerFailure(e.toString()));
-    }
-  }
-
-  @override
-  Future<Either<BudgetFailure, void>> atualizarCidades({
-    required int budgetId,
-    required List<int> cidadeIds,
-    required Map<int, Map<int, double>> overridesPorCidade,
-  }) async {
-    try {
-      await _dataSource.atualizarCidades(
-        budgetId: budgetId,
-        cidadeIds: cidadeIds,
-        overridesPorCidade: overridesPorCidade,
-      );
-      return const Right(null);
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }

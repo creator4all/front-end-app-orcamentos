@@ -15,31 +15,14 @@ import 'budget_detail_remote_datasource.dart';
 List<ProductDTO> _parseProductsInIsolate(String jsonString) {
   try {
     final jsonResponse = jsonDecode(jsonString) as Map<String, dynamic>;
+    final dados = jsonResponse['dados'] as Map<String, dynamic>?;
+    final productList = dados?['produtos'] as List<dynamic>?;
 
-    dynamic productList;
+    if (productList == null) return [];
 
-    if (jsonResponse.containsKey('data')) {
-      final data = jsonResponse['data'] as Map<String, dynamic>?;
-      if (data != null && data.containsKey('dados')) {
-        final dados = data['dados'] as Map<String, dynamic>?;
-        if (dados != null && dados.containsKey('produtos')) {
-          productList = dados['produtos'];
-        }
-      }
-    } else if (jsonResponse.containsKey('dados')) {
-      final dados = jsonResponse['dados'] as Map<String, dynamic>?;
-      if (dados != null && dados.containsKey('produtos')) {
-        productList = dados['produtos'];
-      }
-    }
-
-    if (productList != null && productList is List) {
-      return productList
-          .map((json) => ProductDTO.fromJson(json as Map<String, dynamic>))
-          .toList();
-    }
-
-    return [];
+    return productList
+        .map((json) => ProductDTO.fromJson(json as Map<String, dynamic>))
+        .toList();
   } catch (e) {
     return [];
   }
@@ -62,22 +45,7 @@ class BudgetDetailRemoteDataSourceImpl implements BudgetDetailRemoteDataSource {
           await _client.get('/api/orcamentos/$id', config: _config);
 
       if (response.isSuccess) {
-        final rawData = response.body;
-        Map<String, dynamic> data;
-
-        if (rawData.containsKey('dados')) {
-          data = rawData['dados'] as Map<String, dynamic>;
-        } else if (rawData.containsKey('data')) {
-          final dataField = rawData['data'];
-          if (dataField is Map && dataField.containsKey('dados')) {
-            data = dataField['dados'] as Map<String, dynamic>;
-          } else {
-            data = dataField as Map<String, dynamic>;
-          }
-        } else {
-          data = rawData;
-        }
-
+        final data = response.body['dados'] as Map<String, dynamic>;
         return BudgetDetailDto.fromJson(data);
       }
 
@@ -135,22 +103,7 @@ class BudgetDetailRemoteDataSourceImpl implements BudgetDetailRemoteDataSource {
       );
 
       if (response.isSuccess) {
-        final rawData = response.body;
-        Map<String, dynamic> data;
-
-        if (rawData.containsKey('dados')) {
-          data = rawData['dados'] as Map<String, dynamic>;
-        } else if (rawData.containsKey('data')) {
-          final dataField = rawData['data'];
-          if (dataField is Map && dataField.containsKey('dados')) {
-            data = dataField['dados'] as Map<String, dynamic>;
-          } else {
-            data = dataField as Map<String, dynamic>;
-          }
-        } else {
-          data = rawData;
-        }
-
+        final data = response.body['dados'] as Map<String, dynamic>;
         final produtosJson = data['produtos'] as List<dynamic>;
         return produtosJson
             .map((json) => ProductDTO.fromJson(json as Map<String, dynamic>))
@@ -205,9 +158,8 @@ class BudgetDetailRemoteDataSourceImpl implements BudgetDetailRemoteDataSource {
       );
 
       if (response.isSuccess) {
-        final data =
-            response.body['dados'] ?? response.body['data'] ?? response.body;
-        return BudgetDetailDto.fromJson(Map<String, dynamic>.from(data as Map));
+        final data = response.body['dados'] as Map<String, dynamic>;
+        return BudgetDetailDto.fromJson(data);
       }
 
       throw Exception(response.body['error'] ?? 'Erro ao atualizar orçamento');
@@ -231,22 +183,7 @@ class BudgetDetailRemoteDataSourceImpl implements BudgetDetailRemoteDataSource {
       );
 
       if (response.isSuccess) {
-        final rawData = response.body;
-        Map<String, dynamic> data;
-
-        if (rawData.containsKey('dados')) {
-          data = rawData['dados'] as Map<String, dynamic>;
-        } else if (rawData.containsKey('data')) {
-          final dataField = rawData['data'];
-          if (dataField is Map && dataField.containsKey('dados')) {
-            data = dataField['dados'] as Map<String, dynamic>;
-          } else {
-            data = dataField as Map<String, dynamic>;
-          }
-        } else {
-          data = rawData;
-        }
-
+        final data = response.body['dados'] as Map<String, dynamic>;
         return BudgetDetailDto.fromJson(data);
       }
 

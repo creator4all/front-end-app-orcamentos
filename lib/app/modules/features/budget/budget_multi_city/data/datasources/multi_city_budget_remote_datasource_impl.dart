@@ -2,8 +2,6 @@ import 'package:multimidiaapp/app/modules/features/budget/budget_config/domain/e
 import 'package:multimidiaapp/app/modules/features/budget/budget_config/domain/entities/censo_group_entity.dart';
 import 'package:multimidiaapp/app/modules/features/budget/budget_config/domain/entities/censo_title_entity.dart';
 import 'package:multimidiaapp/app/shared/core/http/app_http_client.dart';
-import 'package:multimidiaapp/app/shared/core/http/http_request_config.dart';
-import 'package:multimidiaapp/app/shared/core/utils/token_cache.dart';
 import 'package:multimidiaapp/config/api_config.dart';
 
 import 'multi_city_budget_remote_datasource.dart';
@@ -14,10 +12,6 @@ class MultiCityBudgetRemoteDataSourceImpl
   final AppHttpClient _client;
 
   MultiCityBudgetRemoteDataSourceImpl(this._client);
-
-  HttpRequestConfig get _config => HttpRequestConfig(
-        token: TokenCache.instance.getTokenOrEmpty(),
-      );
 
   /// Constrói payload de cidades com overrides para envio à API
   List<Map<String, dynamic>> _buildCidadesPayload(
@@ -49,7 +43,6 @@ class MultiCityBudgetRemoteDataSourceImpl
     for (final cidadeId in cidadeIds) {
       final response = await _client.get(
         ApiConfig.censoPorCidadeEndpoint(cidadeId),
-        config: _config,
       );
 
       if (response.isSuccess) {
@@ -63,33 +56,6 @@ class MultiCityBudgetRemoteDataSourceImpl
     }
 
     return result;
-  }
-
-  @override
-  Future<Map<String, dynamic>> previewMultiCidade({
-    required String nome,
-    required List<int> cidadeIds,
-    required Map<int, Map<int, double>> overridesPorCidade,
-  }) async {
-    final cidades = _buildCidadesPayload(cidadeIds, overridesPorCidade);
-    final payload = {
-      'orc_nome': nome,
-      'cidades': cidades,
-    };
-
-    final response = await _client.post(
-      '${ApiConfig.baseUrl}/api/orcamentos/multi-cidade/preview',
-      data: payload,
-      config: _config,
-    );
-
-    if (response.isSuccess) {
-      final data = response.body;
-      return data['dados'] as Map<String, dynamic>? ??
-          data as Map<String, dynamic>;
-    } else {
-      throw Exception(response.body['error'] ?? 'Erro ao fazer preview');
-    }
   }
 
   @override
@@ -116,14 +82,12 @@ class MultiCityBudgetRemoteDataSourceImpl
     final response = await _client.post(
       '${ApiConfig.baseUrl}/api/orcamentos/multi-cidade',
       data: payload,
-      config: _config,
     );
 
     if (response.isSuccess) {
-      final data = response.body;
-      final dados = data['dados'] as Map<String, dynamic>? ?? data;
+      final dados = response.body['dados'] as Map<String, dynamic>;
 
-      final id = dados['id'] ?? dados['orc_orcamentoId'];
+      final id = dados['id'];
       if (id == null) {
         throw Exception('ID do orçamento não retornado');
       }
@@ -132,28 +96,6 @@ class MultiCityBudgetRemoteDataSourceImpl
     } else {
       throw Exception(
           response.body['error'] ?? 'Erro ao criar orçamento multi-cidade');
-    }
-  }
-
-  @override
-  Future<void> atualizarCidades({
-    required int budgetId,
-    required List<int> cidadeIds,
-    required Map<int, Map<int, double>> overridesPorCidade,
-  }) async {
-    final cidades = _buildCidadesPayload(cidadeIds, overridesPorCidade);
-    final payload = {
-      'cidades': cidades,
-    };
-
-    final response = await _client.put(
-      '${ApiConfig.baseUrl}/api/orcamentos/$budgetId',
-      data: payload,
-      config: _config,
-    );
-
-    if (!response.isSuccess) {
-      throw Exception(response.body['error'] ?? 'Erro ao atualizar cidades');
     }
   }
 

@@ -276,9 +276,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                         citiesData: _extractCitiesData(),
                         censoAgregado: store.censoEscolar?.valoresPorEtapa,
                         onTap: () async {
-                          print(
-                              '👆 [EditPage] Navegando para edição do Censo Escolar');
-
                           // ✅ Verificar se é multi-cidade
                           final isMultiCity =
                               (store.budgetData?.cityIds.length ?? 0) > 1;
@@ -300,14 +297,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                           );
 
                           // ✅ Sempre recarregar ao retornar da tela para garantir sincronização
-                          print(
-                              '✅ [EditPage] Retornou do Censo, atualizando estado...');
-
-                          // Recarregar produtos com quantidades recalculadas
                           await store.reloadProductsAfterCensusEdit();
-
-                          print(
-                              '✅ [EditPage] Produtos atualizados com sucesso!');
                         },
                       ),
                     ),
@@ -608,8 +598,8 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     final result = <Map<String, dynamic>>[];
 
     for (final cityData in store.budgetData!.citiesDataRaw) {
-      final cityId = cityData['idCidades'] ?? cityData['id'] ?? 0;
-      final cityName = cityData['nome_cidade'] ?? cityData['nome'] ?? '';
+      final cityId = cityData['id'] ?? 0;
+      final cityName = cityData['nome'] ?? '';
 
       // Extrair indicadores de 'cidades_has_indice_etapa'
       final indicadoresRaw =

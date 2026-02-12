@@ -137,7 +137,7 @@ class _MultiCityCensusPageState
 
     if (budgetData != null) {
       // Extrair ID dos dados retornados
-      final budgetId = budgetData['id'] ?? budgetData['orc_orcamentoId'];
+      final budgetId = budgetData['id'];
 
       // Navegar para configuração passando dados completos via arguments
       // Isso evita chamadas extras de GET /api/orcamentos/{id} e /produtos-completos

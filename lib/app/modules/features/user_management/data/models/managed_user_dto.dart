@@ -22,8 +22,14 @@ class ManagedUserDto {
     this.avatarBase64,
   });
 
-  /// Cria DTO a partir do JSON da API
   factory ManagedUserDto.fromJson(Map<String, dynamic> json) {
+    final roleId = json['roles_rol_roleId'];
+    if (roleId == null) {
+      throw FormatException(
+        'roleId ausente no JSON do usuário ${json['usr_nome'] ?? json['usr_userId']}',
+      );
+    }
+
     final role = json['role'] as Map<String, dynamic>?;
 
     return ManagedUserDto(
@@ -32,8 +38,8 @@ class ManagedUserDto {
       email: json['usr_email'] ?? '',
       cargo: json['usr_cargo'],
       status: json['usr_status'] == true || json['usr_status'] == 1,
-      roleId: role?['rol_roleId'] ?? json['roles_rol_roleId'] ?? 3,
-      roleName: role?['rol_name'] ?? 'Vendedor',
+      roleId: roleId as int,
+      roleName: role?['rol_name'] ?? '',
       avatarBase64: json['usr_avatar'],
     );
   }

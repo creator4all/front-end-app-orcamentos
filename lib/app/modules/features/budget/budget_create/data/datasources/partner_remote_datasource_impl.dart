@@ -14,18 +14,7 @@ class PartnerRemoteDataSourceImpl implements PartnerRemoteDataSource {
       const url = '/api/partners/parceiros-standard';
       final response = await client.get(url);
 
-      final data = response.body['dados'] ?? response.body['data'];
-
-      final List list;
-      if (data is Map && data['dados'] is List) {
-        list = data['dados'] as List;
-      } else if (data is List) {
-        list = data;
-      } else if (data is Map && data['parceiros'] is List) {
-        list = data['parceiros'] as List;
-      } else {
-        list = [];
-      }
+      final list = response.body['dados'] as List? ?? [];
 
       return PartnerDto.listFromJson(list);
     } catch (e) {
@@ -39,7 +28,7 @@ class PartnerRemoteDataSourceImpl implements PartnerRemoteDataSource {
       final url = '/api/partners/$partnerId';
       final response = await client.get(url);
 
-      final data = response.body['dados'] ?? response.body['data'];
+      final data = response.body['dados'];
 
       if (data == null) {
         throw Exception('Parceiro não encontrado');

@@ -59,12 +59,12 @@ class BudgetDraftDto {
     final produtosArray = json['orcamento_produtos'] as List? ?? [];
     final categoriasArray = json['categorias'] as List? ?? [];
 
-    final cityId = (json['orc_cidade_id'] as num?)?.toInt() ?? 0;
-    final cityName = cidadeJson?['nome_cidade'] as String? ?? '';
+    final cityId = (json['cidade_id'] as num?)?.toInt() ?? 0;
+    final cityName = cidadeJson?['nome'] as String? ?? '';
     final cityIds = cityId > 0 ? [cityId] : <int>[];
     final cityNames = cityName.isNotEmpty ? [cityName] : <String>[];
 
-    final validityDateStr = json['orc_data_validade'];
+    final validityDateStr = json['data_validade'];
     final parsedValidityDate = validityDateStr != null
         ? DateTime.parse(validityDateStr as String)
         : DateTime.now();
@@ -82,8 +82,8 @@ class BudgetDraftDto {
     final cidade = cidadeJson != null ? CidadeDto.fromJson(cidadeJson) : null;
 
     return BudgetDraftDto(
-      id: (json['orc_orcamentoId'] as num?)?.toInt() ?? 0,
-      name: json['orc_nome'] as String?,
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      name: json['nome'] as String?,
       partnerId: partnerDestino?['id'] != null
           ? (partnerDestino!['id'] as num?)?.toInt()
           : null,
@@ -96,10 +96,10 @@ class BudgetDraftDto {
       responsibleName: json['orc_responsavel_nome'] as String?,
       responsibleEmail: json['orc_responsavel_email'] as String?,
       validityDate: parsedValidityDate,
-      validityDays: (json['orc_dias_validade'] as num?)?.toInt() ?? 60,
-      status: json['orc_status'] as String? ?? 'rascunho',
-      total: (json['orc_total'] as num?)?.toDouble() ?? 0.0,
-      createdByAdmin: json['orc_criado_por_admin'] as bool? ?? false,
+      validityDays: (json['dias_validade'] as num?)?.toInt() ?? 60,
+      status: json['status'] as String? ?? 'rascunho',
+      total: (json['total'] as num?)?.toDouble() ?? 0.0,
+      createdByAdmin: json['criado_por_admin'] as bool? ?? false,
       createdAt: parseDate(json['created_at']),
       dataValidade: parsedValidityDate,
       cidade: cidade,
@@ -145,7 +145,7 @@ class BudgetDraftDto {
       'status': status,
       'total': total,
       'dias_validade': validityDays,
-      'data_validade': validityDate.toIso8601String(),
+      'data_validade': validityDate?.toIso8601String(),
       'criado_por_admin': createdByAdmin,
     };
 

@@ -2,7 +2,6 @@ import '../../../../../../shared/core/http/app_http_client.dart';
 import '../models/pdf_response_dto.dart';
 import 'budget_pdf_remote_datasource.dart';
 
-/// Implementação do datasource remoto para geração de PDF
 class BudgetPdfRemoteDataSourceImpl implements BudgetPdfRemoteDataSource {
   final AppHttpClient _client;
 
@@ -13,15 +12,10 @@ class BudgetPdfRemoteDataSourceImpl implements BudgetPdfRemoteDataSource {
     int orcamentoId,
     Map<String, dynamic> requestData,
   ) async {
-    print('📄 [PdfDataSource] Gerando PDF do orçamento ID: $orcamentoId');
-    print('📋 [PdfDataSource] Dados: $requestData');
-
     final response = await _client.post(
       '/api/orcamentos/$orcamentoId/pdf',
       data: requestData,
     );
-
-    print('🔍 [PdfDataSource] Resposta: ${response.statusCode}');
 
     if (!response.isSuccess) {
       final errorMsg = response.body['mensagem'] ??
@@ -30,16 +24,7 @@ class BudgetPdfRemoteDataSourceImpl implements BudgetPdfRemoteDataSource {
       throw Exception(errorMsg);
     }
 
-    // Extrair dados da resposta
-    final data =
-        response.body['dados'] ?? response.body['data'] ?? response.body;
-
-    print('🔍 [PdfDataSource] Dados extraídos: ${data.runtimeType}');
-
-    if (data is! Map<String, dynamic>) {
-      throw Exception('Formato de resposta inválido');
-    }
-
+    final data = response.body['dados'] as Map<String, dynamic>;
     return PdfResponseDto.fromJson(data);
   }
 }

@@ -18,18 +18,11 @@ class SaveBudgetUseCase {
 
   SaveBudgetUseCase(this.repository);
 
-  /// Executa o salvamento do orçamento
-  ///
-  /// [budgetId] ID do orçamento a salvar
-  /// [updateData] DTO com dados de atualização (produtos, total, validade, etc)
-  ///
-  /// Retorna o orçamento atualizado ou falha
   Future<Either<BudgetFailure, BudgetDetailEntity>> call({
     required int budgetId,
     required BudgetUpdateDto updateData,
   }) async {
     try {
-      // Validação: Status deve ser "pendente" no budget_config
       if (updateData.status != null && updateData.status != 'pendente') {
         return const Left(
           ValidationFailure(
@@ -38,28 +31,27 @@ class SaveBudgetUseCase {
         );
       }
 
-      // Validação: Total deve ser maior que zero
       if (updateData.total != null && updateData.total! <= 0) {
         return const Left(
           ValidationFailure('O valor total deve ser maior que zero'),
         );
       }
 
-      // Validação: Dias de validade obrigatório
+
       if (updateData.diasValidade == null || updateData.diasValidade! <= 0) {
         return const Left(
           ValidationFailure('Defina a data de validade do orçamento'),
         );
       }
 
-      // Validação: Deve ter ao menos 1 produto no array
+
       if (updateData.produtos == null || updateData.produtos!.isEmpty) {
         return const Left(
           ValidationFailure('Nenhum produto encontrado para salvar'),
         );
       }
 
-      // Validação: Deve ter ao menos 1 produto SELECIONADO
+
       final produtosSelecionados =
           updateData.produtos!.where((p) => p.selecionado).toList();
 
@@ -69,19 +61,14 @@ class SaveBudgetUseCase {
         );
       }
 
-      print(
-          '💾 [SaveBudgetUseCase] Salvando orçamento $budgetId como PENDENTE');
-      print('   📦 ${updateData.produtos!.length} produtos no total');
-      print('   ✅ ${produtosSelecionados.length} produtos selecionados');
-      print('   💰 Total: R\$ ${updateData.total}');
-      print('   📅 Validade: ${updateData.diasValidade} dias');
+      
 
       return await repository.updateBudgetWithDto(
         budgetId: budgetId,
         updateData: updateData,
       );
     } catch (e) {
-      print('❌ [SaveBudgetUseCase] Erro: $e');
+      
       return Left(UnknownFailure(e.toString()));
     }
   }

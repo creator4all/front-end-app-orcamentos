@@ -33,13 +33,13 @@ class ProductSelectionDto {
     }
 
     return ProductSelectionDto(
-      productId: json['id'] ?? json['produto_id'] ?? 0,
-      name: json['nome'] ?? json['name'] ?? '',
-      category: json['categoria'] ?? json['category'] ?? '',
-      price: (json['preco'] ?? json['price'] ?? 0.0).toDouble(),
-      isSelected: json['selecionado'] ?? json['is_selected'] ?? false,
-      quantity: json['quantidade'] ?? json['quantity'],
-      observacoes: json['observacoes'] ?? '',
+      productId: json['id'] as int? ?? 0,
+      name: (json['nome'] ?? '') as String,
+      category: (json['categoria'] ?? '') as String,
+      price: (json['preco'] as num? ?? 0.0).toDouble(),
+      isSelected: json['selecionado'] as bool? ?? false,
+      quantity: json['quantidade'] as int?,
+      observacoes: (json['observacoes'] ?? '') as String,
       indicadoresEtapa: indicadores,
     );
   }

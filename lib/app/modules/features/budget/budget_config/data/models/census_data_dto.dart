@@ -17,25 +17,20 @@ class CensusDataDto {
     required this.gradeDistribution,
   });
 
-  /// Cria DTO a partir do JSON da API
   factory CensusDataDto.fromJson(Map<String, dynamic> json) {
-    // Parse distribuição por série
     final Map<String, int> grades = {};
-    if (json['series'] != null && json['series'] is Map) {
-      (json['series'] as Map).forEach((key, value) {
-        grades[key.toString()] = (value ?? 0) as int;
-      });
-    } else if (json['distribuicao'] != null && json['distribuicao'] is Map) {
-      (json['distribuicao'] as Map).forEach((key, value) {
+    final seriesJson = json['series'] as Map?;
+    if (seriesJson != null) {
+      seriesJson.forEach((key, value) {
         grades[key.toString()] = (value ?? 0) as int;
       });
     }
 
     return CensusDataDto(
-      cityId: json['cidade_id'] ?? json['city_id'] ?? 0,
-      cityName: json['cidade_nome'] ?? json['city_name'] ?? '',
-      totalClasses: json['turmas'] ?? json['total_classes'] ?? 0,
-      totalStudents: json['alunos'] ?? json['total_students'] ?? 0,
+      cityId: json['cidade_id'] as int? ?? 0,
+      cityName: (json['cidade_nome'] ?? '') as String,
+      totalClasses: json['turmas'] as int? ?? 0,
+      totalStudents: json['alunos'] as int? ?? 0,
       gradeDistribution: grades,
     );
   }

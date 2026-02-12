@@ -532,9 +532,6 @@ abstract class _BudgetEditStoreBase with Store {
             updatedProduct = updatedProduct.copyWith(
               quantidade: novaQuantidade.round(),
             );
-            print(
-              '🧮 [BudgetEditStore] Recalculado: ${product.solucao} -> Qtd: ${novaQuantidade.round()}',
-            );
           }
 
           // Atualizar lista de produtos (com tipo explícito)
@@ -664,10 +661,6 @@ abstract class _BudgetEditStoreBase with Store {
   /// 🔄 Alterna estado de um indicador do produto e recalcula quantidade
   @action
   void toggleProductIndicator(int productId, int indicatorId) {
-    print(
-      '🔄 [BudgetEditStore] Alternando indicador $indicatorId do produto $productId',
-    );
-
     // Encontrar o produto
     for (var i = 0; i < categories.length; i++) {
       final category = categories[i];
@@ -718,14 +711,6 @@ abstract class _BudgetEditStoreBase with Store {
               updatedProduct = updatedProduct.copyWith(
                 quantidade: novaQuantidade.round(),
               );
-
-              print(
-                '🧮 [BudgetEditStore] Recálculo: Qtd ${product.quantidade} -> ${updatedProduct.quantidade}',
-              );
-            } else {
-              print(
-                '⚠️ [BudgetEditStore] censoEscolar é null, quantidade não recalculada',
-              );
             }
 
             // Propagar atualização na árvore
@@ -749,18 +734,11 @@ abstract class _BudgetEditStoreBase with Store {
 
             categories[i] = updatedCategory;
 
-            print(
-              '✅ [BudgetEditStore] Indicador $indicatorId atualizado: $newSelectedState',
-            );
             return;
           }
         }
       }
     }
-
-    print(
-      '⚠️ [BudgetEditStore] Produto $productId ou indicador $indicatorId não encontrado',
-    );
   }
 
   /// 💾 Salva orçamento editado usando DTO completo
@@ -882,9 +860,6 @@ abstract class _BudgetEditStoreBase with Store {
 
     // ✅ Prioridade 1: Usar censo_agregado para orçamentos multi-cidade
     if (budgetData!.censoAgregado.isNotEmpty) {
-      print(
-        '✅ [BudgetEditStore] Usando censo_agregado para multi-cidade: ${budgetData!.censoAgregado.length} etapas',
-      );
       censoEscolar = CensoEscolarEntity(
         cidadeId: 0,
         cidadeNome: 'Agregado',
@@ -910,13 +885,8 @@ abstract class _BudgetEditStoreBase with Store {
       // ✅ Converter CidadeEntity para CensoEscolarEntity
       censoEscolar = _convertCidadeToCensoEscolar(cidade);
 
-      if (censoEscolar != null) {
-        print(
-          '✅ [BudgetEditStore] CensoEscolar parseado: ${censoEscolar!.grupos.length} grupos, ${censoEscolar!.valoresPorEtapa.length} etapas',
-        );
-      }
+      if (censoEscolar != null) {}
     } catch (e) {
-      print('❌ [BudgetEditStore] Erro ao parsear censo: $e');
       censoEscolar = null;
     }
   }
@@ -945,10 +915,6 @@ abstract class _BudgetEditStoreBase with Store {
       budgetData = budgetData!.copyWith(citiesDataRaw: updatedCitiesData);
     }
 
-    print(
-      '✅ [BudgetEditStore] CensoEscolar atualizado: ${censoEscolar!.grupos.length} grupos',
-    );
-
     // Se temos censo antigo, verificar se há produtos para remarcação
     if (oldCenso != null) {
       _checkForProductsToRemark(oldCenso, updatedCenso);
@@ -961,9 +927,6 @@ abstract class _BudgetEditStoreBase with Store {
 
     isLoading = true;
     isLoadingProducts = true;
-    print(
-      '🔄 [BudgetEditStore] Recarregando orçamento completo após edição do censo...',
-    );
 
     try {
       final oldCenso = censoEscolar;
@@ -976,11 +939,8 @@ abstract class _BudgetEditStoreBase with Store {
       if (oldCenso != null && censoEscolar != null) {
         _checkForProductsToRemark(oldCenso, censoEscolar!);
       }
-
-      print('✅ [BudgetEditStore] Orçamento recarregado com sucesso');
     } catch (e) {
       error = 'Erro ao recarregar orçamento: $e';
-      print('❌ [BudgetEditStore] Erro ao recarregar: $e');
     } finally {
       isLoading = false;
       isLoadingProducts = false;
@@ -1024,21 +984,13 @@ abstract class _BudgetEditStoreBase with Store {
     productsNeedingRemark.clear();
     productsNeedingRemark.addAll(productsToRemark);
 
-    if (productsToRemark.isNotEmpty) {
-      print(
-        '🔔 [BudgetEditStore] ${productsToRemark.length} produtos agora têm disponibilidade',
-      );
-    }
+    if (productsToRemark.isNotEmpty) {}
   }
 
   /// Marca os produtos como selecionados (chamado pela UI após confirmação)
   @action
   void confirmProductRemark() {
     if (productsNeedingRemark.isEmpty) return;
-
-    print(
-      '✅ [BudgetEditStore] Confirmando remarcação de ${productsNeedingRemark.length} produtos',
-    );
 
     final productsToRemark = List<ProductEntity>.from(productsNeedingRemark);
 
@@ -1054,10 +1006,6 @@ abstract class _BudgetEditStoreBase with Store {
   @action
   void rejectProductRemark() {
     if (productsNeedingRemark.isEmpty) return;
-
-    print(
-      '❌ [BudgetEditStore] Rejeitando remarcação de ${productsNeedingRemark.length} produtos',
-    );
 
     // Limpar lista após rejeição
     productsNeedingRemark.clear();
@@ -1148,7 +1096,6 @@ abstract class _BudgetEditStoreBase with Store {
         valoresPorEtapa: valoresPorEtapa,
       );
     } catch (e) {
-      print('❌ [BudgetEditStore] Erro ao converter cidade para censo: $e');
       return null;
     }
   }

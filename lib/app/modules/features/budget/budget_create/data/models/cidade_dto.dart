@@ -31,9 +31,9 @@ class CidadeDto {
         .toList();
 
     return CidadeDto(
-      id: (json['idCidades'] as num?)?.toInt() ?? 0,
-      nome: json['nome_cidade'] as String? ?? '',
-      estadoId: (json['estados_idestados'] as num?)?.toInt() ?? 0,
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      nome: json['nome'] as String? ?? '',
+      estadoId: (json['estado_id'] as num?)?.toInt() ?? 0,
       status: json['status'] as bool? ?? false,
       excluido: json['excluido'] as bool? ?? false,
       createdAt: parseDate(json['created_at']) ?? DateTime.now(),
@@ -58,9 +58,9 @@ class CidadeDto {
 
   Map<String, dynamic> toJson() {
     return {
-      'idCidades': id,
-      'nome_cidade': nome,
-      'estados_idestados': estadoId,
+      'id': id,
+      'nome': nome,
+      'estado_id': estadoId,
       'status': status,
       'excluido': excluido,
       'created_at': createdAt.toIso8601String(),

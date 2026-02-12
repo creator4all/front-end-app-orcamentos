@@ -58,25 +58,16 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
 
   /// Atualiza todos os dados da página
   Future<void> _refreshPage() async {
-    print(' Atualizando página...');
-
-    // Resetar store de orçamentos (limpa cache de parceiros)
     _store.reset();
 
-    // Recarregar parceiros (apenas para admins)
     if (_authStore.isAdmin) {
-      print(' Carregando parceiros (Admin)...');
       await _store.loadPartners(excludePartnerId: _authStore.partnerId);
     }
 
-    // Recarregar estados se já tiver provider inicializado
     if (mounted && _geo != null) {
-      print(' Recarregando estados...');
       await _geo.carregarEstados();
       if (mounted) setState(() {});
     }
-
-    print(' Página atualizada');
   }
 
   /// Modal para inserir nome do orçamento multi-cidades
@@ -167,23 +158,13 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
       final provider = StoreProvider.of(context);
       _geo = provider.geoStore;
       _censo = provider.censoStore;
-
-      print(' Stores legadas inicializadas');
     }
   }
 
   /// Sincroniza localização do GeoStore com BudgetCreateStore
   void _syncLocation() {
-    print(' Sincronizando localização...');
-
     if (_geo.estadoSelecionado != null && _geo.cidadeSelecionada != null) {
-      // Usar ID do estado como código (já que UF não existe no modelo)
       final estadoCodigo = _geo.estadoSelecionado!.id?.toString() ?? '';
-
-      print(
-          '   Estado: ${_geo.estadoSelecionado!.nome} (ID: ${_geo.estadoSelecionado!.id})');
-      print(
-          '   Cidade: ${_geo.cidadeSelecionada!.nome} (ID: ${_geo.cidadeSelecionada!.id})');
 
       _store.setSelectedState(
         estadoCodigo,
@@ -193,30 +174,16 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
         _geo.cidadeSelecionada!.id.toString(),
         _geo.cidadeSelecionada!.nome,
       );
-
-      print('   Store atualizada:');
-      print('      - selectedStateCode: ${_store.selectedStateCode}');
-      print('      - selectedStateName: ${_store.selectedStateName}');
-      print('      - selectedCityCode: ${_store.selectedCityCode}');
-      print('      - selectedCityName: ${_store.selectedCityName}');
-      print('      - isFormValid: ${_store.isFormValid}');
-    } else {
-      print('   Estado ou cidade não selecionados');
-      print('      - estadoSelecionado: ${_geo.estadoSelecionado}');
-      print('      - cidadeSelecionada: ${_geo.cidadeSelecionada}');
     }
   }
 
   /// Cria o orçamento em rascunho
   Future<void> _createDraftBudget() async {
-    print(' Iniciando criação de orçamento...');
-
     // Sincronizar localização
     _syncLocation();
 
     // Validar campos obrigatórios
     if (!_store.isFormValid) {
-      print(' Validação falhou - isFormValid: ${_store.isFormValid}');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Selecione um estado e uma cidade'),
@@ -225,8 +192,6 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
       );
       return;
     }
-
-    print(' Validação passou');
 
     // Validar email se preenchido
     if (!_store.isEmailValid) {
@@ -267,9 +232,6 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
         return;
       }
 
-      print(
-          ' Criando orçamento para parceiro ID: $partnerId, usuário ID: $userId');
-
       // Criar orçamento em rascunho via Store
       final success = await _store.createDraft(partnerId, userId);
 
@@ -288,7 +250,6 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
       // Sucesso - navegar para config
       if (_store.createdDraft != null) {
         final budgetId = _store.createdDraft!.id;
-        print(' Navegando para config/$budgetId');
 
         // Preparar dados de localização para o header
         final locationData = {
@@ -319,7 +280,6 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
         }
       }
     } catch (e) {
-      print(' Erro ao criar orçamento: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -476,9 +436,6 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                                 estado.id?.toString() ?? '',
                                 estado.nome,
                               );
-
-                              print(
-                                  '📍 Estado sincronizado: ${estado.nome} (ID: ${estado.id})');
 
                               if (mounted) setState(() {});
                             }

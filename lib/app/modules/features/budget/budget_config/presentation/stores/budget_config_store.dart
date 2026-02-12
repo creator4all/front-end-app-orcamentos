@@ -1,5 +1,4 @@
 import 'package:dartz/dartz.dart';
-import 'package:flutter/foundation.dart';
 import 'package:mobx/mobx.dart';
 
 import '../../../budget_create/domain/entities/budget_draft_entity.dart';
@@ -100,7 +99,6 @@ abstract class _BudgetConfigStoreBase with Store {
     if (budgetDetail == null) return false;
     if (validityDate == null) return false;
 
-    // Verificar se tem produtos selecionados nas categorias
     return totalSelectedProducts > 0;
   }
 
@@ -119,7 +117,6 @@ abstract class _BudgetConfigStoreBase with Store {
     return categories.fold(0, (sum, c) => sum + c.selectedProductsCount);
   }
 
-  // ✅ Novo computed para total de produtos ativos
   @computed
   int get totalActiveProducts {
     return categories.fold(0, (sum, c) => sum + c.totalActiveProducts);
@@ -130,18 +127,15 @@ abstract class _BudgetConfigStoreBase with Store {
     return categories.fold(0, (sum, c) => sum + c.selectedProductsCount);
   }
 
-  // ✅ Contagem corrigida: expandidas contam subcategorias selecionadas, compactas contam produtos individuais
   @computed
   int get selectedItemsCount {
     return categories.fold(0, (sum, category) {
       if (category.expandido) {
-        // Categorias expandidas contam SUBCATEGORIAS com produtos selecionados
         final selectedSubcategories = category.subcategorias
             .where((subcategory) => subcategory.hasSelectedProducts)
             .length;
         return sum + selectedSubcategories;
       } else {
-        // Categorias compactas contam como 1 categoria se tiverem produtos selecionados
         return sum + (category.hasSelectedProducts ? 1 : 0);
       }
     });
@@ -153,7 +147,6 @@ abstract class _BudgetConfigStoreBase with Store {
   @computed
   bool get hasCensusData => censusData != null && censusData!.hasData;
 
-  // ✅ Novo computed para verificar se tem categorias
   @computed
   bool get hasCategories => categories.isNotEmpty;
 
@@ -164,7 +157,6 @@ abstract class _BudgetConfigStoreBase with Store {
   Future<void> initialize(int budgetId) async {
     await loadBudgetDetail(budgetId);
 
-    // Carregar censo se tiver cidade
     if (budgetDetail != null && budgetDetail!.cityIds.isNotEmpty) {
       await loadCensusData(budgetDetail!.cityIds.first);
     }
@@ -256,10 +248,6 @@ abstract class _BudgetConfigStoreBase with Store {
     error = null;
 
     try {
-      debugPrint(
-          '🚀 [BudgetConfigStore] Inicializando com resposta multi-cidade');
-
-      // Extrair dados básicos
       final id = response['orc_orcamentoId'] ?? response['id'];
       final nome = response['orc_nome'] ?? '';
       final status = response['orc_status'] ?? 'rascunho';
@@ -269,7 +257,6 @@ abstract class _BudgetConfigStoreBase with Store {
           ? DateTime.parse(response['orc_data_validade'].toString())
           : DateTime.now().add(const Duration(days: 60));
 
-      // Extrair cidades
       final cidadesJson = response['cidades'] as List<dynamic>? ?? [];
       final cityIds = cidadesJson.map((c) => c['id'] as int? ?? 0).toList();
       final citiesData = cidadesJson
@@ -280,16 +267,13 @@ abstract class _BudgetConfigStoreBase with Store {
               })
           .toList();
 
-      // Extrair e parsear categorias com produtos já calculados
       final categoriasJson = response['categorias'] as List<dynamic>? ?? [];
       final categoriasParsed =
           _parseCategoriasFromMultiCityResponse(categoriasJson);
 
-      // Extrair censo_agregado para cálculos de quantidade
       final censoAgregado =
           response['censo_agregado'] as Map<String, dynamic>? ?? {};
 
-      // Criar BudgetDetailEntity
       budgetDetail = BudgetDetailEntity(
         id: id is int ? id : int.tryParse(id.toString()) ?? 0,
         name: nome,
@@ -307,17 +291,14 @@ abstract class _BudgetConfigStoreBase with Store {
         citiesData: citiesData,
       );
 
-      // Popular categorias já com produtos
       categories.clear();
       categories.addAll(categoriasParsed);
 
-      // Armazenar censo_agregado para cálculos
       final valoresPorEtapa = <String, double>{};
       censoAgregado.forEach((key, value) {
         valoresPorEtapa[key] = (value as num).toDouble();
       });
 
-      // Criar CensoEscolarEntity básico a partir do censo_agregado
       censoEscolar = CensoEscolarEntity(
         cidadeId: 0,
         cidadeNome: 'Agregado',
@@ -330,12 +311,7 @@ abstract class _BudgetConfigStoreBase with Store {
 
       isLoading = false;
       isLoadingProducts = false;
-
-      debugPrint(
-          '✅ [BudgetConfigStore] Inicializado com ${categories.length} categorias');
-    } catch (e, stackTrace) {
-      debugPrint('❌ [BudgetConfigStore] Erro ao inicializar: $e');
-      debugPrint('Stack: $stackTrace');
+    } catch (e) {
       error = 'Erro ao inicializar orçamento: $e';
       isLoading = false;
     }
@@ -374,7 +350,6 @@ abstract class _BudgetConfigStoreBase with Store {
               prodJson['orcamento_produto'] as Map<String, dynamic>? ?? {};
           final valor = (prodJson['valor'] as num?)?.toDouble() ?? 0.0;
 
-          // Sincroniza seleção com quantidade: quantidade = 0 → selecionado = false
           final quantidade = (orcProdJson['quantidade'] as num?)?.toInt() ?? 0;
           final selecionadoJson = orcProdJson['selecionado'] as bool? ?? false;
           final selecionado = quantidade > 0 ? selecionadoJson : false;
@@ -424,10 +399,6 @@ abstract class _BudgetConfigStoreBase with Store {
     final shouldBeSelected = product.quantidade > 0;
 
     if (product.selecionado != shouldBeSelected) {
-      print(
-          '🔄 [BudgetConfigStore] Sincronizando produto "${product.solucao}": '
-          'quantidade=${product.quantidade}, selecionado=${product.selecionado} → $shouldBeSelected');
-
       return product.copyWith(selecionado: shouldBeSelected);
     }
 
@@ -440,10 +411,7 @@ abstract class _BudgetConfigStoreBase with Store {
     if (cidade == null) return null;
 
     try {
-      // Criar mapa de valores por etapa para lookup rápido
       final valoresPorEtapa = <String, double>{};
-
-      // Agrupar por grupos
       final gruposMap = <int, List<CensoTitleEntity>>{};
       final grupoNomes = <int, String>{};
 
@@ -453,13 +421,10 @@ abstract class _BudgetConfigStoreBase with Store {
         final grupoId = etapa.grupoId;
         final grupoNome = etapa.indiceEtapa.grupoNome;
 
-        // Adicionar ao mapa de valores
         valoresPorEtapa[nomeEtapa] = valor;
 
-        // Guardar nome do grupo
         grupoNomes[grupoId] = grupoNome;
 
-        // Criar título para este indicador
         final titulo = CensoTitleEntity(
           id: etapa.indiceEtapaId,
           nomeEtapa: nomeEtapa,
@@ -470,12 +435,10 @@ abstract class _BudgetConfigStoreBase with Store {
           grupoId: grupoId,
         );
 
-        // Agrupar por grupo
         gruposMap.putIfAbsent(grupoId, () => []);
         gruposMap[grupoId]!.add(titulo);
       }
 
-      // Converter grupos map para entidades
       final grupos = gruposMap.entries.map((entry) {
         return CensoGroupEntity(
           id: entry.key,
@@ -491,11 +454,8 @@ abstract class _BudgetConfigStoreBase with Store {
         valoresPorEtapa: valoresPorEtapa,
       );
 
-      print(
-          '✅ [BudgetConfigStore] CensoEscolar criado: ${valoresPorEtapa.length} etapas');
       return censoEscolarEntity;
     } catch (e) {
-      print('❌ [BudgetConfigStore] Erro ao converter cidade para censo: $e');
       return null;
     }
   }
@@ -508,11 +468,9 @@ abstract class _BudgetConfigStoreBase with Store {
   ) {
     final productsToRemark = <ProductEntity>[];
 
-    // Percorrer todos os produtos para verificar mudanças
     for (final category in categories) {
       for (final subcategory in category.subcategorias) {
         for (final product in subcategory.produtos) {
-          // Calcular quantidade antiga e nova
           final oldQuantity = calculationService.calcularQuantidade(
             product,
             oldCenso,
@@ -522,7 +480,6 @@ abstract class _BudgetConfigStoreBase with Store {
             newCenso,
           );
 
-          // Se era 0 e agora > 0, adicionar à lista
           if (oldQuantity == 0 && newQuantity > 0 && !product.selecionado) {
             final updatedProduct =
                 product.copyWith(quantidade: newQuantity.round());
@@ -532,15 +489,7 @@ abstract class _BudgetConfigStoreBase with Store {
       }
     }
 
-    // Atualizar observable com produtos que precisam de remarcação
     productsNeedingRemark = productsToRemark;
-
-    if (productsToRemark.isNotEmpty) {
-      print(
-          '🔔 [BudgetConfigStore] ${productsToRemark.length} produtos agora têm disponibilidade');
-      print(
-          '   📋 Produtos: ${productsToRemark.map((p) => p.solucao).join(', ')}');
-    }
   }
 
   /// Marca os produtos como selecionados (chamado pela UI após confirmação)
@@ -548,11 +497,8 @@ abstract class _BudgetConfigStoreBase with Store {
   void confirmProductRemark() {
     if (productsNeedingRemark.isEmpty) return;
 
-    print(
-        '✅ [BudgetConfigStore] Confirmando remarcação de ${productsNeedingRemark.length} produtos');
     _remarkProducts(productsNeedingRemark);
 
-    // Limpar lista após confirmação
     productsNeedingRemark = [];
   }
 
@@ -561,10 +507,6 @@ abstract class _BudgetConfigStoreBase with Store {
   void rejectProductRemark() {
     if (productsNeedingRemark.isEmpty) return;
 
-    print(
-        '❌ [BudgetConfigStore] Rejeitando remarcação de ${productsNeedingRemark.length} produtos');
-
-    // Limpar lista após rejeição
     productsNeedingRemark = [];
   }
 
@@ -574,10 +516,6 @@ abstract class _BudgetConfigStoreBase with Store {
     final oldCenso = censoEscolar;
     censoEscolar = updatedCenso;
 
-    print(
-        '✅ [BudgetConfigStore] CensoEscolar atualizado: ${censoEscolar!.grupos.length} grupos');
-
-    // Verificar se houve mudança que afeta produtos
     if (oldCenso != null) {
       _checkForProductsToRemark(oldCenso, updatedCenso);
     }
@@ -587,7 +525,6 @@ abstract class _BudgetConfigStoreBase with Store {
   @action
   void _remarkProducts(List<ProductEntity> productsToRemark) {
     for (final product in productsToRemark) {
-      // Encontrar e atualizar o produto na árvore
       for (var i = 0; i < categories.length; i++) {
         final category = categories[i];
 
@@ -617,8 +554,6 @@ abstract class _BudgetConfigStoreBase with Store {
 
             categories[i] = updatedCategory;
 
-            print(
-                '✅ [BudgetConfigStore] Produto "${product.solucao}" marcado automaticamente');
             break;
           }
         }
@@ -645,7 +580,6 @@ abstract class _BudgetConfigStoreBase with Store {
         (budget) async {
           budgetDetail = budget;
 
-          // ✅ Inicializar categorias COM estatísticas (sem produtos ainda)
           categories.clear();
           categories.addAll(budget.categories);
 
@@ -657,14 +591,10 @@ abstract class _BudgetConfigStoreBase with Store {
           validityDate = budget.validityDate ??
               DateTime.now().add(const Duration(days: 60));
 
-          // Inicializar nome
           budgetName = budget.name;
 
-          // ✅ Popular censoEscolar a partir do censo_agregado (orçamentos multi-cidade)
           // Apenas se censoAgregado não estiver vazio (preserva fluxo para orçamentos comuns)
           if (budget.censoAgregado.isNotEmpty) {
-            debugPrint(
-                '✅ [BudgetConfigStore] Populando censoEscolar a partir de censo_agregado: ${budget.censoAgregado.length} etapas');
             censoEscolar = CensoEscolarEntity(
               cidadeId: 0,
               cidadeNome: 'Agregado',
@@ -673,13 +603,8 @@ abstract class _BudgetConfigStoreBase with Store {
             );
           }
 
-          // ✅ Info básica carregada
           isLoading = false;
 
-          // ℹ️ Produtos já vêm no response do GET /api/orcamentos/{id}
-          // Não precisa mais chamar /produtos-completos
-
-          // ✅ Produtos carregados
           isLoadingProducts = false;
         },
       );
@@ -695,11 +620,8 @@ abstract class _BudgetConfigStoreBase with Store {
     if (budgetDetail == null || budgetDetail!.citiesData.isEmpty) return;
 
     try {
-      // Criar mapa de indicadores da cidade para busca rápida
-      // Mapa: nome_indicador -> {grupo_id, grupo_nome}
       final indicatorMap = <String, Map<String, dynamic>>{};
 
-      // Assumindo que usamos a primeira cidade (principal) para estrutura de indicadores
       final cityData = budgetDetail!.citiesData.first;
       final indicadoresCidade = cityData['indicadores'] as List<dynamic>? ?? [];
 
@@ -717,19 +639,15 @@ abstract class _BudgetConfigStoreBase with Store {
 
       if (indicatorMap.isEmpty) return;
 
-      // Atualizar categorias com grupos preenchidos
       final updatedCategories = categories.map((cat) {
         final updatedSubcategories = cat.subcategorias.map((sub) {
           final updatedProducts = sub.produtos.map((prod) {
             // Se produto não tem indicadores, retorna igual
             if (prod.indicadoresEtapa.isEmpty) return prod;
 
-            // Atualizar indicadores do produto
             final updatedIndicators = prod.indicadoresEtapa.map((ind) {
-              // Se já tem grupo, mantém
               if (ind.grupoNome.isNotEmpty) return ind;
 
-              // Busca info do grupo
               final info = indicatorMap[ind.nomeEtapa] ??
                   indicatorMap[ind.indicadorNome];
 
@@ -752,11 +670,7 @@ abstract class _BudgetConfigStoreBase with Store {
       }).toList();
 
       categories = ObservableList.of(updatedCategories);
-      print(
-          '✨ [BudgetConfigStore] Indicadores enriquecidos com dados da cidade: ${indicatorMap.length} tipos de indicadores');
-    } catch (e) {
-      print('❌ [BudgetConfigStore] Erro ao enriquecer indicadores: $e');
-    }
+    } catch (e) {}
   }
 
   @action
