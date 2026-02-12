@@ -662,6 +662,7 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
         [XFile(file.path)],
         text: 'Orçamento - ${_nomeVendedorController.text.trim()}',
         subject: 'Orçamento - ${_nomeVendedorController.text.trim()}',
+        sharePositionOrigin: _getSharePositionOrigin(context),
       );
 
       print('✅ [Modal] Compartilhamento concluído');
@@ -694,6 +695,19 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
         _showErrorMessage('Erro ao gerar PDF: $e');
       }
     }
+  }
+
+  Rect _getSharePositionOrigin(BuildContext context) {
+    final box = context.findRenderObject() as RenderBox?;
+    if (box != null) {
+      return box.localToGlobal(Offset.zero) & box.size;
+    }
+    return Rect.fromLTWH(
+      0,
+      0,
+      MediaQuery.of(context).size.width,
+      MediaQuery.of(context).size.height / 2,
+    );
   }
 
   void _showErrorMessage(String message) {

@@ -513,6 +513,7 @@ class _SchoolCensusPageState
             await Share.shareXFiles(
               [XFile(file.path)],
               subject: 'Censo Escolar - Orçamento ${widget.budgetId}',
+              sharePositionOrigin: _getSharePositionOrigin(context),
             );
           } catch (e) {
             if (mounted) {
@@ -540,5 +541,18 @@ class _SchoolCensusPageState
         setState(() => _isExporting = false);
       }
     }
+  }
+
+  Rect _getSharePositionOrigin(BuildContext context) {
+    final box = context.findRenderObject() as RenderBox?;
+    if (box != null) {
+      return box.localToGlobal(Offset.zero) & box.size;
+    }
+    return Rect.fromLTWH(
+      0,
+      0,
+      MediaQuery.of(context).size.width,
+      MediaQuery.of(context).size.height / 2,
+    );
   }
 }
