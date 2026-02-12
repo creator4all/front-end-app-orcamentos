@@ -523,15 +523,11 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
   }
 
   Rect _getSharePositionOrigin(BuildContext context) {
-    final box = context.findRenderObject() as RenderBox?;
-    if (box != null) {
-      return box.localToGlobal(Offset.zero) & box.size;
-    }
-    return Rect.fromLTWH(
-      0,
-      0,
-      MediaQuery.of(context).size.width,
-      MediaQuery.of(context).size.height / 2,
+    final size = MediaQuery.of(context).size;
+    return Rect.fromCenter(
+      center: Offset(size.width / 2, size.height / 2),
+      width: 1,
+      height: 1,
     );
   }
 
