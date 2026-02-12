@@ -499,9 +499,12 @@ class _SchoolCensusPageState
             final file = File('${tempDir.path}/censo_escolar_$timestamp.csv');
             await file.writeAsBytes(csvBytes);
 
-            await Share.shareXFiles([
-              XFile(file.path),
-            ], subject: 'Censo Escolar - Orçamento ${widget.budgetId}');
+            // Compartilhar
+            await Share.shareXFiles(
+              [XFile(file.path)],
+              subject: 'Censo Escolar - Orçamento ${widget.budgetId}',
+              sharePositionOrigin: _getSharePositionOrigin(context),
+            );
           } catch (e) {
             if (mounted) {
               CustomInfoDialog.show(
@@ -528,5 +531,18 @@ class _SchoolCensusPageState
         setState(() => _isExporting = false);
       }
     }
+  }
+
+  Rect _getSharePositionOrigin(BuildContext context) {
+    final box = context.findRenderObject() as RenderBox?;
+    if (box != null) {
+      return box.localToGlobal(Offset.zero) & box.size;
+    }
+    return Rect.fromLTWH(
+      0,
+      0,
+      MediaQuery.of(context).size.width,
+      MediaQuery.of(context).size.height / 2,
+    );
   }
 }
