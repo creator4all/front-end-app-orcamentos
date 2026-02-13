@@ -1,6 +1,6 @@
 ﻿import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:equatable/equatable.dart';
-import 'package:intl/intl.dart';
+import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 
 import 'statistics_entity.dart';
 import 'subcategory_entity.dart';
@@ -30,15 +30,16 @@ class CategoryEntity extends Equatable {
     this.estatisticas,
   });
 
-
   List<SubcategoryEntity> get activeSubcategories {
     return subcategorias.where((s) => s.hasActiveProducts).toList();
   }
+
   int get activeSubcategoriesCount => activeSubcategories.length;
 
   int get totalActiveProducts {
     return subcategorias.fold(0, (sum, s) => sum + s.activeProductsCount);
   }
+
   int get selectedProductsCount {
     return subcategorias.fold(0, (sum, s) => sum + s.selectedProductsCount);
   }
@@ -46,6 +47,7 @@ class CategoryEntity extends Equatable {
   double get totalValue {
     return subcategorias.fold(0.0, (sum, s) => sum + s.totalValue);
   }
+
   double get maxPossibleValue {
     return subcategorias.fold(0.0, (sum, s) => sum + s.maxPossibleValue);
   }
@@ -66,14 +68,7 @@ class CategoryEntity extends Equatable {
 
   bool get hasActiveSubcategories => activeSubcategoriesCount > 0;
 
-  String get formattedTotalValue {
-    final formatter = NumberFormat.currency(
-      locale: 'pt_BR',
-      symbol: 'R\$',
-      decimalDigits: 2,
-    );
-    return formatter.format(totalValue);
-  }
+  String get formattedTotalValue => CurrencyUtils.formatBRL(totalValue);
 
   bool get deveExibirExpandida => expandido;
 

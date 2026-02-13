@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:intl/intl.dart';
+import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 
 import '../../domain/entities/report_user.dart';
 
@@ -13,15 +13,6 @@ class ReportUserCard extends StatelessWidget {
     required this.user,
     this.onTap,
   });
-
-  String _formatCurrency(double value) {
-    final formatter = NumberFormat.currency(
-      locale: 'pt_BR',
-      symbol: 'R\$',
-      decimalDigits: 2,
-    );
-    return formatter.format(value);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,20 +48,16 @@ class ReportUserCard extends StatelessWidget {
                 _buildCargoBadge(user.cargo),
               ],
             ),
-
             SizedBox(height: 12.h),
-
             Text(
-              'Total de vendas: ${_formatCurrency(user.totalVendas)}',
+              'Total de vendas: ${CurrencyUtils.formatBRL(user.totalVendas)}',
               style: TextStyle(
                 fontSize: 14.sp,
                 fontWeight: FontWeight.bold,
                 color: const Color(0xFF000000),
               ),
             ),
-
             SizedBox(height: 12.h),
-
             Row(
               children: [
                 _buildStatusBadge('Aprovado', user.aprovados),

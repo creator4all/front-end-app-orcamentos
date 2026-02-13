@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:intl/intl.dart';
+import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 
 import '../../../../../../shared/utils/string_utils.dart';
 import '../../../../../../shared/widgets/custom_checkbox.dart';
@@ -17,15 +17,6 @@ class ProductItemCard extends StatelessWidget {
     this.onToggle,
     this.onInfoTap,
   });
-
-  String _formatCurrency(double value) {
-    final formatter = NumberFormat.currency(
-      locale: 'pt_BR',
-      symbol: 'R\$',
-      decimalDigits: 2,
-    );
-    return formatter.format(value);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -77,7 +68,7 @@ class ProductItemCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      _formatCurrency(product.valor),
+                      CurrencyUtils.formatBRL(product.valor),
                       style: TextStyle(
                         fontSize: 12.sp,
                         fontWeight: FontWeight.w400,
@@ -85,7 +76,7 @@ class ProductItemCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      _formatCurrency(product.totalValue),
+                      CurrencyUtils.formatBRL(product.totalValue),
                       style: TextStyle(
                         fontSize: 12.sp,
                         fontWeight: FontWeight.w400,

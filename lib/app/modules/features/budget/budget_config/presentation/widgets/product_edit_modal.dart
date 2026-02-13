@@ -1,6 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:intl/intl.dart';
+import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 
 import '../../domain/entities/indicador_etapa_entity.dart';
 import '../../domain/entities/product_entity.dart';
@@ -31,11 +31,7 @@ class _ProductEditModalState extends State<ProductEditModal> {
   void initState() {
     super.initState();
     _valorController = TextEditingController(
-      text: NumberFormat.currency(
-        locale: 'pt_BR',
-        symbol: '',
-        decimalDigits: 2,
-      ).format(widget.product.valor),
+      text: CurrencyUtils.formatBRLNoSymbol(widget.product.valor),
     );
     _indicadores = List.from(widget.product.indicadoresEtapa);
     _isLivro = _checkIsLivro(widget.product.tipoProduto);
@@ -137,7 +133,6 @@ class _ProductEditModalState extends State<ProductEditModal> {
                 ],
               ),
             ),
-
             Flexible(
               child: SingleChildScrollView(
                 padding: EdgeInsets.all(16.w),
@@ -194,9 +189,7 @@ class _ProductEditModalState extends State<ProductEditModal> {
                         ],
                       ),
                     ),
-
                     SizedBox(height: 16.h),
-
                     if (_isLivro || _isTecnologia) ...[
                       Text(
                         'Valor Unitário',
@@ -223,7 +216,6 @@ class _ProductEditModalState extends State<ProductEditModal> {
                       ),
                       SizedBox(height: 16.h),
                     ],
-
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -255,7 +247,6 @@ class _ProductEditModalState extends State<ProductEditModal> {
                       ],
                     ),
                     SizedBox(height: 8.h),
-
                     Container(
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.grey[300]!),
@@ -294,7 +285,6 @@ class _ProductEditModalState extends State<ProductEditModal> {
                         }).toList(),
                       ),
                     ),
-
                     if (_isLivro || _isTecnologia) ...[
                       SizedBox(height: 16.h),
                       Container(
@@ -333,7 +323,6 @@ class _ProductEditModalState extends State<ProductEditModal> {
                 ),
               ),
             ),
-
             Container(
               padding: EdgeInsets.all(16.w),
               decoration: const BoxDecoration(

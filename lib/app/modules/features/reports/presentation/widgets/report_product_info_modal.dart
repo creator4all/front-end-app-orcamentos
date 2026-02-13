@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:intl/intl.dart';
+import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 
 import '../../../../../shared/utils/string_utils.dart';
 import '../../../../../shared/widgets/custom_modal.dart';
@@ -38,15 +38,6 @@ class ReportProductInfoModal extends StatelessWidget {
         product: product,
       ),
     );
-  }
-
-  String _formatCurrency(double value) {
-    final formatter = NumberFormat.currency(
-      locale: 'pt_BR',
-      symbol: 'R\$',
-      decimalDigits: 2,
-    );
-    return formatter.format(value);
   }
 
   Widget _buildInfoRow(String label, String value) {
@@ -100,7 +91,8 @@ class ReportProductInfoModal extends StatelessWidget {
           SizedBox(height: 8.h),
           _buildInfoRow('Tipo', product.tipo),
           SizedBox(height: 8.h),
-          _buildInfoRow('Valor total', _formatCurrency(product.totalValue)),
+          _buildInfoRow(
+              'Valor total', CurrencyUtils.formatBRL(product.totalValue)),
         ],
       ),
     );
@@ -123,7 +115,7 @@ class ReportProductInfoModal extends StatelessWidget {
                 ),
               ),
               TextSpan(
-                text: _formatCurrency(product.valor),
+                text: CurrencyUtils.formatBRL(product.valor),
                 style: TextStyle(
                   fontSize: 14.sp,
                   fontWeight: FontWeight.w400,
@@ -144,7 +136,7 @@ class ReportProductInfoModal extends StatelessWidget {
             borderRadius: BorderRadius.circular(8.r),
           ),
           child: Text(
-            _formatCurrency(product.valor),
+            CurrencyUtils.formatBRL(product.valor),
             style: TextStyle(
               fontSize: 14.sp,
               color: const Color(0xFF484848),
@@ -241,9 +233,7 @@ class ReportProductInfoModal extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildProductInfo(),
-
         SizedBox(height: 24.h),
-
         if (_isServico()) ...[
           _buildHorasField(),
           SizedBox(height: 24.h),
@@ -254,13 +244,9 @@ class ReportProductInfoModal extends StatelessWidget {
           ),
           SizedBox(height: 24.h),
         ],
-
         _buildValueField(),
-
         SizedBox(height: 24.h),
-
         _buildCloseButton(context),
-
         SizedBox(height: 16.h),
       ],
     );

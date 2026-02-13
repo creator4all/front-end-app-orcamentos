@@ -99,41 +99,12 @@ class _LoginPageState extends State<LoginPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'E-mail :',
-          style: TextStyle(
-            fontSize: 16.sp,
-            fontWeight: FontWeight.w500,
-            color: Colors.black87,
-          ),
-        ),
+        _buildFieldLabel('E-mail :'),
         SizedBox(height: 8.h),
         TextFormField(
           controller: _emailController,
           keyboardType: TextInputType.emailAddress,
-          decoration: InputDecoration(
-            hintText: 'Digite o email',
-            hintStyle: TextStyle(
-              color: Colors.grey[500],
-              fontSize: 14.sp,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8.r),
-              borderSide: BorderSide(color: Colors.grey[300]!),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8.r),
-              borderSide: BorderSide(color: Colors.grey[300]!),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8.r),
-              borderSide: const BorderSide(color: Color(0xFF1E88E5)),
-            ),
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: 16.w,
-              vertical: 12.h,
-            ),
-          ),
+          decoration: _inputDecoration(hintText: 'Digite o email'),
           validator: EmailValidator.getError,
         ),
       ],
@@ -144,40 +115,13 @@ class _LoginPageState extends State<LoginPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Senha :',
-          style: TextStyle(
-            fontSize: 16.sp,
-            fontWeight: FontWeight.w500,
-            color: Colors.black87,
-          ),
-        ),
+        _buildFieldLabel('Senha :'),
         SizedBox(height: 8.h),
         TextFormField(
           controller: _passwordController,
           obscureText: _obscurePassword,
-          decoration: InputDecoration(
+          decoration: _inputDecoration(
             hintText: 'Digite a senha',
-            hintStyle: TextStyle(
-              color: Colors.grey[500],
-              fontSize: 14.sp,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8.r),
-              borderSide: BorderSide(color: Colors.grey[300]!),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8.r),
-              borderSide: BorderSide(color: Colors.grey[300]!),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8.r),
-              borderSide: const BorderSide(color: Color(0xFF1E88E5)),
-            ),
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: 16.w,
-              vertical: 12.h,
-            ),
             suffixIcon: IconButton(
               icon: Icon(
                 _obscurePassword ? Icons.visibility_off : Icons.visibility,
@@ -216,14 +160,7 @@ class _LoginPageState extends State<LoginPage> {
           minimumSize: Size.zero,
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
-        child: Text(
-          'Esqueci minha senha',
-          style: TextStyle(
-            color: const Color(0xFF1E88E5),
-            fontSize: 14.sp,
-            decoration: TextDecoration.underline,
-          ),
-        ),
+        child: Text('Esqueci minha senha', style: _linkTextStyle),
       ),
     );
   }
@@ -318,14 +255,7 @@ class _LoginPageState extends State<LoginPage> {
             minimumSize: Size.zero,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
-          child: Text(
-            'Privacidade',
-            style: TextStyle(
-              color: const Color(0xFF1E88E5),
-              fontSize: 14.sp,
-              decoration: TextDecoration.underline,
-            ),
-          ),
+          child: Text('Privacidade', style: _linkTextStyle),
         ),
         SizedBox(width: 32.w),
         TextButton(
@@ -337,16 +267,53 @@ class _LoginPageState extends State<LoginPage> {
             minimumSize: Size.zero,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
-          child: Text(
-            'Wiki',
-            style: TextStyle(
-              color: const Color(0xFF1E88E5),
-              fontSize: 14.sp,
-              decoration: TextDecoration.underline,
-            ),
-          ),
+          child: Text('Wiki', style: _linkTextStyle),
         ),
       ],
+    );
+  }
+
+  TextStyle get _linkTextStyle => TextStyle(
+        color: const Color(0xFF1E88E5),
+        fontSize: 14.sp,
+        decoration: TextDecoration.underline,
+      );
+
+  Widget _buildFieldLabel(String label) {
+    return Text(
+      label,
+      style: TextStyle(
+        fontSize: 16.sp,
+        fontWeight: FontWeight.w500,
+        color: Colors.black87,
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration({
+    required String hintText,
+    Widget? suffixIcon,
+  }) {
+    return InputDecoration(
+      hintText: hintText,
+      hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14.sp),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8.r),
+        borderSide: BorderSide(color: Colors.grey[300]!),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8.r),
+        borderSide: BorderSide(color: Colors.grey[300]!),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8.r),
+        borderSide: const BorderSide(color: Color(0xFF1E88E5)),
+      ),
+      contentPadding: EdgeInsets.symmetric(
+        horizontal: 16.w,
+        vertical: 12.h,
+      ),
+      suffixIcon: suffixIcon,
     );
   }
 

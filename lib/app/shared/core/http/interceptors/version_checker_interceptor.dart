@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../widgets/custom_info_dialog.dart';
+import '../../constants/http_constants.dart';
 import '../http_response.dart';
 import 'http_interceptor.dart';
 
@@ -35,10 +36,9 @@ class VersionCheckerInterceptor extends HttpInterceptor {
   bool _dialogIsVisible = false;
 
   static const _playStoreUrl =
-      'https://play.google.com/store/apps/details?id=br.com.multimidiaeducacional.parceiro';
+      'market://details?id=br.com.multimidiaeducacional.parceiro';
 
-  /// URL da App Store - aguardando finalização do review da Apple
-  static const _appStoreUrl = '';
+  static const _appStoreUrl = 'https://apps.apple.com/br/app/id6756675057';
 
   VersionCheckerInterceptor({
     required this.currentVersion,
@@ -49,7 +49,7 @@ class VersionCheckerInterceptor extends HttpInterceptor {
   @override
   void onRequest(HttpRequestInfo request) {
     request.headers['App-Version'] = currentVersion;
-    request.headers['User-Agent'] = 'App-Orcamentos-$currentVersion';
+    request.headers['User-Agent'] = HttpHeaders.userAgentValue;
   }
 
   @override

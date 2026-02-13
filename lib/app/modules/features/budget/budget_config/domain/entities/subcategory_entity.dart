@@ -1,6 +1,6 @@
 ﻿import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:equatable/equatable.dart';
-import 'package:intl/intl.dart';
+import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 
 import 'product_entity.dart';
 import 'statistics_entity.dart';
@@ -81,14 +81,7 @@ class SubcategoryEntity extends Equatable {
 
   bool get hasActiveProducts => activeProductsCount > 0;
 
-  String get formattedTotalValue {
-    final formatter = NumberFormat.currency(
-      locale: 'pt_BR',
-      symbol: 'R\$',
-      decimalDigits: 2,
-    );
-    return formatter.format(totalValue);
-  }
+  String get formattedTotalValue => CurrencyUtils.formatBRL(totalValue);
 
   @override
   List<Object?> get props => [id, nome, ordem, produtos, estatisticas];

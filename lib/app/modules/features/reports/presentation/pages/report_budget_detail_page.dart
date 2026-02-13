@@ -3,6 +3,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 
 import '../../../../../shared/widgets/budget_summary_card.dart';
 import '../../../../../shared/widgets/custom_top_bar.dart';
@@ -162,16 +163,12 @@ class _ReportBudgetDetailPageState extends State<ReportBudgetDetailPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildCompanyUserHeader(),
-
                   _buildStatusHeader(),
-
                   BudgetSummaryCard(
                     budgetValue: budget.calculatedTotal,
                     selectedProductsCount: _store.selectedItemsCount,
                   ),
-
                   SizedBox(height: 12.h),
-
                   if (_store.hasCensus)
                     Padding(
                       padding: EdgeInsets.only(bottom: 12.h),
@@ -182,9 +179,7 @@ class _ReportBudgetDetailPageState extends State<ReportBudgetDetailPage> {
                         onTap: _openCensusPage,
                       ),
                     ),
-
                   SizedBox(height: 12.h),
-
                   if (budget.hasCategories) ...[
                     ...budget.categories.map((category) {
                       if (category.expandido) {
@@ -202,7 +197,6 @@ class _ReportBudgetDetailPageState extends State<ReportBudgetDetailPage> {
                       }
                     }).expand((widgets) => widgets),
                   ],
-
                   if (!budget.hasCategories)
                     Padding(
                       padding: EdgeInsets.symmetric(vertical: 24.h),
@@ -214,9 +208,7 @@ class _ReportBudgetDetailPageState extends State<ReportBudgetDetailPage> {
                         ),
                       ),
                     ),
-
                   SizedBox(height: 24.h),
-
                   Row(
                     children: [
                       Expanded(
@@ -234,11 +226,8 @@ class _ReportBudgetDetailPageState extends State<ReportBudgetDetailPage> {
                       ),
                     ],
                   ),
-
                   SizedBox(height: 12.h),
-
                   _buildReadonlyStatusControls(),
-
                   SizedBox(height: 24.h),
                 ],
               ),
@@ -248,7 +237,6 @@ class _ReportBudgetDetailPageState extends State<ReportBudgetDetailPage> {
       ),
     );
   }
-
 
   Widget _buildCompanyUserHeader() {
     return Padding(
@@ -387,11 +375,7 @@ class _ReportBudgetDetailPageState extends State<ReportBudgetDetailPage> {
               ),
               SizedBox(height: 4.h),
               Text(
-                NumberFormat.currency(
-                  locale: 'pt_BR',
-                  symbol: 'R\$',
-                  decimalDigits: 2,
-                ).format(category.totalValue),
+                CurrencyUtils.formatBRL(category.totalValue),
                 style: TextStyle(
                   fontSize: 15.sp,
                   fontWeight: FontWeight.w400,
@@ -448,7 +432,6 @@ class _ReportBudgetDetailPageState extends State<ReportBudgetDetailPage> {
       onActionTap: () => _showSubcategoriesModal(category),
     );
   }
-
 
   void _showSubcategoriesModal(CategoryEntity category) {
     showModalBottomSheet(

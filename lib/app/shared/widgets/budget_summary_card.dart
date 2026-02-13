@@ -1,6 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:intl/intl.dart';
+import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 
 class BudgetSummaryCard extends StatelessWidget {
   final double budgetValue;
@@ -11,15 +11,6 @@ class BudgetSummaryCard extends StatelessWidget {
     required this.budgetValue,
     required this.selectedProductsCount,
   });
-
-  String _formatCurrency(double value) {
-    final formatter = NumberFormat.currency(
-      locale: 'pt_BR',
-      symbol: 'R\$',
-      decimalDigits: 2,
-    );
-    return formatter.format(value);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +30,7 @@ class BudgetSummaryCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                _formatCurrency(budgetValue),
+                CurrencyUtils.formatBRL(budgetValue),
                 style: TextStyle(
                   fontSize: 18.sp,
                   fontWeight: FontWeight.bold,
@@ -56,7 +47,6 @@ class BudgetSummaryCard extends StatelessWidget {
               ),
             ],
           ),
-
           Container(
             width: 48.w,
             height: 37.h,

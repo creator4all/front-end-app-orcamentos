@@ -4,6 +4,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:multimidiaapp/app/modules/features/budget/budget_list/presentation/stores/budget_list_store.dart';
+import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_info_dialog.dart';
 
 import '../../../../../../shared/widgets/budget_summary_card.dart';
@@ -42,15 +43,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
       TextEditingController();
   final TextEditingController _validadeOrcamentoController =
       TextEditingController();
-
-  String _formatCurrency(double value) {
-    final formatter = NumberFormat.currency(
-      locale: 'pt_BR',
-      symbol: 'R\$',
-      decimalDigits: 2,
-    );
-    return formatter.format(value);
-  }
 
   void _syncValidityFieldWithStore() {
     if (store.validityDate != null) {
@@ -231,14 +223,11 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
               child: Column(
                 children: [
                   _buildStatusHeader(),
-
                   BudgetSummaryCard(
                     budgetValue: store.totalValue,
                     selectedProductsCount: store.selectedItemsCount,
                   ),
-
                   SizedBox(height: 12.h),
-
                   if (store.budgetData?.cityIds.isNotEmpty ?? false)
                     Padding(
                       padding: EdgeInsets.only(bottom: 12.h),
@@ -268,9 +257,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                         },
                       ),
                     ),
-
                   SizedBox(height: 12.h),
-
                   if (store.hasCategories) ...[
                     ...store.categories.map((category) {
                       if (category.expandido) {
@@ -288,7 +275,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                       }
                     }).expand((widgets) => widgets),
                   ],
-
                   if (!store.hasCategories)
                     Padding(
                       padding: EdgeInsets.symmetric(vertical: 24.h),
@@ -300,7 +286,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                         ),
                       ),
                     ),
-
                   SizedBox(height: 24.h),
                   Row(
                     children: [
@@ -409,9 +394,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                       ),
                     ],
                   ),
-
                   _buildStatusControls(),
-
                   SizedBox(
                     width: double.infinity,
                     height: 50.h,
@@ -435,7 +418,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                             ),
                     ),
                   ),
-
                   SizedBox(height: 24.h),
                 ],
               ),
@@ -445,7 +427,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
       ),
     );
   }
-
 
   Widget _buildExpandedCategoryHeader(CategoryEntity category) {
     return Padding(
@@ -466,11 +447,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
               ),
               SizedBox(height: 4.h),
               Text(
-                NumberFormat.currency(
-                  locale: 'pt_BR',
-                  symbol: 'R\$',
-                  decimalDigits: 2,
-                ).format(category.totalValue),
+                CurrencyUtils.formatBRL(category.totalValue),
                 style: TextStyle(
                   fontSize: 15.sp,
                   fontWeight: FontWeight.w400,
@@ -483,6 +460,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
       ),
     );
   }
+
   List<Widget> _buildExpandedSubcategories(CategoryEntity category) {
     final sortedSubcategories = category.subcategorias.toList()
       ..sort((a, b) => a.ordem.compareTo(b.ordem));
@@ -584,7 +562,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     return result;
   }
 
-
   void _showSubcategoriesModal(CategoryEntity category) {
     if (store.isLoadingProducts) {
       CustomInfoDialog.show(
@@ -651,7 +628,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     );
   }
 
-
   IconData _getCategoryIcon(String categoryName) {
     switch (categoryName.toLowerCase()) {
       case 'livros':
@@ -662,7 +638,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
         return Icons.category;
     }
   }
-
 
   Widget _buildCategoryFromEntity(CategoryEntity category) {
     return Observer(

@@ -3,6 +3,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_info_dialog.dart';
 
 import '../../../../../../shared/widgets/budget_summary_card.dart';
@@ -248,9 +249,7 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                     budgetValue: store.totalValue,
                     selectedProductsCount: store.selectedItemsCount,
                   ),
-
                   SizedBox(height: 12.h),
-
                   if ((store.budgetDetail?.cityIds.isNotEmpty ?? false) ||
                       (store.budgetDetail?.citiesData.isNotEmpty ?? false))
                     Padding(
@@ -278,13 +277,10 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                               },
                             },
                           );
-
                         },
                       ),
                     ),
-
                   SizedBox(height: 12.h),
-
                   if (store.hasCategories) ...[
                     ...store.categories.map((category) {
                       if (category.expandido) {
@@ -302,7 +298,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                       }
                     }).expand((widgets) => widgets),
                   ],
-
                   if (!store.hasCategories)
                     Padding(
                       padding: EdgeInsets.symmetric(vertical: 24.h),
@@ -314,7 +309,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                         ),
                       ),
                     ),
-
                   SizedBox(height: 24.h),
                   Row(
                     children: [
@@ -423,9 +417,7 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                       ),
                     ],
                   ),
-
                   SizedBox(height: 24.h),
-
                   if (store.error != null)
                     Container(
                       padding: EdgeInsets.all(12.w),
@@ -448,7 +440,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                         ],
                       ),
                     ),
-
                   SizedBox(
                     width: double.infinity,
                     height: 50.h,
@@ -472,7 +463,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                             ),
                     ),
                   ),
-
                   SizedBox(height: 24.h),
                 ],
               ),
@@ -482,7 +472,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
       ),
     );
   }
-
 
   Widget _buildExpandedCategoryHeader(CategoryEntity category) {
     return Padding(
@@ -503,11 +492,7 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
               ),
               SizedBox(height: 4.h),
               Text(
-                NumberFormat.currency(
-                  locale: 'pt_BR',
-                  symbol: 'R\$',
-                  decimalDigits: 2,
-                ).format(category.totalValue),
+                CurrencyUtils.formatBRL(category.totalValue),
                 style: TextStyle(
                   fontSize: 15.sp,
                   fontWeight: FontWeight.w400,
@@ -584,7 +569,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     return store.budgetDetail!.citiesData;
   }
 
-
   void _showSubcategoriesModal(CategoryEntity category) {
     if (store.isLoadingProducts) {
       CustomInfoDialog.show(
@@ -657,7 +641,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     );
   }
 
-
   IconData _getCategoryIcon(String categoryName) {
     switch (categoryName.toLowerCase()) {
       case 'livros':
@@ -668,7 +651,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
         return Icons.category;
     }
   }
-
 
   Widget _buildCategoryFromEntity(CategoryEntity category) {
     return Observer(

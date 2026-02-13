@@ -1,7 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:intl/intl.dart';
 import 'package:multimidiaapp/app/modules/features/reports/presentation/widgets/readonly_checkbox.dart';
+import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 
 import '../../../../../shared/utils/string_utils.dart';
 import '../../../budget/budget_config/domain/entities/product_entity.dart';
@@ -16,15 +16,6 @@ class ReportProductItemCard extends StatelessWidget {
     required this.product,
     this.onInfoTap,
   });
-
-  String _formatCurrency(double value) {
-    final formatter = NumberFormat.currency(
-      locale: 'pt_BR',
-      symbol: 'R\$',
-      decimalDigits: 2,
-    );
-    return formatter.format(value);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,9 +39,7 @@ class ReportProductItemCard extends StatelessWidget {
           ReadonlyCheckbox(
             value: isSelected,
           ),
-
           SizedBox(width: 12.w),
-
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,9 +53,7 @@ class ReportProductItemCard extends StatelessWidget {
                     color: const Color(0xFF484848),
                   ),
                 ),
-
                 SizedBox(height: 4.h),
-
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -79,7 +66,7 @@ class ReportProductItemCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      _formatCurrency(product.valor),
+                      CurrencyUtils.formatBRL(product.valor),
                       style: TextStyle(
                         fontSize: 12.sp,
                         fontWeight: FontWeight.w400,
@@ -87,7 +74,7 @@ class ReportProductItemCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      _formatCurrency(product.totalValue),
+                      CurrencyUtils.formatBRL(product.totalValue),
                       style: TextStyle(
                         fontSize: 12.sp,
                         fontWeight: FontWeight.w400,
@@ -99,9 +86,7 @@ class ReportProductItemCard extends StatelessWidget {
               ],
             ),
           ),
-
           SizedBox(width: 12.w),
-
           GestureDetector(
             onTap: onInfoTap,
             child: Icon(

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:intl/intl.dart';
+import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 
 import '../../domain/entities/product_config_entity.dart';
 
@@ -15,15 +15,6 @@ class ProductConfigCardWidget extends StatelessWidget {
     this.onInfoTap,
     this.onStatusChanged,
   });
-
-  String _formatCurrency(double value) {
-    final formatter = NumberFormat.currency(
-      locale: 'pt_BR',
-      symbol: 'R\$',
-      decimalDigits: 2,
-    );
-    return formatter.format(value);
-  }
 
   String _capitalize(String text) {
     if (text.isEmpty) return text;
@@ -71,7 +62,7 @@ class ProductConfigCardWidget extends StatelessWidget {
                 ),
                 SizedBox(height: 6.h),
                 Text(
-                  _formatCurrency(product.valor),
+                  CurrencyUtils.formatBRL(product.valor),
                   style: TextStyle(
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w600,

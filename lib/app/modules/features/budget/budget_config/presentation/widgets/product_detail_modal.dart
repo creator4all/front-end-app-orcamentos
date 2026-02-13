@@ -1,6 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:intl/intl.dart';
+import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 
 import '../../domain/entities/product_entity.dart';
 import 'indicadores_etapa_section.dart';
@@ -53,7 +53,6 @@ class _ProductDetailModalState extends State<ProductDetailModal> {
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildHeader(context),
-
             Expanded(
               child: SingleChildScrollView(
                 padding: EdgeInsets.all(16.w),
@@ -68,26 +67,18 @@ class _ProductDetailModalState extends State<ProductDetailModal> {
                         'Tipo de Produto', widget.product.tipoProduto),
                     _buildSection(
                         'Valor Unitário', widget.product.formattedValue),
-
                     SizedBox(height: 16.h),
-
                     _buildQuantitySection(),
-
                     SizedBox(height: 16.h),
-
                     _buildTotalSection(),
-
                     SizedBox(height: 16.h),
-
                     _buildObservationsSection(),
-
                     if (widget.product.indicadoresEtapa.isNotEmpty) ...[
                       SizedBox(height: 16.h),
                       IndicadoresEtapaSection(
                         indicadores: widget.product.indicadoresEtapa,
                       ),
                     ],
-
                     if (widget.product.hasAnyOverride) ...[
                       SizedBox(height: 16.h),
                       _buildOverrideInfo(),
@@ -96,7 +87,6 @@ class _ProductDetailModalState extends State<ProductDetailModal> {
                 ),
               ),
             ),
-
             if (widget.onSave != null) _buildFooter(context),
           ],
         ),
@@ -233,11 +223,6 @@ class _ProductDetailModalState extends State<ProductDetailModal> {
 
   Widget _buildTotalSection() {
     final total = widget.product.valor * _quantity;
-    final formatter = NumberFormat.currency(
-      locale: 'pt_BR',
-      symbol: 'R\$',
-      decimalDigits: 2,
-    );
 
     return Container(
       padding: EdgeInsets.all(12.w),
@@ -257,7 +242,7 @@ class _ProductDetailModalState extends State<ProductDetailModal> {
             ),
           ),
           Text(
-            formatter.format(total),
+            CurrencyUtils.formatBRL(total),
             style: TextStyle(
               fontSize: 18.sp,
               fontWeight: FontWeight.bold,
