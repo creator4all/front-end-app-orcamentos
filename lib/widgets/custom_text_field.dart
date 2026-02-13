@@ -3,7 +3,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../theme/app_theme.dart';
 
-/// Widget reutilizável para campos de texto com label, validação e responsividade
 class CustomTextField extends StatelessWidget {
   final TextEditingController controller;
   final String label;

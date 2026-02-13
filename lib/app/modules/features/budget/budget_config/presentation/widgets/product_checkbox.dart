@@ -1,10 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../../../shared/utils/string_utils.dart';
 import '../../domain/entities/product_entity.dart';
 
-/// Widget de checkbox para produto com recálculo dinâmico
 class ProductCheckbox extends StatelessWidget {
   final ProductEntity product;
   final bool isSelected;
@@ -38,14 +37,12 @@ class ProductCheckbox extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Checkbox
             Checkbox(
               value: isSelected,
               onChanged: onChanged,
               activeColor: const Color(0xFF117BBD),
             ),
 
-            // Informações do produto
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -113,7 +110,6 @@ class ProductCheckbox extends StatelessWidget {
               ),
             ),
 
-            // Botão de edição
             if (showDetails)
               IconButton(
                 onPressed: onTap,

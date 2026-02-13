@@ -8,18 +8,17 @@ import 'orcamento_produto_entity.dart';
 
 part 'budget_draft_entity.g.dart';
 
-/// Entidade que representa um Orçamento em Rascunho
 @CopyWith()
 class BudgetDraftEntity extends Equatable {
   final int id;
   final int?
-      partnerId; // ✅ Nullable - só existe quando admin escolhe parceiro destino
+      partnerId;
   final String partnerName;
   final LocationEntity location;
   final String? responsibleName;
   final String? responsibleEmail;
   final DateTime? validityDate;
-  final String status; // 'rascunho'
+  final String status;
   final DateTime createdAt;
   final int createdByUserId;
   final int validityDays;
@@ -32,7 +31,7 @@ class BudgetDraftEntity extends Equatable {
 
   const BudgetDraftEntity({
     required this.id,
-    this.partnerId, // ✅ Nullable
+    this.partnerId,
     required this.partnerName,
     required this.location,
     this.responsibleName,
@@ -50,34 +49,24 @@ class BudgetDraftEntity extends Equatable {
     this.categories = const [],
   });
 
-  /// Verifica se o orçamento está em estado de rascunho
   bool get isDraft => status.toLowerCase() == 'rascunho';
 
-  /// Verifica se tem responsável definido
   bool get hasResponsible =>
       responsibleName != null && responsibleName!.isNotEmpty;
 
-  /// Verifica se tem email do responsável
   bool get hasResponsibleEmail =>
       responsibleEmail != null && responsibleEmail!.isNotEmpty;
 
-  /// Verifica se tem data de validade
   bool get hasValidityDate => validityDate != null;
-
-  /// Verifica se a validade está no futuro
   bool get isValidityInFuture =>
       validityDate != null && validityDate!.isAfter(DateTime.now());
 
-  /// Verifica se tem parceiro destino definido
   bool get hasPartnerDestino => partnerId != null && partnerId! > 0;
 
-  /// Retorna o nome formatado do responsável
   String get responsibleDisplay => responsibleName ?? 'Não informado';
 
-  /// Retorna o email formatado do responsável
   String get emailDisplay => responsibleEmail ?? 'Não informado';
 
-  /// Verifica se o orçamento pode ser configurado
   bool canBeConfigure() => isDraft;
 
   @override

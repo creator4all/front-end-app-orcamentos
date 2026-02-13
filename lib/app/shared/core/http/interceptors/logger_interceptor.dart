@@ -1,6 +1,4 @@
-import 'package:flutter/foundation.dart';
-
-import '../http_response.dart';
+﻿import '../http_response.dart';
 import 'http_interceptor.dart';
 
 /// Interceptor para logging de requisições e respostas
@@ -27,75 +25,10 @@ class LoggerInterceptor extends HttpInterceptor {
   });
 
   @override
-  void onRequest(HttpRequestInfo request) {
-    if (kDebugMode) {
-      debugPrint('┌───────────────────────────────────────────────────────');
-      debugPrint('│ 📤 REQUEST');
-      debugPrint('├───────────────────────────────────────────────────────');
-      debugPrint('│ Method: ${request.method}');
-      debugPrint('│ URL: ${request.url}');
-
-      if (logHeaders && request.headers.isNotEmpty) {
-        debugPrint('├─ Headers:');
-        request.headers.forEach((key, value) {
-          // DEBUG: Expondo token temporariamente para diagnóstico
-          final displayValue = value.toString();
-          debugPrint('│   $key: $displayValue');
-        });
-      }
-
-      if (logBody && request.data != null) {
-        debugPrint('├─ Body:');
-        debugPrint('│   ${request.data}');
-      }
-
-      if (request.timeout != null) {
-        debugPrint('├─ Timeout: ${request.timeout?.inSeconds}s');
-      }
-
-      debugPrint('└───────────────────────────────────────────────────────');
-    }
-  }
+  void onRequest(HttpRequestInfo request) {}
 
   @override
-  void onResponse(HttpResponseBase response) {
-    if (kDebugMode) {
-      debugPrint('┌───────────────────────────────────────────────────────');
-      debugPrint('│ 📥 RESPONSE');
-      debugPrint('├───────────────────────────────────────────────────────');
-      debugPrint('│ Status Code: ${response.statusCode}');
-      debugPrint('│ Status Message: ${response.statusMessage ?? 'N/A'}');
-
-      if (response.requestInfo != null) {
-        debugPrint('│ URL: ${response.requestInfo!.url}');
-      }
-
-      if (logHeaders && response.headers.isNotEmpty) {
-        debugPrint('├─ Headers:');
-        response.headers.forEach((key, value) {
-          debugPrint('│   $key: ${value.join(', ')}');
-        });
-      }
-
-      if (logBody && response is HttpResponse) {
-        debugPrint('├─ Body:');
-        final bodyStr = response.body.toString();
-        if (bodyStr.length > 500) {
-          debugPrint('│   ${bodyStr.substring(0, 500)}... (truncated)');
-        } else {
-          debugPrint('│   $bodyStr');
-        }
-      }
-
-      if (response is DownloadHttpResponse) {
-        debugPrint('├─ Download:');
-        debugPrint('│   Size: ${response.sizeInMB.toStringAsFixed(2)} MB');
-        debugPrint('│   Path: ${response.filePath ?? 'N/A'}');
-      }
-
-      debugPrint('└───────────────────────────────────────────────────────');
-    }
-  }
+  void onResponse(HttpResponseBase response) {}
 
   @override
   Future<bool> onError(
@@ -104,31 +37,6 @@ class LoggerInterceptor extends HttpInterceptor {
     String responseMessage,
     String responsePayload,
   ) async {
-    if (kDebugMode && logErrors) {
-      debugPrint('┌───────────────────────────────────────────────────────');
-      debugPrint('│ ❌ ERROR');
-      debugPrint('├───────────────────────────────────────────────────────');
-      debugPrint('│ Method: ${request.method}');
-      debugPrint('│ URL: ${request.url}');
-      debugPrint('├─ Error:');
-      debugPrint('│   ${error.toString()}');
-
-      if (responseMessage.isNotEmpty) {
-        debugPrint('├─ Response Message:');
-        debugPrint('│   $responseMessage');
-      }
-
-      if (responsePayload.isNotEmpty) {
-        debugPrint('├─ Response Payload:');
-        final payload = responsePayload.length > 500
-            ? '${responsePayload.substring(0, 500)}... (truncated)'
-            : responsePayload;
-        debugPrint('│   $payload');
-      }
-
-      debugPrint('└───────────────────────────────────────────────────────');
-    }
-
-    return false; // Não retry
+    return false;
   }
 }

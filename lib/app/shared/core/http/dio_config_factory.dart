@@ -1,24 +1,10 @@
-import '../constants/http_constants.dart';
+﻿import '../constants/http_constants.dart';
 import 'http_client_config.dart';
 import 'interceptors/auth_interceptor.dart';
 import 'interceptors/http_interceptor.dart';
 import 'interceptors/version_checker_interceptor.dart';
 
-/// Factory para criar configurações do HttpClient
-///
-/// Facilita a criação de configurações para diferentes ambientes
-/// e cenários de uso.
 class DioConfigFactory {
-  /// Cria configuração padrão
-  ///
-  /// Exemplo:
-  /// ```dart
-  /// final config = DioConfigFactory.createDefault(
-  ///   baseUrl: 'https://api.exemplo.com',
-  ///   getToken: () => authService.token,
-  ///   enableLogger: true,
-  /// );
-  /// ```
   static HttpClientConfig createDefault({
     required String baseUrl,
     String Function()? getToken,
@@ -28,14 +14,12 @@ class DioConfigFactory {
     Map<String, String>? defaultHeaders,
   }) {
     final interceptors = <HttpInterceptor>[
-      // Auth interceptor sempre primeiro
       if (getToken != null)
         AuthInterceptor(
           getToken: getToken,
           excludedPaths: ['/login', '/register', '/refresh-token'],
         ),
 
-      // Adiciona interceptors customizados
       ...?additionalInterceptors,
     ];
 
@@ -54,11 +38,6 @@ class DioConfigFactory {
     );
   }
 
-  /// Cria configuração para desenvolvimento
-  ///
-  /// - Logger habilitado
-  /// - Timeouts maiores
-  /// - SSL validation desabilitada (opcional)
   static HttpClientConfig createForDevelopment({
     required String baseUrl,
     String Function()? getToken,
@@ -77,12 +56,6 @@ class DioConfigFactory {
     ).copyWith(validateSsl: validateSsl);
   }
 
-  /// Cria configuração para produção
-  ///
-  /// - Logger desabilitado
-  /// - Timeouts padrão
-  /// - SSL validation obrigatória
-  /// - Inclui version checker
   static HttpClientConfig createForProduction({
     required String baseUrl,
     required String appVersion,
@@ -91,7 +64,6 @@ class DioConfigFactory {
     List<HttpInterceptor>? additionalInterceptors,
   }) {
     final interceptors = <HttpInterceptor>[
-      // Version checker para forçar atualizações
       VersionCheckerInterceptor(
         currentVersion: appVersion,
         onUpdateRequired: onUpdateRequired,
@@ -112,11 +84,6 @@ class DioConfigFactory {
     );
   }
 
-  /// Cria configuração para testes
-  ///
-  /// - Logger desabilitado
-  /// - Timeouts curtos
-  /// - Sem interceptors de retry
   static HttpClientConfig createForTesting({
     required String baseUrl,
     String Function()? getToken,
@@ -134,7 +101,6 @@ class DioConfigFactory {
     );
   }
 
-  /// Cria configuração customizada completa
   static HttpClientConfig createCustom({
     required String baseUrl,
     Duration? timeout,

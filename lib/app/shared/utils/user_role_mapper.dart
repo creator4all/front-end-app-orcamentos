@@ -1,8 +1,5 @@
 import '../widgets/budget_card_widget.dart';
 
-/// Converte a string da role do usuário para o enum UserRole
-/// Suporta roles em português (administrador, gestor, vendedor)
-/// e em inglês (admin, manager, seller)
 UserRole mapStringToUserRole(String? roleName) {
   if (roleName == null) return UserRole.seller;
 
@@ -23,7 +20,7 @@ UserRole mapStringToUserRole(String? roleName) {
 /// Retorna o ID numérico da role baseado no nome
 /// Administrador: 1, Gestor: 2, Vendedor: 3
 int getRoleIdFromName(String? roleName) {
-  if (roleName == null) return 3; // Default: Vendedor
+  if (roleName == null) return 3;
 
   switch (roleName.toLowerCase()) {
     case 'administrador':

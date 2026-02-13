@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:multimidiaapp/app/modules/features/reports/presentation/widgets/readonly_checkbox.dart';
 
@@ -7,8 +7,6 @@ import '../../../../../shared/widgets/custom_modal.dart';
 import '../../../budget/budget_config/domain/entities/category_entity.dart';
 import '../../../budget/budget_config/domain/entities/subcategory_entity.dart';
 
-/// Modal para exibir subcategorias em modo readonly (relatórios).
-/// Cópia do SubcategoriesModal sem checkboxes.
 class ReportSubcategoriesModal extends StatelessWidget {
   final CategoryEntity category;
   final Function(SubcategoryEntity) onSubcategoryTap;
@@ -57,14 +55,12 @@ class ReportSubcategoriesModal extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Checkbox readonly cinza
             ReadonlyCheckbox(
               value: hasSelectedProducts,
             ),
 
             SizedBox(width: 12.w),
 
-            // Informações da subcategoria
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -91,7 +87,6 @@ class ReportSubcategoriesModal extends StatelessWidget {
               ),
             ),
 
-            // Contador e seta
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [

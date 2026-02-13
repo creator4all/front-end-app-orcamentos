@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 
 import 'package:mobx/mobx.dart';
 import 'package:multimidiaapp/app/modules/features/partner/data/services/partner_service.dart';

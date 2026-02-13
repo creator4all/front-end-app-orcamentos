@@ -1,18 +1,13 @@
-import 'package:dio/dio.dart';
+﻿import 'package:dio/dio.dart';
 
 import '../http_response.dart';
 import 'http_interceptor.dart';
 
-/// Adapter que converte interceptadores customizados em interceptadores do Dio
-///
-/// Permite usar a interface [HttpInterceptor] independente do Dio,
-/// facilitando testes e desacoplamento da implementação.
 class DioInterceptorAdapter extends Interceptor {
   final HttpInterceptor _interceptor;
 
   DioInterceptorAdapter(this._interceptor);
 
-  /// Converte RequestOptions do Dio em HttpRequestInfo
   HttpRequestInfo _convertToRequestInfo(
     RequestOptions options, [
     int? statusCode,
@@ -94,7 +89,6 @@ class DioInterceptorAdapter extends Interceptor {
       );
 
       if (shouldRetry) {
-        // Retry a requisição
         try {
           final response = await Dio().fetch(err.requestOptions);
           handler.resolve(response);

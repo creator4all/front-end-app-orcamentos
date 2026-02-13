@@ -1,4 +1,4 @@
-import 'dart:developer' as developer;
+﻿import 'dart:developer' as developer;
 
 import '../app/shared/core/http/app_http_client.dart';
 import '../app/shared/core/http/http_request_config.dart';
@@ -6,9 +6,6 @@ import '../app/shared/core/utils/token_cache.dart';
 import '../config/api_config.dart';
 import '../entities/censo_entity.dart';
 
-/// Serviço de censo escolar usando AppHttpClient
-///
-/// Centraliza operações de consulta e atualização de dados censitários.
 class CensoService {
   final AppHttpClient _client;
 
@@ -24,13 +21,10 @@ class CensoService {
     if (response.isSuccess) {
       final data = response.body;
 
-      // Response.body já é um Map<String, dynamic>
-      // Verificar se contém os campos esperados de CensoData
       if (data.containsKey('grupos') || data.containsKey('groups')) {
         return CensoData.fromJson(data);
       }
 
-      // Se contém 'dados', extrair de dentro
       if (data.containsKey('dados')) {
         final dados = data['dados'];
         if (dados is Map<String, dynamic>) {
@@ -73,23 +67,15 @@ class CensoService {
         response.body['error'] ?? 'Falha ao carregar censo por cidade');
   }
 
-  /// Busca censo agregado de múltiplas cidades
   Future<Map<String, dynamic>> buscarCensoAgregado(List<int> cidadeIds) async {
-    developer
-        .log('📊 Buscando censo agregado para ${cidadeIds.length} cidades...');
-
     final queryParams = cidadeIds.map((id) => 'cidades[]=$id').join('&');
     final endpoint = '${ApiConfig.baseUrl}/api/censo/agregado?$queryParams';
-
-    developer.log('🌐 Endpoint: $endpoint');
 
     final token = TokenCache.instance.getTokenOrEmpty();
     final response = await _client.get(
       endpoint,
       config: HttpRequestConfig(token: token),
     );
-
-    developer.log('📡 Resposta censo agregado: ${response.body}');
 
     if (response.isSuccess) {
       final data = response.body;
@@ -101,7 +87,6 @@ class CensoService {
         dados = data;
       }
 
-      developer.log('🔍 Dados extraídos: $dados');
       return dados;
     }
 
@@ -109,12 +94,10 @@ class CensoService {
         response.body['error'] ?? 'Falha ao carregar censo agregado');
   }
 
-  /// Atualiza os valores dos índices de etapa para uma cidade específica
   Future<bool> atualizarIndicesCidade(
       int cidadeId, Map<int, double> indicesEtapa) async {
     final token = TokenCache.instance.getTokenOrEmpty();
     try {
-      developer.log('Atualizando índices da cidade $cidadeId: $indicesEtapa');
 
       final List<Map<String, dynamic>> indicesArray = [];
       indicesEtapa.forEach((id, value) {
@@ -125,8 +108,6 @@ class CensoService {
         'indices_etapa': indicesArray,
       };
 
-      developer.log('Payload final: $payload');
-
       final response = await _client.put(
         ApiConfig.censoPorCidadeEndpoint(cidadeId),
         data: payload,
@@ -134,15 +115,12 @@ class CensoService {
       );
 
       if (response.isSuccess) {
-        developer.log('Índices atualizados com sucesso');
         return true;
       } else {
-        developer.log('Erro ao atualizar índices: ${response.body['error']}');
         throw Exception(
             response.body['error'] ?? 'Falha ao atualizar índices da cidade');
       }
     } catch (e) {
-      developer.log('Exceção ao atualizar índices: ${e.toString()}');
       throw Exception(
           'Erro ao processar atualização dos índices: ${e.toString()}');
     }

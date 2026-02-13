@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 
@@ -34,12 +34,10 @@ class BudgetSummaryCard extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Lado esquerdo - Valor e subtítulo
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Valor do orçamento
               Text(
                 _formatCurrency(budgetValue),
                 style: TextStyle(
@@ -48,8 +46,6 @@ class BudgetSummaryCard extends StatelessWidget {
                   color: const Color(0xFF183127),
                 ),
               ),
-              // SizedBox(height: 2.h),
-              // Subtítulo
               Text(
                 'Custo total',
                 style: TextStyle(
@@ -61,7 +57,6 @@ class BudgetSummaryCard extends StatelessWidget {
             ],
           ),
 
-          // Lado direito - Container com carrinho e contador
           Container(
             width: 48.w,
             height: 37.h,

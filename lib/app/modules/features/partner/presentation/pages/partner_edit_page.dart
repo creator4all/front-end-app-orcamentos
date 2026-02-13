@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -129,7 +129,7 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
 
             if (errorMessage.toLowerCase().contains('formato') ||
                 errorMessage.toLowerCase().contains('tamanho') ||
-                errorMessage.toLowerCase().contains('inválida')) {
+                errorMessage.toLowerCase().contains('inválido')) {
               dialogType = DialogType.warning;
               errorTitle = 'Formato de imagem inválido';
 
@@ -156,8 +156,7 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
         context: context,
         type: DialogType.error,
         title: 'Erro ao selecionar imagem',
-        message:
-            'Não foi possível abrir a imagem selecionada. Tente novamente.',
+        message: 'Não foi possível abrir a imagem selecionada. Tente novamente.',
       );
     }
   }

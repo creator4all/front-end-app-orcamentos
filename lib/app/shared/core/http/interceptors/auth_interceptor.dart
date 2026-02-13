@@ -1,4 +1,4 @@
-import '../http_response.dart';
+﻿import '../http_response.dart';
 import 'http_interceptor.dart';
 
 /// Interceptor para adicionar autenticação automática nas requisições
@@ -26,7 +26,6 @@ class AuthInterceptor extends HttpInterceptor {
 
   @override
   void onRequest(HttpRequestInfo request) {
-    // Verifica se a URL deve ser excluída da autenticação
     final shouldExclude = excludedPaths.any(
       (path) => request.url.contains(path),
     );
@@ -35,7 +34,6 @@ class AuthInterceptor extends HttpInterceptor {
       return;
     }
 
-    // Verifica se já tem Authorization header
     final hasAuth = request.headers.keys.any(
       (key) => key.toLowerCase() == 'authorization',
     );
@@ -55,8 +53,6 @@ class AuthInterceptor extends HttpInterceptor {
     String responseMessage,
     String responsePayload,
   ) async {
-    // Se for erro 401 (Unauthorized), pode implementar lógica de refresh token aqui
-    // Retornar true fará retry automático da requisição
     return false;
   }
 }

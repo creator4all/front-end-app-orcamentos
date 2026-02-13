@@ -4,30 +4,20 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 
-// Widgets shared
 import '../../../../../shared/widgets/budget_summary_card.dart';
 import '../../../../../shared/widgets/custom_top_bar.dart';
 import '../../../../../shared/widgets/export_pdf_modal.dart';
 import '../../../../../shared/widgets/product_category.dart';
 import '../../../../../shared/widgets/status_tag_widget.dart';
-// Auth store
 import '../../../auth/presentation/stores/auth_store.dart';
-// Widgets budget_config (reutilização)
 import '../../../budget/budget_config/domain/entities/category_entity.dart';
 import '../../../budget/budget_config/domain/entities/subcategory_entity.dart';
 import '../../../budget/budget_config/presentation/widgets/budget_skeleton.dart';
 import '../../../budget/budget_config/presentation/widgets/school_census_card.dart';
-// Widgets locais readonly
 import '../stores/report_budget_detail_store.dart';
 import '../widgets/report_products_modal.dart';
 import '../widgets/report_subcategories_modal.dart';
 
-/// Página de visualização de detalhes de um orçamento em modo somente leitura.
-///
-/// Layout idêntico ao EditBudgetPage, com:
-/// - Header com empresa/usuário
-/// - Badges de status + botão compartilhar
-/// - Todos os campos em modo readonly
 class ReportBudgetDetailPage extends StatefulWidget {
   final int budgetId;
   final String? partnerName;
@@ -125,12 +115,10 @@ class _ReportBudgetDetailPageState extends State<ReportBudgetDetailPage> {
       ),
       body: Observer(
         builder: (_) {
-          // Skeleton enquanto carrega
           if (_store.isLoading) {
             return const BudgetSkeleton();
           }
 
-          // Error state
           if (_store.error != null && _store.budgetDetail == null) {
             return Center(
               child: Padding(
@@ -161,7 +149,6 @@ class _ReportBudgetDetailPageState extends State<ReportBudgetDetailPage> {
             );
           }
 
-          // No data
           if (_store.budgetDetail == null) {
             return const Center(child: Text('Orçamento não encontrado'));
           }
@@ -174,13 +161,10 @@ class _ReportBudgetDetailPageState extends State<ReportBudgetDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 🏢 Header: Empresa + Usuário
                   _buildCompanyUserHeader(),
 
-                  // 🏷️ Status Header (Tags + Compartilhar)
                   _buildStatusHeader(),
 
-                  // 📊 Resumo do orçamento
                   BudgetSummaryCard(
                     budgetValue: budget.calculatedTotal,
                     selectedProductsCount: _store.selectedItemsCount,
@@ -188,7 +172,6 @@ class _ReportBudgetDetailPageState extends State<ReportBudgetDetailPage> {
 
                   SizedBox(height: 12.h),
 
-                  // 🏫 Card do Censo Escolar
                   if (_store.hasCensus)
                     Padding(
                       padding: EdgeInsets.only(bottom: 12.h),
@@ -202,7 +185,6 @@ class _ReportBudgetDetailPageState extends State<ReportBudgetDetailPage> {
 
                   SizedBox(height: 12.h),
 
-                  // 📦 Categorias Dinâmicas
                   if (budget.hasCategories) ...[
                     ...budget.categories.map((category) {
                       if (category.expandido) {
@@ -221,7 +203,6 @@ class _ReportBudgetDetailPageState extends State<ReportBudgetDetailPage> {
                     }).expand((widgets) => widgets),
                   ],
 
-                  // Mensagem se não houver categorias
                   if (!budget.hasCategories)
                     Padding(
                       padding: EdgeInsets.symmetric(vertical: 24.h),
@@ -236,7 +217,6 @@ class _ReportBudgetDetailPageState extends State<ReportBudgetDetailPage> {
 
                   SizedBox(height: 24.h),
 
-                  // 📅 Campos de Data (readonly)
                   Row(
                     children: [
                       Expanded(
@@ -257,7 +237,6 @@ class _ReportBudgetDetailPageState extends State<ReportBudgetDetailPage> {
 
                   SizedBox(height: 12.h),
 
-                  // 🎛️ Status Controls (readonly)
                   _buildReadonlyStatusControls(),
 
                   SizedBox(height: 24.h),
@@ -270,9 +249,7 @@ class _ReportBudgetDetailPageState extends State<ReportBudgetDetailPage> {
     );
   }
 
-  // ========== WIDGETS AUXILIARES ==========
 
-  /// Header com nome da empresa e usuário
   Widget _buildCompanyUserHeader() {
     return Padding(
       padding: EdgeInsets.only(bottom: 12.h),
@@ -300,7 +277,6 @@ class _ReportBudgetDetailPageState extends State<ReportBudgetDetailPage> {
     );
   }
 
-  /// Header com status tags e botão compartilhar
   Widget _buildStatusHeader() {
     return Observer(
       builder: (_) => Padding(
@@ -308,7 +284,6 @@ class _ReportBudgetDetailPageState extends State<ReportBudgetDetailPage> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // Tags de status
             Row(
               children: [
                 StatusTagWidget(
@@ -320,7 +295,6 @@ class _ReportBudgetDetailPageState extends State<ReportBudgetDetailPage> {
                 ],
               ],
             ),
-            // Botão compartilhar (iOS style)
             IconButton(
               icon: Icon(
                 Icons.ios_share,
@@ -336,7 +310,6 @@ class _ReportBudgetDetailPageState extends State<ReportBudgetDetailPage> {
     );
   }
 
-  /// Campo readonly genérico
   Widget _buildReadonlyField(String label, String value) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -369,7 +342,6 @@ class _ReportBudgetDetailPageState extends State<ReportBudgetDetailPage> {
     );
   }
 
-  /// Dropdowns readonly de status e arquivado
   Widget _buildReadonlyStatusControls() {
     final budget = _store.budgetDetail;
     if (budget == null) return const SizedBox.shrink();
@@ -388,7 +360,7 @@ class _ReportBudgetDetailPageState extends State<ReportBudgetDetailPage> {
           Expanded(
             child: _buildReadonlyField(
               'Arquivado',
-              'Não', // BudgetDetailEntity não tem isArchived
+              'Não',
             ),
           ),
         ],
@@ -396,7 +368,6 @@ class _ReportBudgetDetailPageState extends State<ReportBudgetDetailPage> {
     );
   }
 
-  /// Header para categorias expandidas
   Widget _buildExpandedCategoryHeader(CategoryEntity category) {
     return Padding(
       padding: EdgeInsets.only(bottom: 10.h),
@@ -434,7 +405,6 @@ class _ReportBudgetDetailPageState extends State<ReportBudgetDetailPage> {
     );
   }
 
-  /// Lista de subcategorias expandidas
   List<Widget> _buildExpandedSubcategories(CategoryEntity category) {
     final sortedSubcategories = category.subcategorias.toList()
       ..sort((a, b) => a.ordem.compareTo(b.ordem));
@@ -447,7 +417,6 @@ class _ReportBudgetDetailPageState extends State<ReportBudgetDetailPage> {
     }).toList();
   }
 
-  /// Card de subcategoria
   Widget _buildSubcategoryCard(
       SubcategoryEntity subcategory, CategoryEntity parentCategory) {
     return ProductCategory(
@@ -463,7 +432,6 @@ class _ReportBudgetDetailPageState extends State<ReportBudgetDetailPage> {
     );
   }
 
-  /// Card de categoria (não expandida)
   Widget _buildCategoryCard(CategoryEntity category) {
     return ProductCategory(
       isReadOnly: true,
@@ -481,7 +449,6 @@ class _ReportBudgetDetailPageState extends State<ReportBudgetDetailPage> {
     );
   }
 
-  // ========== MODAIS ==========
 
   void _showSubcategoriesModal(CategoryEntity category) {
     showModalBottomSheet(

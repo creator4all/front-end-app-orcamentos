@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../../shared/utils/string_utils.dart';
@@ -9,8 +9,6 @@ import '../../../budget/budget_config/domain/entities/subcategory_entity.dart';
 import 'report_product_info_modal.dart';
 import 'report_product_item_card.dart';
 
-/// Modal para exibir produtos em modo readonly (relatórios).
-/// Clone exato do SubcategoryProductsModal, apenas sem edição.
 class ReportProductsModal extends StatelessWidget {
   final CategoryEntity category;
   final SubcategoryEntity subcategory;
@@ -21,7 +19,6 @@ class ReportProductsModal extends StatelessWidget {
     required this.subcategory,
   });
 
-  /// Mostra a modal usando CustomModal.show
   static Future<void> show({
     required BuildContext context,
     required CategoryEntity category,
@@ -70,7 +67,6 @@ class ReportProductsModal extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Lista de produtos usando ReportProductItemCard (clone exato do original)
         ListView.separated(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -88,7 +84,6 @@ class ReportProductsModal extends StatelessWidget {
 
         SizedBox(height: 24.h),
 
-        // Botão Fechar
         SizedBox(
           width: double.infinity,
           height: 48.h,

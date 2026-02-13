@@ -1,4 +1,4 @@
-import 'package:intl/intl.dart';
+﻿import 'package:intl/intl.dart';
 
 import '../../../../../shared/core/http/app_http_client.dart';
 import '../../../../../shared/core/http/http_request_config.dart';
@@ -6,16 +6,11 @@ import '../models/report_budget_dto.dart';
 import '../models/report_user_dto.dart';
 import 'reports_datasource.dart';
 
-/// Implementação do datasource de relatórios que acessa a API.
-///
-/// Utiliza [AppHttpClient] para realizar as requisições HTTP com
-/// interceptors de autenticação já configurados.
 class ReportsApiDatasource implements ReportsDatasource {
   final AppHttpClient httpClient;
 
   ReportsApiDatasource({required this.httpClient});
 
-  /// Formato de data para enviar nas requisições
   final DateFormat _dateFormat = DateFormat('yyyy-MM-dd');
 
   @override
@@ -24,7 +19,6 @@ class ReportsApiDatasource implements ReportsDatasource {
     DateTime? dataInicio,
     DateTime? dataFim,
   }) async {
-    // Montar query parameters
     final queryParams = <String, dynamic>{};
     if (dataInicio != null) {
       queryParams['dataInicio'] = _dateFormat.format(dataInicio);
@@ -33,24 +27,16 @@ class ReportsApiDatasource implements ReportsDatasource {
       queryParams['dataFim'] = _dateFormat.format(dataFim);
     }
 
-    // Endpoint correto: /api/partners/{id}/usuarios
     final response = await httpClient.get(
       '/api/partners/$partnerId/usuarios',
       config: HttpRequestConfig(queryParameters: queryParams),
     );
 
-    // Extrair lista de usuários da resposta
-    // Estrutura: { dados: { data: [...] } } ou { data: [...] } ou [...]
     final List<dynamic> data = _extractList(response.body);
 
     return data.map((json) => ReportUserDto.fromJson(json)).toList();
   }
 
-  /// Extrai a lista de dados do response.
-  ///
-  /// Suporta duas estruturas:
-  /// - Paginada: `{ dados: { data: [...] } }` (endpoint de usuários)
-  /// - Lista direta: `{ dados: [...] }` (endpoints de orçamentos e vendas)
   List<dynamic> _extractList(dynamic body) {
     if (body is! Map<String, dynamic>) {
       throw FormatException(

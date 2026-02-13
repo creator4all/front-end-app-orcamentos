@@ -1,4 +1,4 @@
-class PartnerProfile {
+﻿class PartnerProfile {
   final int id;
   final String legalName;
   final String tradeName;

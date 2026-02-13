@@ -49,7 +49,7 @@ class CustomModal extends StatelessWidget {
       child: Container(
         constraints: BoxConstraints(
           maxHeight:
-              MediaQuery.of(context).size.height * 0.8, // 80% da altura da tela
+              MediaQuery.of(context).size.height * 0.8,
         ),
         decoration: const BoxDecoration(
           color: Colors.white,
@@ -61,7 +61,6 @@ class CustomModal extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Handle bar at the top
             Container(
               margin: EdgeInsets.only(top: 20.h),
               width: 100.w,
@@ -72,7 +71,6 @@ class CustomModal extends StatelessWidget {
               ),
             ),
 
-            // Title
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
               child: Center(
@@ -87,7 +85,6 @@ class CustomModal extends StatelessWidget {
               ),
             ),
 
-            // Content - Scrollable
             Flexible(
               child: SingleChildScrollView(
                 padding: EdgeInsets.symmetric(horizontal: 16.w),
@@ -95,7 +92,6 @@ class CustomModal extends StatelessWidget {
               ),
             ),
 
-            // Bottom padding
             SizedBox(height: 16.h),
           ],
         ),

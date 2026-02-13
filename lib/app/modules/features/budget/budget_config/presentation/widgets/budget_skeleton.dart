@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
@@ -6,15 +6,9 @@ import '../../../../../../shared/widgets/budget_summary_card.dart';
 import '../../../../../../shared/widgets/product_category.dart';
 import '../widgets/school_census_card.dart';
 
-/// Skeleton loading para tela de configuração de orçamento.
-///
-/// Utiliza widgets reais com dados fake para garantir que o skeleton
-/// sempre reflete o layout atual da UI - mudanças nos widgets são
-/// automaticamente refletidas no skeleton.
 class BudgetSkeleton extends StatelessWidget {
   const BudgetSkeleton({super.key});
 
-  // Dados fake para simular o estado real da UI
   static const _fakeBudgetValue = 12500.00;
   static const _fakeProductCount = 8;
   static const _fakeCityCount = 2;
@@ -50,7 +44,6 @@ class BudgetSkeleton extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // BudgetSummaryCard com dados fake
             const BudgetSummaryCard(
               budgetValue: _fakeBudgetValue,
               selectedProductsCount: _fakeProductCount,
@@ -58,7 +51,6 @@ class BudgetSkeleton extends StatelessWidget {
 
             SizedBox(height: 12.h),
 
-            // SchoolCensusCard com dados fake
             SchoolCensusCard(
               numberOfCities: _fakeCityCount,
               citiesData: _fakeCitiesData,
@@ -66,7 +58,6 @@ class BudgetSkeleton extends StatelessWidget {
 
             SizedBox(height: 24.h),
 
-            // Cards de categoria fake (4 placeholders)
             ...List.generate(
               4,
               (index) => Padding(
@@ -87,7 +78,6 @@ class BudgetSkeleton extends StatelessWidget {
 
             SizedBox(height: 24.h),
 
-            // Campos de data (simulando Row com dois TextFields)
             Row(
               children: [
                 Expanded(
@@ -152,7 +142,6 @@ class BudgetSkeleton extends StatelessWidget {
 
             SizedBox(height: 24.h),
 
-            // Botão "Salvar Orçamento" fake
             SizedBox(
               width: double.infinity,
               height: 50.h,

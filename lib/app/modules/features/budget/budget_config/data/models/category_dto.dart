@@ -1,8 +1,7 @@
-import '../../domain/entities/category_entity.dart';
+﻿import '../../domain/entities/category_entity.dart';
 import 'statistics_dto.dart';
 import 'subcategory_dto.dart';
 
-/// DTO para parsing JSON das categorias da API
 class CategoryDTO {
   final int id;
   final String nome;
@@ -20,7 +19,6 @@ class CategoryDTO {
     this.estatisticas,
   });
 
-  /// Cria um DTO a partir do JSON da API
   factory CategoryDTO.fromJson(Map<String, dynamic> json) {
     try {
       final int id = json['id'] as int;
@@ -43,7 +41,6 @@ class CategoryDTO {
         }
       }
 
-      // Parse estatísticas (novo formato)
       StatisticsDTO? estatisticas;
       if (json['estatisticas'] != null) {
         estatisticas = StatisticsDTO.fromJson(
@@ -63,7 +60,6 @@ class CategoryDTO {
     }
   }
 
-  /// Converte o DTO para Entity
   CategoryEntity toEntity() {
     return CategoryEntity(
       id: id,
@@ -75,7 +71,6 @@ class CategoryDTO {
     );
   }
 
-  /// Converte o DTO para JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -87,7 +82,6 @@ class CategoryDTO {
     };
   }
 
-  /// Converte uma Entity para DTO
   factory CategoryDTO.fromEntity(CategoryEntity entity) {
     return CategoryDTO(
       id: entity.id,

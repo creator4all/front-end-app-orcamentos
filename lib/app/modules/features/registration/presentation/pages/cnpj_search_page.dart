@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -11,7 +11,6 @@ import '../../../../../../widgets/index.dart';
 import '../../../../../shared/widgets/custom_top_bar.dart';
 import '../stores/registration_store.dart';
 
-/// Página de pesquisa de CPF/CNPJ - Adaptada do layout legado
 class CnpjSearchPage extends StatefulWidget {
   const CnpjSearchPage({super.key});
 
@@ -37,27 +36,19 @@ class _CnpjSearchPageState extends State<CnpjSearchPage> {
     super.dispose();
   }
 
-  /// Formata documento dinamicamente como CPF ou CNPJ baseado no tamanho
-  /// CPF: XXX.XXX.XXX-XX (11 dígitos)
-  /// CNPJ: XX.XXX.XXX/XXXX-XX (14 dígitos)
   String _formatDocument(String value) {
-    // Remove tudo que não é número
     value = value.replaceAll(RegExp(r'[^0-9]'), '');
 
-    // Limita a 14 dígitos (máximo do CNPJ)
     if (value.length > 14) {
       value = value.substring(0, 14);
     }
 
-    // Se tem até 11 dígitos, formata como CPF
     if (value.length <= 11) {
       return _formatAsCPF(value);
     }
-    // Se tem mais de 11, formata como CNPJ
     return _formatAsCNPJ(value);
   }
 
-  /// Formata como CPF: XXX.XXX.XXX-XX
   String _formatAsCPF(String value) {
     if (value.length > 3) {
       value = '${value.substring(0, 3)}.${value.substring(3)}';
@@ -71,7 +62,6 @@ class _CnpjSearchPageState extends State<CnpjSearchPage> {
     return value;
   }
 
-  /// Formata como CNPJ: XX.XXX.XXX/XXXX-XX
   String _formatAsCNPJ(String value) {
     if (value.length > 2) {
       value = '${value.substring(0, 2)}.${value.substring(2)}';
@@ -92,7 +82,6 @@ class _CnpjSearchPageState extends State<CnpjSearchPage> {
     if (_formKey.currentState?.validate() ?? false) {
       final digits = _documentController.text.replaceAll(RegExp(r'[^0-9]'), '');
 
-      // Validar CPF/CNPJ antes de chamar API
       final error = DocumentValidators.getDocumentError(digits);
       if (error != null) {
         CustomInfoDialog.show(
@@ -116,7 +105,6 @@ class _CnpjSearchPageState extends State<CnpjSearchPage> {
     }
   }
 
-  /// Modal de confirmação com design personalizado
   void _showConfirmationDialog() {
     final company = store.foundCompany!;
 
@@ -132,7 +120,6 @@ class _CnpjSearchPageState extends State<CnpjSearchPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Ícone de empresa em círculo azul
               Container(
                 width: 72.w,
                 height: 72.w,
@@ -148,7 +135,6 @@ class _CnpjSearchPageState extends State<CnpjSearchPage> {
               ),
               SizedBox(height: 20.h),
 
-              // Razão social da empresa
               Text(
                 company.legalName,
                 style: TextStyle(
@@ -160,7 +146,6 @@ class _CnpjSearchPageState extends State<CnpjSearchPage> {
               ),
               SizedBox(height: 16.h),
 
-              // Pergunta de confirmação
               Text(
                 'A empresa ${company.tradeName.isNotEmpty ? company.tradeName : company.legalName} está correta?',
                 style: TextStyle(
@@ -171,10 +156,8 @@ class _CnpjSearchPageState extends State<CnpjSearchPage> {
               ),
               SizedBox(height: 24.h),
 
-              // Botões Não e Sim
               Row(
                 children: [
-                  // Botão NÃO (vermelho)
                   Expanded(
                     child: SizedBox(
                       height: 48.h,
@@ -206,7 +189,6 @@ class _CnpjSearchPageState extends State<CnpjSearchPage> {
                   ),
                   SizedBox(width: 16.w),
 
-                  // Botão SIM (verde)
                   Expanded(
                     child: SizedBox(
                       height: 48.h,
@@ -253,7 +235,6 @@ class _CnpjSearchPageState extends State<CnpjSearchPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Ícone de não encontrado
               Container(
                 width: 72.w,
                 height: 72.w,
@@ -269,7 +250,6 @@ class _CnpjSearchPageState extends State<CnpjSearchPage> {
               ),
               SizedBox(height: 20.h),
 
-              // Título
               Text(
                 'Documento não encontrado',
                 style: TextStyle(
@@ -281,7 +261,6 @@ class _CnpjSearchPageState extends State<CnpjSearchPage> {
               ),
               SizedBox(height: 12.h),
 
-              // Mensagem
               Text(
                 'O documento informado não foi encontrado em nossa base de dados.',
                 style: TextStyle(
@@ -292,7 +271,6 @@ class _CnpjSearchPageState extends State<CnpjSearchPage> {
               ),
               SizedBox(height: 24.h),
 
-              // Botões
               Row(
                 children: [
                   Expanded(
@@ -373,7 +351,6 @@ class _CnpjSearchPageState extends State<CnpjSearchPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Ilustração
                 Center(
                   child: SvgPicture.asset(
                     'assets/images/undraw_agreement_re_d4dv.svg',
@@ -383,7 +360,6 @@ class _CnpjSearchPageState extends State<CnpjSearchPage> {
                 ),
                 SizedBox(height: 24.h),
 
-                // Título com ícone
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -405,7 +381,6 @@ class _CnpjSearchPageState extends State<CnpjSearchPage> {
                 ),
                 SizedBox(height: 32.h),
 
-                // Campo CPF/CNPJ com máscara dinâmica
                 CustomTextField(
                   controller: _documentController,
                   label: 'CPF ou CNPJ:',
@@ -426,7 +401,6 @@ class _CnpjSearchPageState extends State<CnpjSearchPage> {
                 ),
                 SizedBox(height: 24.h),
 
-                // Botão Próximo
                 Observer(
                   builder: (_) => PrimaryButton(
                     text: 'Próximo',
@@ -436,7 +410,6 @@ class _CnpjSearchPageState extends State<CnpjSearchPage> {
                 ),
                 SizedBox(height: 16.h),
 
-                // Botão Quero ser parceiro
                 SecondaryButton(
                   text: 'Quero me tornar um parceiro',
                   onPressed: () {
@@ -444,7 +417,6 @@ class _CnpjSearchPageState extends State<CnpjSearchPage> {
                   },
                 ),
 
-                // Mensagem de erro
                 Observer(
                   builder: (_) {
                     if (store.verifyError != null &&

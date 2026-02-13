@@ -1,8 +1,7 @@
-import 'package:equatable/equatable.dart';
+﻿import 'package:equatable/equatable.dart';
 
 import 'produto_entity.dart';
 
-/// Entidade que representa um Item do Orçamento (Produto selecionado)
 class OrcamentoProdutoEntity extends Equatable {
   final int id;
   final int orcamentoId;
@@ -24,7 +23,6 @@ class OrcamentoProdutoEntity extends Equatable {
     required this.produto,
   });
 
-  /// Calcula o total deste item (quantidade * valor unitário)
   double get total => quantidade * produto.valor;
 
   @override

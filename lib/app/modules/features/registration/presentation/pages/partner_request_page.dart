@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -14,7 +14,6 @@ import '../../../../../shared/widgets/custom_top_bar.dart';
 import '../../domain/entities/partner_request.dart';
 import '../stores/registration_store.dart';
 
-/// Página de solicitação de parceria - Adaptada do layout legado
 class PartnerRequestPage extends StatefulWidget {
   const PartnerRequestPage({super.key});
 
@@ -41,7 +40,6 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
     super.initState();
     store = Modular.get<RegistrationStore>();
 
-    // Inicializar player de vídeo
     _videoController = VideoPlayerController.asset(
       'assets/videos/oportunidade_de_vendas.mp4',
     )..initialize().then((_) {
@@ -62,7 +60,6 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
     super.dispose();
   }
 
-  // Formatar telefone (XX) XXXXX-XXXX
   String _formatPhone(String value) {
     value = value.replaceAll(RegExp(r'[^0-9]'), '');
 
@@ -79,16 +76,13 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
     return value;
   }
 
-  // Formatar CPF (XXX.XXX.XXX-XX) ou CNPJ (XX.XXX.XXX/XXXX-XX)
   String _formatCpfCnpj(String value) {
     value = value.replaceAll(RegExp(r'[^0-9]'), '');
 
-    // Limitar a 14 dígitos (máximo do CNPJ)
     if (value.length > 14) {
       value = value.substring(0, 14);
     }
 
-    // CPF (11 dígitos)
     if (value.length <= 11) {
       if (value.length > 3) {
         value = '${value.substring(0, 3)}.${value.substring(3)}';
@@ -100,7 +94,6 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
         value = '${value.substring(0, 11)}-${value.substring(11)}';
       }
     } else {
-      // CNPJ (14 dígitos)
       if (value.length > 2) {
         value = '${value.substring(0, 2)}.${value.substring(2)}';
       }
@@ -118,23 +111,19 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
     return value;
   }
 
-  /// Valida TODOS os campos obrigatórios e exibe dialog de erro se necessário
   bool _validateRequiredFields() {
     final List<String> missingFields = [];
 
-    // Nome
     if (_nameController.text.trim().isEmpty) {
       missingFields.add('Nome');
     }
 
-    // E-mail
     if (_emailController.text.trim().isEmpty) {
       missingFields.add('E-mail');
     } else if (!EmailValidator.isValid(_emailController.text.trim())) {
       missingFields.add('E-mail (formato inválido)');
     }
 
-    // Telefone
     if (_phoneController.text.trim().isEmpty) {
       missingFields.add('Telefone');
     } else {
@@ -144,12 +133,10 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
       }
     }
 
-    // Empresa
     if (_companyController.text.trim().isEmpty) {
       missingFields.add('Empresa');
     }
 
-    // CPF/CNPJ
     if (_cnpjController.text.trim().isEmpty) {
       missingFields.add('CPF/CNPJ');
     } else {
@@ -175,12 +162,10 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
   }
 
   void _submitForm() async {
-    // Validação com CustomInfoDialog
     if (!_validateRequiredFields()) {
       return;
     }
 
-    // Validação do Form (para mensagens inline)
     if (!(_formKey.currentState?.validate() ?? false)) {
       return;
     }
@@ -201,7 +186,6 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
     if (store.requestPartnerSuccess) {
       _showSuccessDialog();
     } else if (store.requestPartnerError != null) {
-      // Verificar se é erro de CPF/CNPJ já cadastrado (código 409)
       final errorMessage = store.requestPartnerError!;
       final isAlreadyRegistered = errorMessage.contains('409') ||
           errorMessage.toLowerCase().contains('já cadastrado') ||
@@ -259,7 +243,6 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Logo
                 Center(
                   child: SvgPicture.asset(
                     'assets/images/logo-multimidia-simple.svg',
@@ -270,7 +253,6 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
                 ),
                 SizedBox(height: 24.h),
 
-                // Título
                 Center(
                   child: Text(
                     'Seja nosso parceiro!',
@@ -283,7 +265,6 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
                 ),
                 SizedBox(height: 32.h),
 
-                // Passo 1 - Vídeo
                 Text(
                   '1- Assista ao vídeo',
                   style: TextStyle(
@@ -293,7 +274,6 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
                 ),
                 SizedBox(height: 16.h),
 
-                // Player de Vídeo
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8.r),
                   child: AspectRatio(
@@ -336,7 +316,6 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
                 ),
                 SizedBox(height: 32.h),
 
-                // Passo 2 - Formulário
                 Text(
                   '2- Caso você tenha interesse em ser parceiro, preencha os dados abaixo e entraremos em contato.',
                   style: TextStyle(
@@ -346,7 +325,6 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
                 ),
                 SizedBox(height: 24.h),
 
-                // Campo Nome
                 CustomTextField(
                   controller: _nameController,
                   label: 'Nome:',
@@ -361,7 +339,6 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
                 ),
                 SizedBox(height: 16.h),
 
-                // Campo E-mail
                 CustomTextField(
                   controller: _emailController,
                   label: 'E-mail:',
@@ -372,7 +349,6 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
                 ),
                 SizedBox(height: 16.h),
 
-                // Campo Telefone
                 CustomTextField(
                   controller: _phoneController,
                   label: 'Telefone:',
@@ -402,7 +378,6 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
                 ),
                 SizedBox(height: 16.h),
 
-                // Campo Empresa
                 CustomTextField(
                   controller: _companyController,
                   label: 'Empresa:',
@@ -417,7 +392,6 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
                 ),
                 SizedBox(height: 16.h),
 
-                // Campo CPF/CNPJ
                 CustomTextField(
                   controller: _cnpjController,
                   label: 'CPF/CNPJ:',
@@ -439,7 +413,6 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
                 ),
                 SizedBox(height: 24.h),
 
-                // Pergunta experiência
                 Text(
                   'Você atua ou já atuou com vendas na área pública?',
                   style: TextStyle(
@@ -449,7 +422,6 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
                 ),
                 SizedBox(height: 8.h),
 
-                // Radio buttons
                 RadioListTile<PublicSectorExperience>(
                   title: const Text('Não, nunca atuei'),
                   value: PublicSectorExperience.never,
@@ -485,7 +457,6 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
                 ),
                 SizedBox(height: 32.h),
 
-                // Botão Enviar
                 Observer(
                   builder: (_) => PrimaryButton(
                     text: 'Quero ser parceiro',

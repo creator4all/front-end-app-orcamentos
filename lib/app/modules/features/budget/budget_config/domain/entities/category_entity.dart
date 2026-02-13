@@ -1,4 +1,4 @@
-import 'package:copy_with_extension/copy_with_extension.dart';
+﻿import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:equatable/equatable.dart';
 import 'package:intl/intl.dart';
 
@@ -7,26 +7,18 @@ import 'subcategory_entity.dart';
 
 part 'category_entity.g.dart';
 
-/// Entidade que representa uma categoria de produtos no orçamento
 @CopyWith()
 class CategoryEntity extends Equatable {
-  /// ID da categoria
   final int id;
 
-  /// Nome para exibição (ex: "Livros", "Tecnologias")
   final String nome;
 
-  /// Ordem de exibição (menor valor = maior prioridade)
   final int ordem;
 
-  /// Define se a categoria deve ser exibida expandida (subcategorias visíveis)
-  /// ou como card único (abre modal ao clicar)
   final bool expandido;
 
-  /// Lista de subcategorias
   final List<SubcategoryEntity> subcategorias;
 
-  /// Estatísticas agregadas da categoria (soma de todas subcategorias)
   final StatisticsEntity? estatisticas;
 
   const CategoryEntity({
@@ -38,58 +30,42 @@ class CategoryEntity extends Equatable {
     this.estatisticas,
   });
 
-  // ========== Getters Úteis ==========
 
-  /// Lista todas as subcategorias que têm produtos ativos
   List<SubcategoryEntity> get activeSubcategories {
     return subcategorias.where((s) => s.hasActiveProducts).toList();
   }
-
-  /// Quantidade total de subcategorias com produtos ativos
   int get activeSubcategoriesCount => activeSubcategories.length;
 
-  /// Quantidade total de produtos ativos em todas as subcategorias
   int get totalActiveProducts {
     return subcategorias.fold(0, (sum, s) => sum + s.activeProductsCount);
   }
-
-  /// Quantidade de produtos selecionados em todas as subcategorias
   int get selectedProductsCount {
     return subcategorias.fold(0, (sum, s) => sum + s.selectedProductsCount);
   }
 
-  /// Valor total dos produtos selecionados
   double get totalValue {
     return subcategorias.fold(0.0, (sum, s) => sum + s.totalValue);
   }
-
-  /// Valor total se todos os produtos fossem selecionados
   double get maxPossibleValue {
     return subcategorias.fold(0.0, (sum, s) => sum + s.maxPossibleValue);
   }
 
-  /// Verifica se todos os produtos da categoria estão selecionados
   bool get isFullySelected {
     return totalActiveProducts > 0 &&
         selectedProductsCount == totalActiveProducts;
   }
 
-  /// Calcula percentual de seleção
   double get selectionPercentage {
     if (totalActiveProducts == 0) return 0.0;
     return (selectedProductsCount / totalActiveProducts) * 100;
   }
 
-  /// Verifica se tem algum produto selecionado
   bool get hasSelectedProducts => selectedProductsCount > 0;
 
-  /// Verifica se tem subcategorias disponíveis
   bool get hasSubcategories => subcategorias.isNotEmpty;
 
-  /// Verifica se tem subcategorias com produtos ativos
   bool get hasActiveSubcategories => activeSubcategoriesCount > 0;
 
-  /// Formata o valor total para exibição (padrão brasileiro)
   String get formattedTotalValue {
     final formatter = NumberFormat.currency(
       locale: 'pt_BR',
@@ -99,12 +75,8 @@ class CategoryEntity extends Equatable {
     return formatter.format(totalValue);
   }
 
-  /// Verifica se a categoria deve ser exibida expandida
-  /// (mostrando subcategorias diretamente na tela)
   bool get deveExibirExpandida => expandido;
 
-  /// Verifica se a categoria deve ser exibida como card compacto
-  /// (abrindo modal ao clicar)
   bool get deveExibirComoCard => !expandido;
 
   @override
@@ -117,7 +89,6 @@ class CategoryEntity extends Equatable {
         estatisticas,
       ];
 
-  /// Atualiza uma subcategoria específica na lista
   CategoryEntity updateSubcategory(SubcategoryEntity updatedSubcategory) {
     final updatedSubcategorias = subcategorias.map((s) {
       return s.id == updatedSubcategory.id ? updatedSubcategory : s;

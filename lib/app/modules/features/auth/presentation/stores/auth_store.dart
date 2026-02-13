@@ -1,4 +1,4 @@
-import 'package:flutter_modular/flutter_modular.dart';
+﻿import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mobx/mobx.dart';
 
@@ -110,7 +110,6 @@ abstract class _AuthStoreBase with Store {
 
     result.fold(
       (failure) {
-        // Limpa dados locais mesmo com erro para não manter sessão inválida
         errorMessage = failure.message;
         currentUser = null;
         isLoggedIn = false;

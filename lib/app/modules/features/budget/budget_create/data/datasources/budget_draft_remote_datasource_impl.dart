@@ -1,4 +1,4 @@
-import '../../../../../../../app/shared/core/http/app_http_client.dart';
+﻿import '../../../../../../../app/shared/core/http/app_http_client.dart';
 import '../../../../../../../app/shared/errors/http_exception.dart';
 import '../../domain/entities/budget_draft_entity.dart';
 import '../../domain/repositories/budget_draft_repository.dart';
@@ -28,7 +28,6 @@ class BudgetDraftRemoteDataSourceImpl implements BudgetDraftRemoteDataSource {
       throw Exception('Resposta da API não contém dados válidos');
     }
 
-    // API às vezes retorna List ao invés de Map - normalizar para Map
     if (data is List) {
       if (data.isEmpty) {
         throw Exception('Array de dados está vazio');
@@ -63,7 +62,6 @@ class BudgetDraftRemoteDataSourceImpl implements BudgetDraftRemoteDataSource {
       throw Exception('Orçamento não encontrado');
     }
 
-    // API às vezes retorna List ao invés de Map - normalizar para Map
     if (data is List) {
       if (data.isEmpty) {
         throw Exception('Array de dados está vazio');

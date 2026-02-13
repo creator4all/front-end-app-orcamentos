@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
@@ -22,7 +22,6 @@ class SchoolCensusPage extends StatefulWidget {
   final CensoEscolarEntity? censoInicial;
   final Function(CensoEscolarEntity)? onCensusUpdated;
 
-  /// Indica se deve usar modo multi-cidade (carregar via loadBudgetCensus)
   final bool isMultiCityMode;
 
   const SchoolCensusPage({
@@ -48,15 +47,12 @@ class _SchoolCensusPageState
   void initState() {
     super.initState();
 
-    // Definir budgetId para usar endpoint budget-scoped
     if (widget.budgetId != null) {
       store.setBudgetId(widget.budgetId);
     }
 
-    // Se é modo multi-cidade, carregar via endpoint de orçamento
     if (widget.isMultiCityMode && widget.budgetId != null) {
       store.loadBudgetCensus(widget.budgetId!).then((_) {
-        // Mostrar dialog informativo se estiver em modo multi-cidade e visualização agregada
         if (store.isMultiCity && store.isAggregatedView) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             _showInfoDialog();
@@ -64,10 +60,8 @@ class _SchoolCensusPageState
         }
       });
     } else if (widget.censoInicial != null) {
-      // Se recebeu dados do censo, usar diretamente
       store.setCensoEscolar(widget.censoInicial!);
     } else {
-      // Caso contrário, carregar da API por cidade
       store.loadCensus(widget.cityId);
     }
   }
@@ -97,7 +91,6 @@ class _SchoolCensusPageState
     }
   }
 
-  /// Filtra grupos para mostrar apenas dados de ALUNOS (sem sufixo P)
   List<CensoGroupEntity> _getStudentGroups() {
     final censo = store.censoEscolar;
     if (censo == null) return [];
@@ -118,7 +111,6 @@ class _SchoolCensusPageState
         .toList();
   }
 
-  /// Filtra grupos para mostrar apenas dados de PROFESSORES (com sufixo P)
   List<CensoGroupEntity> _getProfessorGroups() {
     final censo = store.censoEscolar;
     if (censo == null) return [];
@@ -210,7 +202,6 @@ class _SchoolCensusPageState
                 return const Center(child: Text('Nenhum dado encontrado'));
               }
 
-              // Sync controllers
               _syncControllersWithStore();
 
               return Column(
@@ -225,17 +216,12 @@ class _SchoolCensusPageState
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Seletor de cidade (só para multi-cidade)
                             if (store.isMultiCity) _buildCitySelector(),
 
-                            // Toggle de edição (oculto no modo agregado)
                             if (!store.isAggregatedView) _buildEditModeToggle(),
 
-                            // Informação do censo
                             _buildCensusInfo(),
 
-                            // Aviso de modo agregado (REMOVIDO EM FAVOR DO DIALOG)
-                            // if (store.isAggregatedView) _buildAggregatedModeWarning(),
                             SizedBox(height: 16.h),
                             _buildStudentsSections(),
                             _buildProfessorsSections(),
@@ -256,7 +242,6 @@ class _SchoolCensusPageState
     );
   }
 
-  /// Dropdown pesquisável para selecionar cidade (apenas multi-cidade)
   Widget _buildCitySelector() {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 12.h),
@@ -275,7 +260,6 @@ class _SchoolCensusPageState
           );
 
           store.selectCity(selectedOption.id);
-          // Limpar controllers ao trocar de cidade
           _controllers.clear();
         },
       ),
@@ -383,7 +367,6 @@ class _SchoolCensusPageState
   Widget _buildProfessorsSections() {
     final professorGroups = _getProfessorGroups();
 
-    // Só exibe seção de professores se houver dados
     if (professorGroups.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -464,7 +447,6 @@ class _SchoolCensusPageState
     if (store.error == null) {
       _hasSavedChanges = true;
 
-      // Notificar parent sobre atualização do censo
       if (store.censoEscolar != null) {
         widget.onCensusUpdated?.call(store.censoEscolar!);
       }
@@ -511,13 +493,11 @@ class _SchoolCensusPageState
         },
         (csvBytes) async {
           try {
-            // Salvar arquivo temporário
             final tempDir = await getTemporaryDirectory();
             final timestamp = DateTime.now().millisecondsSinceEpoch;
             final file = File('${tempDir.path}/censo_escolar_$timestamp.csv');
             await file.writeAsBytes(csvBytes);
 
-            // Compartilhar
             await Share.shareXFiles([
               XFile(file.path),
             ], subject: 'Censo Escolar - Orçamento ${widget.budgetId}');

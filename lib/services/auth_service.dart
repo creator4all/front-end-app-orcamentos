@@ -1,15 +1,11 @@
-import '../app/shared/core/http/app_http_client.dart';
+﻿import '../app/shared/core/http/app_http_client.dart';
 import '../config/api_config.dart';
 
-/// Serviço de autenticação usando AppHttpClient
-///
-/// Centraliza operações de login e reset de senha.
 class AuthService {
   final AppHttpClient _client;
 
   AuthService({required AppHttpClient client}) : _client = client;
 
-  /// Autenticação
   Future<Map<String, dynamic>> signIn(String email, String password) async {
     try {
       final response = await _client.post(
@@ -39,7 +35,6 @@ class AuthService {
     }
   }
 
-  /// Reset de senha
   Future<Map<String, dynamic>> resetPassword(String email) async {
     try {
       final response = await _client.post(

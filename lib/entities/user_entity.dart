@@ -3,14 +3,14 @@ class UserEntity {
   final String email;
   final String name;
   final String token;
-  final String role; // "manager", "seller", or "admin"
+  final String role;
 
   UserEntity({
     required this.id,
     required this.email,
     required this.name,
     required this.token,
-    this.role = "seller", // Default role is seller
+    this.role = "seller",
   });
 
   factory UserEntity.fromJson(Map<String, dynamic> json) {
@@ -38,12 +38,11 @@ class UserEntity {
     return "UserEntity(id: $id, email: $email, name: $name, role: $role)";
   }
   
-  // Helper to normalize role values between English and Portuguese
   String get normalizedRole {
-    // Map English roles to Portuguese
     if (role == "seller") return "vendedor";
     if (role == "manager") return "gestor";
     if (role == "admin") return "administrador";
-    return role; // Return original if no mapping exists
+    return role;
   }
 }
+

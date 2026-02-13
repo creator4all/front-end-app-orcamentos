@@ -1,9 +1,5 @@
 import '../../domain/entities/report_budget.dart';
 
-/// DTO para conversão de JSON para entidade ReportBudget.
-///
-/// Responsável por fazer o parsing dos dados vindos da API
-/// e converter para a entidade de domínio.
 class ReportBudgetDto {
   final int id;
   final String? nome;
@@ -15,7 +11,7 @@ class ReportBudgetDto {
   final String status;
   final bool isArchived;
   final int cidadesCount;
-  final int usuarioId; // ID do usuário dono do orçamento
+  final int usuarioId;
 
   ReportBudgetDto({
     required this.id,
@@ -31,10 +27,6 @@ class ReportBudgetDto {
     this.usuarioId = 0,
   });
 
-  /// Factory para o endpoint `/api/orcamentos`.
-  ///
-  /// Chaves: `id`, `nome`, `status`, `total`, `data_validade`,
-  /// `dias_validade`, `is_archived`, `cidades`, `usuario.id`
   factory ReportBudgetDto.fromOrcamentoJson(Map<String, dynamic> json) {
     final dataValidade = _parseDate(json['data_validade']);
     int diasRestantes = _parseInt(json['dias_validade']);
@@ -59,10 +51,6 @@ class ReportBudgetDto {
     );
   }
 
-  /// Factory para o endpoint `/api/relatorios/partners/{id}/vendas`.
-  ///
-  /// Chaves: `orc_orcamentoId`, `orc_nome`, `orc_status`,
-  /// `orc_total`, `orc_usuario_id`, `created_at`
   factory ReportBudgetDto.fromVendasJson(Map<String, dynamic> json) {
     return ReportBudgetDto(
       id: json['orc_orcamentoId'] ?? 0,
@@ -107,7 +95,6 @@ class ReportBudgetDto {
     return 'ORC-${id.toString().padLeft(3, '0')}';
   }
 
-  /// Converte o DTO para a entidade de domínio.
   ReportBudget toEntity() {
     return ReportBudget(
       id: id,

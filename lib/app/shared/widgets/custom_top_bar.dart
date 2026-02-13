@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -56,7 +56,6 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Left side - Back button (if needed) + Title
               Row(
                 children: [
                   if (showBackButton) ...[
@@ -84,7 +83,6 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
                 ],
               ),
 
-              // Right side - Action button or User profile circle
               if (actionButton != null) ...[
                 actionButton!,
               ] else if (!showBackButton) ...[
@@ -119,7 +117,6 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   Future<void> _handleLogout(BuildContext context) async {
-    // Mostrar diálogo de confirmação
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -141,7 +138,6 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
       ),
     );
 
-    // Se confirmado, realizar logout
     if (confirmed == true && authStore != null) {
       try {
         await authStore!.logout();
@@ -194,7 +190,6 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
           },
           onAdministrativeManagement: () {
             Navigator.of(context).pop();
-            // Admin vai para Gestão de Empresas, Gestor vai direto para Gestão de Usuários
             if (authStore?.isAdmin == true) {
               Modular.to.pushNamed('/partner-management/');
             } else {
@@ -203,7 +198,6 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
           },
           onWiki: () {
             Navigator.of(context).pop();
-            // TODO: Implementar navegação para wiki
           },
           onDrive: () {
             Navigator.of(context).pop();

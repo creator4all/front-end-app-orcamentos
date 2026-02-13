@@ -6,7 +6,7 @@ import 'user_avatar_widget.dart';
 class ProfileModal extends StatefulWidget {
   final String userName;
   final String userEmail;
-  final String userDocument; // CPF ou CNPJ
+  final String userDocument;
   final String? userImageUrl;
   final String? userRole;
   final String? partnerName;
@@ -118,7 +118,6 @@ class _ProfileModalState extends State<ProfileModal>
                       child: SingleChildScrollView(
                         child: Column(
                           children: [
-                            // Header com botão fechar
                             Container(
                               padding: EdgeInsets.only(
                                 top: 16.h,
@@ -137,23 +136,21 @@ class _ProfileModalState extends State<ProfileModal>
 
                             SizedBox(height: 40.h),
 
-                            // Foto do perfil
                             UserAvatarWidget(
                               avatarBase64: widget.userImageUrl,
                               userName: widget.userName,
-                              radius: 60, // 120.w total width / 2
+                              radius: 60,
                             ),
 
                             SizedBox(height: 16.h),
 
-                            // Badges
                             Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 if (widget.userRole != null)
                                   _buildBadge(
                                     widget.userRole!,
-                                    const Color(0xFF117BBD), // Primary
+                                    const Color(0xFF117BBD),
                                   ),
                                 if (widget.partnerName != null &&
                                     widget.userRole != null)
@@ -161,14 +158,13 @@ class _ProfileModalState extends State<ProfileModal>
                                 if (widget.partnerName != null)
                                   _buildBadge(
                                     widget.partnerName!,
-                                    const Color(0xFF56B34A), // Success
+                                    const Color(0xFF56B34A),
                                   ),
                               ],
                             ),
 
                             SizedBox(height: 24.h),
 
-                            // Nome do usuário
                             Padding(
                               padding: EdgeInsets.symmetric(horizontal: 20.w),
                               child: Text(
@@ -186,7 +182,6 @@ class _ProfileModalState extends State<ProfileModal>
 
                             SizedBox(height: 8.h),
 
-                            // Email do usuário
                             Padding(
                               padding: EdgeInsets.symmetric(horizontal: 20.w),
                               child: Text(
@@ -203,7 +198,6 @@ class _ProfileModalState extends State<ProfileModal>
 
                             SizedBox(height: 8.h),
 
-                            // CPF/CNPJ
                             Padding(
                               padding: EdgeInsets.symmetric(horizontal: 20.w),
                               child: Text(
@@ -218,18 +212,15 @@ class _ProfileModalState extends State<ProfileModal>
 
                             SizedBox(height: 40.h),
 
-                            // Menu items
                             Padding(
                               padding: EdgeInsets.symmetric(horizontal: 20.w),
                               child: Column(
                                 children: [
-                                  // Editar perfil - TODOS
                                   _ProfileMenuItem(
                                     icon: Icons.edit,
                                     title: 'Editar perfil',
                                     onTap: widget.onEditProfile,
                                   ),
-                                  // Editar empresa - ADMIN e GESTOR (se tiver parceiro)
                                   if ((widget.isAdmin || widget.isManager) &&
                                       widget.onEditCompany != null) ...[
                                     SizedBox(height: 12.h),
@@ -239,7 +230,6 @@ class _ProfileModalState extends State<ProfileModal>
                                       onTap: widget.onEditCompany,
                                     ),
                                   ],
-                                  // Configurar produtos - APENAS ADMIN
                                   if (widget.isAdmin) ...[
                                     SizedBox(height: 12.h),
                                     _ProfileMenuItem(
@@ -248,7 +238,6 @@ class _ProfileModalState extends State<ProfileModal>
                                       onTap: widget.onConfigureProducts,
                                     ),
                                   ],
-                                  // Prospecção de parceiros - APENAS ADMIN
                                   if (widget.isAdmin) ...[
                                     SizedBox(height: 12.h),
                                     _ProfileMenuItem(
@@ -257,7 +246,6 @@ class _ProfileModalState extends State<ProfileModal>
                                       onTap: widget.onPartnerProspecting,
                                     ),
                                   ],
-                                  // Gestão administrativa - ADMIN e GESTOR
                                   if (widget.isAdmin || widget.isManager) ...[
                                     SizedBox(height: 12.h),
                                     _ProfileMenuItem(
@@ -266,14 +254,12 @@ class _ProfileModalState extends State<ProfileModal>
                                       onTap: widget.onAdministrativeManagement,
                                     ),
                                   ],
-                                  // Wiki - TODOS
                                   SizedBox(height: 12.h),
                                   _ProfileMenuItem(
                                     icon: Icons.menu_book,
                                     title: 'Wiki',
                                     onTap: widget.onWiki,
                                   ),
-                                  // Drive - TODOS
                                   SizedBox(height: 12.h),
                                   _ProfileMenuItem(
                                     icon: Icons.cloud,
@@ -286,12 +272,10 @@ class _ProfileModalState extends State<ProfileModal>
 
                             SizedBox(height: 40.h),
 
-                            // Botões de ação
                             Padding(
                               padding: EdgeInsets.symmetric(horizontal: 20.w),
                               child: Column(
                                 children: [
-                                  // Botão Sair
                                   SizedBox(
                                     width: double.infinity,
                                     child: ElevatedButton(
@@ -320,7 +304,6 @@ class _ProfileModalState extends State<ProfileModal>
 
                                   SizedBox(height: 12.h),
 
-                                  // Botão Deletar conta
                                   SizedBox(
                                     width: double.infinity,
                                     child: OutlinedButton(

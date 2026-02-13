@@ -1,10 +1,7 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 
-/// Widget para seleção de filtro de data (início e fim).
-///
-/// Exibe dois campos de data que abrem um date picker quando clicados.
 class ReportDateFilter extends StatelessWidget {
   final DateTime? dataInicio;
   final DateTime? dataFim;
@@ -21,7 +18,6 @@ class ReportDateFilter extends StatelessWidget {
     this.onClear,
   });
 
-  /// Formato de data para exibição
   String _formatDate(DateTime date) {
     return DateFormat('dd/MM/yyyy').format(date);
   }
@@ -76,7 +72,6 @@ class ReportDateFilter extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Data Início
           Expanded(
             child: _buildDateField(
               context: context,
@@ -92,7 +87,6 @@ class ReportDateFilter extends StatelessWidget {
             ),
           ),
           SizedBox(width: 12.w),
-          // Data Fim
           Expanded(
             child: _buildDateField(
               context: context,
@@ -106,7 +100,6 @@ class ReportDateFilter extends StatelessWidget {
               ),
             ),
           ),
-          // Botão limpar
           if (hasFilter && onClear != null) ...[
             SizedBox(width: 8.w),
             IconButton(

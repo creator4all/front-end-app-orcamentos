@@ -5,12 +5,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'city_badge_widget.dart';
 import 'searchable_dropdown_widget.dart';
 
-/// A reusable modal for selecting multiple cities from Brazilian states
-/// Integrates with GeoStore for dynamic data from backend
 class CitySelectionModal {
   static Future<List<Map<String, dynamic>>?> show({
     required BuildContext context,
-    required dynamic geo, // GeoStore instance
+    required dynamic geo,
     required List<Map<String, dynamic>> initialSelectedCities,
   }) {
     return showModalBottomSheet<List<Map<String, dynamic>>>(
@@ -52,7 +50,6 @@ class _CitySelectionContentState extends State<_CitySelectionContent> {
   void _addCity() {
     if (_selectedCidade == null || _selectedEstado == null) return;
 
-    // Verificar se já está na lista
     final jaExiste =
         _tempSelectedCities.any((c) => c['id'] == _selectedCidade.id);
 
@@ -64,7 +61,6 @@ class _CitySelectionContentState extends State<_CitySelectionContent> {
           'uf': _selectedEstado.uf,
         });
 
-        // Resetar seleções para permitir adicionar mais cidades
         _selectedCidade = null;
         widget.geo.selecionarCidade(null);
       });
@@ -97,7 +93,6 @@ class _CitySelectionContentState extends State<_CitySelectionContent> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Handle bar
           Container(
             margin: EdgeInsets.only(top: 20.h),
             width: 100.w,
@@ -108,7 +103,6 @@ class _CitySelectionContentState extends State<_CitySelectionContent> {
             ),
           ),
 
-          // Title
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
             child: Center(
@@ -123,14 +117,12 @@ class _CitySelectionContentState extends State<_CitySelectionContent> {
             ),
           ),
 
-          // Content - Scrollable
           Expanded(
             child: SingleChildScrollView(
               padding: EdgeInsets.symmetric(horizontal: 16.w),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Estado label
                   Text(
                     'Estado',
                     style: TextStyle(
@@ -141,7 +133,6 @@ class _CitySelectionContentState extends State<_CitySelectionContent> {
                   ),
                   SizedBox(height: 8.h),
 
-                  // Estado selector
                   Observer(
                     builder: (_) {
                       final List<String> estadosNomes = widget.geo.estados
@@ -176,7 +167,6 @@ class _CitySelectionContentState extends State<_CitySelectionContent> {
                   ),
                   SizedBox(height: 20.h),
 
-                  // Cidade label and selector (only if state is selected)
                   if (_selectedEstado != null) ...[
                     Text(
                       'Cidade',
@@ -188,7 +178,6 @@ class _CitySelectionContentState extends State<_CitySelectionContent> {
                     ),
                     SizedBox(height: 8.h),
 
-                    // Cidade selector
                     Observer(
                       builder: (_) {
                         if (widget.geo.isLoadingCidades) {
@@ -236,7 +225,6 @@ class _CitySelectionContentState extends State<_CitySelectionContent> {
                               setState(() {
                                 _selectedCidade = cidade;
                               });
-                              // Adicionar cidade automaticamente quando selecionada
                               _addCity();
                             }
                           },
@@ -246,7 +234,6 @@ class _CitySelectionContentState extends State<_CitySelectionContent> {
                     SizedBox(height: 20.h),
                   ],
 
-                  // Selected cities badges
                   if (_tempSelectedCities.isNotEmpty) ...[
                     Text(
                       'Cidades selecionadas',
@@ -266,7 +253,6 @@ class _CitySelectionContentState extends State<_CitySelectionContent> {
                           state: cityData['uf']!,
                           onRemove: () => _removeCity(cityData['id']),
                           showIcon: true,
-                          // Custom colors as per specification
                           backgroundColor: const Color(0xFF00364D),
                           textColor: const Color(0xFFEBF9FF),
                           iconBackgroundColor: const Color(0xFFEBF9FF),
@@ -281,7 +267,6 @@ class _CitySelectionContentState extends State<_CitySelectionContent> {
             ),
           ),
 
-          // Fixed bottom button
           Container(
             padding: EdgeInsets.all(16.w),
             decoration: BoxDecoration(

@@ -3,14 +3,13 @@ import 'package:equatable/equatable.dart';
 import 'indicador_etapa_entity.dart';
 import 'subcategoria_entity.dart';
 
-/// Entidade que representa um Produto
 class ProdutoEntity extends Equatable {
   final int id;
   final bool status;
   final double valor;
   final int subcategoriaId;
-  final String solucao; // Descrição do produto
-  final String indicacao; // Para qual etapa é indicado
+  final String solucao;
+  final String indicacao;
   final List<IndicadorEtapaEntity> indicadores;
   final SubcategoriaEntity subcategoria;
 

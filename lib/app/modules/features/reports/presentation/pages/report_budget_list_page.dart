@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -9,10 +9,6 @@ import '../stores/report_filter_store.dart';
 import '../widgets/report_budget_card_widget.dart';
 import '../widgets/report_filter_widget.dart';
 
-/// Página que lista os orçamentos de um usuário específico.
-///
-/// Layout idêntico ao BudgetListPage, com header customizado
-/// mostrando nome da empresa e vendedor.
 class ReportBudgetListPage extends StatefulWidget {
   final int userId;
   final String? userName;
@@ -35,7 +31,6 @@ class _ReportBudgetListPageState extends State<ReportBudgetListPage> {
   late final ReportBudgetListStore _store;
   late final ReportFilterStore _filterStore;
 
-  // Filtros locais para sincronizar com ReportFilterWidget
   List<String> _selectedFilters = ['pendente'];
   String _searchQuery = '';
 
@@ -45,19 +40,15 @@ class _ReportBudgetListPageState extends State<ReportBudgetListPage> {
     _store = Modular.get<ReportBudgetListStore>();
     _filterStore = Modular.get<ReportFilterStore>();
 
-    // Limpar apenas busca de orçamentos (manter filtros de data e status da navegação anterior)
     _filterStore.clearBudgetSearch();
 
-    // Se não há filtros de status, aplicar "pendente" como padrão
     if (_filterStore.selectedStatuses.isEmpty) {
       _filterStore.toggleStatus('pendente');
       _selectedFilters = ['pendente'];
     } else {
-      // Sincronizar filtros locais com a store
       _selectedFilters = _filterStore.selectedStatuses.toList();
     }
 
-    // Carregar orçamentos
     _store.loadBudgets(
       widget.userId,
       userName: widget.userName,
@@ -78,10 +69,8 @@ class _ReportBudgetListPageState extends State<ReportBudgetListPage> {
       _selectedFilters = List.from(filters);
     });
 
-    // Sincronizar filtros da UI com a store
     _filterStore.clearStatusFilter();
     for (final filter in filters) {
-      // Normalizar status para lowercase
       _filterStore.toggleStatus(filter.toLowerCase());
     }
   }
@@ -115,7 +104,6 @@ class _ReportBudgetListPageState extends State<ReportBudgetListPage> {
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            // Componente de filtros (cópia do BudgetFilterWidget)
             SliverToBoxAdapter(
               child: ReportFilterWidget(
                 onSearchChanged: _handleSearchChanged,
@@ -124,7 +112,6 @@ class _ReportBudgetListPageState extends State<ReportBudgetListPage> {
               ),
             ),
 
-            // Header: Nome da empresa + Vendedor
             SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
@@ -152,7 +139,6 @@ class _ReportBudgetListPageState extends State<ReportBudgetListPage> {
               ),
             ),
 
-            // Lista de orçamentos
             Observer(
               builder: (_) {
                 if (_store.isLoading && _store.allBudgets.isEmpty) {
@@ -211,7 +197,6 @@ class _ReportBudgetListPageState extends State<ReportBudgetListPage> {
                     delegate: SliverChildBuilderDelegate((context, index) {
                       final b = budgets[index];
 
-                      // Mapear status da API para enum
                       ReportBudgetStatus status;
                       switch (b.status.toLowerCase()) {
                         case 'aprovado':
@@ -227,7 +212,6 @@ class _ReportBudgetListPageState extends State<ReportBudgetListPage> {
                           status = ReportBudgetStatus.pending;
                       }
 
-                      // Calcular dias restantes
                       int daysRemaining = 0;
                       if (b.dataValidade != null) {
                         final now = DateTime.now();

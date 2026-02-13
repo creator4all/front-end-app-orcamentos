@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class SearchableDropdownWidget extends StatefulWidget {
@@ -137,7 +137,6 @@ class _SearchableDropdownWidgetState extends State<SearchableDropdownWidget> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Campo principal (transforma entre texto e input)
             GestureDetector(
               onTap: _isOpen ? null : _openDropdown,
               behavior: HitTestBehavior.opaque,
@@ -190,7 +189,6 @@ class _SearchableDropdownWidgetState extends State<SearchableDropdownWidget> {
               ),
             ),
 
-            // Lista inline quando aberto
             if (_isOpen) ...[
               Divider(height: 1, color: Colors.grey[300]),
               ConstrainedBox(
@@ -274,3 +272,4 @@ class _SearchableDropdownWidgetState extends State<SearchableDropdownWidget> {
     );
   }
 }
+

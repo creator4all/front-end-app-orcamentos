@@ -5,9 +5,6 @@ import '../config/api_config.dart';
 import '../entities/cidade_entity.dart';
 import '../entities/estado_entity.dart';
 
-/// Serviço de geolocalização usando AppHttpClient
-///
-/// Centraliza operações de estados e cidades.
 class GeoService {
   final AppHttpClient _client;
 

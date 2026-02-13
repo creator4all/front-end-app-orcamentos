@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -26,8 +26,6 @@ class _BudgetListPageState extends State<BudgetListPage> {
     _store = Modular.get<BudgetListStore>();
     _authStore = Modular.get<AuthStore>();
 
-    // Carregar dados apenas se a lista estiver vazia (primeira vez)
-    // O refresh é feito pelas telas de criação/edição antes de navegar
     if (_store.allItems.isEmpty) {
       _store.fetch();
     }
@@ -38,15 +36,12 @@ class _BudgetListPageState extends State<BudgetListPage> {
   }
 
   void _handleFiltersChanged(List<String> filters) {
-    // Sincronizar filtros da UI com a store
-    // Remover filtros que não estão mais na lista
     for (final filter in _store.selectedFilters.toList()) {
       if (!filters.contains(filter)) {
         _store.toggleFilter(filter);
       }
     }
 
-    // Adicionar novos filtros
     for (final filter in filters) {
       if (!_store.selectedFilters.contains(filter)) {
         _store.toggleFilter(filter);
@@ -64,10 +59,8 @@ class _BudgetListPageState extends State<BudgetListPage> {
         context: context,
         currentName: currentName,
         onRename: (String newName) async {
-          // Chamar a Store que usa o UseCase
           await _store.renameBudget(budgetId, newName);
 
-          // Verificar se houve erro
           if (_store.error != null) {
             throw Exception(_store.error);
           }
@@ -98,7 +91,6 @@ class _BudgetListPageState extends State<BudgetListPage> {
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
-            // Componente de filtros
             SliverToBoxAdapter(
               child: BudgetFilterWidget(
                 onSearchChanged: _handleSearchChanged,
@@ -107,7 +99,6 @@ class _BudgetListPageState extends State<BudgetListPage> {
               ),
             ),
 
-            // Seção Realizados/Arquivados
             SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
@@ -159,7 +150,6 @@ class _BudgetListPageState extends State<BudgetListPage> {
               ),
             ),
 
-            // Lista de orçamentos
             Observer(
               builder: (_) {
                 if (_store.isLoading && _store.items.isEmpty) {
@@ -215,7 +205,6 @@ class _BudgetListPageState extends State<BudgetListPage> {
                     delegate: SliverChildBuilderDelegate((context, index) {
                       final b = _store.items[index];
 
-                      // Mapear status da API para enum
                       BudgetStatus status;
                       switch (b.status.toLowerCase()) {
                         case 'aprovado':
@@ -231,7 +220,6 @@ class _BudgetListPageState extends State<BudgetListPage> {
                           status = BudgetStatus.pending;
                       }
 
-                      // Calcular dias restantes
                       int daysRemaining = 0;
                       if (b.dataValidade != null) {
                         final now = DateTime.now();

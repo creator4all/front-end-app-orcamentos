@@ -1,8 +1,7 @@
-import '../../domain/entities/produto_entity.dart';
+﻿import '../../domain/entities/produto_entity.dart';
 import 'indicador_etapa_dto.dart';
 import 'subcategoria_dto.dart';
 
-/// DTO para informações de seleção de um produto no orçamento
 class OrcamentoProdutoInfo {
   final int id;
   final double quantidade;
@@ -56,17 +55,14 @@ class ProdutoDto {
   });
 
   factory ProdutoDto.fromJson(Map<String, dynamic> json) {
-    // Parse indicadores array
     final indicadoresArray = json['indicadores'] as List? ?? [];
     final indicadores = indicadoresArray
         .map((item) => IndicadorEtapaDto.fromJson(item as Map<String, dynamic>))
         .toList();
 
-    // Parse subcategoria
     final subcategoriaJson =
         json['subcategoria'] as Map<String, dynamic>? ?? {};
 
-    // Parse orcamento_produto (novo formato)
     OrcamentoProdutoInfo? orcamentoProduto;
     final orcamentoProdutoJson =
         json['orcamento_produto'] as Map<String, dynamic>?;

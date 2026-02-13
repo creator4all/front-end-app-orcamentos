@@ -13,16 +13,11 @@ import '../../../budget_config/presentation/widgets/census_data_section_widget.d
 import '../stores/multi_city_census_store.dart';
 import '../widgets/city_selector_dropdown.dart';
 
-/// Página de censo escolar multi-cidades
-/// Permite selecionar múltiplas cidades e editar valores do censo
 class MultiCityCensusPage extends StatefulWidget {
-  /// Nome do orçamento recebido via navegação
   final String budgetName;
 
-  /// ID do orçamento para modo edição (null para criação)
   final int? budgetId;
 
-  /// Cidades já selecionadas (recebidas da NewBudgetPage)
   final List<Map<String, dynamic>> selectedCities;
 
   const MultiCityCensusPage({
@@ -46,7 +41,6 @@ class _MultiCityCensusPageState
     super.initState();
     store.setBudgetName(widget.budgetName);
 
-    // Usar cidades recebidas via parâmetro e carregar censo
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (widget.selectedCities.isNotEmpty) {
         store.setSelectedCities(widget.selectedCities);
@@ -73,7 +67,6 @@ class _MultiCityCensusPageState
   }
 
   Future<void> _showCitySelectionModal() async {
-    // Carregar estados se necessário
     if (_geoStore.estados.isEmpty && !_geoStore.isLoadingEstados) {
       await _geoStore.carregarEstados();
     }
@@ -101,16 +94,13 @@ class _MultiCityCensusPageState
 
     for (var group in census.grupos) {
       for (var title in group.titulos) {
-        // Usar displayValues por nomeEtapa para obter valor correto (agregado ou individual)
         final value = displayValues[title.nomeEtapa] ?? title.valor;
         final newValue = value.toStringAsFixed(0);
         if (_controllers.containsKey(title.nomeEtapa)) {
-          // Atualizar valor existente se diferente
           if (_controllers[title.nomeEtapa]!.text != newValue) {
             _controllers[title.nomeEtapa]!.text = newValue;
           }
         } else {
-          // Criar novo controller
           _controllers[title.nomeEtapa] = TextEditingController(text: newValue);
         }
       }
@@ -132,21 +122,16 @@ class _MultiCityCensusPageState
       return;
     }
 
-    // Criar orçamento - agora retorna dados completos
     final budgetData = await store.createBudget();
 
     if (budgetData != null) {
-      // Extrair ID dos dados retornados
       final budgetId = budgetData['id'];
 
-      // Navegar para configuração passando dados completos via arguments
-      // Isso evita chamadas extras de GET /api/orcamentos/{id} e /produtos-completos
       Modular.to.pushReplacementNamed(
         '/budget/config/$budgetId',
         arguments: {'multiCityResponse': budgetData},
       );
     } else if (store.error != null && mounted) {
-      // ✅ Usar CustomInfoDialog para exibir erro
       CustomInfoDialog.show(
         context: context,
         type: DialogType.error,
@@ -198,10 +183,8 @@ class _MultiCityCensusPageState
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // City badges
                         _buildCityBadges(),
 
-                        // City selector dropdown
                         if (store.quantidadeCidades > 1) ...[
                           SizedBox(height: 16.h),
                           CitySelectorDropdown(
@@ -213,7 +196,6 @@ class _MultiCityCensusPageState
 
                         SizedBox(height: 16.h),
 
-                        // Info text
                         Padding(
                           padding: EdgeInsets.symmetric(horizontal: 16.w),
                           child: Text(
@@ -227,14 +209,12 @@ class _MultiCityCensusPageState
                         ),
                         SizedBox(height: 8.h),
 
-                        // Census data sections
                         _buildCensusSections(),
                       ],
                     ),
                   ),
                 ),
 
-                // Next button
                 _buildNextButton(),
               ],
             );
@@ -265,7 +245,6 @@ class _MultiCityCensusPageState
                     state: cityData['uf'] ?? '',
                     onRemove: () {
                       store.removeCity(cityData['id'] as int);
-                      // Recarregar se ainda houver cidades
                       if (store.hasCities) {
                         store.loadCensusForCities();
                       }
@@ -306,7 +285,6 @@ class _MultiCityCensusPageState
           );
         }
 
-        // Filtrar grupos de alunos (sem sufixo P)
         final studentGroups = census.grupos
             .map((group) {
               final studentTitles = group.titulos
@@ -328,7 +306,7 @@ class _MultiCityCensusPageState
                 return CensusDataSectionWidget.withNomeEtapa(
                   group: group,
                   isEditMode: !store
-                      .isAggregateMode, // Desabilitar edição no modo agregado
+                      .isAggregateMode,
                   controllers: _controllers,
                   onItemChanged: (entry) {
                     final cityId = store.selectedCityId ??

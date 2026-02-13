@@ -1,11 +1,10 @@
-import 'package:dartz/dartz.dart';
+﻿import 'package:dartz/dartz.dart';
 
 import '../../../shared/errors/budget_failure.dart';
 import '../../../shared/models/budget_update_dto.dart';
 import '../entities/budget_edit_entity.dart';
 import '../repositories/budget_edit_repository.dart';
 
-/// Caso de uso para atualizar um orçamento
 class UpdateBudgetUseCase {
   final BudgetEditRepository repository;
 
@@ -43,17 +42,6 @@ class UpdateBudgetUseCase {
     );
   }
 
-  /// Atualiza orçamento usando DTO completo
-  ///
-  /// Método recomendado para atualizações completas incluindo:
-  /// - Produtos (seleção e quantidade)
-  /// - Indicadores do Censo Escolar
-  /// - Dados gerais (nome, status, validade, total)
-  ///
-  /// [budgetId] ID do orçamento a atualizar
-  /// [updateData] DTO com dados para atualização (partial update)
-  ///
-  /// Retorna o orçamento atualizado ou falha
   Future<Either<BudgetFailure, BudgetEditEntity>> callWithDto({
     required int budgetId,
     required BudgetUpdateDto updateData,
@@ -66,7 +54,6 @@ class UpdateBudgetUseCase {
         );
       }
 
-      // Validação: Total se fornecido
       if (updateData.total != null && updateData.total! < 0) {
         return const Left(
           ValidationFailure('O valor total não pode ser negativo'),
@@ -82,15 +69,6 @@ class UpdateBudgetUseCase {
     }
   }
 
-  /// Cria nova versão do orçamento com as alterações
-  ///
-  /// O orçamento original permanece inalterado e uma nova versão
-  /// é criada com as alterações fornecidas.
-  ///
-  /// [budgetId] ID do orçamento a versionar
-  /// [updateData] DTO com dados da nova versão
-  ///
-  /// Retorna a nova versão do orçamento ou falha
   Future<Either<BudgetFailure, BudgetEditEntity>> versionWithDto({
     required int budgetId,
     required BudgetUpdateDto updateData,
@@ -103,7 +81,6 @@ class UpdateBudgetUseCase {
         );
       }
 
-      // Validação: Total se fornecido
       if (updateData.total != null && updateData.total! < 0) {
         return const Left(
           ValidationFailure('O valor total não pode ser negativo'),
@@ -119,14 +96,6 @@ class UpdateBudgetUseCase {
     }
   }
 
-  /// Cria nova versão de orçamento MULTI-CIDADE
-  ///
-  /// Usa endpoint específico para orçamentos com múltiplas cidades.
-  ///
-  /// [budgetId] ID do orçamento a versionar
-  /// [updateData] DTO com dados da nova versão (incluindo array cidades)
-  ///
-  /// Retorna a nova versão do orçamento ou falha
   Future<Either<BudgetFailure, BudgetEditEntity>> versionMultiCityWithDto({
     required int budgetId,
     required BudgetUpdateDto updateData,
@@ -139,7 +108,6 @@ class UpdateBudgetUseCase {
         );
       }
 
-      // Validação: Total se fornecido
       if (updateData.total != null && updateData.total! < 0) {
         return const Left(
           ValidationFailure('O valor total não pode ser negativo'),

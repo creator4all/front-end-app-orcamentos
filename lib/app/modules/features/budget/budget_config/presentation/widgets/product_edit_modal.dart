@@ -1,12 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 
 import '../../domain/entities/indicador_etapa_entity.dart';
 import '../../domain/entities/product_entity.dart';
 
-/// Modal para edição de parâmetros do produto
-/// Permite marcar/desmarcar indicadores e editar valor (se aplicável)
 class ProductEditModal extends StatefulWidget {
   final ProductEntity product;
   final Function(ProductEntity) onSave;
@@ -94,11 +92,9 @@ class _ProductEditModalState extends State<ProductEditModal> {
   }
 
   void _handleSave() {
-    // Parse do valor
     final valorText = _valorController.text.replaceAll(RegExp(r'[^\d,]'), '');
     final valor = double.tryParse(valorText.replaceAll(',', '.')) ?? 0.0;
 
-    // Criar produto atualizado
     final updatedProduct = widget.product.copyWith(
       valor: valor,
       indicadoresEtapa: _indicadores,
@@ -118,7 +114,6 @@ class _ProductEditModalState extends State<ProductEditModal> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Header
             Container(
               padding: EdgeInsets.all(16.w),
               decoration: const BoxDecoration(
@@ -143,14 +138,12 @@ class _ProductEditModalState extends State<ProductEditModal> {
               ),
             ),
 
-            // Conteúdo
             Flexible(
               child: SingleChildScrollView(
                 padding: EdgeInsets.all(16.w),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Informações do produto
                     Container(
                       padding: EdgeInsets.all(12.w),
                       decoration: BoxDecoration(
@@ -204,7 +197,6 @@ class _ProductEditModalState extends State<ProductEditModal> {
 
                     SizedBox(height: 16.h),
 
-                    // Campo de valor (se aplicável)
                     if (_isLivro || _isTecnologia) ...[
                       Text(
                         'Valor Unitário',
@@ -232,7 +224,6 @@ class _ProductEditModalState extends State<ProductEditModal> {
                       SizedBox(height: 16.h),
                     ],
 
-                    // Indicadores
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -265,7 +256,6 @@ class _ProductEditModalState extends State<ProductEditModal> {
                     ),
                     SizedBox(height: 8.h),
 
-                    // Lista de indicadores
                     Container(
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.grey[300]!),
@@ -305,7 +295,6 @@ class _ProductEditModalState extends State<ProductEditModal> {
                       ),
                     ),
 
-                    // Informações de cálculo
                     if (_isLivro || _isTecnologia) ...[
                       SizedBox(height: 16.h),
                       Container(
@@ -319,7 +308,7 @@ class _ProductEditModalState extends State<ProductEditModal> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'ℹ️ Regra de cálculo',
+                              'Regra de cálculo',
                               style: TextStyle(
                                 fontSize: 12.sp,
                                 fontWeight: FontWeight.w600,
@@ -345,7 +334,6 @@ class _ProductEditModalState extends State<ProductEditModal> {
               ),
             ),
 
-            // Footer
             Container(
               padding: EdgeInsets.all(16.w),
               decoration: const BoxDecoration(

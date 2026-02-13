@@ -1,11 +1,10 @@
 import '../../domain/entities/indicador_etapa_entity.dart';
 
-/// DTO para parsing JSON dos indicadores de etapa da API
 class IndicadorEtapaDTO {
   final int produtoIndicadorId;
   final int indicadorId;
   final String indicadorNome;
-  final String? nomeEtapa; // Nome técnico (ex: ef1ano)
+  final String? nomeEtapa;
   final int grupoId;
   final String grupoNome;
   final bool selecionado;
@@ -22,21 +21,6 @@ class IndicadorEtapaDTO {
     this.valorPadrao,
   });
 
-  /// Cria um DTO a partir do JSON da API
-  ///
-  /// Estrutura esperada da API:
-  /// ```json
-  /// {
-  ///   "produto_indicador_id": 1399,
-  ///   "indicador_id": 19,
-  ///   "indicador_nome": "Cursistas",
-  ///   "nome_etapa": "cursistas",
-  ///   "grupo_id": 5,
-  ///   "grupo_nome": "Cursistas",
-  ///   "selecionado": true,
-  ///   "valor_padrao": true
-  /// }
-  /// ```
   factory IndicadorEtapaDTO.fromJson(Map<String, dynamic> json) {
     try {
       return IndicadorEtapaDTO(
@@ -55,14 +39,13 @@ class IndicadorEtapaDTO {
     }
   }
 
-  /// Converte o DTO para Entity
   IndicadorEtapaEntity toEntity() {
     return IndicadorEtapaEntity(
       produtoIndicadorId: produtoIndicadorId,
       indicadorId: indicadorId,
       indicadorNome: indicadorNome,
       nomeEtapa: nomeEtapa ??
-          indicadorNome, // Fallback para indicadorNome se nomeEtapa for nulo
+          indicadorNome,
       grupoId: grupoId,
       grupoNome: grupoNome,
       selecionado: selecionado,
@@ -70,7 +53,6 @@ class IndicadorEtapaDTO {
     );
   }
 
-  /// Converte o DTO para JSON
   Map<String, dynamic> toJson() {
     return {
       'produto_indicador_id': produtoIndicadorId,
@@ -84,7 +66,6 @@ class IndicadorEtapaDTO {
     };
   }
 
-  /// Converte uma Entity para DTO
   factory IndicadorEtapaDTO.fromEntity(IndicadorEtapaEntity entity) {
     return IndicadorEtapaDTO(
       produtoIndicadorId: entity.produtoIndicadorId,

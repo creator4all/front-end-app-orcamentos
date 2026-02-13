@@ -1,46 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-/// A reusable base card container with optional border and shadow.
-///
-/// Specs:
-/// - Border radius: 10
-/// - Drop shadow: color #000000, blur 8, y-offset 2 (can be disabled)
-/// - Border color: #117BBD (can be disabled)
-/// - Width: full (stretches to available width)
-/// - Height: fits its content (based on provided children)
 class CardBase extends StatelessWidget {
-  /// Widgets to render inside the card, stacked vertically.
   final List<Widget> children;
-
-  /// Inner spacing of the card content.
   final EdgeInsetsGeometry padding;
-
-  /// Optional outer spacing around the card.
   final EdgeInsetsGeometry? margin;
-
-  /// Enables the box shadow.
   final bool enableShadow;
 
-  /// Enables the border.
   final bool enableBorder;
-
-  /// Corner radius; defaults to 10.
   final double borderRadius;
 
-  /// Shadow blur radius; defaults to 8.
   final double shadowBlurRadius;
 
-  /// Shadow vertical offset; defaults to 2.
   final double shadowYOffset;
 
-  /// Border color; defaults to #117BBD.
   final Color borderColor;
 
-  /// Background color; defaults to white.
   final Color backgroundColor;
-
-  /// Shadow base color; defaults to black.
   final Color shadowColor;
 
   const CardBase({
@@ -71,7 +47,7 @@ class CardBase extends StatelessWidget {
         : const [];
 
     return Container(
-      width: double.infinity, // full width
+      width: double.infinity,
       margin: margin,
       padding: padding,
       constraints: BoxConstraints(

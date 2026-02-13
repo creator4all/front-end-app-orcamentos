@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'days_remaining_widget.dart';
@@ -61,7 +61,6 @@ class BudgetCardWidget extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // Título com ícone de info para orçamentos criados por admin
             Row(
               children: [
                 Expanded(
@@ -91,7 +90,6 @@ class BudgetCardWidget extends StatelessWidget {
               ],
             ),
 
-            // Parceiro e Vendedor (baseado no role)
             if (_shouldShowPartnerAndSeller())
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -108,7 +106,6 @@ class BudgetCardWidget extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                  // Spacer para manter Vendedor à direita quando Parceiro não é exibido
                   if (userRole != UserRole.admin || partner == null)
                     const Spacer(),
                   if (seller != null)
@@ -124,12 +121,10 @@ class BudgetCardWidget extends StatelessWidget {
                 ],
               ),
 
-            // Linha principal: Código/Data vs Valor
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Lado esquerdo: Código e Data na mesma linha
                 Expanded(
                   flex: 3,
                   child: Row(
@@ -162,7 +157,6 @@ class BudgetCardWidget extends StatelessWidget {
                   ),
                 ),
 
-                // Lado direito: Valor
                 Expanded(
                   flex: 2,
                   child: Text(
@@ -179,16 +173,13 @@ class BudgetCardWidget extends StatelessWidget {
               ],
             ),
 
-            // Linha inferior: Dias restantes vs Status
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Dias restantes
                 DaysRemainingWidget(
                   daysRemaining: daysRemaining,
                 ),
 
-                // Status tags
                 Row(
                   children: [
                     StatusTagWidget(
@@ -284,21 +275,17 @@ class BudgetCardWidget extends StatelessWidget {
   }
 
   String _formatCurrency(double value) {
-    // Converte para string com 2 casas decimais
     String valueString = value.toStringAsFixed(2);
 
-    // Separa parte inteira e decimal
     List<String> parts = valueString.split('.');
     String integerPart = parts[0];
     String decimalPart = parts[1];
 
-    // Adiciona pontos para milhares
     String formattedInteger = integerPart.replaceAllMapped(
       RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
       (Match match) => '${match[1]}.',
     );
 
-    // Retorna no formato brasileiro: R$999.999.999,99
     return 'R\$ $formattedInteger,$decimalPart';
   }
 }

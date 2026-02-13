@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  static const Color primaryColor = Color(0xFF1E88E5); // Cor azul similar ao mockup
-  static const Color accentColor = Color(0xFF8BC34A); // Cor verde similar ao mockup
+  static const Color primaryColor = Color(0xFF1E88E5);
+  static const Color accentColor = Color(0xFF8BC34A);
   static const Color textColor = Color(0xFF333333);
   static const Color lightTextColor = Color(0xFF666666);
   static const Color backgroundColor = Colors.white;
@@ -58,3 +58,4 @@ class AppTheme {
     );
   }
 }
+

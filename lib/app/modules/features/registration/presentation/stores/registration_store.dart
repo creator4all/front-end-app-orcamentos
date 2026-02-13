@@ -1,4 +1,4 @@
-import 'package:mobx/mobx.dart';
+﻿import 'package:mobx/mobx.dart';
 
 import '../../domain/entities/company.dart';
 import '../../domain/entities/partner_request.dart';
@@ -20,9 +20,6 @@ abstract class _RegistrationStoreBase with Store {
     required this.registrationRepository,
   });
 
-  // ============================================
-  // OBSERVABLES - Estado de Verificação de Documento
-  // ============================================
 
   @observable
   bool isVerifyingDocument = false;
@@ -33,9 +30,6 @@ abstract class _RegistrationStoreBase with Store {
   @observable
   String? verifyError;
 
-  // ============================================
-  // OBSERVABLES - Estado de Cadastro de Usuário
-  // ============================================
 
   @observable
   bool isRegisteringUser = false;
@@ -46,9 +40,6 @@ abstract class _RegistrationStoreBase with Store {
   @observable
   bool registerUserSuccess = false;
 
-  // ============================================
-  // OBSERVABLES - Estado de Solicitação de Parceria
-  // ============================================
 
   @observable
   bool isRequestingPartner = false;
@@ -59,9 +50,6 @@ abstract class _RegistrationStoreBase with Store {
   @observable
   bool requestPartnerSuccess = false;
 
-  // ============================================
-  // COMPUTED
-  // ============================================
 
   @computed
   bool get hasFoundCompany => foundCompany != null;
@@ -70,11 +58,7 @@ abstract class _RegistrationStoreBase with Store {
   bool get canProceedToRegistration =>
       hasFoundCompany && foundCompany!.status == true;
 
-  // ============================================
-  // ACTIONS
-  // ============================================
 
-  /// Verifica documento (CNPJ) e busca empresa
   @action
   Future<void> verifyDocument(String documento) async {
     isVerifyingDocument = true;
@@ -97,7 +81,6 @@ abstract class _RegistrationStoreBase with Store {
     isVerifyingDocument = false;
   }
 
-  /// Cadastra novo usuário
   @action
   Future<void> registerUser(UserRegistration registration) async {
     isRegisteringUser = true;
@@ -120,7 +103,6 @@ abstract class _RegistrationStoreBase with Store {
     isRegisteringUser = false;
   }
 
-  /// Envia solicitação de parceria
   @action
   Future<void> requestPartner(PartnerRequest request) async {
     isRequestingPartner = true;
@@ -143,7 +125,6 @@ abstract class _RegistrationStoreBase with Store {
     isRequestingPartner = false;
   }
 
-  /// Limpa estado de verificação de documento
   @action
   void clearVerifyState() {
     isVerifyingDocument = false;
@@ -151,7 +132,6 @@ abstract class _RegistrationStoreBase with Store {
     verifyError = null;
   }
 
-  /// Limpa estado de cadastro de usuário
   @action
   void clearRegisterUserState() {
     isRegisteringUser = false;
@@ -159,7 +139,6 @@ abstract class _RegistrationStoreBase with Store {
     registerUserSuccess = false;
   }
 
-  /// Limpa estado de solicitação de parceria
   @action
   void clearRequestPartnerState() {
     isRequestingPartner = false;
@@ -167,7 +146,6 @@ abstract class _RegistrationStoreBase with Store {
     requestPartnerSuccess = false;
   }
 
-  /// Reseta todo o estado
   @action
   void resetAllState() {
     clearVerifyState();

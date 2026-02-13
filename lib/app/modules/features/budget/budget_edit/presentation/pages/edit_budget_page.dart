@@ -6,19 +6,15 @@ import 'package:intl/intl.dart';
 import 'package:multimidiaapp/app/modules/features/budget/budget_list/presentation/stores/budget_list_store.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_info_dialog.dart';
 
-// Imports compartilhados
 import '../../../../../../shared/widgets/budget_summary_card.dart';
 import '../../../../../../shared/widgets/custom_top_bar.dart';
 import '../../../../../../shared/widgets/export_pdf_modal.dart';
 import '../../../../../../shared/widgets/product_category.dart';
 import '../../../../../../shared/widgets/status_tag_widget.dart';
-// Imports de auth
 import '../../../../auth/presentation/stores/auth_store.dart';
-// Imports da feature
 import '../../../budget_config/domain/entities/category_entity.dart';
 import '../../../budget_config/domain/entities/product_entity.dart';
 import '../../../budget_config/domain/entities/subcategory_entity.dart';
-// Imports dos widgets do budget_config (reutilização)
 import '../../../budget_config/presentation/widgets/budget_skeleton.dart';
 import '../../../budget_config/presentation/widgets/product_detail_modal.dart';
 import '../../../budget_config/presentation/widgets/school_census_card.dart';
@@ -47,8 +43,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
   final TextEditingController _validadeOrcamentoController =
       TextEditingController();
 
-  /// Formata valor monetário para padrão brasileiro
-  /// Ex: 17049856.20 -> R$ 17.049.856,20
   String _formatCurrency(double value) {
     final formatter = NumberFormat.currency(
       locale: 'pt_BR',
@@ -58,22 +52,18 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     return formatter.format(value);
   }
 
-  /// Sincroniza campo de texto de validade com a store
   void _syncValidityFieldWithStore() {
     if (store.validityDate != null) {
-      // Calcular dias a partir da data de validade existente
       final hoje = DateTime.now();
       final hojeDate = DateTime(hoje.year, hoje.month, hoje.day);
       final dias = store.validityDate!.difference(hojeDate).inDays;
       _validadeOrcamentoController.text = dias.toString();
     } else {
-      // Se não tem data, usar 60 dias como padrão
       _validadeOrcamentoController.text = '60';
       _updateValidityDate(60);
     }
   }
 
-  /// Atualiza validityDate na store quando usuário digita
   void _onValidityDaysChanged() {
     final text = _validadeOrcamentoController.text;
     if (text.isNotEmpty) {
@@ -84,7 +74,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     }
   }
 
-  /// Calcula e seta nova data de validade baseado nos dias
   void _updateValidityDate(int dias) {
     final hoje = DateTime.now();
     final hojeDate = DateTime(hoje.year, hoje.month, hoje.day);
@@ -98,18 +87,14 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     store = Modular.get<BudgetEditStore>();
     _authStore = Modular.get<AuthStore>();
 
-    // Define a data atual para o campo "Data do orçamento" no formato brasileiro
     _dataOrcamentoController.text =
         DateFormat('dd/MM/yyyy').format(DateTime.now());
 
-    // ✅ Listener para mudanças no campo de validade
     _validadeOrcamentoController.addListener(_onValidityDaysChanged);
 
-    // Inicializa a store com o budgetId
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await store.initialize(widget.budgetId);
 
-      // ✅ Após carregar, sincronizar campo com store
       _syncValidityFieldWithStore();
     });
   }
@@ -122,9 +107,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     super.dispose();
   }
 
-  /// Valida orçamento antes de salvar e mostra feedback apropriado
   Future<void> _handleSaveWithValidation() async {
-    // 1️⃣ Validar data de validade
     if (store.validityDate == null) {
       CustomInfoDialog.show(
         context: context,
@@ -135,7 +118,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
       return;
     }
 
-    // 2️⃣ Validar se data não está no passado
     if (store.validityDate!.isBefore(DateTime.now())) {
       CustomInfoDialog.show(
         context: context,
@@ -146,7 +128,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
       return;
     }
 
-    // 3️⃣ Validar produtos selecionados (usa totalSelectedProducts que conta da hierarquia de categorias)
     if (store.totalSelectedProducts == 0) {
       CustomInfoDialog.show(
         context: context,
@@ -157,7 +138,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
       return;
     }
 
-    // 4️⃣ Validar se orçamento pode ser editado (não aprovado)
     if (store.budgetData != null && !store.budgetData!.canBeEdited) {
       CustomInfoDialog.show(
         context: context,
@@ -168,7 +148,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
       return;
     }
 
-    // 5️⃣ Todas validações passaram, salvar
     await _handleSaveChanges();
   }
 
@@ -177,8 +156,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
 
     result.fold(
       (failure) {
-        // Erro já foi definido na store
-        // Erro já foi definido na store
         CustomInfoDialog.show(
           context: context,
           type: DialogType.error,
@@ -187,7 +164,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
         );
       },
       (budget) async {
-        // Sucesso
         await CustomInfoDialog.show(
           context: context,
           type: DialogType.success,
@@ -195,7 +171,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
           message: 'Orçamento atualizado com sucesso!',
         );
 
-        // Forçar atualização da lista e navegar para ela
         final listStore = Modular.get<BudgetListStore>();
         await listStore.refresh();
         Modular.to.navigate('/budget/');
@@ -213,7 +188,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
       ),
       body: Observer(
         builder: (_) {
-          // Mostrar skeleton enquanto carrega dados completos
           if (!store.isFullyLoaded) {
             return const BudgetSkeleton();
           }
@@ -256,10 +230,8 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
               padding: EdgeInsets.all(16.w),
               child: Column(
                 children: [
-                  // 🏷️ Status Header (Tags + Compartilhar) - PRIMEIRO
                   _buildStatusHeader(),
 
-                  // Resumo do orçamento
                   BudgetSummaryCard(
                     budgetValue: store.totalValue,
                     selectedProductsCount: store.selectedItemsCount,
@@ -267,7 +239,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
 
                   SizedBox(height: 12.h),
 
-                  // Card do Censo Escolar
                   if (store.budgetData?.cityIds.isNotEmpty ?? false)
                     Padding(
                       padding: EdgeInsets.only(bottom: 12.h),
@@ -276,13 +247,11 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                         citiesData: _extractCitiesData(),
                         censoAgregado: store.censoEscolar?.valoresPorEtapa,
                         onTap: () async {
-                          // ✅ Verificar se é multi-cidade
                           final isMultiCity =
                               (store.budgetData?.cityIds.length ?? 0) > 1;
                           final cityId =
                               store.budgetData?.cityIds.firstOrNull ?? 0;
 
-                          // Navegar para tela de edição do censo passando dados
                           await Modular.to.pushNamed(
                             '/budget/census/$cityId',
                             arguments: {
@@ -290,13 +259,11 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                               'budgetId': widget.budgetId,
                               'isMultiCityMode': isMultiCity,
                               'onCensusUpdated': (updatedCenso) {
-                                // Atualizar censo no store local
                                 store.updateCensoEscolar(updatedCenso);
                               },
                             },
                           );
 
-                          // ✅ Sempre recarregar ao retornar da tela para garantir sincronização
                           await store.reloadProductsAfterCensusEdit();
                         },
                       ),
@@ -304,17 +271,14 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
 
                   SizedBox(height: 12.h),
 
-                  // ✅ Categorias Dinâmicas (baseadas no campo "expandido")
                   if (store.hasCategories) ...[
                     ...store.categories.map((category) {
                       if (category.expandido) {
-                        // Exibir como categoria expandida (header + subcategorias visíveis)
                         return [
                           _buildExpandedCategoryHeader(category),
                           ..._buildExpandedSubcategories(category),
                         ];
                       } else {
-                        // Exibir como card único (abre modal ao clicar)
                         return [
                           Padding(
                             padding: EdgeInsets.only(bottom: 12.h),
@@ -325,7 +289,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                     }).expand((widgets) => widgets),
                   ],
 
-                  // Mensagem se não houver categorias
                   if (!store.hasCategories)
                     Padding(
                       padding: EdgeInsets.symmetric(vertical: 24.h),
@@ -447,10 +410,8 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                     ],
                   ),
 
-                  // 🎛️ Controles de Status e Arquivamento
                   _buildStatusControls(),
 
-                  // Botão Salvar (sempre habilitado, exceto quando salvando)
                   SizedBox(
                     width: double.infinity,
                     height: 50.h,
@@ -485,9 +446,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     );
   }
 
-  // ========== MÉTODOS AUXILIARES ==========
 
-  /// Constrói o header para categorias expandidas
   Widget _buildExpandedCategoryHeader(CategoryEntity category) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(0, 0, 0, 10),
@@ -524,11 +483,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
       ),
     );
   }
-
-  /// Constrói a lista de subcategorias expandidas
-  /// Ordena por campo "ordem" do backend
   List<Widget> _buildExpandedSubcategories(CategoryEntity category) {
-    // Ordenar subcategorias por ordem
     final sortedSubcategories = category.subcategorias.toList()
       ..sort((a, b) => a.ordem.compareTo(b.ordem));
 
@@ -540,18 +495,15 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     }).toList();
   }
 
-  /// Constrói um card para subcategoria usando ProductCategory widget
   Widget _buildSubcategoryCard(
       SubcategoryEntity subcategory, CategoryEntity parentCategory) {
     return Observer(
       builder: (_) {
-        // Buscar categoria atualizada da store
         final currentCategory = store.categories.firstWhere(
           (c) => c.id == parentCategory.id,
           orElse: () => parentCategory,
         );
 
-        // Buscar subcategoria atualizada dentro da categoria
         final currentSubcategory = currentCategory.subcategorias.firstWhere(
           (s) => s.id == subcategory.id,
           orElse: () => subcategory,
@@ -586,26 +538,20 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     );
   }
 
-  /// Extrai dados das cidades para o card do Censo Escolar
-  /// Transforma citiesDataRaw no mesmo formato que config_new_budget_page usa
   List<Map<String, dynamic>> _extractCitiesData() {
     if (store.budgetData == null || store.budgetData!.citiesDataRaw.isEmpty) {
       return [];
     }
 
-    // ✅ Transformar dados brutos para formato esperado pelo SchoolCensusCard
-    // (igual ao BudgetDetailDto.fromJson faz para config_new_budget_page)
     final result = <Map<String, dynamic>>[];
 
     for (final cityData in store.budgetData!.citiesDataRaw) {
       final cityId = cityData['id'] ?? 0;
       final cityName = cityData['nome'] ?? '';
 
-      // Extrair indicadores de 'cidades_has_indice_etapa'
       final indicadoresRaw =
           cityData['cidades_has_indice_etapa'] as List? ?? [];
 
-      // Mapear para estrutura simplificada de indicadores esperada pelo SchoolCensusCard
       final indicadores = indicadoresRaw.map((ind) {
         if (ind is! Map<String, dynamic>) return <String, dynamic>{};
 
@@ -614,7 +560,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
         final idGrupo = grupoObj?['grupo_id'] ?? 0;
         final pivot = ind['pivot'] as Map<String, dynamic>?;
 
-        // ✅ Garantir que valor seja numérico (não String)
         final valorRaw = pivot?['etapa_valor'] ?? ind['etapa_valor'] ?? 0;
         final valor = valorRaw is num
             ? valorRaw
@@ -639,10 +584,8 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     return result;
   }
 
-  // ========== MÉTODOS PARA MODAIS ==========
 
   void _showSubcategoriesModal(CategoryEntity category) {
-    // Guard: Não permitir abertura enquanto produtos estão carregando
     if (store.isLoadingProducts) {
       CustomInfoDialog.show(
         context: context,
@@ -659,7 +602,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
       backgroundColor: Colors.transparent,
       builder: (_) => Observer(
         builder: (_) {
-          // Buscar categoria atualizada da store
           final currentCategory = store.categories.firstWhere(
             (c) => c.id == category.id,
             orElse: () => category,
@@ -690,7 +632,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
       context: context,
       category: category,
       subcategory: subcategory,
-      store: store, // Passa a store do BudgetEdit
+      store: store,
     );
   }
 
@@ -709,7 +651,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     );
   }
 
-  // ========== HELPER PARA ÍCONES ==========
 
   IconData _getCategoryIcon(String categoryName) {
     switch (categoryName.toLowerCase()) {
@@ -722,12 +663,10 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     }
   }
 
-  // ========== BUILD CATEGORIA DINÂMICA ==========
 
   Widget _buildCategoryFromEntity(CategoryEntity category) {
     return Observer(
       builder: (_) {
-        // Buscar categoria atualizada da store dentro do Observer
         final currentCategory = store.categories.firstWhere(
           (c) => c.id == category.id,
           orElse: () => category,
@@ -757,7 +696,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     );
   }
 
-  /// 🏷️ Widget de Status Header (Tags + Botão Compartilhar)
   Widget _buildStatusHeader() {
     return Observer(
       builder: (_) => Padding(
@@ -765,7 +703,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // Tags de status
             Row(
               children: [
                 StatusTagWidget(
@@ -777,7 +714,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                 ],
               ],
             ),
-            // Botão compartilhar (iOS style)
             IconButton(
               icon: Icon(
                 Icons.ios_share,
@@ -793,13 +729,11 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     );
   }
 
-  /// 🎛️ Widget de Controles de Status (Dropdowns)
   Widget _buildStatusControls() {
     return Padding(
       padding: EdgeInsets.fromLTRB(0, 0, 0, 12.h),
       child: Row(
         children: [
-          // Dropdown Status
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -886,7 +820,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
             ),
           ),
           SizedBox(width: 8.w),
-          // Dropdown Arquivado
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -947,7 +880,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     );
   }
 
-  /// 🔄 Mapeia status string para TagType enum
   TagType _mapStatusToTagType(String status) {
     switch (status) {
       case 'pendente':
@@ -963,18 +895,15 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     }
   }
 
-  /// 📤 Abre modal para exportar e compartilhar PDF do orçamento
   Future<void> _handleShare() async {
     if (store.budgetData == null) return;
 
-    // Abrir modal de exportação de PDF (UseCase será obtido via Modular dentro do modal)
     await ExportPdfModal.show(
       context: context,
       orcamentoId: widget.budgetId,
     );
   }
 
-  /// 🏷️ Retorna label legível para o status
   String _getStatusLabel(String status) {
     switch (status) {
       case 'pendente':

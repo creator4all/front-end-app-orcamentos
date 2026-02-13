@@ -2,7 +2,6 @@ import '../../../budget_config/data/models/census_data_dto.dart';
 import '../../../budget_config/data/models/product_selection_dto.dart';
 import '../../domain/entities/budget_edit_entity.dart';
 
-/// DTO para edição de orçamento
 class BudgetEditDto {
   final int id;
   final String? name;
@@ -15,12 +14,11 @@ class BudgetEditDto {
   final int? partnerId;
   final List<int> cityIds;
   final List<Map<String, dynamic>>
-      citiesDataRaw; // Dados completos das cidades com indicadores
+      citiesDataRaw;
   final List<ProductSelectionDto> products;
-  final dynamic categoriesData; // Pode ser List ou Map dependendo da API
+  final dynamic categoriesData;
   final CensusDataDto? censusData;
 
-  /// Dados agregados do censo escolar para orçamentos multi-cidade
   final Map<String, double> censoAgregado;
 
   BudgetEditDto({
@@ -42,23 +40,19 @@ class BudgetEditDto {
   });
 
   factory BudgetEditDto.fromJson(Map<String, dynamic> json) {
-    // Parse produtos - NÃO parseamos aqui, virão de /produtos-completos
     final List<ProductSelectionDto> productsList = [];
 
-    // Parse cidades (IDs e dados completos)
     final List<int> cities = [];
     final List<Map<String, dynamic>> citiesData = [];
 
     if (json['cidades'] != null && json['cidades'] is List) {
       final cidadesList = json['cidades'] as List;
       for (final cidade in cidadesList) {
-        // Se é um objeto com 'id', pega o id E os dados completos
         if (cidade is Map<String, dynamic> && cidade['id'] != null) {
           cities.add(cidade['id'] as int);
           citiesData.add(
-              Map<String, dynamic>.from(cidade)); // Armazena dados completos
+              Map<String, dynamic>.from(cidade));
         }
-        // Se é um int direto
         else if (cidade is int) {
           cities.add(cidade);
         }
@@ -98,13 +92,11 @@ class BudgetEditDto {
       });
     }
 
-    // Parse censo
     CensusDataDto? census;
     if (json['censo'] != null) {
       census = CensusDataDto.fromJson(json['censo']);
     }
 
-    // A API pode retornar censo_agregado como [] (vazio) ou como Map
     Map<String, double> censoAgregado = {};
     final censoAgregadoRaw = json['censo_agregado'];
     if (censoAgregadoRaw is Map<String, dynamic>) {
@@ -172,6 +164,5 @@ class BudgetEditDto {
     );
   }
 
-  /// Computed property para compatibilidade com código existente
   bool get isArchived => status.toLowerCase() == 'arquivado';
 }

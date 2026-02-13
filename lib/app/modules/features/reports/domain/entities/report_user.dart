@@ -1,18 +1,12 @@
 import 'package:equatable/equatable.dart';
 
-/// Entidade representando um usuário com estatísticas de vendas
-/// para o módulo de relatórios.
-///
-/// Esta classe não tem dependência de JSON, API ou camada de dados.
-/// Representa as regras de negócio puras da aplicação.
 class ReportUser extends Equatable {
   final int id;
   final String nome;
   final String email;
-  final String cargo; // "Vendedor", "Gerente", "Gestor"
+  final String cargo;
   final double totalVendas;
 
-  // Contagem por status
   final int aprovados;
   final int pendentes;
   final int expirados;
@@ -30,13 +24,10 @@ class ReportUser extends Equatable {
     required this.naoAprovados,
   });
 
-  /// Total de orçamentos do usuário
   int get totalOrcamentos => aprovados + pendentes + expirados + naoAprovados;
 
-  /// Verifica se o usuário é um vendedor
   bool get isVendedor => cargo.toLowerCase() == 'vendedor';
 
-  /// Verifica se o usuário é um gestor/gerente
   bool get isGestor =>
       cargo.toLowerCase() == 'gestor' || cargo.toLowerCase() == 'gerente';
 

@@ -7,7 +7,6 @@ import 'package:multimidiaapp/app/shared/widgets/city_selection_modal.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_modal.dart';
 import 'package:multimidiaapp/app/shared/widgets/searchable_dropdown_widget.dart';
 
-// Importações temporárias para GeoStore e CensoStore (não migramos ainda)
 import '../../../../../../../stores/store_provider.dart';
 import '../../../../../../shared/widgets/custom_top_bar.dart';
 import '../../../../auth/presentation/stores/auth_store.dart';
@@ -21,11 +20,9 @@ class NewBudgetPage extends StatefulWidget {
 }
 
 class _NewBudgetPageState extends State<NewBudgetPage> {
-  // Stores Clean Architecture
   final _store = Modular.get<BudgetCreateStore>();
   final _authStore = Modular.get<AuthStore>();
 
-  // Stores legadas (temporário) - nullable para verificar inicialização
   dynamic _geo;
   dynamic _censo;
 
@@ -37,7 +34,6 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
   void initState() {
     super.initState();
 
-    // Adicionar listeners para sincronizar TextFields com Store
     _responsibleController.addListener(() {
       _store.setResponsibleName(_responsibleController.text);
     });
@@ -50,13 +46,11 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
       _store.setResponsiblePhone(_phoneController.text);
     });
 
-    // Resetar e recarregar dados sempre que entrar na página
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _refreshPage();
     });
   }
 
-  /// Atualiza todos os dados da página
   Future<void> _refreshPage() async {
     _store.reset();
 
@@ -69,8 +63,6 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
       if (mounted) setState(() {});
     }
   }
-
-  /// Modal para inserir nome do orçamento multi-cidades
   Future<String?> _showMultiCityBudgetNameModal() async {
     final controller = TextEditingController();
 
@@ -125,9 +117,7 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
     );
   }
 
-  /// Modal para seleção de cidades multi-cidades
   Future<List<Map<String, dynamic>>?> _showMultiCityCitySelectionModal() async {
-    // Carregar estados se necessário
     if (_geo.estados.isEmpty && !_geo.isLoadingEstados) {
       await _geo.carregarEstados();
     }
@@ -153,7 +143,6 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    // Inicializar stores legadas (apenas na primeira vez)
     if (_geo == null || _censo == null) {
       final provider = StoreProvider.of(context);
       _geo = provider.geoStore;
@@ -161,7 +150,6 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
     }
   }
 
-  /// Sincroniza localização do GeoStore com BudgetCreateStore
   void _syncLocation() {
     if (_geo.estadoSelecionado != null && _geo.cidadeSelecionada != null) {
       final estadoCodigo = _geo.estadoSelecionado!.id?.toString() ?? '';
@@ -177,12 +165,9 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
     }
   }
 
-  /// Cria o orçamento em rascunho
   Future<void> _createDraftBudget() async {
-    // Sincronizar localização
     _syncLocation();
 
-    // Validar campos obrigatórios
     if (!_store.isFormValid) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -193,7 +178,6 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
       return;
     }
 
-    // Validar email se preenchido
     if (!_store.isEmailValid) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -205,19 +189,16 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
     }
 
     try {
-      // Carregar censo
       await _censo
           .carregarCensoPorCidade(_geo.cidadeSelecionada!.id)
           .catchError((_) async {
         await _censo.carregarGruposCenso();
       });
 
-      // Determinar partnerId
       final partnerId = _authStore.isAdmin && _store.selectedPartner != null
           ? _store.selectedPartner!.id
           : (_authStore.partnerId ?? 1);
 
-      // Obter userId do usuário autenticado
       final userId = _authStore.currentUser?.id ?? 0;
 
       if (userId <= 0) {
@@ -232,7 +213,6 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
         return;
       }
 
-      // Criar orçamento em rascunho via Store
       final success = await _store.createDraft(partnerId, userId);
 
       if (!success) {
@@ -247,11 +227,9 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
         return;
       }
 
-      // Sucesso - navegar para config
       if (_store.createdDraft != null) {
         final budgetId = _store.createdDraft!.id;
 
-        // Preparar dados de localização para o header
         final locationData = {
           'cityName': _geo.cidadeSelecionada?.nome ?? '',
           'stateName': _geo.estadoSelecionado?.nome ?? '',
@@ -265,14 +243,12 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
           },
         );
 
-        // Limpar formulário e estado ao voltar
         if (mounted) {
           _store.clearForm();
           _responsibleController.clear();
           _emailController.clear();
           _phoneController.clear();
 
-          // Resetar estado e cidade no GeoStore
           if (_geo != null) {
             _geo.limparSelecao();
             if (mounted) setState(() {});
@@ -303,7 +279,6 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
         onRefresh: _refreshPage,
         child: Column(
           children: [
-            // Conteúdo principal
             Expanded(
               child: SingleChildScrollView(
                 padding: EdgeInsets.all(16.w),
@@ -312,13 +287,10 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                   children: [
                     SizedBox(height: 5.h),
 
-                    // CAMPO PARCEIRO (apenas para admins)
                     Observer(
                       builder: (_) {
-                        // ✅ REMOVIDO: Lógica de carregamento movida para initState
                         // Evita loop infinito quando API retorna lista vazia
 
-                        // Não mostrar campo se não for admin
                         if (!_authStore.isAdmin) {
                           return const SizedBox.shrink();
                         }
@@ -405,7 +377,6 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                       },
                     ),
 
-                    // ESTADO
                     Observer(
                       builder: (_) {
                         final List<String> estadosNomes = _geo.estados
@@ -430,8 +401,6 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                             if (estado != null) {
                               await _geo.selecionarEstado(estado);
 
-                              // ✅ Sincronizar com BudgetCreateStore imediatamente
-                              // Usar ID como código já que UF não existe no modelo
                               _store.setSelectedState(
                                 estado.id?.toString() ?? '',
                                 estado.nome,
@@ -444,7 +413,6 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                       },
                     ),
 
-                    // CIDADE
                     if (_geo.estadoSelecionado != null) ...[
                       SizedBox(height: 10.h),
                       Observer(
@@ -471,7 +439,6 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                               if (cidade != null) {
                                 _geo.selecionarCidade(cidade);
 
-                                // ✅ Sincronizar com BudgetCreateStore imediatamente
                                 _store.setSelectedCity(
                                   cidade.id.toString(),
                                   cidade.nome,
@@ -488,7 +455,6 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
 
                     SizedBox(height: 20.h),
 
-                    // Linha horizontal
                     Container(
                       width: double.infinity,
                       height: 1.h,
@@ -497,7 +463,6 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
 
                     SizedBox(height: 20.h),
 
-                    // RESPONSÁVEL
                     Text(
                       'Responsável cliente (opcional):',
                       style: TextStyle(
@@ -533,7 +498,6 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
 
                     SizedBox(height: 10.h),
 
-                    // EMAIL
                     Text(
                       'Email (opcional):',
                       style: TextStyle(
@@ -580,7 +544,6 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
 
                     SizedBox(height: 10.h),
 
-                    // TELEFONE
                     Text(
                       'Telefone (opcional):',
                       style: TextStyle(
@@ -596,7 +559,6 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
                         inputFormatters: [
-                          // Máscara para telefone brasileiro: (XX) XXXXX-XXXX
                           TextInputFormatter.withFunction((oldValue, newValue) {
                             String text =
                                 newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
@@ -655,12 +617,10 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
               ),
             ),
 
-            // Botões fixos no final
             Container(
               padding: EdgeInsets.all(16.w),
               child: Column(
                 children: [
-                  // Botão Próximo
                   Observer(
                     builder: (_) => SizedBox(
                       width: double.infinity,
@@ -709,24 +669,20 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
 
                   SizedBox(height: 10.h),
 
-                  // Link Orçamento multi-cidades
                   Center(
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onTap: () async {
-                        // 1. Modal de nome do orçamento
                         final budgetName =
                             await _showMultiCityBudgetNameModal();
                         if (budgetName == null || budgetName.isEmpty) return;
 
-                        // 2. Modal de seleção de cidades
                         if (!mounted) return;
                         final selectedCities =
                             await _showMultiCityCitySelectionModal();
                         if (selectedCities == null || selectedCities.isEmpty)
                           return;
 
-                        // 3. Navegar para tela de orçamento multi-cidades
                         if (!mounted) return;
                         await Modular.to.pushNamed(
                           '/budget/multi-city/census',
@@ -759,8 +715,8 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                 ],
               ),
             ),
-          ], // Fim do Column do RefreshIndicator
-        ), // Fim do RefreshIndicator
+          ],
+        ),
       ),
     );
   }

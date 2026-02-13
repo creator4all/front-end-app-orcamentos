@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -12,20 +12,9 @@ import '../../domain/entities/subcategory_entity.dart';
 import '../stores/budget_config_store.dart';
 import 'product_info_modal.dart';
 
-/// Modal para exibir os produtos de uma subcategoria
-///
-/// Permite ao usuário:
-/// - Visualizar todos os produtos da subcategoria
-/// - Selecionar/desselecionar produtos
-/// - Ver detalhes de cada produto (ícone info)
 class SubcategoryProductsModal extends StatelessWidget {
-  /// ID da categoria
   final int categoryId;
-
-  /// ID da subcategoria
   final int subcategoryId;
-
-  /// Store a ser usada (pode ser BudgetConfigStore ou BudgetEditStore)
   final dynamic store;
 
   const SubcategoryProductsModal({
@@ -35,7 +24,6 @@ class SubcategoryProductsModal extends StatelessWidget {
     this.store,
   });
 
-  /// Mostra a modal usando showModalBottomSheet
   static Future<void> show({
     required BuildContext context,
     required CategoryEntity category,
@@ -60,7 +48,6 @@ class SubcategoryProductsModal extends StatelessWidget {
       dynamic storeInstance,
       CategoryEntity category,
       SubcategoryEntity subcategory) {
-    // Abre modal de informações do produto
     ProductInfoModal.show(
       context: context,
       categoryId: category.id,
@@ -72,12 +59,10 @@ class SubcategoryProductsModal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Usa a store passada ou busca do Modular como fallback
     final storeInstance = store ?? Modular.get<BudgetConfigStore>();
 
     return Observer(
       builder: (_) {
-        // Busca a subcategoria atualizada da store
         final category = storeInstance.categories.firstWhere(
           (c) => c.id == categoryId,
           orElse: () => throw Exception('Categoria não encontrada'),
@@ -88,25 +73,15 @@ class SubcategoryProductsModal extends StatelessWidget {
           orElse: () => throw Exception('Subcategoria não encontrada'),
         );
 
-        // 🐛 DEBUG: Verificar estado dos produtos
-        debugPrint('🔍 [DEBUG] Subcategoria: ${subcategory.nome}');
-        debugPrint('   📦 Total produtos: ${subcategory.produtos.length}');
-        debugPrint(
-            '   ✅ Produtos ativos: ${subcategory.activeProdutos.length}');
-
         if (subcategory.produtos.isNotEmpty) {
-          debugPrint('   � Primeiros 3 produtos:');
           for (var i = 0; i < 3 && i < subcategory.produtos.length; i++) {
             final p = subcategory.produtos[i];
-            debugPrint('      - ${p.solucao} (ativo: ${p.ativo}, ID: ${p.id})');
           }
         }
 
         final activeProducts = subcategory.activeProdutos;
 
-        // Se não houver produtos ativos
         if (activeProducts.isEmpty) {
-          debugPrint('   ⚠️ LISTA VAZIA - Nenhum produto ativo encontrado!');
           return Center(
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: 32.h),
@@ -122,11 +97,9 @@ class SubcategoryProductsModal extends StatelessWidget {
           );
         }
 
-        // Lista de produtos + botão salvar
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Lista de produtos
             ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -148,7 +121,6 @@ class SubcategoryProductsModal extends StatelessWidget {
 
             SizedBox(height: 24.h),
 
-            // Botão Salvar
             SizedBox(
               width: double.infinity,
               height: 48.h,

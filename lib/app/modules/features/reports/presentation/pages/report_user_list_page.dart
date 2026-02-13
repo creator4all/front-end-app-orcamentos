@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -9,12 +9,6 @@ import '../stores/report_filter_store.dart';
 import '../stores/report_user_list_store.dart';
 import '../widgets/report_user_card.dart';
 
-/// Página que lista os usuários de uma empresa com estatísticas de vendas.
-///
-/// Layout conforme mockup:
-/// - Header: Nome da empresa (partnerName)
-/// - Container de filtros com borda azul
-/// - Lista de usuários com cards
 class ReportUserListPage extends StatefulWidget {
   final int partnerId;
   final String? partnerName;
@@ -41,10 +35,8 @@ class _ReportUserListPageState extends State<ReportUserListPage> {
     _store = Modular.get<ReportUserListStore>();
     _filterStore = Modular.get<ReportFilterStore>();
 
-    // Limpar filtros ao entrar na página
     _filterStore.resetFilters();
 
-    // Carregar usuários e depois as vendas do parceiro para calcular contadores
     _loadData();
   }
 
@@ -122,7 +114,6 @@ class _ReportUserListPageState extends State<ReportUserListPage> {
           physics: const AlwaysScrollableScrollPhysics(),
           child: Column(
             children: [
-              // Container de filtros com borda azul (estilo BudgetFilterWidget)
               Container(
                 margin: EdgeInsets.symmetric(vertical: 0.h, horizontal: 10.w),
                 padding: EdgeInsets.all(10.w),
@@ -137,7 +128,6 @@ class _ReportUserListPageState extends State<ReportUserListPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Header: Filtros + Resetar
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -165,7 +155,6 @@ class _ReportUserListPageState extends State<ReportUserListPage> {
 
                     SizedBox(height: 8.h),
 
-                    // Campo de busca
                     TextField(
                       controller: _searchController,
                       onChanged: _onSearchChanged,
@@ -199,7 +188,6 @@ class _ReportUserListPageState extends State<ReportUserListPage> {
 
                     SizedBox(height: 8.h),
 
-                    // Filtros de data
                     Observer(
                       builder: (_) => Row(
                         children: [
@@ -225,7 +213,6 @@ class _ReportUserListPageState extends State<ReportUserListPage> {
                 ),
               ),
 
-              // Lista de usuários
               Observer(
                 builder: (_) {
                   if (_store.isLoading) {

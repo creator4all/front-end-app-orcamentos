@@ -1,4 +1,4 @@
-import 'package:equatable/equatable.dart';
+﻿import 'package:equatable/equatable.dart';
 
 import 'partner.dart';
 import 'role.dart';
@@ -17,7 +17,6 @@ class User extends Equatable {
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
-  // ⭐ Objetos aninhados completos
   final Partner? partner;
   final Role? role;
 

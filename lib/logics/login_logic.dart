@@ -12,7 +12,6 @@ class LoginLogic {
 
   LoginLogic(this._authService);
 
-  // Validate login input
   Map<String, dynamic> validateLoginInput(String email, String password) {
     if (email.isEmpty) {
       return {
@@ -40,10 +39,8 @@ class LoginLogic {
     };
   }
 
-  // Process login
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
-      // Validate input
       final validation = validateLoginInput(email, password);
       if (!validation['isValid']) {
         return {
@@ -52,19 +49,15 @@ class LoginLogic {
         };
       }
 
-      // Call auth service
       final result = await _authService.signIn(email, password);
 
       if (result['success']) {
-        // Parse user data
         final responseData = result['data'];
         final user = UserEntity.fromJson(responseData);
 
-        // Create user data with normalized role
         final userData = user.toJson();
-        userData['role'] = user.normalizedRole; // Use normalized role
+        userData['role'] = user.normalizedRole;
 
-        // Save user data and token
         await storage.write(key: 'auth_token', value: user.token);
         await storage.write(key: 'user_data', value: jsonEncode(userData));
 
@@ -86,7 +79,6 @@ class LoginLogic {
     }
   }
 
-  // Try auto login from stored credentials
   Future<Map<String, dynamic>> tryAutoLogin() async {
     try {
       final token = await storage.read(key: 'auth_token');
@@ -119,9 +111,9 @@ class LoginLogic {
     }
   }
 
-  // Logout user
   Future<void> logout() async {
     await storage.delete(key: 'auth_token');
     await storage.delete(key: 'user_data');
   }
 }
+

@@ -1,9 +1,8 @@
-import '../../domain/entities/budget_census_entity.dart';
+﻿import '../../domain/entities/budget_census_entity.dart';
 import '../../domain/entities/censo_escolar_entity.dart';
 import '../../domain/entities/censo_group_entity.dart';
 import '../../domain/entities/censo_title_entity.dart';
 
-/// DTO para cidade com dados de censo
 class CidadeCensoDto {
   final int id;
   final String nome;
@@ -36,9 +35,7 @@ class CidadeCensoDto {
     );
   }
 
-  /// Converte para CensoEscolarEntity para uso na UI
   CensoEscolarEntity toEntity() {
-    // Agrupar indices por grupo
     final gruposMap = <int, List<CensoTitleEntity>>{};
     final grupoNomes = <int, String>{};
 
@@ -57,7 +54,6 @@ class CidadeCensoDto {
       ));
     }
 
-    // Converter grupos map para entidades
     final grupos = gruposMap.entries.map((entry) {
       return CensoGroupEntity(
         id: entry.key,
@@ -66,7 +62,6 @@ class CidadeCensoDto {
       );
     }).toList();
 
-    // Criar mapa de valores por etapa
     final valoresPorEtapa = <String, double>{};
     for (final indice in indices) {
       valoresPorEtapa[indice.nomeEtapa] = indice.valor;
@@ -81,7 +76,6 @@ class CidadeCensoDto {
   }
 }
 
-/// DTO para índice de censo
 class IndiceCensoDto {
   final int id;
   final String nomeEtapa;
@@ -121,7 +115,6 @@ class IndiceCensoDto {
   }
 }
 
-/// DTO para grupo de censo
 class GrupoCensoDto {
   final int id;
   final String nome;
@@ -146,7 +139,6 @@ class GrupoCensoDto {
   }
 }
 
-/// DTO para resposta completa do endpoint GET /api/orcamentos/{id}/censo
 class BudgetCensusDto {
   final int orcamentoId;
   final bool multiCidade;
@@ -161,7 +153,6 @@ class BudgetCensusDto {
   });
 
   factory BudgetCensusDto.fromJson(Map<String, dynamic> json) {
-    // Extrair dados do wrapper "dados" se existir
     final dados = json['dados'] as Map<String, dynamic>? ?? json;
 
     final cidadesJson = dados['cidades'] as List<dynamic>? ?? [];
@@ -180,7 +171,6 @@ class BudgetCensusDto {
     );
   }
 
-  /// Converte para BudgetCensusEntity (Domínio)
   BudgetCensusEntity toEntity() {
     return BudgetCensusEntity(
       orcamentoId: orcamentoId,

@@ -6,10 +6,6 @@ import '../../domain/entities/censo_title_entity.dart';
 import 'census_input_row_widget.dart';
 import 'census_section_header_widget.dart';
 
-/// Widget que renderiza uma seção completa do censo escolar
-/// Inclui o header com título sublinhado e lista de itens
-///
-/// Versão genérica que pode usar int (id) ou String (nomeEtapa) como chave
 class CensusDataSectionWidget<K> extends StatelessWidget {
   final CensoGroupEntity group;
   final bool isEditMode;
@@ -26,7 +22,6 @@ class CensusDataSectionWidget<K> extends StatelessWidget {
     this.onItemChanged,
   });
 
-  /// Factory para usar com id (int) - compatível com SchoolCensusPage
   static CensusDataSectionWidget<int> withId({
     Key? key,
     required CensoGroupEntity group,
@@ -44,7 +39,6 @@ class CensusDataSectionWidget<K> extends StatelessWidget {
     );
   }
 
-  /// Factory para usar com nomeEtapa (String) - compatível com MultiCityCensusPage
   static CensusDataSectionWidget<String> withNomeEtapa({
     Key? key,
     required CensoGroupEntity group,
@@ -81,18 +75,15 @@ class CensusDataSectionWidget<K> extends StatelessWidget {
   Widget _buildItem(CensoTitleEntity title) {
     final key = keySelector(title);
 
-    // Usar controller existente (page é responsável por criar)
     final controller = controllers[key];
 
-    // Pegar valor do controller (que já tem displayValues correto)
-    // Fallback para title.valor apenas se controller não existir
     final displayValue = controller != null
         ? (double.tryParse(controller.text) ?? title.valor)
         : title.valor;
 
     return CensusInputRowWidget(
       label: title.tituloExibicao,
-      value: displayValue, // Usa valor do controller, não title.valor
+      value: displayValue,
       isEditMode: isEditMode,
       controller: controller,
       onChanged: (value) {

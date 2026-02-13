@@ -1,7 +1,6 @@
-import '../../domain/entities/subcategoria_entity.dart';
+﻿import '../../domain/entities/subcategoria_entity.dart';
 import 'categoria_dto.dart';
 
-/// DTO para Subcategoria
 class SubcategoriaDto {
   final int id;
   final String nome;

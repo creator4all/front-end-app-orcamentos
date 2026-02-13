@@ -42,8 +42,6 @@ class ProductDTO {
     required this.indicadoresEtapa,
   });
 
-  /// Cria um DTO a partir do JSON da API
-  /// Suporta tanto formato completo quanto simplificado (criação de orçamento)
   factory ProductDTO.fromJson(Map<String, dynamic> json) {
     try {
       final int id = json['id'] as int;
@@ -61,10 +59,7 @@ class ProductDTO {
       final int ordem = (json['ordem'] as int?) ?? 0;
       final int subcategoriaId = (json['subcategoria_id'] as int?) ?? 0;
 
-      // GET /orcamentos/{id} retorna selecionado/quantidade dentro de
-      // `orcamento_produto`; GET /orcamentos/{id}/produtos-completos e
-      // GET /orcamentos/{id}/categorias/{catId}/produtos retornam na raiz.
-      // Mantido até unificação do contrato backend.
+      // Contrato backend ainda não está unificado:
       final orcProduto = json['orcamento_produto'] as Map<String, dynamic>?;
       final bool selecionado =
           (orcProduto?['selecionado'] ?? json['selecionado']) as bool? ?? true;
@@ -91,10 +86,7 @@ class ProductDTO {
                     .toEntity())
             .toList();
       } else if (json['indicadores'] != null && json['indicadores'] is List) {
-        // GET /orcamentos/{id} usa `indicadores_etapa` (formato acima);
-        // GET /orcamentos/{id}/categorias/{catId}/produtos usa `indicadores`
-        // com objeto aninhado `indicador_etapa`. Chaves `titulo` vs `nome`
-        // também variam entre endpoints. Mantido até unificação do contrato.
+        // Fallback de contrato: em alguns endpoints os indicadores vêm em
         indicadoresEtapa = (json['indicadores'] as List<dynamic>).map((item) {
           final ind = item as Map<String, dynamic>;
           final indEtapa = ind['indicador_etapa'] as Map<String, dynamic>?;
@@ -141,7 +133,6 @@ class ProductDTO {
     }
   }
 
-  /// Converte o DTO para Entity
   ProductEntity toEntity() {
     return ProductEntity(
       id: id,
@@ -156,7 +147,7 @@ class ProductDTO {
       subcategoriaId: subcategoriaId,
       selecionado: quantidade > 0
           ? selecionado
-          : false, // Sincroniza: quantidade 0 = desmarcado
+          : false,
       quantidade: quantidade,
       temOverride: temOverride,
       observacoes: observacoes,
@@ -166,7 +157,6 @@ class ProductDTO {
     );
   }
 
-  /// Converte o DTO para JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -191,7 +181,6 @@ class ProductDTO {
     };
   }
 
-  /// Converte uma Entity para DTO
   factory ProductDTO.fromEntity(ProductEntity entity) {
     return ProductDTO(
       id: entity.id,

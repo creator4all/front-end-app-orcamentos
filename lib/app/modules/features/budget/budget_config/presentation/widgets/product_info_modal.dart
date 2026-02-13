@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -11,29 +11,12 @@ import '../../domain/entities/product_entity.dart';
 import '../stores/budget_config_store.dart';
 import 'indicadores_etapa_section.dart';
 
-/// Modal de informações detalhadas do produto
-///
-/// Exibe:
-/// - Informações básicas (Grupo, Sub-grupo, Solução, etc.)
-/// - Indicadores de etapa agrupados com checkboxes
-/// - Botão Salvar
 class ProductInfoModal extends StatefulWidget {
-  /// ID da categoria (Modo Store)
   final int? categoryId;
-
-  /// ID da subcategoria (Modo Store)
   final int? subcategoryId;
-
-  /// ID do produto (Modo Store)
   final int? productId;
-
-  /// Store a ser usada (Modo Store)
   final dynamic store;
-
-  /// Entidade do produto (Modo Direto/Standalone)
   final ProductEntity? product;
-
-  /// Callback ao salvar (Modo Direto/Standalone)
   final VoidCallback? onSave;
 
   const ProductInfoModal({
@@ -46,7 +29,6 @@ class ProductInfoModal extends StatefulWidget {
     this.onSave,
   });
 
-  /// Mostra a modal
   static Future<void> show({
     required BuildContext context,
     int? categoryId,
@@ -86,7 +68,6 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
   @override
   void initState() {
     super.initState();
-    // Inicializa o controller
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeValueController();
     });
@@ -99,13 +80,11 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
     });
   }
 
-  /// Verifica se o produto é do tipo serviço
   bool _isServico(ProductEntity product) {
     final tipo = product.tipoProduto.toLowerCase();
     return tipo == 'servico' || tipo == 'serviço';
   }
 
-  /// Formata valor para padrão brasileiro
   String _formatCurrency(double value) {
     final formatter = NumberFormat.currency(
       locale: 'pt_BR',
@@ -115,16 +94,12 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
     return formatter.format(value);
   }
 
-  /// Salva as alterações (fecha a modal)
   void _handleSave() {
     if (_isStoreMode) {
       final storeInstance = widget.store ?? Modular.get<BudgetConfigStore>();
 
-      // Obter o valor atual do controller
-      // Remover caracteres não numéricos exceto ponto e vírgula
       String cleanValue =
           _valueController.text.replaceAll(RegExp(r'[^\d.,]'), '');
-      // Substituir vírgula por ponto se necessário (dependendo do formato de entrada)
       cleanValue = cleanValue.replaceAll(',', '.');
 
       final newValue = double.tryParse(cleanValue);
@@ -133,15 +108,12 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
         storeInstance.updateProductValue(widget.productId!, newValue);
       }
     } else {
-      // Modo Standalone: Chama o callback externo
       widget.onSave?.call();
     }
 
-    // Fechar modal
     Navigator.pop(context);
   }
 
-  /// Constrói linha de informação
   Widget _buildInfoRow(String label, String value) {
     return RichText(
       text: TextSpan(
@@ -169,7 +141,6 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
     );
   }
 
-  /// Constrói container com informações do produto
   Widget _buildProductInfo(
     ProductEntity product,
     String categoryName,
@@ -206,7 +177,6 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
 
   @override
   Widget build(BuildContext context) {
-    // Se não estiver em modo Store e não tiver produto, mostra erro
     if (!_isStoreMode && widget.product == null) {
       return const Center(child: Text('Erro: Produto não fornecido'));
     }
@@ -220,53 +190,32 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
 
   Widget _buildStandaloneContent() {
     final product = widget.product!;
-    // Em modo standalone, não temos acesso fácil ao nome da categoria/subcategoria
-    // a menos que seja passado ou inferido. Por enquanto, usaremos placeholders ou dados do produto se disponíveis.
-    // O ideal seria passar esses nomes também, mas para manter a compatibilidade com BooksModal,
-    // vamos assumir que o usuário sabe o contexto ou passar nomes genéricos.
-    // No caso do BooksModal, ele passa subcategoriaNome na chamada wrapper, mas não para o widget diretamente.
-    // Vamos ajustar para exibir dados disponíveis.
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Seção 1: Informações do Produto
-        _buildProductInfo(product, 'N/A', 'N/A'), // TODO: Melhorar isso
+        _buildProductInfo(product, 'N/A', 'N/A'),
 
         SizedBox(height: 24.h),
 
-        // Seção 2: Indicadores de Etapa
         if (product.indicadoresEtapa.isNotEmpty) ...[
           IndicadoresEtapaSection(
             indicadores: product.indicadoresEtapa,
             onToggle: (indicadorId, valor) {
-              // Atualizar estado local do produto (se necessário para refletir na UI)
-              // Como ProductEntity é imutável, precisariamos de um setState com novo produto.
-              // Mas o BooksModal gerencia isso no callback onSave iterando sobre as entidades originais
-              // que ele mantém referência.
-              // A IndicadoresEtapaSection usa as entidades passadas.
-              // Precisamos garantir que a alteração reflita na UI.
 
               setState(() {
                 final index = product.indicadoresEtapa
                     .indexWhere((i) => i.produtoIndicadorId == indicadorId);
                 if (index != -1) {
-                  // Hack: Modificar a lista do produto que está no widget pai (BooksModal)
-                  // Isso não é ideal, mas o BooksModal espera isso.
-                  // O BooksModal cria entidades novas a cada show.
-                  // Vamos atualizar o widget.product localmente para refletir a mudança.
 
                   final oldInd = product.indicadoresEtapa[index];
                   final newInd = oldInd.copyWith(selecionado: valor);
 
-                  // Precisamos substituir na lista imutável
                   final newList =
                       List<IndicadorEtapaEntity>.from(product.indicadoresEtapa);
                   newList[index] = newInd;
 
-                  // Atualizar a referência do produto no widget (imutável, então não dá pra atribuir)
-                  // Precisamos de um estado local para o produto no modo standalone.
                 }
               });
             },
@@ -274,12 +223,10 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
           SizedBox(height: 24.h),
         ],
 
-        // Seção 3: Campo de valor unitário
         _buildValueField(product),
 
         SizedBox(height: 24.h),
 
-        // Botão Salvar
         _buildSaveButton(),
 
         SizedBox(height: 16.h),
@@ -292,7 +239,6 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
 
     return Observer(
       builder: (_) {
-        // Busca dados da store
         final category = storeInstance.categories.firstWhere(
           (c) => c.id == widget.categoryId,
           orElse: () => throw Exception('Categoria não encontrada'),
@@ -312,18 +258,14 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Seção 1: Informações do Produto
             _buildProductInfo(product, category.nome, subcategory.nome),
 
             SizedBox(height: 24.h),
 
-            // Seção 2: Indicadores de Etapa OU Campo de Horas (dependendo do tipo)
             if (_isServico(product)) ...[
-              // Serviço: Mostrar campo de horas
               _buildHorasField(product, storeInstance),
               SizedBox(height: 24.h),
             ] else if (product.indicadoresEtapa.isNotEmpty) ...[
-              // Livro/Tecnologia: Mostrar indicadores de etapa
               IndicadoresEtapaSection(
                 indicadores: product.indicadoresEtapa,
                 onToggle: (indicadorId, valor) {
@@ -333,12 +275,10 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
               SizedBox(height: 24.h),
             ],
 
-            // Seção 3: Campo de valor unitário
             _buildValueField(product),
 
             SizedBox(height: 24.h),
 
-            // Botão Salvar
             _buildSaveButton(),
 
             SizedBox(height: 16.h),
@@ -348,9 +288,7 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
     );
   }
 
-  /// Constrói campo de horas para serviços
   Widget _buildHorasField(ProductEntity product, dynamic storeInstance) {
-    // Inicializa com a quantidade atual se não estiver preenchido
     if (_horasController.text.isEmpty && product.quantidade > 0) {
       _horasController.text = product.quantidade.toString();
     }

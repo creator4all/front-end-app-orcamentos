@@ -10,15 +10,6 @@ import '../../../budget/budget_config/domain/entities/censo_group_entity.dart';
 import '../../../budget/budget_config/presentation/stores/school_census_store.dart';
 import '../../../budget/budget_config/presentation/widgets/census_data_section_widget.dart';
 
-/// Página de visualização do Censo Escolar em modo somente leitura.
-///
-/// Layout IDÊNTICO ao SchoolCensusPage, mas sem controles de edição:
-/// - ❌ Toggle de modo edição
-/// - ❌ Botão Salvar
-/// - ✅ City Selector (multi-cidade)
-/// - ✅ CensusDataSectionWidget
-/// - ✅ Separação Alunos/Professores
-/// - ✅ Export CSV
 class ReportCensusPage extends StatefulWidget {
   final int budgetId;
   final BudgetCensusDto? censoData;
@@ -37,7 +28,6 @@ class _ReportCensusPageState extends State<ReportCensusPage> {
   late final SchoolCensusStore _store;
   final Map<int, TextEditingController> _controllers = {};
 
-  // Ano mockado conforme layout original
   static const String _mockYear = '2024';
 
   @override
@@ -45,7 +35,6 @@ class _ReportCensusPageState extends State<ReportCensusPage> {
     super.initState();
     _store = Modular.get<SchoolCensusStore>();
 
-    // Definir budgetId e carregar dados via endpoint de orçamento
     _store.setBudgetId(widget.budgetId);
     _store.loadBudgetCensus(widget.budgetId);
   }
@@ -69,14 +58,12 @@ class _ReportCensusPageState extends State<ReportCensusPage> {
             text: title.valor.toStringAsFixed(0),
           );
         } else {
-          // Sempre manter sync pois é readonly
           _controllers[title.id]?.text = title.valor.toStringAsFixed(0);
         }
       }
     }
   }
 
-  /// Filtra grupos para mostrar apenas dados de ALUNOS (sem sufixo P)
   List<CensoGroupEntity> _getStudentGroups() {
     final censo = _store.censoEscolar;
     if (censo == null) return [];
@@ -96,7 +83,6 @@ class _ReportCensusPageState extends State<ReportCensusPage> {
         .toList();
   }
 
-  /// Filtra grupos para mostrar apenas dados de PROFESSORES (com sufixo P)
   List<CensoGroupEntity> _getProfessorGroups() {
     final censo = _store.censoEscolar;
     if (censo == null) return [];
@@ -169,7 +155,6 @@ class _ReportCensusPageState extends State<ReportCensusPage> {
               );
             }
 
-            // Sync controllers
             _syncControllersWithStore();
 
             return RefreshIndicator(
@@ -181,18 +166,14 @@ class _ReportCensusPageState extends State<ReportCensusPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Seletor de cidade (só para multi-cidade)
                     if (_store.isMultiCity) _buildCitySelector(),
 
-                    // Informação do censo
                     _buildCensusInfo(),
 
                     SizedBox(height: 16.h),
 
-                    // Seções de Alunos
                     _buildStudentsSections(),
 
-                    // Seções de Professores
                     _buildProfessorsSections(),
 
                     SizedBox(height: 16.h),
@@ -206,7 +187,6 @@ class _ReportCensusPageState extends State<ReportCensusPage> {
     );
   }
 
-  /// Dropdown pesquisável para selecionar cidade (apenas multi-cidade)
   Widget _buildCitySelector() {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 12.h),
@@ -225,7 +205,6 @@ class _ReportCensusPageState extends State<ReportCensusPage> {
           );
 
           _store.selectCity(selectedOption.id);
-          // Limpar controllers ao trocar de cidade
           _controllers.clear();
         },
       ),
@@ -265,9 +244,9 @@ class _ReportCensusPageState extends State<ReportCensusPage> {
       children: studentGroups
           .map((group) => CensusDataSectionWidget.withId(
                 group: group,
-                isEditMode: false, // ✅ Sempre readonly
+                isEditMode: false,
                 controllers: _controllers,
-                onItemChanged: null, // ✅ Sem callback de edição
+                onItemChanged: null,
               ))
           .toList(),
     );
@@ -276,7 +255,6 @@ class _ReportCensusPageState extends State<ReportCensusPage> {
   Widget _buildProfessorsSections() {
     final professorGroups = _getProfessorGroups();
 
-    // Só exibe seção de professores se houver dados
     if (professorGroups.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -296,9 +274,9 @@ class _ReportCensusPageState extends State<ReportCensusPage> {
         SizedBox(height: 8.h),
         ...professorGroups.map((group) => CensusDataSectionWidget.withId(
               group: group,
-              isEditMode: false, // ✅ Sempre readonly
+              isEditMode: false,
               controllers: _controllers,
-              onItemChanged: null, // ✅ Sem callback de edição
+              onItemChanged: null,
             )),
       ],
     );

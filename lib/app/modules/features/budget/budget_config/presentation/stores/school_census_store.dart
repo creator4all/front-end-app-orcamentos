@@ -20,7 +20,6 @@ abstract class _SchoolCensusStoreBase with Store {
     this._getBudgetCensusUseCase,
   ]);
 
-  // ========== OBSERVABLES EXISTENTES ==========
 
   @observable
   CensoEscolarEntity? censoEscolar;
@@ -40,29 +39,22 @@ abstract class _SchoolCensusStoreBase with Store {
   @observable
   ObservableMap<int, double> editedValues = ObservableMap<int, double>();
 
-  /// ID do orçamento para usar endpoint budget-scoped
   @observable
   int? budgetId;
 
-  // ========== NOVOS OBSERVABLES PARA MULTI-CIDADE ==========
 
-  /// Indica se o orçamento é multi-cidade
   @observable
   bool isMultiCity = false;
 
-  /// Lista de cidades disponíveis (para multi-cidade)
   @observable
   ObservableList<CidadeCensoDto> cidades = ObservableList<CidadeCensoDto>();
 
-  /// Censo agregado (soma de todas as cidades)
   @observable
   ObservableMap<String, double> censoAgregado = ObservableMap<String, double>();
 
-  /// ID da cidade selecionada (null = visualização agregada)
   @observable
   int? selectedCityId;
 
-  // ========== COMPUTED ==========
 
   @computed
   double get totalStudents => censoEscolar?.valorTotal ?? 0.0;
@@ -73,11 +65,9 @@ abstract class _SchoolCensusStoreBase with Store {
     return true;
   }
 
-  /// Verifica se está visualizando dados agregados
   @computed
   bool get isAggregatedView => isMultiCity && selectedCityId == null;
 
-  /// Nome da cidade selecionada ou "Todas as cidades"
   @computed
   String get selectedCityName {
     if (!isMultiCity || selectedCityId == null) {
@@ -90,12 +80,10 @@ abstract class _SchoolCensusStoreBase with Store {
     return city.nome;
   }
 
-  /// Lista de opções para dropdown (agregado + cidades individuais)
   @computed
   List<DropdownCityOption> get cityOptions {
     final options = <DropdownCityOption>[];
 
-    // Opção agregada sempre primeiro
     if (isMultiCity && cidades.length > 1) {
       options.add(
         DropdownCityOption(
@@ -106,7 +94,6 @@ abstract class _SchoolCensusStoreBase with Store {
       );
     }
 
-    // Cidades individuais
     for (final city in cidades) {
       options.add(
         DropdownCityOption(id: city.id, name: city.nome, isAggregated: false),
@@ -116,9 +103,7 @@ abstract class _SchoolCensusStoreBase with Store {
     return options;
   }
 
-  // ========== ACTIONS EXISTENTES ==========
 
-  /// Define o budgetId para usar endpoint budget-scoped
   @action
   void setBudgetId(int? id) {
     budgetId = id;
@@ -139,16 +124,13 @@ abstract class _SchoolCensusStoreBase with Store {
     isLoading = false;
   }
 
-  /// Define o censo diretamente (sem chamar API)
   @action
   void setCensoEscolar(CensoEscolarEntity censo) {
     censoEscolar = censo;
     error = null;
 
-    // ✅ FIX: Definir selectedCityId com o ID da cidade do censo
     selectedCityId = censo.cidadeId;
 
-    // ✅ FIX: Popular lista de cidades para que selectCity() funcione após save
     cidades.clear();
     cidades.add(CidadeCensoDto.fromEntity(censo));
 
@@ -157,7 +139,6 @@ abstract class _SchoolCensusStoreBase with Store {
 
   @action
   void toggleEditMode() {
-    // Não permitir edição na visualização agregada
     if (isAggregatedView) return;
 
     isEditMode = !isEditMode;
@@ -178,7 +159,6 @@ abstract class _SchoolCensusStoreBase with Store {
     isSaving = true;
     error = null;
 
-    // Usar endpoint budget-scoped se budgetId estiver definido
     if (budgetId != null) {
       final updateResult = await _censusRepository.updateBudgetCensusIndices(
         budgetId: budgetId!,
@@ -187,27 +167,22 @@ abstract class _SchoolCensusStoreBase with Store {
       );
 
       updateResult.fold((l) => error = l.message, (r) {
-        // Atualizar dados multi-cidade no store
         isMultiCity = r.multiCidade;
 
-        // Atualizar lista de cidades usando o factory fromEntity para preservar índices
         cidades.clear();
         for (var cityEntity in r.cidades) {
           cidades.add(CidadeCensoDto.fromEntity(cityEntity));
         }
 
-        // Atualizar censo agregado
         censoAgregado.clear();
         censoAgregado.addAll(r.censoAgregado);
 
         isEditMode = false;
         _initEditedValues();
 
-        // Re-selecionar cidade para atualizar censoEscolar da UI com os novos dados
         selectCity(selectedCityId);
       });
     } else {
-      // Fallback para endpoint legacy (por cidade)
       final legacyResult = await _censusRepository.updateCensusIndices(
         censoEscolar!.cidadeId,
         editedValues,
@@ -218,7 +193,6 @@ abstract class _SchoolCensusStoreBase with Store {
         isEditMode = false;
         _initEditedValues();
 
-        // Atualizar cidade na lista se for multi-cidade
         if (isMultiCity && selectedCityId != null) {
           _updateCityInList(r);
         }
@@ -228,9 +202,7 @@ abstract class _SchoolCensusStoreBase with Store {
     isSaving = false;
   }
 
-  // ========== NOVOS ACTIONS PARA MULTI-CIDADE ==========
 
-  /// Carrega dados do censo para um orçamento (suporta multi-cidade)
   @action
   Future<void> loadBudgetCensus(int budgetIdParam) async {
     if (_getBudgetCensusUseCase == null) {
@@ -252,20 +224,16 @@ abstract class _SchoolCensusStoreBase with Store {
       (dto) {
         isMultiCity = dto.multiCidade;
 
-        // Popular lista de cidades
         cidades.clear();
         cidades.addAll(dto.cidades);
 
-        // Popular censo agregado
         censoAgregado.clear();
         censoAgregado.addAll(dto.censoAgregado);
 
-        // Se for multi-cidade, começar na visualização agregada
         if (isMultiCity && dto.cidades.length > 1) {
           selectedCityId = null;
           _loadAggregatedView();
         } else if (dto.cidades.isNotEmpty) {
-          // Se for cidade única, carregar a cidade
           selectedCityId = dto.cidades.first.id;
           censoEscolar = dto.cidades.first.toEntity();
           _initEditedValues();
@@ -276,28 +244,22 @@ abstract class _SchoolCensusStoreBase with Store {
     );
   }
 
-  /// Seleciona uma cidade para visualização/edição
   @action
   void selectCity(int? cityId) {
-    // Sair do modo de edição ao trocar de cidade
     isEditMode = false;
     selectedCityId = cityId;
 
     if (cityId == null) {
-      // Visualização agregada
       _loadAggregatedView();
     } else {
-      // Cidade específica - usar indexWhere para evitar fallback com id: 0
       final cityIndex = cidades.indexWhere((c) => c.id == cityId);
       if (cityIndex != -1) {
         censoEscolar = cidades[cityIndex].toEntity();
         _initEditedValues();
       }
-      // Se não encontrar, mantém censoEscolar atual (não sobrescreve com id: 0)
     }
   }
 
-  // ========== MÉTODOS PRIVADOS ==========
 
   void _initEditedValues() {
     editedValues.clear();
@@ -310,15 +272,12 @@ abstract class _SchoolCensusStoreBase with Store {
     }
   }
 
-  /// Carrega visualização agregada (soma de todas as cidades)
   void _loadAggregatedView() {
     if (cidades.isEmpty) return;
 
-    // Usar primeira cidade como template e somar valores
     final firstCity = cidades.first;
     final aggregatedEntity = firstCity.toEntity();
 
-    // Atualizar valores com censo agregado
     final updatedGroups =
         aggregatedEntity.grupos.map((group) {
           final updatedTitles =
@@ -331,27 +290,22 @@ abstract class _SchoolCensusStoreBase with Store {
         }).toList();
 
     censoEscolar = CensoEscolarEntity(
-      cidadeId: 0, // ID 0 indica agregado
+      cidadeId: 0,
       cidadeNome: 'Todas as cidades',
       grupos: updatedGroups,
       valoresPorEtapa: Map<String, double>.from(censoAgregado),
     );
 
-    // Não inicializar editedValues no modo agregado (read-only)
     editedValues.clear();
   }
 
-  /// Atualiza cidade na lista após salvar
   void _updateCityInList(CensoEscolarEntity updatedCenso) {
     final index = cidades.indexWhere((c) => c.id == updatedCenso.cidadeId);
     if (index != -1) {
-      // Reconstruir CidadeCensoDto com valores atualizados
-      // Isso é complexo, então por ora apenas recalculamos o agregado
       _recalculateAgregado();
     }
   }
 
-  /// Recalcula censo agregado após edição
   void _recalculateAgregado() {
     censoAgregado.clear();
 
@@ -364,7 +318,6 @@ abstract class _SchoolCensusStoreBase with Store {
   }
 }
 
-/// Opção para dropdown de seleção de cidade
 class DropdownCityOption {
   final int? id;
   final String name;

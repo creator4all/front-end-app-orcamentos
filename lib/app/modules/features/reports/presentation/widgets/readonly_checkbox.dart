@@ -1,21 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-/// Checkbox readonly customizado para modo somente leitura (relatórios)
-///
-/// Features:
-/// - Tamanho: 17x17
-/// - Cor checked: #9E9E9E (cinza) - indica readonly
-/// - Cor unchecked: #BDBDBD (cinza claro)
-/// - Fundo branco
-/// - Ícone check cinza quando marcado
-/// - Bordas arredondadas (5.r)
-/// - Não interativo (sempre disabled)
 class ReadonlyCheckbox extends StatelessWidget {
-  /// Se o checkbox está marcado
   final bool value;
 
-  /// Tamanho do checkbox (padrão: 17)
   final double? size;
 
   const ReadonlyCheckbox({
@@ -34,11 +22,11 @@ class ReadonlyCheckbox extends StatelessWidget {
       decoration: BoxDecoration(
         color: value
             ? const Color(0xFF9E9E9E)
-            : Colors.white, // Cinza quando checked
+            : Colors.white,
         border: Border.all(
           color: value
               ? const Color(0xFF9E9E9E)
-              : const Color(0xFFBDBDBD), // Borda cinza
+              : const Color(0xFFBDBDBD),
           width: 2,
         ),
         borderRadius: BorderRadius.circular(5.r),

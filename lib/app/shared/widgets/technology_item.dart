@@ -31,7 +31,7 @@ class TechnologyItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity, // Max width depending on page
+      width: double.infinity,
       constraints: BoxConstraints(
         maxHeight: 70.h,
       ),
@@ -48,7 +48,6 @@ class TechnologyItem extends StatelessWidget {
         padding: EdgeInsets.all(12.w),
         child: Row(
           children: [
-            // First item: Column with centered checkbox
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -65,7 +64,7 @@ class TechnologyItem extends StatelessWidget {
                         if (states.contains(WidgetState.selected)) {
                           return const Color(0xFF2830F2);
                         }
-                        return Colors.white; // White background when unselected
+                        return Colors.white;
                       },
                     ),
                     side: BorderSide(
@@ -76,7 +75,7 @@ class TechnologyItem extends StatelessWidget {
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius:
-                          BorderRadius.circular(5), // 5px rounded borders
+                          BorderRadius.circular(5),
                     ),
                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
@@ -86,13 +85,11 @@ class TechnologyItem extends StatelessWidget {
 
             SizedBox(width: 12.w),
 
-            // Second item: Column with item details
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // First row: Item name
                   Text(
                     itemName,
                     style: TextStyle(
@@ -106,7 +103,6 @@ class TechnologyItem extends StatelessWidget {
 
                   SizedBox(height: 4.h),
 
-                  // Second row: 3 texts (can wrap to next line if too large)
                   Wrap(
                     spacing: 8.w,
                     runSpacing: 2.h,
@@ -140,7 +136,6 @@ class TechnologyItem extends StatelessWidget {
 
             SizedBox(width: 12.w),
 
-            // Third item: Action icon
             GestureDetector(
               onTap: onActionTap,
               child: Icon(
@@ -155,3 +150,4 @@ class TechnologyItem extends StatelessWidget {
     );
   }
 }
+

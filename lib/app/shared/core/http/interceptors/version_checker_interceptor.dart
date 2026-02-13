@@ -1,4 +1,4 @@
-import 'dart:io' show Platform;
+﻿import 'dart:io' show Platform;
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -111,8 +111,6 @@ class VersionCheckerInterceptor extends HttpInterceptor {
 
     final context = navigatorKey?.currentContext;
     if (context == null) {
-      debugPrint(
-          '⚠️ VersionCheckerInterceptor: Context não disponível para mostrar diálogo');
       return;
     }
 
@@ -138,7 +136,6 @@ class VersionCheckerInterceptor extends HttpInterceptor {
     final url = Platform.isIOS ? _appStoreUrl : _playStoreUrl;
 
     if (url.isEmpty) {
-      debugPrint('⚠️ URL da loja não configurada para esta plataforma');
       return;
     }
 

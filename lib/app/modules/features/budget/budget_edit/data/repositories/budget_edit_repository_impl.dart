@@ -1,4 +1,4 @@
-import 'package:dartz/dartz.dart';
+﻿import 'package:dartz/dartz.dart';
 
 import '../../../../../../shared/core/constants/http_constants.dart';
 import '../../../budget_config/data/models/product_dto.dart';
@@ -37,10 +37,8 @@ class BudgetEditRepositoryImpl implements BudgetEditRepository {
         budgetId,
       );
 
-      // Extrair array de produtos
       final produtosJson = productsData['produtos'] as List<dynamic>? ?? [];
 
-      // Parsear cada produto usando ProductDTO
       final produtos = produtosJson
           .map((json) => ProductDTO.fromJson(json as Map<String, dynamic>))
           .map((dto) => dto.toEntity())

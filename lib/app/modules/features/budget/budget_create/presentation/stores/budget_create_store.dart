@@ -1,4 +1,4 @@
-import 'package:mobx/mobx.dart';
+﻿import 'package:mobx/mobx.dart';
 
 import '../../domain/entities/budget_draft_entity.dart';
 import '../../domain/entities/partner_entity.dart';
@@ -19,7 +19,6 @@ abstract class _BudgetCreateStoreBase with Store {
     required this.createDraftBudgetUseCase,
   });
 
-  /// Normaliza input de texto: retorna null se vazio após trim
   String? _normalizeInput(String? value) {
     if (value == null) return null;
     final trimmed = value.trim();
@@ -222,7 +221,6 @@ abstract class _BudgetCreateStoreBase with Store {
       return false;
     }
 
-    // Valida data de validade se fornecida
     if (validityDate != null && validityDate!.isBefore(DateTime.now())) {
       validationError = 'Data de validade deve ser futura';
       return false;

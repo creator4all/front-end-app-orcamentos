@@ -1,4 +1,4 @@
-import 'package:flutter_modular/flutter_modular.dart';
+﻿import 'package:flutter_modular/flutter_modular.dart';
 
 import '../entities/user_entity.dart';
 import '../logics/login_logic.dart';
@@ -13,36 +13,29 @@ class LoginController {
       : _loginLogic = loginLogic ?? LoginLogic(Modular.get<AuthService>()),
         _authStore = authStore;
 
-  // Process login
   Future<bool> login(String email, String password) async {
     try {
-      // Call login logic
       final result = await _loginLogic.login(email, password);
 
       if (result['success']) {
-        // Update auth store with user data
         final user = result['user'] as UserEntity;
         _authStore.setUser(user);
         return true;
       } else {
-        // Update error in auth store
         _authStore.setError(result['error']);
         return false;
       }
     } catch (e) {
-      // Handle unexpected errors
       _authStore.setError('Erro inesperado: ${e.toString()}');
       return false;
     }
   }
 
-  // Try auto login from stored credentials
   Future<bool> tryAutoLogin() async {
     try {
       final result = await _loginLogic.tryAutoLogin();
 
       if (result['success']) {
-        // Update auth store with user data
         final user = result['user'] as UserEntity;
         _authStore.setUser(user);
         return true;
@@ -53,14 +46,13 @@ class LoginController {
     }
   }
 
-  // Logout user
   Future<void> logout() async {
     await _loginLogic.logout();
     _authStore.clearUser();
   }
 
-  // Validate login input
   Map<String, dynamic> validateLoginInput(String email, String password) {
     return _loginLogic.validateLoginInput(email, password);
   }
 }
+

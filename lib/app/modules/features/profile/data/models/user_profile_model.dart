@@ -1,7 +1,5 @@
-import '../../domain/entities/user_profile.dart';
+﻿import '../../domain/entities/user_profile.dart';
 
-/// Campos obrigatórios usam cast direto — se a API não enviar, o erro
-/// é capturado no Repository e vira ServerFailure.
 class UserProfileModel {
   final int id;
   final String name;
@@ -34,7 +32,6 @@ class UserProfileModel {
     }
 
     // Fallback para par_legal_name é regra de negócio: parceiros
-    // podem não ter nome fantasia cadastrado
     String? partnerName;
     if (json['partner'] != null && json['partner'] is Map) {
       partnerName = (json['partner']['par_trade_name'] ??
@@ -70,7 +67,6 @@ class UserProfileModel {
     );
   }
 
-  /// Campos editáveis pelo usuário para o payload do PUT /api/perfil/me
   static Map<String, dynamic> toUpdateMap({
     required String name,
     required String email,

@@ -1,20 +1,14 @@
-import '../../domain/entities/censo_escolar_entity.dart';
+﻿import '../../domain/entities/censo_escolar_entity.dart';
 import '../../domain/entities/censo_group_entity.dart';
 import '../../domain/entities/censo_title_entity.dart';
 
-/// DTO para converter dados do censo da API para entidades
 class CensoEscolarDto {
-  /// Converte os dados da API para uma entidade CensoEscolarEntity
   static CensoEscolarEntity fromApi(Map<String, dynamic> cidadeData) {
-    // A API retorna os dados diretamente no objeto cidade
-    // Ex: { "idCidades": 25, "nome_cidade": "Junqueiro", "cidades_has_indice_etapa": [...] }
     final cidade = cidadeData;
     final cidadesHasIndiceEtapa = cidade['cidades_has_indice_etapa'] as List;
 
-    // Criar mapa de valores por etapa para lookup rápido
     final valoresPorEtapa = <String, double>{};
 
-    // Agrupar por grupos
     final gruposMap = <int, List<Map<String, dynamic>>>{};
 
     for (final item in cidadesHasIndiceEtapa) {
@@ -25,10 +19,8 @@ class CensoEscolarDto {
       final grupoId = grupo['grupo_id'] as int;
       final grupoNome = grupo['nome_grupo'] as String;
 
-      // Adicionar ao mapa de valores
       valoresPorEtapa[etapa] = valor;
 
-      // Agrupar por grupo
       if (!gruposMap.containsKey(grupoId)) {
         gruposMap[grupoId] = [];
       }
@@ -42,13 +34,11 @@ class CensoEscolarDto {
       });
     }
 
-    // Converter grupos map para entidades
     final grupos = gruposMap.entries.map((entry) {
       final grupoId = entry.key;
       final itens = entry.value;
       final grupoNome = itens.first['grupoNome'];
 
-      // Criar títulos para este grupo
       final titulos = itens.map((item) {
         final nomeEtapa = item['nomeEtapa'] as String;
         final tituloEtapa = item['tituloEtapa'] as String;

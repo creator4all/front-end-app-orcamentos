@@ -4,12 +4,6 @@ import 'package:intl/intl.dart';
 
 import '../../domain/entities/report_user.dart';
 
-/// Card para exibir informações de um usuário com estatísticas de vendas.
-///
-/// Layout conforme mockup:
-/// - Linha 1: Nome + Badge de cargo (space-between)
-/// - Linha 2: Total de vendas em negrito
-/// - Linha 3: 4 badges de status (fundo branco, borda azul)
 class ReportUserCard extends StatelessWidget {
   final ReportUser user;
   final VoidCallback? onTap;
@@ -20,7 +14,6 @@ class ReportUserCard extends StatelessWidget {
     this.onTap,
   });
 
-  /// Formata valor monetário em BRL
   String _formatCurrency(double value) {
     final formatter = NumberFormat.currency(
       locale: 'pt_BR',
@@ -45,7 +38,6 @@ class ReportUserCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Linha 1: Nome + Badge de cargo (space-between)
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -68,7 +60,6 @@ class ReportUserCard extends StatelessWidget {
 
             SizedBox(height: 12.h),
 
-            // Linha 2: Total de vendas em negrito
             Text(
               'Total de vendas: ${_formatCurrency(user.totalVendas)}',
               style: TextStyle(
@@ -80,7 +71,6 @@ class ReportUserCard extends StatelessWidget {
 
             SizedBox(height: 12.h),
 
-            // Linha 3: 4 badges de status
             Row(
               children: [
                 _buildStatusBadge('Aprovado', user.aprovados),
@@ -89,7 +79,7 @@ class ReportUserCard extends StatelessWidget {
                 SizedBox(width: 8.w),
                 _buildStatusBadge('Expirado', user.expirados),
                 SizedBox(width: 8.w),
-                _buildStatusBadge('Não aprovado', user.naoAprovados),
+                _buildStatusBadge('NÃ£o aprovado', user.naoAprovados),
               ],
             ),
           ],
@@ -98,35 +88,32 @@ class ReportUserCard extends StatelessWidget {
     );
   }
 
-  /// Obtém cor de fundo da tag de role
   Color _getRoleBackgroundColor(String roleName) {
     switch (roleName.toLowerCase()) {
       case 'gestor':
-        return const Color(0xFFE0F4FF); // Azul claro
+        return const Color(0xFFE0F4FF);
       case 'vendedor':
-        return const Color(0xFFE0F0E0); // Verde claro
+        return const Color(0xFFE0F0E0);
       case 'administrador':
-        return const Color(0xFFFFE0E0); // Vermelho claro
+        return const Color(0xFFFFE0E0);
       default:
-        return const Color(0xFFF0F0F0); // Cinza claro
+        return const Color(0xFFF0F0F0);
     }
   }
 
-  /// Obtém cor do texto da tag de role
   Color _getRoleTextColor(String roleName) {
     switch (roleName.toLowerCase()) {
       case 'gestor':
-        return const Color(0xFF0C498E); // Azul escuro
+        return const Color(0xFF0C498E);
       case 'vendedor':
-        return const Color(0xFF155724); // Verde escuro
+        return const Color(0xFF155724);
       case 'administrador':
-        return const Color(0xFF721C24); // Vermelho escuro
+        return const Color(0xFF721C24);
       default:
-        return const Color(0xFF333333); // Cinza escuro
+        return const Color(0xFF333333);
     }
   }
 
-  /// Badge de cargo com cores diferenciadas por role
   Widget _buildCargoBadge(String cargo) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
@@ -145,7 +132,6 @@ class ReportUserCard extends StatelessWidget {
     );
   }
 
-  /// Badge de status: fundo branco, borda azul, formato "Label: N"
   Widget _buildStatusBadge(String label, int count) {
     return Expanded(
       child: Container(

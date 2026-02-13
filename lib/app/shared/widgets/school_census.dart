@@ -4,22 +4,12 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'action_button.dart';
 import 'card_base.dart';
 
-/// SchoolCensus widget based on [CardBase].
-///
-/// Layout:
-/// - Row with 3 columns (flex: 2, 7, 2) ~ 20%, 60-66%, 20%.
-/// - Col 1: leading icon (provided by parameter).
-/// - Col 2: Row with up to 3 texts: [title], [info1?], [info2?].
-/// - Col 3: Action container (max height 25.h),
-///   top-left radius 15, bottom-right radius 10,
-///   blue background (#117BBD) with a right arrow icon.
 class SchoolCensus extends StatelessWidget {
   final Widget leadingIcon;
   final String title;
   final String? info1;
   final String? info2;
 
-  /// Optional tap handler for the trailing action area.
   final VoidCallback? onActionTap;
 
   const SchoolCensus({
@@ -43,11 +33,10 @@ class SchoolCensus extends StatelessWidget {
         padding: EdgeInsets.only(left: 12.w, top: 12.h, right: 0, bottom: 0),
         children: [
           SizedBox(
-            height: 68.h, // Increased height to prevent overflow
+            height: 68.h,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // First column: leading icon (~20%)
                 Expanded(
                   flex: 2,
                   child: Padding(
@@ -59,7 +48,6 @@ class SchoolCensus extends StatelessWidget {
                   ),
                 ),
 
-                // Second column: main content (~60-66%) stacked vertically
                 Expanded(
                   flex: 7,
                   child: Padding(
@@ -69,7 +57,6 @@ class SchoolCensus extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Title (required)
                         Flexible(
                           child: Text(
                             title,
@@ -80,7 +67,6 @@ class SchoolCensus extends StatelessWidget {
                             maxLines: 1,
                           ),
                         ),
-                        // Info 1 (optional)
                         if ((info1 ?? '').isNotEmpty) ...[
                           SizedBox(height: 1.h),
                           Flexible(
@@ -92,7 +78,6 @@ class SchoolCensus extends StatelessWidget {
                             ),
                           ),
                         ],
-                        // Info 2 (optional)
                         if ((info2 ?? '').isNotEmpty) ...[
                           SizedBox(height: 0.5.h),
                           Flexible(
@@ -109,14 +94,13 @@ class SchoolCensus extends StatelessWidget {
                   ),
                 ),
 
-                // Third column: action container (~20%)
                 Expanded(
                   flex: 2,
                   child: Container(
                     height: 68.h,
                     alignment: Alignment.bottomRight,
                     child: ActionButton(
-                      onTap: null, // Remove the onTap since the whole card is now tappable
+                      onTap: null,
                     ),
                   ),
                 ),

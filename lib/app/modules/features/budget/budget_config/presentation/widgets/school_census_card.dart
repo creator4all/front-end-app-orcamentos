@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../../../shared/widgets/card_layout.dart';
@@ -7,7 +7,6 @@ class SchoolCensusCard extends StatelessWidget {
   final int numberOfCities;
   final List<Map<String, dynamic>> citiesData;
 
-  /// Censo agregado para orçamentos multi-cidade (count > 0 = turmas, soma = estudantes)
   final Map<String, double>? censoAgregado;
   final VoidCallback? onTap;
 
@@ -37,7 +36,6 @@ class SchoolCensusCard extends StatelessWidget {
 
   int _calculateTotalStudents() {
     if (censoAgregado != null && censoAgregado!.isNotEmpty) {
-      // Exclui professores (sufixo P)
       return censoAgregado!.entries
           .where((e) => !e.key.endsWith('P'))
           .fold(0.0, (sum, e) => sum + e.value)
@@ -52,7 +50,6 @@ class SchoolCensusCard extends StatelessWidget {
           [];
       for (final indicador in indicadores) {
         if (indicador is Map<String, dynamic>) {
-          // Exclui professores (sufixo P)
           final nome = indicador['nome_etapa'] ?? indicador['nome'] ?? '';
           if (nome.toString().endsWith('P')) continue;
 

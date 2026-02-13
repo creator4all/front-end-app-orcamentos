@@ -2,15 +2,14 @@ import 'package:equatable/equatable.dart';
 
 import 'indice_etapa_entity.dart';
 
-/// Entidade que representa a relação Cidade-IndiceEtapa com valor
 class CidadeIndiceEtapaEntity extends Equatable {
   final int indiceEtapaId;
   final String nomeEtapa;
-  final String tituloEtapa; // Título para exibição (Berçário, Maternal, etc)
+  final String tituloEtapa;
   final int grupoId;
   final DateTime createdAt;
   final DateTime updatedAt;
-  final double etapaValor; // Valor da etapa para esta cidade
+  final double etapaValor;
   final IndiceEtapaEntity indiceEtapa;
 
   const CidadeIndiceEtapaEntity({

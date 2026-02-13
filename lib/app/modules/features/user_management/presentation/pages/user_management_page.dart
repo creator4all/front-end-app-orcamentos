@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -11,10 +11,7 @@ import '../../../auth/presentation/stores/auth_store.dart';
 import '../stores/user_management_store.dart';
 import '../widgets/user_list_item_widget.dart';
 
-/// Página de gestão de usuários
-/// Acessível para Gestor (seus usuários) e Admin (usuários de um parceiro)
 class UserManagementPage extends StatefulWidget {
-  /// ID do parceiro (para Admin visualizando usuários de um parceiro específico)
   final int? partnerId;
 
   const UserManagementPage({
@@ -38,15 +35,12 @@ class _UserManagementPageState extends State<UserManagementPage> {
     _store = Modular.get<UserManagementStore>();
     _authStore = Modular.get<AuthStore>();
 
-    // Configurar partnerId se fornecido (contexto Admin)
     if (widget.partnerId != null) {
       _store.setPartnerId(widget.partnerId);
     }
 
-    // Carregar usuários ao iniciar
     _store.loadUsers();
 
-    // Configurar scroll infinito
     _scrollController.addListener(_onScroll);
   }
 
@@ -55,7 +49,6 @@ class _UserManagementPageState extends State<UserManagementPage> {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     _searchController.dispose();
-    // Limpar partnerId ao sair
     _store.setPartnerId(null);
     super.dispose();
   }
@@ -68,12 +61,9 @@ class _UserManagementPageState extends State<UserManagementPage> {
     }
   }
 
-  /// Retorna o ID da role do usuário logado
   int get _currentUserRoleId {
     return getRoleIdFromName(_authStore.currentUser?.role?.name);
   }
-
-  /// Exibe dialog de permissão negada
   void _showPermissionDeniedDialog() {
     CustomInfoDialog.show(
       context: context,
@@ -127,7 +117,6 @@ class _UserManagementPageState extends State<UserManagementPage> {
       ),
       body: Column(
         children: [
-          // Barra de busca
           Padding(
             padding: EdgeInsets.all(16.w),
             child: TextField(
@@ -158,16 +147,13 @@ class _UserManagementPageState extends State<UserManagementPage> {
             ),
           ),
 
-          // Lista de usuários
           Expanded(
             child: Observer(
               builder: (_) {
-                // Skeleton durante loading inicial
                 if (_store.isLoading && _store.users.isEmpty) {
                   return _buildSkeleton();
                 }
 
-                // Erro
                 if (_store.error != null && _store.users.isEmpty) {
                   return Center(
                     child: Column(
@@ -205,7 +191,6 @@ class _UserManagementPageState extends State<UserManagementPage> {
                   );
                 }
 
-                // Lista vazia
                 if (_store.filteredUsers.isEmpty) {
                   return Center(
                     child: Column(
@@ -231,7 +216,6 @@ class _UserManagementPageState extends State<UserManagementPage> {
                   );
                 }
 
-                // Lista de usuários
                 return RefreshIndicator(
                   onRefresh: _store.loadUsers,
                   child: ListView.builder(
@@ -241,7 +225,6 @@ class _UserManagementPageState extends State<UserManagementPage> {
                     itemCount: _store.filteredUsers.length +
                         (_store.isLoadingMore ? 1 : 0),
                     itemBuilder: (context, index) {
-                      // Loading indicator no final
                       if (index == _store.filteredUsers.length) {
                         return Padding(
                           padding: EdgeInsets.symmetric(vertical: 16.h),
@@ -357,7 +340,6 @@ class _UserManagementPageState extends State<UserManagementPage> {
       ),
       child: Row(
         children: [
-          // Avatar placeholder
           Container(
             width: 56.w,
             height: 56.h,
@@ -367,7 +349,6 @@ class _UserManagementPageState extends State<UserManagementPage> {
             ),
           ),
           SizedBox(width: 12.w),
-          // Info placeholders
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -401,7 +382,6 @@ class _UserManagementPageState extends State<UserManagementPage> {
               ],
             ),
           ),
-          // Switch placeholder
           Container(
             width: 40.w,
             height: 24.h,

@@ -18,27 +18,20 @@ import 'presentation/stores/report_budget_list_store.dart';
 import 'presentation/stores/report_filter_store.dart';
 import 'presentation/stores/report_user_list_store.dart';
 
-/// Módulo de Relatórios de Orçamentos.
-///
-/// Fornece funcionalidades para administradores visualizarem
-/// relatórios de vendas e orçamentos por empresa e vendedor.
 class ReportsModule extends Module {
   @override
   List<Module> get imports => [];
 
   @override
   List<Bind> get binds => [
-    // Datasource
     Bind.lazySingleton<ReportsDatasource>(
       (i) => ReportsApiDatasource(httpClient: i.get<AppHttpClient>()),
     ),
 
-    // Repository
     Bind.lazySingleton<ReportsRepository>(
       (i) => ReportsRepositoryImpl(datasource: i.get<ReportsDatasource>()),
     ),
 
-    // Stores
     Bind.lazySingleton<ReportFilterStore>((i) => ReportFilterStore()),
     Bind.lazySingleton<ReportUserListStore>(
       (i) => ReportUserListStore(
@@ -53,7 +46,6 @@ class ReportsModule extends Module {
       ),
     ),
 
-    // Store de detalhes - Factory para criar nova instância por orçamento
     Bind.factory<ReportBudgetDetailStore>(
       (i) => ReportBudgetDetailStore(
         getBudgetDetailUseCase: i.get<GetBudgetDetailUseCase>(),
@@ -61,7 +53,6 @@ class ReportsModule extends Module {
       ),
     ),
 
-    // SchoolCensusStore para página de censo readonly
     Bind.factory<SchoolCensusStore>(
       (i) => SchoolCensusStore(
         i.get<CensusRepository>(),
@@ -72,7 +63,6 @@ class ReportsModule extends Module {
 
   @override
   List<ModularRoute> get routes => [
-    // Lista de usuários de um parceiro
     ChildRoute(
       '/partner/:partnerId',
       child:
@@ -82,7 +72,6 @@ class ReportsModule extends Module {
           ),
     ),
 
-    // Lista de orçamentos de um usuário
     ChildRoute(
       '/user/:userId/budgets',
       child:
@@ -94,7 +83,6 @@ class ReportsModule extends Module {
           ),
     ),
 
-    // Detalhe de um orçamento
     ChildRoute(
       '/budget/:budgetId',
       child:
@@ -105,7 +93,6 @@ class ReportsModule extends Module {
           ),
     ),
 
-    // Visualização do censo (read-only)
     ChildRoute(
       '/budget/:budgetId/census',
       child:

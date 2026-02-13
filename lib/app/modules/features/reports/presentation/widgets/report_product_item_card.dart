@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:multimidiaapp/app/modules/features/reports/presentation/widgets/readonly_checkbox.dart';
@@ -6,25 +6,9 @@ import 'package:multimidiaapp/app/modules/features/reports/presentation/widgets/
 import '../../../../../shared/utils/string_utils.dart';
 import '../../../budget/budget_config/domain/entities/product_entity.dart';
 
-/// Card de produto individual para visualização em relatórios (READONLY)
-///
-/// Clone exato do ProductItemCard do budget_config, apenas sem callbacks de edição.
-///
-/// Layout:
-/// - Row com checkbox visual + informações + ícone info
-/// - Checkbox customizado visual (17x17) - apenas leitura
-/// - Nome do produto
-/// - Qtde, Preço unitário, Valor total
-/// - Ícone de informação (22x22)
-///
-/// Estados visuais:
-/// - Selecionado: borda azul (#2830F2)
-/// - Não selecionado: borda cinza (#D9D9D9)
 class ReportProductItemCard extends StatelessWidget {
-  /// Produto a ser exibido
   final ProductEntity product;
 
-  /// Callback quando o ícone de info é clicado
   final VoidCallback? onInfoTap;
 
   const ReportProductItemCard({
@@ -33,7 +17,6 @@ class ReportProductItemCard extends StatelessWidget {
     this.onInfoTap,
   });
 
-  /// Formata valor para padrão brasileiro
   String _formatCurrency(double value) {
     final formatter = NumberFormat.currency(
       locale: 'pt_BR',
@@ -62,20 +45,17 @@ class ReportProductItemCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Checkbox visual readonly (cinza)
           ReadonlyCheckbox(
             value: isSelected,
           ),
 
           SizedBox(width: 12.w),
 
-          // Informações do produto
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Nome do produto
                 Text(
                   capitalizeFirstLetter(product.solucao),
                   style: TextStyle(
@@ -87,7 +67,6 @@ class ReportProductItemCard extends StatelessWidget {
 
                 SizedBox(height: 4.h),
 
-                // Qtde, Preço, Total
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -123,7 +102,6 @@ class ReportProductItemCard extends StatelessWidget {
 
           SizedBox(width: 12.w),
 
-          // Ícone de informação
           GestureDetector(
             onTap: onInfoTap,
             child: Icon(

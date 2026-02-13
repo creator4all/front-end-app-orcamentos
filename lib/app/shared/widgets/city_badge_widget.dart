@@ -13,7 +13,6 @@ class CityBadgeWidget extends StatelessWidget {
   final VoidCallback onRemove;
   final bool showIcon;
 
-  // Customizable colors
   final Color backgroundColor;
   final Color textColor;
   final Color iconBackgroundColor;
@@ -25,7 +24,7 @@ class CityBadgeWidget extends StatelessWidget {
     required this.state,
     required this.onRemove,
     this.showIcon = true,
-    this.backgroundColor = const Color(0xFF2830F2), // Default blue
+    this.backgroundColor = const Color(0xFF2830F2),
     this.textColor = Colors.white,
     this.iconBackgroundColor = Colors.white,
     this.iconColor = const Color(0xFF2830F2),

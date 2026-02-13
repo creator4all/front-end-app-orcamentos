@@ -1,7 +1,6 @@
-import '../../domain/entities/indicador_etapa_entity.dart';
+﻿import '../../domain/entities/indicador_etapa_entity.dart';
 import 'indice_etapa_dto.dart';
 
-/// DTO para IndicadorEtapa
 class IndicadorEtapaDto {
   final int id;
   final bool valor;

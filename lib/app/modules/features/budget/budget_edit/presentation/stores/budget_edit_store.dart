@@ -40,7 +40,6 @@ abstract class _BudgetEditStoreBase with Store {
     required this.calculationService,
   });
 
-  // ========== OBSERVABLES ==========
 
   @observable
   bool isLoading = false;
@@ -87,16 +86,13 @@ abstract class _BudgetEditStoreBase with Store {
   @observable
   CensusDataEntity? censusData;
 
-  /// Censo escolar para edição (usado pelo SchoolCensusCard)
   @observable
   CensoEscolarEntity? censoEscolar;
 
-  /// Produtos que passaram a ter disponibilidade após mudança no censo
   @observable
   ObservableList<ProductEntity> productsNeedingRemark =
       ObservableList<ProductEntity>();
 
-  // ========== COMPUTED ==========
 
   @computed
   bool get hasData => budgetData != null;
@@ -113,9 +109,6 @@ abstract class _BudgetEditStoreBase with Store {
 
   @computed
   double get totalValue {
-    // 🔧 FIX: Usar cálculo hierárquico igual ao budget_config
-    // Produtos estão em categories -> subcategorias -> produtos
-    // NÃO usar budgetData.products (está vazio!)
     return categories.fold(0.0, (sum, c) => sum + c.totalValue);
   }
 
@@ -134,18 +127,15 @@ abstract class _BudgetEditStoreBase with Store {
     return categories.where((c) => c.hasSelectedProducts).length;
   }
 
-  // ✅ Contagem corrigida: expandidas contam subcategorias selecionadas, compactas contam produtos individuais
   @computed
   int get selectedItemsCount {
     return categories.fold(0, (sum, category) {
       if (category.expandido) {
-        // Categorias expandidas contam SUBCATEGORIAS com produtos selecionados
         final selectedSubcategories = category.subcategorias
             .where((subcategory) => subcategory.hasSelectedProducts)
             .length;
         return sum + selectedSubcategories;
       } else {
-        // Categorias compactas contam como 1 categoria se tiverem produtos selecionados
         return sum + (category.hasSelectedProducts ? 1 : 0);
       }
     });
@@ -160,12 +150,9 @@ abstract class _BudgetEditStoreBase with Store {
   @computed
   bool get isFullyLoaded => !isLoading && !isLoadingProducts;
 
-  // ========== ACTIONS ==========
 
   @action
   Future<void> initialize(int budgetId) async {
-    // Carrega estrutura completa (categorias, subcategorias, produtos)
-    // Produtos já vêm completos na resposta de GET /api/orcamentos/{id}
     await loadBudgetForEdit(budgetId);
   }
 
@@ -188,23 +175,19 @@ abstract class _BudgetEditStoreBase with Store {
         (budget) {
           budgetData = budget;
 
-          // Inicializar categorias a partir dos dados do orçamento
           categories.clear();
           categories.addAll(_parseCategoriesFromBudget(budget));
 
-          // Inicializar estados
           selectedStatus = budget.status;
           isArchived = budget.isArchived;
           validityDate = budget.validityDate;
           budgetName = budget.name;
 
-          // Inicializar produtos selecionados
           selectedProductIds.clear();
           selectedProductIds.addAll(
             budget.products.where((p) => p.isSelected).map((p) => p.productId),
           );
 
-          // Parsear censo escolar a partir dos dados da cidade
           _parseCensoEscolarFromCitiesData();
 
           isLoading = false;
@@ -218,7 +201,6 @@ abstract class _BudgetEditStoreBase with Store {
     }
   }
 
-  /// Atualiza o set de produtos selecionados baseado no estado real dos produtos
   void _updateSelectedProductIds() {
     selectedProductIds.clear();
 
@@ -233,10 +215,8 @@ abstract class _BudgetEditStoreBase with Store {
     }
   }
 
-  /// Converte dados do orçamento em estrutura de categorias (apenas estrutura, sem produtos)
   List<CategoryEntity> _parseCategoriesFromBudget(BudgetEditEntity budget) {
     try {
-      // Verificar se categoriesData contém uma lista de categorias
       if (budget.categoriesData is! List) {
         return [];
       }
@@ -249,14 +229,12 @@ abstract class _BudgetEditStoreBase with Store {
         try {
           final categoryJson = categoriesList[i] as Map<String, dynamic>;
 
-          // Usar CategoryDTO para parsing (estrutura + estatísticas)
           final categoryDto = CategoryDTO.fromJson(categoryJson);
           final categoryEntity = categoryDto.toEntity();
 
-          // Adicionar categoria (produtos virão depois em _loadAllProducts)
           categories.add(categoryEntity);
-        } catch (e) {
-          // Continua parseando outras categorias
+        } catch (_) {
+          continue;
         }
       }
 
@@ -281,8 +259,8 @@ abstract class _BudgetEditStoreBase with Store {
           censusData = data;
         },
       );
-    } catch (e) {
-      // Erro silencioso
+    } catch (_) {
+      error = 'Erro ao carregar dados de censo';
     } finally {
       isLoadingCensus = false;
     }
@@ -360,7 +338,6 @@ abstract class _BudgetEditStoreBase with Store {
     error = null;
 
     try {
-      // Calcular dias de validade
       int? validityDays;
       if (validityDate != null) {
         final hoje = DateTime.now();
@@ -398,7 +375,6 @@ abstract class _BudgetEditStoreBase with Store {
 
   @action
   Future<Either<BudgetFailure, BudgetEditEntity>> saveBudget() async {
-    // Usar sempre o método completo com DTO
     return saveBudgetWithDto();
   }
 
@@ -421,7 +397,6 @@ abstract class _BudgetEditStoreBase with Store {
     isLoadingCensus = false;
   }
 
-  // ========== MÉTODOS PARA MODALS ==========
 
   @action
   void toggleCategoryWithCascade(int categoryId, bool selected) {
@@ -430,7 +405,6 @@ abstract class _BudgetEditStoreBase with Store {
 
     final category = categories[categoryIndex];
 
-    // Atualizar categoria
     final updatedCategory = category.copyWith(
       subcategorias: category.subcategorias.map((sub) {
         return sub.copyWith(
@@ -443,7 +417,6 @@ abstract class _BudgetEditStoreBase with Store {
 
     categories[categoryIndex] = updatedCategory;
 
-    // Atualizar produtos selecionados
     if (selected) {
       for (final sub in updatedCategory.subcategorias) {
         for (final prod in sub.produtos) {
@@ -476,14 +449,12 @@ abstract class _BudgetEditStoreBase with Store {
 
     final subcategory = category.subcategorias[subIndex];
 
-    // Atualizar subcategoria
     final updatedSubcategory = subcategory.copyWith(
       produtos: subcategory.produtos.map((prod) {
         return prod.copyWith(selecionado: selected);
       }).toList(),
     );
 
-    // Atualizar categoria com subcategoria modificada
     final updatedSubcategories = List<SubcategoryEntity>.from(
       category.subcategorias,
     );
@@ -495,7 +466,6 @@ abstract class _BudgetEditStoreBase with Store {
 
     categories[categoryIndex] = updatedCategory;
 
-    // Atualizar produtos selecionados
     if (selected) {
       for (final prod in updatedSubcategory.produtos) {
         selectedProductIds.add(prod.id);
@@ -509,7 +479,6 @@ abstract class _BudgetEditStoreBase with Store {
 
   @action
   void toggleProduct(int productId, bool selected) {
-    // Encontrar e atualizar o produto em sua categoria/subcategoria
     for (var i = 0; i < categories.length; i++) {
       final category = categories[i];
 
@@ -523,7 +492,6 @@ abstract class _BudgetEditStoreBase with Store {
           final product = subcategory.produtos[prodIndex];
           var updatedProduct = product.copyWith(selecionado: selected);
 
-          // 🧮 Recalcular quantidade baseado no censo quando selecionado
           if (selected && censoEscolar != null) {
             final novaQuantidade = calculationService.calcularQuantidade(
               updatedProduct,
@@ -534,18 +502,15 @@ abstract class _BudgetEditStoreBase with Store {
             );
           }
 
-          // Atualizar lista de produtos (com tipo explícito)
           final updatedProducts = List<ProductEntity>.from(
             subcategory.produtos,
           );
           updatedProducts[prodIndex] = updatedProduct;
 
-          // Atualizar subcategoria
           final updatedSubcategory = subcategory.copyWith(
             produtos: updatedProducts,
           );
 
-          // Atualizar categoria
           final updatedSubcategories = List<SubcategoryEntity>.from(
             category.subcategorias,
           );
@@ -557,7 +522,6 @@ abstract class _BudgetEditStoreBase with Store {
 
           categories[i] = updatedCategory;
 
-          // Atualizar set de produtos selecionados
           if (selected) {
             selectedProductIds.add(productId);
           } else {
@@ -572,7 +536,6 @@ abstract class _BudgetEditStoreBase with Store {
 
   @action
   void updateProductQuantity(int productId, int quantity) {
-    // Encontrar e atualizar o produto
     for (var i = 0; i < categories.length; i++) {
       final category = categories[i];
 
@@ -586,18 +549,15 @@ abstract class _BudgetEditStoreBase with Store {
           final product = subcategory.produtos[prodIndex];
           final updatedProduct = product.copyWith(quantidade: quantity);
 
-          // Atualizar lista de produtos (com tipo explícito)
           final updatedProducts = List<ProductEntity>.from(
             subcategory.produtos,
           );
           updatedProducts[prodIndex] = updatedProduct;
 
-          // Atualizar subcategoria
           final updatedSubcategory = subcategory.copyWith(
             produtos: updatedProducts,
           );
 
-          // Atualizar categoria
           final updatedSubcategories = List<SubcategoryEntity>.from(
             category.subcategorias,
           );
@@ -616,7 +576,6 @@ abstract class _BudgetEditStoreBase with Store {
 
   @action
   void updateProductObservations(int productId, String observations) {
-    // Encontrar e atualizar o produto
     for (var i = 0; i < categories.length; i++) {
       final category = categories[i];
 
@@ -630,18 +589,15 @@ abstract class _BudgetEditStoreBase with Store {
           final product = subcategory.produtos[prodIndex];
           final updatedProduct = product.copyWith(observacoes: observations);
 
-          // Atualizar lista de produtos (com tipo explícito)
           final updatedProducts = List<ProductEntity>.from(
             subcategory.produtos,
           );
           updatedProducts[prodIndex] = updatedProduct;
 
-          // Atualizar subcategoria
           final updatedSubcategory = subcategory.copyWith(
             produtos: updatedProducts,
           );
 
-          // Atualizar categoria
           final updatedSubcategories = List<SubcategoryEntity>.from(
             category.subcategorias,
           );
@@ -657,11 +613,8 @@ abstract class _BudgetEditStoreBase with Store {
       }
     }
   }
-
-  /// 🔄 Alterna estado de um indicador do produto e recalcula quantidade
   @action
   void toggleProductIndicator(int productId, int indicatorId) {
-    // Encontrar o produto
     for (var i = 0; i < categories.length; i++) {
       final category = categories[i];
 
@@ -675,7 +628,6 @@ abstract class _BudgetEditStoreBase with Store {
         if (productIndex != -1) {
           final product = subcategory.produtos[productIndex];
 
-          // Encontrar o indicador na lista do produto
           final indicatorIndex = product.indicadoresEtapa.indexWhere(
             (ind) => ind.produtoIndicadorId == indicatorId,
           );
@@ -684,36 +636,30 @@ abstract class _BudgetEditStoreBase with Store {
             final indicator = product.indicadoresEtapa[indicatorIndex];
             final newSelectedState = !indicator.selecionado;
 
-            // Atualizar o indicador
             final updatedIndicator = indicator.copyWith(
               selecionado: newSelectedState,
             );
 
-            // Atualizar lista de indicadores
             final updatedIndicators = List<IndicadorEtapaEntity>.from(
               product.indicadoresEtapa,
             );
             updatedIndicators[indicatorIndex] = updatedIndicator;
 
-            // Atualizar produto com novos indicadores
             var updatedProduct = product.copyWith(
               indicadoresEtapa: updatedIndicators,
             );
 
-            // 🧮 RECALCULAR quantidade baseado nos indicadores selecionados
             if (censoEscolar != null) {
               final novaQuantidade = calculationService.calcularQuantidade(
                 updatedProduct,
                 censoEscolar,
               );
 
-              // Atualiza o produto com a quantidade recalculada
               updatedProduct = updatedProduct.copyWith(
                 quantidade: novaQuantidade.round(),
               );
             }
 
-            // Propagar atualização na árvore
             final updatedProducts = List<ProductEntity>.from(
               subcategory.produtos,
             );
@@ -741,18 +687,6 @@ abstract class _BudgetEditStoreBase with Store {
     }
   }
 
-  /// 💾 Salva orçamento editado usando DTO completo
-  ///
-  /// **NOVO MÉTODO** que substitui o antigo `updateBudget()`
-  ///
-  /// Permite alterar:
-  /// - Produtos (seleção e quantidade) - via DTO
-  /// - Status (pendente, aprovado, arquivado, etc)
-  /// - Dados gerais (nome, validade, total)
-  /// - Estado de arquivamento
-  ///
-  /// Diferença do método antigo: Usa BudgetUpdateDto para enviar
-  /// todos os produtos com seus estados reais ao backend
   @action
   Future<Either<BudgetFailure, BudgetEditEntity>> saveBudgetWithDto() async {
     if (budgetData == null) {
@@ -769,7 +703,6 @@ abstract class _BudgetEditStoreBase with Store {
     error = null;
 
     try {
-      // 1. Coletar todos os produtos de todas as categorias/subcategorias
       final produtosParaSalvar = <ProductSelectionUpdateDto>[];
 
       for (final category in categories) {
@@ -782,10 +715,8 @@ abstract class _BudgetEditStoreBase with Store {
         }
       }
 
-      // 2. Calcular total
       final totalCalculado = totalValue;
 
-      // Normalizar para meia-noite para cálculo preciso
       final hoje = DateTime.now();
       final hojeNormalizado = DateTime(hoje.year, hoje.month, hoje.day);
       final validadeNormalizada =
@@ -793,29 +724,20 @@ abstract class _BudgetEditStoreBase with Store {
       final diasValidade =
           validadeNormalizada.difference(hojeNormalizado).inDays;
 
-      // 4. Criar DTO de atualização (com dados obrigatórios para versionamento)
-      // 🔑 Diferenciação: multi-cidade envia cidadeId=null + array cidades
-      //                   comum envia cidadeId + sem array cidades
       final isMultiCity = budgetData!.isMultiCity;
 
       final updateDto = BudgetUpdateDto(
         nome: budgetName,
         diasValidade: diasValidade > 0 ? diasValidade : 1,
-        status: selectedStatus, // ⚠️ Pode ser qualquer status no budget_edit
-        isArchived: isArchived, // 📦 Envia estado de arquivamento
+        status: selectedStatus,
+        isArchived: isArchived,
         total: totalCalculado,
-        // 🔑 Campos obrigatórios para rota de versionamento
         usuarioId: authStore.currentUser?.id ?? budgetData!.userId,
-        // Para multi-cidade: cidadeId = null, cidades = array de IDs
-        // Para comum: cidadeId = primeiro ID, cidades = null
         cidadeId: isMultiCity ? null : budgetData!.cityIds.firstOrNull,
         cidades: isMultiCity ? budgetData!.cityIds : null,
         produtos: produtosParaSalvar,
       );
 
-      // 5. Chamar UseCase com endpoint correto baseado no tipo de orçamento
-      // - Comum: POST /api/orcamentos/{id}/versionar
-      // - Multi-cidade: POST /api/orcamentos/{id}/versionar-multi-cidade
       final Either<BudgetFailure, BudgetEditEntity> result;
       if (isMultiCity) {
         result = await updateBudgetUseCase.versionMultiCityWithDto(
@@ -848,17 +770,13 @@ abstract class _BudgetEditStoreBase with Store {
     }
   }
 
-  // ========== METHODS CENSO ESCOLAR ==========
 
-  /// Converte os dados brutos de cidades (citiesDataRaw) em CensoEscolarEntity
-  /// Para multi-cidade, usa censoAgregado; para cidade única, usa CidadeDto
   void _parseCensoEscolarFromCitiesData() {
     if (budgetData == null) {
       censoEscolar = null;
       return;
     }
 
-    // ✅ Prioridade 1: Usar censo_agregado para orçamentos multi-cidade
     if (budgetData!.censoAgregado.isNotEmpty) {
       censoEscolar = CensoEscolarEntity(
         cidadeId: 0,
@@ -869,7 +787,6 @@ abstract class _BudgetEditStoreBase with Store {
       return;
     }
 
-    // Fallback: Usar citiesDataRaw para orçamento de cidade única
     if (budgetData!.citiesDataRaw.isEmpty) {
       censoEscolar = null;
       return;
@@ -878,11 +795,9 @@ abstract class _BudgetEditStoreBase with Store {
     try {
       final cityData = budgetData!.citiesDataRaw.first;
 
-      // ✅ Usar CidadeDto para parsing tipado (igual ao BudgetConfigStore)
       final cidadeDto = CidadeDto.fromJson(cityData);
       final cidade = cidadeDto.toEntity();
 
-      // ✅ Converter CidadeEntity para CensoEscolarEntity
       censoEscolar = _convertCidadeToCensoEscolar(cidade);
 
       if (censoEscolar != null) {}
@@ -891,31 +806,24 @@ abstract class _BudgetEditStoreBase with Store {
     }
   }
 
-  /// Atualiza o censo escolar após edição na página de censo
-  /// Também atualiza os dados raw da cidade no budgetData
   @action
   void updateCensoEscolar(CensoEscolarEntity updatedCenso) {
-    // Guardar censo antigo para verificação de remark
     final oldCenso = censoEscolar;
 
     censoEscolar = updatedCenso;
 
-    // Atualizar também os dados raw da cidade no budgetData
     if (budgetData != null && budgetData!.citiesDataRaw.isNotEmpty) {
       final updatedCitiesData = budgetData!.citiesDataRaw.map((cityData) {
         final cityId = cityData['idCidades'] ?? cityData['id'];
         if (cityId == updatedCenso.cidadeId) {
-          // Atualizar indicadores com novos valores
           return _updateCityDataWithCenso(cityData, updatedCenso);
         }
         return cityData;
       }).toList();
 
-      // Atualizar citiesDataRaw no budgetData
       budgetData = budgetData!.copyWith(citiesDataRaw: updatedCitiesData);
     }
 
-    // Se temos censo antigo, verificar se há produtos para remarcação
     if (oldCenso != null) {
       _checkForProductsToRemark(oldCenso, updatedCenso);
     }
@@ -931,11 +839,8 @@ abstract class _BudgetEditStoreBase with Store {
     try {
       final oldCenso = censoEscolar;
 
-      // Recarregar estrutura completa e produtos (GET /api/orcamentos/{id})
-      // Produtos já vêm com quantidades recalculadas na resposta
       await loadBudgetForEdit(budgetData!.id);
 
-      // 3. Verificar se há produtos que precisam de remarcação
       if (oldCenso != null && censoEscolar != null) {
         _checkForProductsToRemark(oldCenso, censoEscolar!);
       }
@@ -947,7 +852,6 @@ abstract class _BudgetEditStoreBase with Store {
     }
   }
 
-  /// Verifica produtos que precisam ser remarcação após mudança no censo
   @action
   void _checkForProductsToRemark(
     CensoEscolarEntity oldCenso,
@@ -955,11 +859,9 @@ abstract class _BudgetEditStoreBase with Store {
   ) {
     final productsToRemark = <ProductEntity>[];
 
-    // Percorrer todos os produtos para verificar mudanças
     for (final category in categories) {
       for (final subcategory in category.subcategorias) {
         for (final product in subcategory.produtos) {
-          // Calcular quantidade antiga e nova
           final oldQuantity = calculationService.calcularQuantidade(
             product,
             oldCenso,
@@ -969,7 +871,6 @@ abstract class _BudgetEditStoreBase with Store {
             newCenso,
           );
 
-          // Se era 0 e agora > 0, e NÃO está selecionado, adicionar à lista
           if (oldQuantity == 0 && newQuantity > 0 && !product.selecionado) {
             final updatedProduct = product.copyWith(
               quantidade: newQuantity.round(),
@@ -980,14 +881,12 @@ abstract class _BudgetEditStoreBase with Store {
       }
     }
 
-    // Atualizar observable com produtos que precisam de remarcação
     productsNeedingRemark.clear();
     productsNeedingRemark.addAll(productsToRemark);
 
     if (productsToRemark.isNotEmpty) {}
   }
 
-  /// Marca os produtos como selecionados (chamado pela UI após confirmação)
   @action
   void confirmProductRemark() {
     if (productsNeedingRemark.isEmpty) return;
@@ -998,20 +897,16 @@ abstract class _BudgetEditStoreBase with Store {
       toggleProduct(product.id, true);
     }
 
-    // Limpar lista após confirmação
     productsNeedingRemark.clear();
   }
 
-  /// Rejeita remarcação dos produtos (chamado pela UI)
   @action
   void rejectProductRemark() {
     if (productsNeedingRemark.isEmpty) return;
 
-    // Limpar lista após rejeição
     productsNeedingRemark.clear();
   }
 
-  /// Cria um novo Map de dados da cidade com os valores atualizados do censo
   Map<String, dynamic> _updateCityDataWithCenso(
     Map<String, dynamic> cityData,
     CensoEscolarEntity updatedCenso,
@@ -1038,16 +933,12 @@ abstract class _BudgetEditStoreBase with Store {
     return {...cityData, 'cidades_has_indice_etapa': indicadores};
   }
 
-  /// Converte CidadeEntity para CensoEscolarEntity
-  /// Método idêntico ao BudgetConfigStore para garantir consistência
   CensoEscolarEntity? _convertCidadeToCensoEscolar(dynamic cidade) {
     if (cidade == null) return null;
 
     try {
-      // Criar mapa de valores por etapa para lookup rápido
       final valoresPorEtapa = <String, double>{};
 
-      // Agrupar por grupos
       final gruposMap = <int, List<CensoTitleEntity>>{};
       final grupoNomes = <int, String>{};
 
@@ -1057,30 +948,24 @@ abstract class _BudgetEditStoreBase with Store {
         final grupoId = etapa.grupoId;
         final grupoNome = etapa.indiceEtapa.grupoNome;
 
-        // Adicionar ao mapa de valores
         valoresPorEtapa[nomeEtapa] = valor;
 
-        // Guardar nome do grupo
         grupoNomes[grupoId] = grupoNome;
 
-        // Criar título para este indicador
-        // ✅ Usa etapa.indiceEtapa.titulo para exibição amigável
         final titulo = CensoTitleEntity(
           id: etapa.indiceEtapaId,
           nomeEtapa: nomeEtapa,
           tituloExibicao:
-              etapa.indiceEtapa.titulo, // Usa titulo para exibição amigável
+              etapa.indiceEtapa.titulo,
           valor: valor,
           isProfessores: nomeEtapa == 'professores',
           grupoId: grupoId,
         );
 
-        // Agrupar por grupo
         gruposMap.putIfAbsent(grupoId, () => []);
         gruposMap[grupoId]!.add(titulo);
       }
 
-      // Converter grupos map para entidades
       final grupos = gruposMap.entries.map((entry) {
         return CensoGroupEntity(
           id: entry.key,

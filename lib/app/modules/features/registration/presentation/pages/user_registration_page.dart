@@ -9,7 +9,6 @@ import '../../../../../shared/widgets/custom_top_bar.dart';
 import '../../domain/entities/user_registration.dart';
 import '../stores/registration_store.dart';
 
-/// Página de cadastro de usuário - Recebe dados da empresa do store
 class UserRegistrationPage extends StatefulWidget {
   const UserRegistrationPage({super.key});
 
@@ -20,7 +19,6 @@ class UserRegistrationPage extends StatefulWidget {
 class _UserRegistrationPageState extends State<UserRegistrationPage> {
   final _formKey = GlobalKey<FormState>();
 
-  // Controllers para campos editáveis
   final _emailController = TextEditingController();
   final _confirmEmailController = TextEditingController();
   final _nameController = TextEditingController();
@@ -35,7 +33,6 @@ class _UserRegistrationPageState extends State<UserRegistrationPage> {
     super.initState();
     store = Modular.get<RegistrationStore>();
 
-    // Verifica se tem empresa selecionada
     if (!store.hasFoundCompany) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Modular.to.pop();
@@ -54,7 +51,6 @@ class _UserRegistrationPageState extends State<UserRegistrationPage> {
     super.dispose();
   }
 
-  // Formatar telefone (XX) XXXXX-XXXX
   String _formatPhone(String value) {
     value = value.replaceAll(RegExp(r'[^0-9]'), '');
 
@@ -80,7 +76,7 @@ class _UserRegistrationPageState extends State<UserRegistrationPage> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
         phone: _phoneController.text.replaceAll(RegExp(r'[^0-9]'), ''),
-        cargo: 'Vendedor', // Cargo padrão
+        cargo: 'Vendedor',
         partnerId: company.id,
       );
 
@@ -114,7 +110,6 @@ class _UserRegistrationPageState extends State<UserRegistrationPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Ícone de sucesso em círculo verde
               Container(
                 width: 72.w,
                 height: 72.w,
@@ -130,7 +125,6 @@ class _UserRegistrationPageState extends State<UserRegistrationPage> {
               ),
               SizedBox(height: 20.h),
 
-              // Título
               Text(
                 'Cadastro realizado!',
                 style: TextStyle(
@@ -142,7 +136,6 @@ class _UserRegistrationPageState extends State<UserRegistrationPage> {
               ),
               SizedBox(height: 12.h),
 
-              // Mensagem
               Text(
                 'Seu cadastro foi realizado com sucesso. Aguarde a ativação pelo gestor da empresa para acessar o sistema.',
                 style: TextStyle(
@@ -153,7 +146,6 @@ class _UserRegistrationPageState extends State<UserRegistrationPage> {
               ),
               SizedBox(height: 24.h),
 
-              // Botão Ir para Login
               SizedBox(
                 width: double.infinity,
                 height: 48.h,
@@ -212,7 +204,6 @@ class _UserRegistrationPageState extends State<UserRegistrationPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // === Dados da empresa (read-only) ===
                     _buildReadOnlyField('Razão social', company.legalName),
                     SizedBox(height: 8.h),
                     _buildReadOnlyField('Nome fantasia', company.tradeName),
@@ -224,7 +215,6 @@ class _UserRegistrationPageState extends State<UserRegistrationPage> {
                     _buildReadOnlyField('Telefone', company.phone),
                     SizedBox(height: 24.h),
 
-                    // === Título seção usuário ===
                     Text(
                       'Informações do usuário',
                       style: TextStyle(
@@ -235,7 +225,6 @@ class _UserRegistrationPageState extends State<UserRegistrationPage> {
                     ),
                     SizedBox(height: 16.h),
 
-                    // === Campos editáveis ===
                     CustomTextField(
                       controller: _emailController,
                       label: 'E-mail:',
@@ -337,7 +326,6 @@ class _UserRegistrationPageState extends State<UserRegistrationPage> {
                     ),
                     SizedBox(height: 32.h),
 
-                    // === Botão Cadastrar ===
                     Observer(
                       builder: (_) => PrimaryButton(
                         text: 'Cadastrar',

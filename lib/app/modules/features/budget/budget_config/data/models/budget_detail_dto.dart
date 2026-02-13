@@ -2,8 +2,6 @@ import '../../domain/entities/budget_detail_entity.dart';
 import 'category_dto.dart';
 import 'product_selection_dto.dart';
 
-/// DTO para detalhes de orçamento
-/// Responsável pela conversão JSON <-> Entity
 class BudgetDetailDto {
   final int id;
   final String? name;
@@ -39,7 +37,6 @@ class BudgetDetailDto {
     this.censoAgregado = const {},
   });
 
-  /// Cria DTO a partir do JSON da API
   factory BudgetDetailDto.fromJson(Map<String, dynamic> json) {
     final List<ProductSelectionDto> productsList = [];
 
@@ -48,7 +45,6 @@ class BudgetDetailDto {
     final List<int> cities = [];
     final List<Map<String, dynamic>> citiesDataList = [];
 
-    // Formato canônico: array de objetos em 'cidades'
     if (json['cidades'] != null && json['cidades'] is List) {
       for (final cidade in json['cidades'] as List) {
         if (cidade is Map<String, dynamic>) {
@@ -62,7 +58,6 @@ class BudgetDetailDto {
         }
       }
     }
-    // Fallback: objeto singular 'cidade' na raiz (contrato canônico single-city)
     else if (json['cidade'] != null && json['cidade'] is Map) {
       final cidadeMap = json['cidade'] as Map<String, dynamic>;
       final cidadeId = cidadeMap['id'] as int;
@@ -91,7 +86,6 @@ class BudgetDetailDto {
       );
     }
 
-    // Extrair produtos selecionados da árvore de categorias
     if (categoriesList.isNotEmpty) {
       for (final cat in categoriesList) {
         for (final sub in cat.subcategorias) {
@@ -149,7 +143,6 @@ class BudgetDetailDto {
     );
   }
 
-  /// Converte DTO para JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -171,7 +164,6 @@ class BudgetDetailDto {
     };
   }
 
-  /// Converte DTO para Entity
   BudgetDetailEntity toEntity() {
     return BudgetDetailEntity(
       id: id,
@@ -192,7 +184,6 @@ class BudgetDetailDto {
     );
   }
 
-  /// Cria DTO a partir de Entity
   factory BudgetDetailDto.fromEntity(BudgetDetailEntity entity) {
     return BudgetDetailDto(
       id: entity.id,
@@ -211,7 +202,7 @@ class BudgetDetailDto {
       categoryStates: entity.categoryStates,
       categories:
           entity.categories.map((c) => CategoryDTO.fromEntity(c)).toList(),
-      citiesData: [], // Não há dados de cidades na entity, apenas IDs
+      citiesData: [],
       censoAgregado: entity.censoAgregado,
     );
   }

@@ -1,11 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 
 import '../../domain/entities/product_entity.dart';
 import 'indicadores_etapa_section.dart';
 
-/// Modal que exibe detalhes completos de um produto
 class ProductDetailModal extends StatefulWidget {
   final ProductEntity product;
   final Function(int quantity, String? observations)? onSave;
@@ -53,10 +52,8 @@ class _ProductDetailModalState extends State<ProductDetailModal> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Header
             _buildHeader(context),
 
-            // Conteúdo
             Expanded(
               child: SingleChildScrollView(
                 padding: EdgeInsets.all(16.w),
@@ -74,20 +71,16 @@ class _ProductDetailModalState extends State<ProductDetailModal> {
 
                     SizedBox(height: 16.h),
 
-                    // Quantidade
                     _buildQuantitySection(),
 
                     SizedBox(height: 16.h),
 
-                    // Valor Total
                     _buildTotalSection(),
 
                     SizedBox(height: 16.h),
 
-                    // Observações
                     _buildObservationsSection(),
 
-                    // Indicadores de Etapa
                     if (widget.product.indicadoresEtapa.isNotEmpty) ...[
                       SizedBox(height: 16.h),
                       IndicadoresEtapaSection(
@@ -95,7 +88,6 @@ class _ProductDetailModalState extends State<ProductDetailModal> {
                       ),
                     ],
 
-                    // Informações adicionais
                     if (widget.product.hasAnyOverride) ...[
                       SizedBox(height: 16.h),
                       _buildOverrideInfo(),
@@ -105,7 +97,6 @@ class _ProductDetailModalState extends State<ProductDetailModal> {
               ),
             ),
 
-            // Footer
             if (widget.onSave != null) _buildFooter(context),
           ],
         ),

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../../shared/utils/currency_utils.dart';
@@ -9,8 +9,6 @@ enum ReportUserRole { admin, manager, seller }
 
 enum ReportBudgetStatus { pending, approved, notApproved, expired }
 
-/// Card para exibir orçamento na lista de relatórios.
-/// Cópia do BudgetCardWidget para uso independente.
 class ReportBudgetCardWidget extends StatelessWidget {
   final String title;
   final String? partner;
@@ -60,7 +58,6 @@ class ReportBudgetCardWidget extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // Título
             Text(
               title,
               style: TextStyle(
@@ -72,7 +69,6 @@ class ReportBudgetCardWidget extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
 
-            // Parceiro e Vendedor (baseado no role)
             if (_shouldShowPartnerAndSeller())
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -89,7 +85,6 @@ class ReportBudgetCardWidget extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                  // Spacer para manter Vendedor à direita quando Parceiro não é exibido
                   if (userRole != ReportUserRole.admin || partner == null)
                     const Spacer(),
                   if (seller != null)
@@ -105,12 +100,10 @@ class ReportBudgetCardWidget extends StatelessWidget {
                 ],
               ),
 
-            // Linha principal: Código/Data vs Valor
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Lado esquerdo: Código e Data na mesma linha
                 Expanded(
                   flex: 3,
                   child: Row(
@@ -143,7 +136,6 @@ class ReportBudgetCardWidget extends StatelessWidget {
                   ),
                 ),
 
-                // Lado direito: Valor
                 Expanded(
                   flex: 2,
                   child: Text(
@@ -160,16 +152,13 @@ class ReportBudgetCardWidget extends StatelessWidget {
               ],
             ),
 
-            // Linha inferior: Dias restantes vs Status
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Dias restantes
                 DaysRemainingWidget(
                   daysRemaining: daysRemaining,
                 ),
 
-                // Status tags
                 Row(
                   children: [
                     StatusTagWidget(

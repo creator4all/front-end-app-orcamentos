@@ -1,6 +1,5 @@
-import '../../domain/entities/categoria_entity.dart';
+﻿import '../../domain/entities/categoria_entity.dart';
 
-/// DTO para Categoria
 class CategoriaDto {
   final int id;
   final String nome;

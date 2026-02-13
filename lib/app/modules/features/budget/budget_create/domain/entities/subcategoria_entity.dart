@@ -1,8 +1,7 @@
-import 'package:equatable/equatable.dart';
+﻿import 'package:equatable/equatable.dart';
 
 import 'categoria_entity.dart';
 
-/// Entidade que representa uma Subcategoria de Produto
 class SubcategoriaEntity extends Equatable {
   final int id;
   final String nome;

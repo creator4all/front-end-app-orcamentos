@@ -3,8 +3,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../domain/entities/indicador_etapa_entity.dart';
 
-/// Widget que exibe os indicadores de etapa de um produto
-/// Agrupados por Título do Grupo
 class IndicadoresEtapaSection extends StatelessWidget {
   final List<IndicadorEtapaEntity> indicadores;
   final Function(int indicadorId, bool valor)? onToggle;
@@ -21,7 +19,6 @@ class IndicadoresEtapaSection extends StatelessWidget {
       return Container();
     }
 
-    // Agrupa indicadores por nome do grupo manualmente
     final grupos = <String, List<IndicadorEtapaEntity>>{};
     for (var indicador in indicadores) {
       if (!grupos.containsKey(indicador.grupoNome)) {
@@ -39,7 +36,6 @@ class IndicadoresEtapaSection extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Título do Grupo
             if (grupoNome.isNotEmpty)
               Padding(
                 padding: EdgeInsets.only(bottom: 12.h, top: 8.h),
@@ -47,17 +43,16 @@ class IndicadoresEtapaSection extends StatelessWidget {
                   grupoNome,
                   style: TextStyle(
                     fontSize: 14.sp,
-                    fontWeight: FontWeight.bold, // Bold conforme imagem
+                    fontWeight: FontWeight.bold,
                     color: Colors.black,
                   ),
                 ),
               ),
 
-            // Lista de Checkboxes do Grupo
             ...listaIndicadores
                 .map((indicador) => _buildCheckboxItem(indicador)),
 
-            SizedBox(height: 8.h), // Espaço entre grupos
+            SizedBox(height: 8.h),
           ],
         );
       }).toList(),
@@ -69,7 +64,6 @@ class IndicadoresEtapaSection extends StatelessWidget {
       padding: EdgeInsets.only(bottom: 12.h),
       child: Row(
         children: [
-          // Checkbox Customizado
           SizedBox(
             width: 20.w,
             height: 20.h,
@@ -80,14 +74,14 @@ class IndicadoresEtapaSection extends StatelessWidget {
                   onToggle!(indicador.produtoIndicadorId, value);
                 }
               },
-              activeColor: const Color(0xFF2830F2), // Azul quando selecionado
+              activeColor: const Color(0xFF2830F2),
               checkColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(4.r), // Leve arredondamento
+                borderRadius: BorderRadius.circular(4.r),
               ),
               side: const BorderSide(
                 color:
-                    Color(0xFF8C8C8C), // Cinza na borda quando não selecionado
+                    Color(0xFF8C8C8C),
                 width: 1.5,
               ),
             ),
@@ -95,7 +89,7 @@ class IndicadoresEtapaSection extends StatelessWidget {
           SizedBox(width: 12.w),
           Expanded(
             child: Text(
-              indicador.indicadorNome, // Usando indicadorNome (ex: 1º Ano)
+              indicador.indicadorNome,
               style: TextStyle(
                 fontSize: 14.sp,
                 color: const Color(0xFF484848),

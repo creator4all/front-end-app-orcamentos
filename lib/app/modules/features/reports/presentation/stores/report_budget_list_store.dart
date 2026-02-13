@@ -1,4 +1,4 @@
-import 'package:mobx/mobx.dart';
+﻿import 'package:mobx/mobx.dart';
 
 import '../../domain/entities/report_budget.dart';
 import '../../domain/repositories/reports_repository.dart';
@@ -6,10 +6,6 @@ import 'report_filter_store.dart';
 
 part 'report_budget_list_store.g.dart';
 
-/// Store MobX para gerenciar a lista de orçamentos de um usuário.
-///
-/// Responsável por buscar, filtrar e exibir os orçamentos criados
-/// por um usuário específico.
 class ReportBudgetListStore = _ReportBudgetListStoreBase
     with _$ReportBudgetListStore;
 
@@ -22,52 +18,40 @@ abstract class _ReportBudgetListStoreBase with Store {
     required this.filterStore,
   });
 
-  /// Lista completa de orçamentos carregados da API
   @observable
   ObservableList<ReportBudget> allBudgets = ObservableList<ReportBudget>();
 
-  /// Indica se está carregando dados
   @observable
   bool isLoading = false;
 
-  /// Mensagem de erro, se houver
   @observable
   String? error;
 
-  /// ID do usuário atual
   @observable
   int? currentUserId;
 
-  /// Nome do usuário atual
   @observable
   String? currentUserName;
 
-  /// Cargo do usuário atual
   @observable
   String? currentUserCargo;
 
-  /// Nome do parceiro (empresa)
   @observable
   String? currentPartnerName;
 
-  /// Orçamentos filtrados por busca e status
   @computed
   List<ReportBudget> get filteredBudgets {
     var result = allBudgets.toList();
 
-    // Filtrar arquivados separadamente (mutuamente exclusivo)
     final isArchivedFilterActive = filterStore.selectedStatuses.contains(
       'arquivado',
     );
     if (isArchivedFilterActive) {
-      // Se "arquivado" está selecionado, mostrar APENAS arquivados
       result = result.where((budget) => budget.isArchived).toList();
     } else {
-      // Caso contrário, mostrar APENAS não-arquivados
       result = result.where((budget) => !budget.isArchived).toList();
     }
 
-    // Filtrar por busca
     if (filterStore.budgetSearchQuery.isNotEmpty) {
       final query = filterStore.budgetSearchQuery.toLowerCase();
       result =
@@ -80,9 +64,7 @@ abstract class _ReportBudgetListStoreBase with Store {
               .toList();
     }
 
-    // Filtrar por status (exceto arquivado que já foi tratado)
     if (filterStore.selectedStatuses.isNotEmpty) {
-      // Remover 'arquivado' da lista de status já que é tratado separadamente
       final statusFilters =
           filterStore.selectedStatuses.where((s) => s != 'arquivado').toSet();
 
@@ -100,7 +82,6 @@ abstract class _ReportBudgetListStoreBase with Store {
     return result;
   }
 
-  /// Contagem de orçamentos por status
   @computed
   Map<String, int> get statusCounts {
     final counts = <String, int>{
@@ -124,13 +105,10 @@ abstract class _ReportBudgetListStoreBase with Store {
     return counts;
   }
 
-  /// Valor total dos orçamentos filtrados
   @computed
   double get totalValue {
     return filteredBudgets.fold(0.0, (sum, budget) => sum + budget.total);
   }
-
-  /// Carrega os orçamentos de um usuário
   @action
   Future<void> loadBudgets(
     int userId, {
@@ -164,7 +142,6 @@ abstract class _ReportBudgetListStoreBase with Store {
     );
   }
 
-  /// Recarrega os orçamentos mantendo os filtros atuais
   @action
   Future<void> refresh() async {
     if (currentUserId != null) {

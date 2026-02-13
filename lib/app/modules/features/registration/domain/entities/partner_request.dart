@@ -1,15 +1,13 @@
 import 'package:equatable/equatable.dart';
 
-/// Enum para experiência em vendas no setor público
 enum PublicSectorExperience {
-  never('nao_atuo'), // Não, nunca atuei
-  past('atuei_passado'), // Sim, atuei no passado
-  current('atuando'); // Sim, estou atuando
+  never('nao_atuo'),
+  past('atuei_passado'),
+  current('atuando');
 
   final String value;
   const PublicSectorExperience(this.value);
 
-  /// Cria enum a partir do valor string da API
   static PublicSectorExperience fromValue(String value) {
     return PublicSectorExperience.values.firstWhere(
       (e) => e.value == value,
@@ -18,7 +16,6 @@ enum PublicSectorExperience {
   }
 }
 
-/// Entidade de domínio para solicitação de parceria (prospecção)
 class PartnerRequest extends Equatable {
   final String name;
   final String email;

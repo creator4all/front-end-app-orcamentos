@@ -2,10 +2,9 @@ import 'package:equatable/equatable.dart';
 
 import 'indice_etapa_entity.dart';
 
-/// Entidade que representa um Indicador de Etapa (relação produto-etapa)
 class IndicadorEtapaEntity extends Equatable {
   final int id;
-  final bool valor; // Se aplica a este indicador
+  final bool valor;
   final int produtoId;
   final int indiceEtapaId;
   final IndiceEtapaEntity indiceEtapa;

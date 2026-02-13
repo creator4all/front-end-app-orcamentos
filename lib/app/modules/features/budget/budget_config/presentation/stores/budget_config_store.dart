@@ -192,7 +192,6 @@ abstract class _BudgetConfigStoreBase with Store {
 
       categoryStates.clear();
 
-      // Regra de negócio: Todo novo orçamento possui 60 dias de validade por padrão
       validityDate =
           draft.validityDate ?? DateTime.now().add(const Duration(days: 60));
       budgetName = draft.partnerName;
@@ -218,7 +217,6 @@ abstract class _BudgetConfigStoreBase with Store {
     }
   }
 
-  /// Extrai dados das cidades do draft para formato esperado pelo SchoolCensusCard
   List<Map<String, dynamic>> _extractCitiesDataFromDraft(
       BudgetDraftEntity draft) {
     if (draft.cidade == null) return [];
@@ -238,8 +236,6 @@ abstract class _BudgetConfigStoreBase with Store {
     ];
   }
 
-  /// Inicializa o store diretamente com a resposta do POST multi-cidade
-  /// Evita chamadas extras de GET /api/orcamentos/{id} e /produtos-completos
   @action
   Future<void> initializeWithMultiCityResponse(
       Map<String, dynamic> response) async {
@@ -251,7 +247,6 @@ abstract class _BudgetConfigStoreBase with Store {
       final id = response['orc_orcamentoId'] ?? response['id'];
       final nome = response['orc_nome'] ?? '';
       final status = response['orc_status'] ?? 'rascunho';
-      // Regra de negócio: Todo novo orçamento possui 60 dias de validade por padrão
       final diasValidade = response['orc_dias_validade'] ?? 60;
       final dataValidade = response['orc_data_validade'] != null
           ? DateTime.parse(response['orc_data_validade'].toString())
@@ -317,7 +312,6 @@ abstract class _BudgetConfigStoreBase with Store {
     }
   }
 
-  /// Parseia categorias do JSON de resposta do POST multi-cidade
   List<CategoryEntity> _parseCategoriasFromMultiCityResponse(
       List<dynamic> categoriasJson) {
     return categoriasJson.map((catJson) {
@@ -392,9 +386,6 @@ abstract class _BudgetConfigStoreBase with Store {
     }).toList();
   }
 
-  /// Sincroniza o estado de seleção do produto com base na quantidade
-  /// Se quantidade = 0 → selecionado = false
-  /// Se quantidade > 0 → selecionado = true
   ProductEntity _synchronizeProductSelection(ProductEntity product) {
     final shouldBeSelected = product.quantidade > 0;
 
@@ -405,8 +396,6 @@ abstract class _BudgetConfigStoreBase with Store {
     return product;
   }
 
-  /// Converte CidadeEntity para CensoEscolarEntity
-  /// Necessário para o cálculo de quantidades baseado nos indicadores selecionados
   CensoEscolarEntity? _convertCidadeToCensoEscolar(CidadeEntity? cidade) {
     if (cidade == null) return null;
 
@@ -428,8 +417,7 @@ abstract class _BudgetConfigStoreBase with Store {
         final titulo = CensoTitleEntity(
           id: etapa.indiceEtapaId,
           nomeEtapa: nomeEtapa,
-          tituloExibicao:
-              etapa.indiceEtapa.titulo, // Usa titulo para exibição amigável
+          tituloExibicao: etapa.indiceEtapa.titulo,
           valor: valor,
           isProfessores: nomeEtapa == 'professores',
           grupoId: grupoId,
@@ -460,7 +448,6 @@ abstract class _BudgetConfigStoreBase with Store {
     }
   }
 
-  /// Verifica produtos que precisam ser remarcação após mudança no censo
   @action
   void _checkForProductsToRemark(
     CensoEscolarEntity oldCenso,
@@ -492,7 +479,6 @@ abstract class _BudgetConfigStoreBase with Store {
     productsNeedingRemark = productsToRemark;
   }
 
-  /// Marca os produtos como selecionados (chamado pela UI após confirmação)
   @action
   void confirmProductRemark() {
     if (productsNeedingRemark.isEmpty) return;
@@ -502,7 +488,6 @@ abstract class _BudgetConfigStoreBase with Store {
     productsNeedingRemark = [];
   }
 
-  /// Rejeita remarcação dos produtos (chamado pela UI)
   @action
   void rejectProductRemark() {
     if (productsNeedingRemark.isEmpty) return;
@@ -510,7 +495,6 @@ abstract class _BudgetConfigStoreBase with Store {
     productsNeedingRemark = [];
   }
 
-  /// Atualiza o censo escolar após edição na página de censo
   @action
   void updateCensoEscolar(CensoEscolarEntity updatedCenso) {
     final oldCenso = censoEscolar;
@@ -521,7 +505,6 @@ abstract class _BudgetConfigStoreBase with Store {
     }
   }
 
-  /// Marca os produtos como selecionados
   @action
   void _remarkProducts(List<ProductEntity> productsToRemark) {
     for (final product in productsToRemark) {
@@ -583,17 +566,14 @@ abstract class _BudgetConfigStoreBase with Store {
           categories.clear();
           categories.addAll(budget.categories);
 
-          // Inicializar estados de categorias (manter para compatibilidade)
           categoryStates.clear();
           categoryStates.addAll(budget.categoryStates);
 
-          // Inicializar data de validade (padrão: 60 dias se não vier do backend)
           validityDate = budget.validityDate ??
               DateTime.now().add(const Duration(days: 60));
 
           budgetName = budget.name;
 
-          // Apenas se censoAgregado não estiver vazio (preserva fluxo para orçamentos comuns)
           if (budget.censoAgregado.isNotEmpty) {
             censoEscolar = CensoEscolarEntity(
               cidadeId: 0,
@@ -615,7 +595,6 @@ abstract class _BudgetConfigStoreBase with Store {
     }
   }
 
-  /// Enriquece os indicadores dos produtos com informações de grupo vindas da cidade
   void _enrichCategoriesWithCityData() {
     if (budgetDetail == null || budgetDetail!.citiesData.isEmpty) return;
 
@@ -642,7 +621,6 @@ abstract class _BudgetConfigStoreBase with Store {
       final updatedCategories = categories.map((cat) {
         final updatedSubcategories = cat.subcategorias.map((sub) {
           final updatedProducts = sub.produtos.map((prod) {
-            // Se produto não tem indicadores, retorna igual
             if (prod.indicadoresEtapa.isEmpty) return prod;
 
             final updatedIndicators = prod.indicadoresEtapa.map((ind) {
@@ -682,7 +660,6 @@ abstract class _BudgetConfigStoreBase with Store {
 
       result.fold(
         (failure) {
-          // Não definir error aqui pois censo é opcional
           censusData = null;
         },
         (census) {
@@ -723,8 +700,6 @@ abstract class _BudgetConfigStoreBase with Store {
     error = null;
 
     try {
-      print('🔄 [BudgetConfigStore] Finalizando orçamento...');
-
       final result = await finalizeBudgetUseCase(
         budgetId: budgetDetail!.id,
         categoryStates: categoryStates,
@@ -734,20 +709,17 @@ abstract class _BudgetConfigStoreBase with Store {
 
       return result.fold(
         (failure) {
-          print('❌ [BudgetConfigStore] Erro ao finalizar: ${failure.message}');
           error = failure.message;
           isSaving = false;
           return Left(failure);
         },
         (updatedBudget) {
-          print('✅ [BudgetConfigStore] Orçamento finalizado com sucesso');
           budgetDetail = updatedBudget;
           isSaving = false;
           return Right(updatedBudget);
         },
       );
     } catch (e) {
-      print('❌ [BudgetConfigStore] Erro inesperado: $e');
       error = 'Erro ao finalizar orçamento: $e';
       isSaving = false;
       return Left(UnknownFailure(e.toString()));
@@ -757,21 +729,15 @@ abstract class _BudgetConfigStoreBase with Store {
   @action
   void selectCategory(CategoryEntity? category) {
     selectedCategory = category;
-    print('📂 [BudgetConfigStore] Categoria selecionada: ${category?.nome}');
   }
 
   @action
   void selectSubcategory(SubcategoryEntity? subcategory) {
     selectedSubcategory = subcategory;
-    print(
-        '📁 [BudgetConfigStore] Subcategoria selecionada: ${subcategory?.nome}');
   }
 
   @action
   void toggleProduct(int productId, bool selected) {
-    print(
-        '🔄 [BudgetConfigStore] Alternando produto: $productId para $selected');
-
     for (var i = 0; i < categories.length; i++) {
       final category = categories[i];
 
@@ -784,7 +750,6 @@ abstract class _BudgetConfigStoreBase with Store {
         if (productIndex != -1) {
           final product = subcategory.produtos[productIndex];
 
-          // Regra de negócio: Só permitir alteração se o produto estiver ativo
           if (!product.ativo) {
             return;
           }
@@ -841,23 +806,15 @@ abstract class _BudgetConfigStoreBase with Store {
                 category.copyWith(subcategorias: updatedSubcategories);
           }
 
-          print(
-              '✅ [BudgetConfigStore] Produto $productId atualizado com sucesso');
           return;
         }
       }
     }
-
-    print('⚠️ [BudgetConfigStore] Produto $productId não encontrado');
   }
 
   @action
   void toggleSubcategoryWithCascade(
       int categoryId, int subcategoryId, bool selected) {
-    print(
-        '🔄 [BudgetConfigStore] Alternando subcategoria $subcategoryId: $selected');
-
-    // Encontrar a categoria
     final categoryIndex = categories.indexWhere((c) => c.id == categoryId);
     if (categoryIndex == -1) return;
 
@@ -886,9 +843,6 @@ abstract class _BudgetConfigStoreBase with Store {
 
   @action
   void toggleCategoryWithCascade(int categoryId, bool selected) {
-    print('🔄 [BudgetConfigStore] Alternando categoria $categoryId: $selected');
-
-    // Encontrar a categoria
     final categoryIndex = categories.indexWhere((c) => c.id == categoryId);
     if (categoryIndex == -1) return;
 
@@ -908,10 +862,6 @@ abstract class _BudgetConfigStoreBase with Store {
 
   @action
   void updateProductFromModal(ProductEntity updatedProduct) {
-    print(
-        '🔄 [BudgetConfigStore] Atualizando produto do modal: ${updatedProduct.id}');
-
-    // Encontrar o produto em todas as categorias/subcategorias
     for (var i = 0; i < categories.length; i++) {
       final category = categories[i];
 
@@ -937,23 +887,15 @@ abstract class _BudgetConfigStoreBase with Store {
           categories[i] =
               category.copyWith(subcategorias: updatedSubcategories);
 
-          print(
-              '✅ [BudgetConfigStore] Produto ${updatedProduct.id} atualizado com sucesso');
           return;
         }
       }
     }
-
-    print('⚠️ [BudgetConfigStore] Produto ${updatedProduct.id} não encontrado');
   }
 
   @action
   void updateProductQuantity(int productId, int quantity) {
-    print(
-        '🔄 [BudgetConfigStore] Atualizando quantidade do produto: $productId para $quantity');
-
     if (quantity < 1) {
-      print('⚠️ [BudgetConfigStore] Quantidade inválida: $quantity');
       return;
     }
 
@@ -969,9 +911,7 @@ abstract class _BudgetConfigStoreBase with Store {
         if (productIndex != -1) {
           final product = subcategory.produtos[productIndex];
 
-          // Regra de negócio: Só permitir se estiver ativo
           if (!product.ativo) {
-            print('⚠️ [BudgetConfigStore] Produto $productId está inativo');
             return;
           }
 
@@ -993,21 +933,14 @@ abstract class _BudgetConfigStoreBase with Store {
 
           categories[i] = updatedCategory;
 
-          print('✅ [BudgetConfigStore] Quantidade atualizada');
-          print('💰 Total recalculado: R\$ ${totalValue.toStringAsFixed(2)}');
           return;
         }
       }
     }
-
-    print('⚠️ [BudgetConfigStore] Produto $productId não encontrado');
   }
 
   @action
   void updateProductValue(int productId, double value) {
-    print(
-        '🔄 [BudgetConfigStore] Atualizando valor do produto: $productId para $value');
-
     for (var i = 0; i < categories.length; i++) {
       final category = categories[i];
 
@@ -1020,9 +953,7 @@ abstract class _BudgetConfigStoreBase with Store {
         if (productIndex != -1) {
           final product = subcategory.produtos[productIndex];
 
-          // Regra de negócio: Só permitir se estiver ativo
           if (!product.ativo) {
-            print('⚠️ [BudgetConfigStore] Produto $productId está inativo');
             return;
           }
 
@@ -1044,22 +975,14 @@ abstract class _BudgetConfigStoreBase with Store {
 
           categories[i] = updatedCategory;
 
-          print('✅ [BudgetConfigStore] Valor atualizado');
-          print('💰 Total recalculado: R\$ ${totalValue.toStringAsFixed(2)}');
           return;
         }
       }
     }
-
-    print('⚠️ [BudgetConfigStore] Produto $productId não encontrado');
   }
 
   @action
   void updateProductObservations(int productId, String? observations) {
-    print(
-        '🔄 [BudgetConfigStore] Atualizando observações do produto: $productId');
-
-    // Encontrar o produto
     for (var i = 0; i < categories.length; i++) {
       final category = categories[i];
 
@@ -1072,45 +995,32 @@ abstract class _BudgetConfigStoreBase with Store {
         if (productIndex != -1) {
           final product = subcategory.produtos[productIndex];
 
-          // Atualizar observações
           final updatedProduct = product.copyWith(observacoes: observations);
 
-          // Criar nova lista de produtos
           final updatedProducts =
               List<ProductEntity>.from(subcategory.produtos);
           updatedProducts[productIndex] = updatedProduct;
 
-          // Criar nova subcategoria
           final updatedSubcategory =
               subcategory.copyWith(produtos: updatedProducts);
 
-          // Criar nova lista de subcategorias
           final updatedSubcategories =
               List<SubcategoryEntity>.from(category.subcategorias);
           updatedSubcategories[j] = updatedSubcategory;
 
-          // Criar nova categoria
           final updatedCategory =
               category.copyWith(subcategorias: updatedSubcategories);
 
-          // Atualizar a categoria na lista
           categories[i] = updatedCategory;
 
-          print('✅ [BudgetConfigStore] Observações atualizadas');
           return;
         }
       }
     }
-
-    print('⚠️ [BudgetConfigStore] Produto $productId não encontrado');
   }
 
   @action
   void toggleProductIndicator(int productId, int indicatorId) {
-    print(
-        '🔄 [BudgetConfigStore] Alternando indicador $indicatorId do produto $productId');
-
-    // Encontrar o produto
     for (var i = 0; i < categories.length; i++) {
       final category = categories[i];
 
@@ -1133,32 +1043,22 @@ abstract class _BudgetConfigStoreBase with Store {
             final updatedIndicator =
                 indicator.copyWith(selecionado: newSelectedState);
 
-            // Atualizar lista de indicadores
             final updatedIndicators =
                 List<IndicadorEtapaEntity>.from(product.indicadoresEtapa);
             updatedIndicators[indicatorIndex] = updatedIndicator;
 
-            // Atualizar produto com novos indicadores
             var updatedProduct =
                 product.copyWith(indicadoresEtapa: updatedIndicators);
 
-            // 🧮 RECALCULAR quantidade baseado nos indicadores selecionados
             if (censoEscolar != null) {
               final novaQuantidade = calculationService.calcularQuantidade(
                 updatedProduct,
                 censoEscolar!,
               );
 
-              // Atualiza o produto com a quantidade recalculada
               updatedProduct = updatedProduct.copyWith(
                 quantidade: novaQuantidade.round(),
               );
-
-              print(
-                  '🧮 [BudgetConfigStore] Recálculo: Qtd ${product.quantidade} -> ${updatedProduct.quantidade}');
-            } else {
-              print(
-                  '⚠️ [BudgetConfigStore] censoEscolar é null, quantidade não recalculada');
             }
 
             final updatedProducts =
@@ -1177,24 +1077,16 @@ abstract class _BudgetConfigStoreBase with Store {
 
             categories[i] = updatedCategory;
 
-            print(
-                '✅ [BudgetConfigStore] Indicador atualizado para $newSelectedState');
             return;
           }
         }
       }
     }
-    print('⚠️ [BudgetConfigStore] Indicador não encontrado');
   }
 
   @action
   void updateProductIndicators(
       int productId, Map<String, List<String>> selectedIndicators) {
-    print(
-        '🔄 [BudgetConfigStore] Atualizando indicadores do produto: $productId');
-    print('   📋 Indicadores selecionados: $selectedIndicators');
-
-    // Encontrar o produto
     for (var i = 0; i < categories.length; i++) {
       final category = categories[i];
 
@@ -1207,49 +1099,32 @@ abstract class _BudgetConfigStoreBase with Store {
         if (productIndex != -1) {
           final product = subcategory.produtos[productIndex];
 
-          // Regra de negócio: Só permitir se estiver ativo
+          // Regra de negÃ³cio: SÃ³ permitir se estiver ativo
           if (!product.ativo) {
-            print('⚠️ [BudgetConfigStore] Produto $productId está inativo');
             return;
           }
 
-          // Atualizar indicadores
-          // TODO: Adicionar campo para armazenar indicadores selecionados no ProductEntity
-          // Por enquanto, apenas loga a ação
-          print('✅ [BudgetConfigStore] Indicadores atualizados com sucesso');
-          print(
-              '   📊 Total de grupos selecionados: ${selectedIndicators.length}');
-
-          // Criar nova lista de produtos (por enquanto, sem alteração)
-          // No futuro, adicionar campo selectedIndicators ao ProductEntity
           final updatedProducts =
               List<ProductEntity>.from(subcategory.produtos);
 
-          // Criar nova subcategoria
           final updatedSubcategory =
               subcategory.copyWith(produtos: updatedProducts);
 
-          // Criar nova lista de subcategorias
           final updatedSubcategories =
               List<SubcategoryEntity>.from(category.subcategorias);
           updatedSubcategories[j] = updatedSubcategory;
 
-          // Criar nova categoria
           final updatedCategory =
               category.copyWith(subcategorias: updatedSubcategories);
 
-          // Atualizar a categoria na lista
           categories[i] = updatedCategory;
 
           return;
         }
       }
     }
-
-    print('⚠️ [BudgetConfigStore] Produto $productId não encontrado');
   }
 
-  /// Atualiza categoria com produtos carregados e marca/desmarca todos
   void _updateCategoryWithProducts(
     int categoryId,
     List<ProductEntity> products, {
@@ -1260,33 +1135,18 @@ abstract class _BudgetConfigStoreBase with Store {
 
     final category = categories[categoryIndex];
 
-    print(
-        '   📦 Distribuindo ${products.length} produtos nas subcategorias da categoria ${category.nome}');
-
-    // Backend retorna produtos com subcategoria_id
-    // Vamos agrupar produtos por subcategoriaId
-    print('   🔍 Agrupando produtos por subcategoriaId...');
     final productsBySubcategory = <int, List<ProductEntity>>{};
 
     for (final product in products) {
       final subId = product.subcategoriaId;
       productsBySubcategory.putIfAbsent(subId, () => []).add(product);
-      print('      - Produto ${product.codigo} → Subcategoria ID: $subId');
     }
 
-    print('   🔍 Subcategorias com produtos:');
-    productsBySubcategory.forEach((subId, prods) {
-      print('      - Subcategoria ID $subId: ${prods.length} produtos');
-    });
+    productsBySubcategory.forEach((subId, prods) {});
 
-    print('   🔍 Subcategorias existentes na categoria:');
-    for (final sub in category.subcategorias) {
-      print('      - ${sub.nome} (ID: ${sub.id})');
-    }
+    for (final sub in category.subcategorias) {}
 
-    // Atualizar cada subcategoria com seus produtos específicos
     final updatedSubcategories = category.subcategorias.map((sub) {
-      // Buscar produtos desta subcategoria
       final subcategoryProducts = productsBySubcategory[sub.id] ?? [];
 
       final updatedProducts = subcategoryProducts
@@ -1296,29 +1156,20 @@ abstract class _BudgetConfigStoreBase with Store {
               ))
           .toList();
 
-      print(
-          '      ✓ Subcategoria ${sub.nome} (ID: ${sub.id}): ${updatedProducts.length} produtos');
-
-      // Remover estatísticas (agora tem produtos reais)
       return sub.copyWith(
         produtos: updatedProducts,
         estatisticas: null,
       );
     }).toList();
 
-    // Atualizar categoria
     final updatedCategory =
         category.copyWith(subcategorias: updatedSubcategories);
 
-    // Atualizar lista
     final newCategories = List<CategoryEntity>.from(categories);
     newCategories[categoryIndex] = updatedCategory;
     categories = ObservableList.of(newCategories);
-
-    print('   ✅ Categoria atualizada com produtos reais');
   }
 
-  /// Marca/desmarca todos os produtos de uma categoria (quando produtos já estão carregados)
   void _selectAllProductsInCategory(int categoryId, {required bool selected}) {
     final categoryIndex = categories.indexWhere((c) => c.id == categoryId);
     if (categoryIndex == -1) return;
@@ -1344,7 +1195,16 @@ abstract class _BudgetConfigStoreBase with Store {
     categories = ObservableList.of(newCategories);
   }
 
-  /// 🔄 Recarrega produtos quando censo escolar é editado\r\n  /// Backend recalcula as quantidades baseado nos novos dados do censo\r\n  @action\r\n  Future<void> reloadProductsAfterCensusEdit() async {\r\n    if (budgetDetail == null) return;\r\n\r\n    print(\r\n        '🔄 [BudgetConfigStore] Recarregando orçamento após edição do censo...');\r\n\r\n    try {\r\n      // Recarrega o orçamento completo (produtos já vêm na resposta)\r\n      await loadBudgetDetail(budgetDetail!.id);\r\n      print(\r\n          '✅ [BudgetConfigStore] Orçamento recarregado com novas quantidades');\r\n    } catch (e) {\r\n      error = 'Erro ao recarregar orçamento: $e';\r\n      print('❌ [BudgetConfigStore] Erro ao recarregar: $e');\r\n    }\r\n  }
+  @action
+  Future<void> reloadProductsAfterCensusEdit() async {
+    if (budgetDetail == null) return;
+
+    try {
+      await loadBudgetDetail(budgetDetail!.id);
+    } catch (e) {
+      error = 'Erro ao recarregar orçamento: $e';
+    }
+  }
 
   @action
   void reset() {
@@ -1362,15 +1222,6 @@ abstract class _BudgetConfigStoreBase with Store {
     isSaving = false;
   }
 
-  /// 💾 Salva orçamento configurado como "pendente"
-  ///
-  /// Utilizado quando o usuário:
-  /// 1. Cria um orçamento (rascunho)
-  /// 2. Configura produtos e quantidades
-  /// 3. Clica em "Salvar Orçamento"
-  ///
-  /// Este método coleta todos os produtos e suas quantidades,
-  /// calcula o total e atualiza o status para "pendente"
   @action
   Future<Either<BudgetFailure, BudgetDetailEntity>> saveBudget() async {
     if (budgetDetail == null) {
@@ -1387,15 +1238,11 @@ abstract class _BudgetConfigStoreBase with Store {
     error = null;
 
     try {
-      print('💾 [BudgetConfigStore] Salvando orçamento como PENDENTE...');
-
-      // 1. Coletar todos os produtos de todas as categorias/subcategorias
       final produtosParaSalvar = <ProductSelectionUpdateDto>[];
 
       for (final category in categories) {
         for (final subcategory in category.subcategorias) {
           for (final product in subcategory.produtos) {
-            // Usar factory que inclui indicadores e valor automaticamente
             produtosParaSalvar.add(
               ProductSelectionUpdateDto.fromEntity(product),
             );
@@ -1403,14 +1250,8 @@ abstract class _BudgetConfigStoreBase with Store {
         }
       }
 
-      print('   📦 Salvando ${produtosParaSalvar.length} produtos');
-      print(
-          '   ✅ Selecionados: ${produtosParaSalvar.where((p) => p.selecionado).length}');
-
-      // 2. Calcular total
       final totalCalculado = totalValue;
 
-      // 3. Calcular dias de validade (normalizado para meia-noite)
       final hoje = DateTime.now();
       final hojeNormalizado = DateTime(hoje.year, hoje.month, hoje.day);
       final validadeNormalizada =
@@ -1418,16 +1259,14 @@ abstract class _BudgetConfigStoreBase with Store {
       final diasValidade =
           validadeNormalizada.difference(hojeNormalizado).inDays;
 
-      // 4. Criar DTO de atualização
       final updateDto = BudgetUpdateDto(
         nome: budgetName,
         diasValidade: diasValidade > 0 ? diasValidade : 1,
-        status: 'pendente', // ⚠️ SEMPRE pendente no budget_config
+        status: 'pendente',
         total: totalCalculado,
         produtos: produtosParaSalvar,
       );
 
-      // 5. Chamar UseCase
       final result = await saveBudgetUseCase(
         budgetId: budgetDetail!.id,
         updateData: updateDto,
@@ -1435,20 +1274,17 @@ abstract class _BudgetConfigStoreBase with Store {
 
       return result.fold(
         (failure) {
-          print('❌ [BudgetConfigStore] Erro ao salvar: ${failure.message}');
           error = failure.message;
           isSaving = false;
           return Left(failure);
         },
         (updatedBudget) {
-          print('✅ [BudgetConfigStore] Orçamento salvo com status PENDENTE');
           budgetDetail = updatedBudget;
           isSaving = false;
           return Right(updatedBudget);
         },
       );
     } catch (e) {
-      print('❌ [BudgetConfigStore] Erro inesperado: $e');
       error = 'Erro ao salvar orçamento: $e';
       isSaving = false;
       return Left(UnknownFailure(e.toString()));

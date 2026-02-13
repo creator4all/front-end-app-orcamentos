@@ -6,7 +6,6 @@ import '../../../shared/core/http/dio_config_factory.dart';
 import '../../../shared/core/http/dio_http_client_impl.dart';
 import '../../../shared/core/utils/token_cache.dart';
 import '../auth/presentation/stores/auth_store.dart';
-// Budget Config - Clean Architecture
 import 'budget_config/data/datasources/budget_detail_remote_datasource.dart';
 import 'budget_config/data/datasources/budget_detail_remote_datasource_impl.dart';
 import 'budget_config/data/datasources/census_remote_datasource.dart';
@@ -34,7 +33,6 @@ import 'budget_create/data/datasources/budget_draft_remote_datasource.dart';
 import 'budget_create/data/datasources/budget_draft_remote_datasource_impl.dart';
 import 'budget_create/data/datasources/partner_remote_datasource.dart';
 import 'budget_create/data/datasources/partner_remote_datasource_impl.dart';
-// Budget Create - Clean Architecture
 import 'budget_create/data/repositories/budget_draft_repository_impl.dart';
 import 'budget_create/data/repositories/partner_repository_impl.dart';
 import 'budget_create/domain/repositories/budget_draft_repository.dart';
@@ -43,7 +41,6 @@ import 'budget_create/domain/usecases/create_draft_budget_usecase.dart';
 import 'budget_create/domain/usecases/get_standard_partners_usecase.dart';
 import 'budget_create/presentation/pages/new_budget_page.dart';
 import 'budget_create/presentation/stores/budget_create_store.dart';
-// Budget Edit - Clean Architecture
 import 'budget_edit/data/datasources/budget_edit_remote_datasource.dart';
 import 'budget_edit/data/datasources/budget_edit_remote_datasource_impl.dart';
 import 'budget_edit/data/datasources/budget_pdf_remote_datasource.dart';
@@ -62,7 +59,6 @@ import 'budget_edit/domain/usecases/save_indicators_usecase.dart';
 import 'budget_edit/domain/usecases/update_budget_usecase.dart';
 import 'budget_edit/presentation/pages/edit_budget_page.dart';
 import 'budget_edit/presentation/stores/budget_edit_store.dart';
-// Budget List - Clean Architecture
 import 'budget_list/data/datasources/budget_remote_datasource.dart';
 import 'budget_list/data/datasources/budget_remote_datasource_impl.dart';
 import 'budget_list/data/repositories/budget_list_repository_impl.dart';
@@ -70,7 +66,6 @@ import 'budget_list/domain/repositories/budget_list_repository.dart';
 import 'budget_list/domain/usecases/rename_budget_usecase.dart';
 import 'budget_list/presentation/pages/budget_list_page.dart';
 import 'budget_list/presentation/stores/budget_list_store.dart';
-// Budget Multi-City - Clean Architecture
 import 'budget_multi_city/data/datasources/multi_city_budget_remote_datasource.dart';
 import 'budget_multi_city/data/datasources/multi_city_budget_remote_datasource_impl.dart';
 import 'budget_multi_city/data/repositories/multi_city_budget_repository_impl.dart';
@@ -85,7 +80,6 @@ import 'budget_multi_city/presentation/stores/multi_city_census_store.dart';
 class BudgetModuleNew extends Module {
   @override
   List<Bind> get binds => [
-    // ==================== CORE (AppHttpClient) ====================
     Bind.lazySingleton<AppHttpClient>(
       (i) => DioHttpClientImpl(
         DioConfigFactory.createDefault(
@@ -96,23 +90,18 @@ class BudgetModuleNew extends Module {
       ),
     ),
 
-    // ==================== BUDGET LIST ====================
-    // DataSources
     Bind.lazySingleton<BudgetRemoteDataSource>(
       (i) => BudgetRemoteDataSourceImpl(i.get<AppHttpClient>()),
     ),
 
-    // Repositories
     Bind.lazySingleton<BudgetListRepository>(
       (i) => BudgetListRepositoryImpl(i.get<BudgetRemoteDataSource>()),
     ),
 
-    // UseCases
     Bind.lazySingleton(
       (i) => RenameBudgetUseCase(i.get<BudgetListRepository>()),
     ),
 
-    // Stores
     Bind.lazySingleton(
       (i) => BudgetListStore(
         budgetListRepository: i.get<BudgetListRepository>(),
@@ -120,8 +109,6 @@ class BudgetModuleNew extends Module {
       ),
     ),
 
-    // ==================== BUDGET CREATE ====================
-    // DataSources
     Bind.lazySingleton<PartnerRemoteDataSource>(
       (i) => PartnerRemoteDataSourceImpl(i.get<AppHttpClient>()),
     ),
@@ -129,7 +116,6 @@ class BudgetModuleNew extends Module {
       (i) => BudgetDraftRemoteDataSourceImpl(i.get<AppHttpClient>()),
     ),
 
-    // Repositories
     Bind.lazySingleton<PartnerRepository>(
       (i) => PartnerRepositoryImpl(i.get<PartnerRemoteDataSource>()),
     ),
@@ -137,7 +123,6 @@ class BudgetModuleNew extends Module {
       (i) => BudgetDraftRepositoryImpl(i.get<BudgetDraftRemoteDataSource>()),
     ),
 
-    // UseCases
     Bind.lazySingleton<GetStandardPartnersUseCase>(
       (i) => GetStandardPartnersUseCase(i.get<PartnerRepository>()),
     ),
@@ -145,7 +130,6 @@ class BudgetModuleNew extends Module {
       (i) => CreateDraftBudgetUseCase(i.get<BudgetDraftRepository>()),
     ),
 
-    // Stores
     Bind.lazySingleton<BudgetCreateStore>(
       (i) => BudgetCreateStore(
         getStandardPartnersUseCase: i.get<GetStandardPartnersUseCase>(),
@@ -153,8 +137,6 @@ class BudgetModuleNew extends Module {
       ),
     ),
 
-    // ==================== BUDGET CONFIG ====================
-    // DataSources
     Bind.lazySingleton<BudgetDetailRemoteDataSource>(
       (i) => BudgetDetailRemoteDataSourceImpl(i.get<AppHttpClient>()),
     ),
@@ -162,7 +144,6 @@ class BudgetModuleNew extends Module {
       (i) => CensusRemoteDataSourceImpl(i.get<AppHttpClient>()),
     ),
 
-    // Repositories
     Bind.lazySingleton<BudgetDetailRepository>(
       (i) => BudgetDetailRepositoryImpl(i.get<BudgetDetailRemoteDataSource>()),
     ),
@@ -170,7 +151,6 @@ class BudgetModuleNew extends Module {
       (i) => CensusRepositoryImpl(i.get<CensusRemoteDataSource>()),
     ),
 
-    // UseCases
     Bind.lazySingleton<GetBudgetDetailUseCase>(
       (i) => GetBudgetDetailUseCase(i.get<BudgetDetailRepository>()),
     ),
@@ -195,12 +175,10 @@ class BudgetModuleNew extends Module {
       (i) => GetBudgetCensusUseCase(i.get<CensusRemoteDataSource>()),
     ),
 
-    // Services
     Bind.lazySingleton<ProductCalculationService>(
       (i) => const ProductCalculationService(),
     ),
 
-    // Stores
     Bind.lazySingleton<BudgetConfigStore>(
       (i) => BudgetConfigStore(
         getBudgetDetailUseCase: i.get<GetBudgetDetailUseCase>(),
@@ -221,8 +199,6 @@ class BudgetModuleNew extends Module {
       ),
     ),
 
-    // ==================== BUDGET EDIT ====================
-    // DataSources
     Bind.lazySingleton<BudgetEditRemoteDataSource>(
       (i) => BudgetEditRemoteDataSourceImpl(i.get<AppHttpClient>()),
     ),
@@ -233,7 +209,6 @@ class BudgetModuleNew extends Module {
       (i) => IndicatorsRemoteDataSourceImpl(i.get<AppHttpClient>()),
     ),
 
-    // Repositories
     Bind.lazySingleton<BudgetEditRepository>(
       (i) => BudgetEditRepositoryImpl(i.get<BudgetEditRemoteDataSource>()),
     ),
@@ -244,7 +219,6 @@ class BudgetModuleNew extends Module {
       (i) => IndicatorsRepositoryImpl(i.get<IndicatorsRemoteDataSource>()),
     ),
 
-    // UseCases
     Bind.lazySingleton<GetBudgetForEditUseCase>(
       (i) => GetBudgetForEditUseCase(i.get<BudgetEditRepository>()),
     ),
@@ -258,7 +232,6 @@ class BudgetModuleNew extends Module {
       (i) => SaveIndicatorsUseCase(i.get<IndicatorsRepository>()),
     ),
 
-    // Stores
     Bind.lazySingleton<BudgetEditStore>(
       (i) => BudgetEditStore(
         getBudgetForEditUseCase: i.get<GetBudgetForEditUseCase>(),
@@ -269,20 +242,16 @@ class BudgetModuleNew extends Module {
       ),
     ),
 
-    // ==================== BUDGET MULTI-CITY ====================
-    // DataSources
     Bind.lazySingleton<MultiCityBudgetRemoteDataSource>(
       (i) => MultiCityBudgetRemoteDataSourceImpl(i.get<AppHttpClient>()),
     ),
 
-    // Repositories
     Bind.lazySingleton<MultiCityBudgetRepository>(
       (i) => MultiCityBudgetRepositoryImpl(
         i.get<MultiCityBudgetRemoteDataSource>(),
       ),
     ),
 
-    // UseCases
     Bind.lazySingleton<GetMultiCityCensusUseCase>(
       (i) => GetMultiCityCensusUseCase(i.get<MultiCityBudgetRepository>()),
     ),
@@ -290,27 +259,23 @@ class BudgetModuleNew extends Module {
       (i) => CreateMultiCityBudgetUseCase(i.get<MultiCityBudgetRepository>()),
     ),
 
-    // Stores
     Bind.lazySingleton<MultiCityCensusStore>(
       (i) => MultiCityCensusStore(
         i.get<GetMultiCityCensusUseCase>(),
         i.get<CreateMultiCityBudgetUseCase>(),
         Modular.get<
           AuthStore
-        >(), // ✅ Injeção do AuthStore para obter usuário logado
+        >(),
       ),
     ),
   ];
 
   @override
   List<ModularRoute> get routes => [
-    // Budget List
     ChildRoute('/', child: (context, args) => const BudgetListPage()),
 
-    // Budget Create
     ChildRoute('/new', child: (context, args) => const NewBudgetPage()),
 
-    // Budget Config
     ChildRoute(
       '/config/:budgetId',
       child: (context, args) {
@@ -326,12 +291,10 @@ class BudgetModuleNew extends Module {
       },
     ),
 
-    // School Census (suporta single e multi-city)
     ChildRoute(
       '/census/:cityId',
       child: (context, args) {
         final cityId = int.parse(args.params['cityId']);
-        // Extrai argumentos
         final argsData = args.data as Map<String, dynamic>?;
         final censoEscolar = argsData?['censoEscolar'] as CensoEscolarEntity?;
         final budgetId = argsData?['budgetId'] as int?;
@@ -349,7 +312,6 @@ class BudgetModuleNew extends Module {
       },
     ),
 
-    // Budget Edit
     ChildRoute(
       '/edit/:budgetId',
       child: (context, args) {
@@ -358,7 +320,6 @@ class BudgetModuleNew extends Module {
       },
     ),
 
-    // Multi-City Census
     ChildRoute(
       '/multi-city/census',
       child: (context, args) {

@@ -16,9 +16,7 @@ import '../../modules/features/partner/data/services/partner_service.dart';
 import 'custom_info_dialog.dart';
 import 'custom_modal.dart';
 
-/// Modal para exportar PDF com informações do vendedor e logo personalizada
 abstract class ExportPdfModal {
-  /// Método estático para mostrar o modal
   static Future<T?> show<T>({
     required BuildContext context,
     required int orcamentoId,
@@ -49,30 +47,26 @@ class _ExportPdfContent extends StatefulWidget {
 }
 
 class _ExportPdfContentState extends State<_ExportPdfContent> {
-  // Controllers para os campos de texto
   final TextEditingController _nomeVendedorController = TextEditingController();
   final TextEditingController _cargoController = TextEditingController();
   final TextEditingController _telefoneController = TextEditingController();
   final TextEditingController _urlController = TextEditingController();
 
-  // Variáveis para gerenciar a logo
   File? _logoImage;
-  String? _partnerLogoBase64; // ← NOVO: Logo do banco
+  String? _partnerLogoBase64;
   final ImagePicker _picker = ImagePicker();
 
-  // Variáveis para as novas checkboxes ← NOVO
   bool _incluirLogoNoPdf = true;
   bool _incluirCensoNoPdf = false;
 
-  // Estado de loading
   bool _isLoading = false;
-  bool _isLoadingPartnerLogo = false; // ← NOVO
+  bool _isLoadingPartnerLogo = false;
 
   @override
   void initState() {
     super.initState();
     _preencherDadosUsuario();
-    _carregarLogoParceiro(); // ← NOVO
+    _carregarLogoParceiro();
   }
 
   Future<void> _carregarLogoParceiro() async {
@@ -86,11 +80,9 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
         setState(() {
           _partnerLogoBase64 = partner.logoBase64;
         });
-        print('✅ [Modal] Logo do parceiro carregada');
       }
-    } catch (e) {
-      print('⚠️ [Modal] Erro ao carregar logo do parceiro: $e');
-      // Não mostra erro para o usuário pois a logo é opcional
+    } catch (_) {
+      _partnerLogoBase64 = null;
     } finally {
       if (mounted) {
         setState(() => _isLoadingPartnerLogo = false);
@@ -99,43 +91,22 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
   }
 
   void _preencherDadosUsuario() {
-    try {
-      final authStore = Modular.get<AuthStore>();
-      final user = authStore.currentUser;
+    final authStore = Modular.get<AuthStore>();
+    final user = authStore.currentUser;
+    if (user == null) return;
 
-      if (user != null) {
-        print('✅ [Modal] Preenchendo dados do usuário do /me endpoint');
-
-        // Preencher nome do vendedor
-        _nomeVendedorController.text = user.name;
-        print('   Nome: ${user.name}');
-
-        // Preencher cargo (campo direto da API)
-        if (user.cargo != null && user.cargo!.isNotEmpty) {
-          _cargoController.text = user.cargo!;
-          print('   Cargo: ${user.cargo}');
-        } else if (user.role != null) {
-          // Fallback: usar role se cargo não estiver disponível
-          _cargoController.text = user.role!.name;
-          print('   Cargo (fallback role): ${user.role!.name}');
-        }
-
-        // Preencher telefone (campo direto da API)
-        if (user.phone != null && user.phone!.isNotEmpty) {
-          _telefoneController.text = user.phone!;
-          print('   Telefone: ${user.phone}');
-        }
-
-        // URL padrão
-        _urlController.text = 'www.multimidiaeducacional.com.br';
-
-        print('✅ Dados do usuário preenchidos automaticamente');
-      } else {
-        print('⚠️ [Modal] Usuário não está logado ou currentUser é null');
-      }
-    } catch (e) {
-      print('⚠️ Erro ao carregar dados do usuário: $e');
+    _nomeVendedorController.text = user.name;
+    if (user.cargo != null && user.cargo!.isNotEmpty) {
+      _cargoController.text = user.cargo!;
+    } else if (user.role != null) {
+      _cargoController.text = user.role!.name;
     }
+
+    if (user.phone != null && user.phone!.isNotEmpty) {
+      _telefoneController.text = user.phone!;
+    }
+
+    _urlController.text = 'www.multimidiaeducacional.com.br';
   }
 
   @override
@@ -152,7 +123,6 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Campo Nome do Vendedor
         CustomTextField(
           controller: _nomeVendedorController,
           label: 'Nome vendedor',
@@ -162,7 +132,6 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
         ),
         SizedBox(height: 16.h),
 
-        // Campo Cargo
         CustomTextField(
           controller: _cargoController,
           label: 'Cargo',
@@ -172,7 +141,6 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
         ),
         SizedBox(height: 16.h),
 
-        // Campo Telefone
         CustomTextField(
           controller: _telefoneController,
           label: 'Telefone',
@@ -183,7 +151,6 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
         ),
         SizedBox(height: 16.h),
 
-        // Campo URL
         CustomTextField(
           controller: _urlController,
           label: 'URL',
@@ -193,15 +160,12 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
         ),
         SizedBox(height: 24.h),
 
-        // Seção da Logo
         _buildLogoSection(),
         SizedBox(height: 24.h),
 
-        // Checkboxes de opções ← NOVO
         _buildCheckboxSection(),
         SizedBox(height: 32.h),
 
-        // Botão Compartilhar PDF
         _buildShareButton(),
         SizedBox(height: 16.h),
       ],
@@ -211,7 +175,6 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
   Widget _buildCheckboxSection() {
     return Column(
       children: [
-        // Checkbox: Incluir logo no PDF
         CheckboxListTile(
           title: Text(
             'Incluir logo no PDF',
@@ -229,7 +192,6 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
           contentPadding: EdgeInsets.zero,
         ),
 
-        // Checkbox: Incluir dados do censo escolar
         CheckboxListTile(
           title: Text(
             'Incluir dados do censo escolar',
@@ -264,7 +226,6 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
         ),
         SizedBox(height: 12.h),
 
-        // Preview da logo
         Container(
           width: double.infinity,
           height: 120.h,
@@ -304,7 +265,6 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
         ),
         SizedBox(height: 12.h),
 
-        // Botão Enviar Logo
         SizedBox(
           width: double.infinity,
           height: 40.h,
@@ -354,7 +314,6 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
                   height: double.infinity,
                 ),
         ),
-        // Botão para remover a imagem (só se for a temporária)
         if (file != null)
           Positioned(
             top: 8.h,
@@ -471,7 +430,6 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
   }
 
   Future<void> _handleSharePdf() async {
-    // Validar campos obrigatórios
     if (_nomeVendedorController.text.trim().isEmpty) {
       _showErrorMessage('Nome do vendedor é obrigatório');
       return;
@@ -487,34 +445,23 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
       return;
     }
 
-    print('🚀 [Modal] Iniciando geração de PDF...');
-
     setState(() {
       _isLoading = true;
     });
 
     try {
-      print('🔧 [Modal] Buscando GeneratePdfUseCase...');
-      // Usar UseCase passado como parâmetro ou buscar via Modular
       final generatePdfUseCase =
           widget.generatePdfUseCase ?? Modular.get<GeneratePdfUseCase>();
-      print('✅ [Modal] GeneratePdfUseCase obtido');
-
-      // Decidir qual logo enviar baseado no checkbox e na seleção
       String? logoBase64;
       if (_incluirLogoNoPdf) {
         if (_logoImage != null) {
-          print('📸 [Modal] Convertendo logo selecionada para base64...');
           final bytes = await _logoImage!.readAsBytes();
           logoBase64 = base64Encode(bytes);
         } else if (_partnerLogoBase64 != null) {
-          print('📸 [Modal] Usando logo original do parceiro...');
           logoBase64 = _extractBase64Data(_partnerLogoBase64!);
         }
       }
 
-      print('📡 [Modal] Chamando UseCase para gerar PDF...');
-      // Chamar UseCase para gerar PDF
       final params = GeneratePdfParams(
         orcamentoId: widget.orcamentoId,
         nomeVendedor: _nomeVendedorController.text.trim(),
@@ -530,47 +477,23 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
 
       final result = await generatePdfUseCase(params);
 
-      // Processar resultado com Either (dartz)
       final pdfResult = result.fold(
         (failure) {
-          print('❌ [Modal] Falha: ${failure.message}');
           throw Exception(failure.message);
         },
         (success) => success,
       );
 
-      print('✅ [Modal] UseCase retornou dados');
-
       final pdfBase64 = pdfResult.pdfBase64;
       final nomeArquivo = pdfResult.nomeArquivo ?? 'orcamento.pdf';
-      print('✅ [Modal] PDF extraído: ${pdfBase64.substring(0, 50)}...');
-
-      print('📄 [Modal] PDF recebido, tamanho: ${pdfBase64.length} caracteres');
-
-      // Decodificar e salvar PDF
-      print('🔄 [Modal] Decodificando PDF...');
       final pdfBytes = base64Decode(pdfBase64);
-      print('✅ [Modal] PDF decodificado, tamanho: ${pdfBytes.length} bytes');
-
-      print('📁 [Modal] Obtendo diretório temporário...');
       final tempDir = await getTemporaryDirectory();
-      print('✅ [Modal] Diretório temporário: ${tempDir.path}');
-
       final file = File('${tempDir.path}/$nomeArquivo');
-      print('💾 [Modal] Salvando arquivo em: ${file.path}');
       await file.writeAsBytes(pdfBytes);
-      print('✅ [Modal] Arquivo salvo');
-
       final fileExists = await file.exists();
-      print('📄 [Modal] Arquivo existe: $fileExists');
-
       if (!fileExists) {
         throw Exception('Arquivo não foi salvo corretamente');
       }
-
-      // Compartilhar PDF usando o share nativo (ANTES de fechar a modal)
-      print('📤 [Modal] Iniciando compartilhamento...');
-      print('📤 [Modal] Arquivo: ${file.path}');
 
       final shareResult = await Share.shareXFiles(
         [XFile(file.path)],
@@ -578,16 +501,8 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
         subject: 'Orçamento - ${_nomeVendedorController.text.trim()}',
       );
 
-      print('✅ [Modal] Compartilhamento concluído');
-      print('📤 [Modal] Status: ${shareResult.status}');
-
-      // Fechar modal DEPOIS do compartilhamento
-      print('🚪 [Modal] Fechando modal...');
       if (mounted) {
         Navigator.of(context).pop();
-        print('✅ [Modal] Modal fechada');
-
-        // Mostrar mensagem de sucesso
         CustomInfoDialog.show(
           context: context,
           type: DialogType.success,
@@ -596,10 +511,6 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
         );
       }
     } catch (e, stackTrace) {
-      // Mostrar erro
-      print('❌ [Modal] ERRO: $e');
-      print('❌ [Modal] Stack trace: $stackTrace');
-
       setState(() {
         _isLoading = false;
       });

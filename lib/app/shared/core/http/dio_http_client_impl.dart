@@ -13,11 +13,6 @@ import 'http_response.dart';
 import 'interceptors/dio_interceptor_adapter.dart';
 import 'interceptors/logger_interceptor.dart';
 
-/// Implementação do AppHttpClient usando Dio
-///
-/// Esta classe é a implementação concreta que usa o Dio para fazer
-/// requisições HTTP, integra todos os interceptors e converte
-/// respostas do Dio para nossos modelos customizados.
 class DioHttpClientImpl implements AppHttpClient {
   final HttpClientConfig config;
   late final Dio _dio;
@@ -26,7 +21,6 @@ class DioHttpClientImpl implements AppHttpClient {
     _initializeDio();
   }
 
-  /// Inicializa o Dio com configurações e interceptors
   void _initializeDio() {
     _dio = Dio(
       BaseOptions(
@@ -34,25 +28,22 @@ class DioHttpClientImpl implements AppHttpClient {
         connectTimeout: config.connectTimeout ?? config.timeout,
         receiveTimeout: config.receiveTimeout ?? config.timeout,
         sendTimeout: config.timeout,
-        validateStatus: (status) => true, // Não lançar erro por status code
+        validateStatus: (status) => true,
         followRedirects: config.followRedirects,
         maxRedirects: config.maxRedirects,
       ),
     );
 
-    // Adiciona headers padrão
     if (config.defaultHeaders != null) {
       _dio.options.headers.addAll(config.defaultHeaders!);
     }
 
-    // Adiciona interceptors customizados
     if (config.interceptors != null) {
       for (final interceptor in config.interceptors!) {
         _dio.interceptors.add(DioInterceptorAdapter(interceptor));
       }
     }
 
-    // Adiciona logger se habilitado
     if (config.enableLogger) {
       _dio.interceptors.add(DioInterceptorAdapter(LoggerInterceptor()));
     }
@@ -93,24 +84,19 @@ class DioHttpClientImpl implements AppHttpClient {
     return _executeRequest('OPTIONS', url, null, config);
   }
 
-  /// Método central para executar requisições
   Future<HttpResponse> _executeRequest(
     String method,
     String url,
     dynamic data,
     HttpRequestConfig? config,
   ) async {
-    // Valida conexão com internet antes de fazer requisição
     await NetworkUtils.validateInternet();
 
-    // Monta options da requisição
     final options = _buildOptions(method, config);
 
-    // Monta URL completa
     final fullUrl = _buildUrl(url, config);
 
     try {
-      // Executa a requisição
       final response = await _dio.request(
         fullUrl,
         data: data,
@@ -120,10 +106,8 @@ class DioHttpClientImpl implements AppHttpClient {
         onReceiveProgress: config?.receiveProgress,
       );
 
-      // Valida resposta antes de converter
       _validateResponse(response);
 
-      // Converte response do Dio para HttpResponse
       return response.toHttpResponse();
     } on DioException catch (e) {
       throw _handleDioException(e);
@@ -144,20 +128,15 @@ class DioHttpClientImpl implements AppHttpClient {
     CancelDownload? cancelToken,
     HttpRequestConfig? config,
   }) async {
-    // Valida conexão com internet
     await NetworkUtils.validateInternet();
 
-    // Monta options
     final options = _buildOptions('GET', config);
     options.responseType = ResponseType.bytes;
 
-    // Timeout maior para downloads
     options.receiveTimeout = config?.timeout ?? const Duration(minutes: 5);
 
-    // Monta URL completa
     final fullUrl = _buildUrl(url, config);
 
-    // Cria CancelToken do Dio
     CancelToken? dioCancel;
     if (cancelToken != null) {
       dioCancel = CancelToken();
@@ -176,7 +155,6 @@ class DioHttpClientImpl implements AppHttpClient {
 
       return response.toDownloadHttpResponse(filePath: savePath);
     } on DioException catch (e) {
-      // Tratamento específico para erros de download
       if (e.error is FileSystemException) {
         final fileError = e.error as FileSystemException;
         if (fileError.osError?.message.contains('No space left') ?? false) {
@@ -266,24 +244,19 @@ class DioHttpClientImpl implements AppHttpClient {
     return _executeRequest('POST', url, formData, uploadConfig);
   }
 
-  /// Constrói Options do Dio baseado na configuração
   Options _buildOptions(String method, HttpRequestConfig? config) {
     final headers = <String, dynamic>{};
 
-    // Adiciona headers customizados
     if (config?.headers != null) {
       headers.addAll(config!.headers!);
     }
 
-    // Adiciona token de autenticação
     final token =
         config?.token ?? config?.token ?? this.config.getToken?.call();
     if (token != null && token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $token';
     }
 
-    // Quando contentType é multipart/form-data, Dio precisa definir
-    // o header automaticamente (inclui boundary gerado pelo FormData)
     final contentType = config?.contentType;
     if (contentType != 'multipart/form-data') {
       headers['Content-Type'] = contentType ?? 'application/json';
@@ -295,21 +268,17 @@ class DioHttpClientImpl implements AppHttpClient {
       responseType: _mapResponseType(config?.responseType),
       receiveTimeout: config?.timeout,
       sendTimeout: config?.timeout,
-      validateStatus: (status) => true, // Tratamos status manualmente
+      validateStatus: (status) => true,
     );
   }
 
-  /// Constrói URL completa
   String _buildUrl(String url, HttpRequestConfig? config) {
-    // Se URL já é completa (começa com http), usa ela
     if (url.startsWith('http://') || url.startsWith('https://')) {
       return url;
     }
 
-    // Usa baseUrl da config ou global
     final baseUrl = config?.baseUrl ?? this.config.baseUrl;
 
-    // Remove barra no final da baseUrl e início da url se necessário
     final cleanBase = baseUrl.endsWith('/')
         ? baseUrl.substring(0, baseUrl.length - 1)
         : baseUrl;
@@ -318,7 +287,6 @@ class DioHttpClientImpl implements AppHttpClient {
     return '$cleanBase$cleanUrl';
   }
 
-  /// Mapeia HttpResponseType para ResponseType do Dio
   ResponseType _mapResponseType(HttpResponseType? type) {
     if (type == null) return ResponseType.json;
 
@@ -334,11 +302,9 @@ class DioHttpClientImpl implements AppHttpClient {
     }
   }
 
-  /// Valida a resposta e lança exceção se houver erro
   void _validateResponse(Response response) {
     final statusCode = response.statusCode;
 
-    // Se status code indica erro, lança exceção apropriada
     if (statusCode != null && (statusCode < 200 || statusCode >= 300)) {
       throw HttpExceptionFactory.fromStatusCode(
         statusCode: statusCode,
@@ -348,7 +314,6 @@ class DioHttpClientImpl implements AppHttpClient {
       );
     }
 
-    // Verifica se o backend retornou status "erro" no body
     if (response.data is Map<String, dynamic>) {
       final data = response.data as Map<String, dynamic>;
 
@@ -365,7 +330,6 @@ class DioHttpClientImpl implements AppHttpClient {
     }
   }
 
-  /// Extrai mensagem de erro da resposta
   String _extractErrorMessage(Response response) {
     try {
       if (response.data == null) {
@@ -392,7 +356,6 @@ class DioHttpClientImpl implements AppHttpClient {
     }
   }
 
-  /// Converte DioException em nossas exceções customizadas
   Exception _handleDioException(DioException error) {
     final endpoint = error.requestOptions.path;
 
@@ -436,7 +399,6 @@ class DioHttpClientImpl implements AppHttpClient {
 
       case DioExceptionType.unknown:
       default:
-        // Se for erro de internet do sistema operacional
         if (error.error is SocketException) {
           return ConnectionException(
             message: 'Sem conexão com a internet',

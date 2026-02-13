@@ -1,8 +1,7 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'custom_modal.dart';
 
-/// Modal para renomear orçamento
 class RenameBudgetModal extends StatefulWidget {
   final String currentName;
   final Function(String newName) onRename;
@@ -13,7 +12,6 @@ class RenameBudgetModal extends StatefulWidget {
     required this.onRename,
   });
 
-  /// Método estático para mostrar o modal
   static Future<T?> show<T>({
     required BuildContext context,
     required String currentName,
@@ -83,7 +81,6 @@ class _RenameBudgetContentState extends State<_RenameBudgetContent> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-        // Nome atual
         Text(
           'Nome atual:',
           style: TextStyle(
@@ -103,7 +100,6 @@ class _RenameBudgetContentState extends State<_RenameBudgetContent> {
         ),
         SizedBox(height: 20.h),
 
-        // Campo novo nome
         Text(
           'Novo nome:',
           style: TextStyle(
@@ -152,7 +148,6 @@ class _RenameBudgetContentState extends State<_RenameBudgetContent> {
         ),
         SizedBox(height: 24.h),
 
-        // Botão Renomear
         SizedBox(
           width: double.infinity,
           height: 40.h,
@@ -199,7 +194,6 @@ class _RenameBudgetContentState extends State<_RenameBudgetContent> {
   Future<void> _handleRename() async {
     final newName = _nameController.text.trim();
 
-    // Validações
     if (newName.isEmpty) {
       _showErrorMessage('O nome não pode estar vazio');
       return;
@@ -225,14 +219,11 @@ class _RenameBudgetContentState extends State<_RenameBudgetContent> {
     });
 
     try {
-      // Chamar a função de callback para renomear
       await widget.onRename(newName);
       
       if (mounted) {
-        // Fechar modal
         Navigator.of(context).pop();
         
-        // Mostrar mensagem de sucesso
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Orçamento renomeado com sucesso!'),

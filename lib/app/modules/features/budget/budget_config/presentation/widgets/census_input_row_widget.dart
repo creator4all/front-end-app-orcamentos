@@ -1,10 +1,6 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-/// Widget para exibir uma linha de dados do censo escolar
-/// Mostra label à esquerda e valor/input à direita
-/// Quando isEditMode=false, mostra apenas texto
-/// Quando isEditMode=true, mostra TextField editável
 class CensusInputRowWidget extends StatelessWidget {
   final String label;
   final double value;
@@ -27,7 +23,6 @@ class CensusInputRowWidget extends StatelessWidget {
       padding: EdgeInsets.only(bottom: 8.h),
       child: Row(
         children: [
-          // Label
           Expanded(
             flex: 3,
             child: Text(
@@ -39,7 +34,6 @@ class CensusInputRowWidget extends StatelessWidget {
               ),
             ),
           ),
-          // Value/Input
           SizedBox(
             width: 80.w,
             child: isEditMode ? _buildTextField() : _buildTextValue(),
@@ -49,7 +43,6 @@ class CensusInputRowWidget extends StatelessWidget {
     );
   }
 
-  /// Exibe apenas o valor como texto (modo visualização)
   Widget _buildTextValue() {
     return Text(
       value.toStringAsFixed(0),
@@ -62,7 +55,6 @@ class CensusInputRowWidget extends StatelessWidget {
     );
   }
 
-  /// Exibe TextField editável (modo edição)
   Widget _buildTextField() {
     return TextField(
       controller: controller,

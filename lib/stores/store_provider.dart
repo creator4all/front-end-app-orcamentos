@@ -30,11 +30,9 @@ class StoreProvider extends InheritedWidget {
     final authStore = AuthStore();
     final loginStore = LoginStore(authStore);
 
-    // Usar serviços registrados no Modular
     final geoStore = GeoStore(Modular.get<GeoService>());
     final censoStore = CensoStore(Modular.get<CensoService>());
 
-    // Tentar auto-login quando o provider é criado
     _tentarAutoLogin(loginStore);
 
     return StoreProvider._(
@@ -47,18 +45,11 @@ class StoreProvider extends InheritedWidget {
     );
   }
 
-  // Método para tentar auto-login ao iniciar o app
   static void _tentarAutoLogin(LoginStore loginStore) {
     Future.delayed(Duration.zero, () async {
       try {
-        final success = await loginStore.tryAutoLogin();
-        if (success) {
-          print('✅ Auto-login realizado com sucesso');
-        } else {
-          print('ℹ️ Nenhuma sessão anterior encontrada');
-        }
-      } catch (e) {
-        print('⚠️ Erro no auto-login: $e');
+        await loginStore.tryAutoLogin();
+      } catch (_) {
       }
     });
   }

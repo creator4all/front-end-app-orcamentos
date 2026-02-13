@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:multimidiaapp/app/shared/core/http/app_http_client.dart';
@@ -10,8 +10,6 @@ import '../models/budget_detail_dto.dart';
 import '../models/product_dto.dart';
 import 'budget_detail_remote_datasource.dart';
 
-/// Função Top-Level para ser executada em Isolate
-/// Recebe uma string JSON, decodifica e mapeia para uma lista de ProductDTO
 List<ProductDTO> _parseProductsInIsolate(String jsonString) {
   try {
     final jsonResponse = jsonDecode(jsonString) as Map<String, dynamic>;
@@ -28,7 +26,6 @@ List<ProductDTO> _parseProductsInIsolate(String jsonString) {
   }
 }
 
-/// Implementação concreta do BudgetDetailRemoteDataSource usando AppHttpClient
 class BudgetDetailRemoteDataSourceImpl implements BudgetDetailRemoteDataSource {
   final AppHttpClient _client;
 
@@ -60,33 +57,16 @@ class BudgetDetailRemoteDataSourceImpl implements BudgetDetailRemoteDataSource {
     required int budgetId,
   }) async {
     try {
-      debugPrint(
-          '🌐 [DataSource] GET /api/orcamentos/$budgetId/produtos-completos');
-
-      // Usar getBytes para receber bytes crus
-      // Depois fazemos decode UTF-8 manual para preservar caracteres especiais
       final bytes = await _client.getBytes(
         '/api/orcamentos/$budgetId/produtos-completos',
         config: _config,
       );
 
-      // Converter bytes para String com UTF-8 explícito
       final jsonString = utf8.decode(bytes, allowMalformed: false);
-      debugPrint(
-          '📦 [DataSource] Bytes decodificados com UTF-8: ${jsonString.length} chars');
-
-      debugPrint('🚀 [DataSource] Iniciando parse em Isolate com compute()...');
-
-      // Parse assíncrono em isolate para não travar a UI
       final produtos = await compute(_parseProductsInIsolate, jsonString);
-
-      debugPrint(
-          '✅ [DataSource] ${produtos.length} produtos parseados com sucesso via Isolate');
 
       return produtos;
     } catch (e, stackTrace) {
-      debugPrint('❌ [DataSource] Exceção: $e');
-      debugPrint('Stack: $stackTrace');
       rethrow;
     }
   }

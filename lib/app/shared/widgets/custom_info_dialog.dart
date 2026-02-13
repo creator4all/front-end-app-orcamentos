@@ -1,35 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-/// Tipos de dialog disponíveis
 enum DialogType {
-  /// Dialog informativo (azul)
   info,
 
-  /// Dialog de sucesso (verde)
   success,
 
-  /// Dialog de aviso (laranja)
   warning,
 
-  /// Dialog de erro (vermelho)
   error,
 }
 
-/// Dialog customizado padronizado para mensagens informativas
-///
-/// Apresenta um ícone circular colorido, título, mensagem e botão de ação.
-/// Segue o padrão visual estabelecido no app para consistência.
-///
-/// Exemplo de uso:
-/// ```dart
-/// CustomInfoDialog.show(
-///   context: context,
-///   type: DialogType.error,
-///   title: 'Erro ao fazer login',
-///   message: 'Login ou senha incorretos, tente novamente!',
-/// );
-/// ```
 class CustomInfoDialog extends StatelessWidget {
   final DialogType type;
   final String title;
@@ -44,16 +25,6 @@ class CustomInfoDialog extends StatelessWidget {
     required this.buttonText,
     this.onButtonPressed,
   });
-
-  /// Exibe o dialog customizado
-  ///
-  /// [context] - Contexto do widget
-  /// [type] - Tipo do dialog (info, success, warning, error)
-  /// [title] - Título do dialog
-  /// [message] - Mensagem descritiva
-  /// [buttonText] - Texto do botão (padrão: "Entendi")
-  /// [onButtonPressed] - Callback ao clicar no botão (padrão: fecha o dialog)
-  /// [barrierDismissible] - Permitir fechar clicando fora (padrão: true)
   static Future<void> show({
     required BuildContext context,
     required DialogType type,
@@ -76,35 +47,32 @@ class CustomInfoDialog extends StatelessWidget {
     );
   }
 
-  /// Cor de fundo do círculo do ícone baseada no tipo
   Color get _backgroundColor {
     switch (type) {
       case DialogType.info:
-        return const Color(0xFFE3F2FD); // Azul claro
+        return const Color(0xFFE3F2FD);
       case DialogType.success:
-        return const Color(0xFFE8F5E9); // Verde claro
+        return const Color(0xFFE8F5E9);
       case DialogType.warning:
-        return const Color(0xFFFFF3E0); // Laranja claro
+        return const Color(0xFFFFF3E0);
       case DialogType.error:
-        return const Color(0xFFFFEBEE); // Vermelho claro
+        return const Color(0xFFFFEBEE);
     }
   }
 
-  /// Cor do ícone baseada no tipo
   Color get _iconColor {
     switch (type) {
       case DialogType.info:
-        return const Color(0xFF117BBD); // Azul
+        return const Color(0xFF117BBD);
       case DialogType.success:
-        return const Color(0xFF56B34A); // Verde
+        return const Color(0xFF56B34A);
       case DialogType.warning:
-        return const Color(0xFFFF9800); // Laranja
+        return const Color(0xFFFF9800);
       case DialogType.error:
-        return const Color(0xFFF44336); // Vermelho
+        return const Color(0xFFF44336);
     }
   }
 
-  /// Ícone baseado no tipo
   IconData get _icon {
     switch (type) {
       case DialogType.info:
@@ -117,17 +85,16 @@ class CustomInfoDialog extends StatelessWidget {
     }
   }
 
-  /// Cor do botão baseada no tipo
   Color get _buttonColor {
     switch (type) {
       case DialogType.info:
-        return const Color(0xFF117BBD); // Azul
+        return const Color(0xFF117BBD);
       case DialogType.success:
-        return const Color(0xFF56B34A); // Verde
+        return const Color(0xFF56B34A);
       case DialogType.warning:
-        return const Color(0xFFFF9800); // Laranja
+        return const Color(0xFFFF9800);
       case DialogType.error:
-        return const Color(0xFF1E88E5); // Azul (padrão do app)
+        return const Color(0xFF1E88E5);
     }
   }
 
@@ -142,7 +109,6 @@ class CustomInfoDialog extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Ícone circular com fundo colorido
             Container(
               width: 64.w,
               height: 64.h,
@@ -158,7 +124,6 @@ class CustomInfoDialog extends StatelessWidget {
             ),
             SizedBox(height: 20.h),
 
-            // Título
             Text(
               title,
               style: TextStyle(
@@ -170,7 +135,6 @@ class CustomInfoDialog extends StatelessWidget {
             ),
             SizedBox(height: 12.h),
 
-            // Mensagem
             Text(
               message,
               style: TextStyle(
@@ -181,7 +145,6 @@ class CustomInfoDialog extends StatelessWidget {
             ),
             SizedBox(height: 24.h),
 
-            // Botão de ação
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(

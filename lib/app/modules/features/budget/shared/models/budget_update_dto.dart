@@ -1,88 +1,29 @@
-import 'package:equatable/equatable.dart';
+﻿import 'package:equatable/equatable.dart';
 
 import 'indicador_update_dto.dart';
 import 'product_selection_update_dto.dart';
 
-/// DTO principal para atualização de orçamentos
-///
-/// Usado por:
-/// - **budget_config**: Salvar orçamento como "pendente" após configuração
-/// - **budget_edit**: Editar orçamento existente (produtos, status, dados gerais)
-///
-/// Endpoint: `PUT /api/orcamentos/{id}`
-///
-/// Suporta **partial updates** - apenas campos não-nulos são enviados à API.
-/// Isso permite atualizar apenas os campos necessários sem sobrescrever outros dados.
-///
-/// Exemplo de uso em budget_config:
-/// ```dart
-/// final dto = BudgetUpdateDto(
-///   status: 'pendente',
-///   total: 15000.00,
-///   diasValidade: 90,
-///   produtos: [...],
-/// );
-/// ```
-///
-/// Exemplo de uso em budget_edit:
-/// ```dart
-/// final dto = BudgetUpdateDto(
-///   status: 'aprovado',
-///   nome: 'São Paulo - SP Atualizado',
-///   produtos: [...],
-/// );
-/// ```
 class BudgetUpdateDto extends Equatable {
-  /// Nome do orçamento (opcional)
-  /// Ex: "São Paulo - SP"
   final String? nome;
 
-  /// Dias de validade do orçamento (1-365)
   final int? diasValidade;
 
-  /// Status do orçamento
-  /// Valores: 'rascunho', 'pendente', 'arquivado', 'aprovado', 'expirado', 'nao_aprovado'
-  ///
-  /// **budget_config**: Sempre envia 'pendente'
-  /// **budget_edit**: Usuário escolhe o status
   final String? status;
 
-  /// Indica se o orçamento está arquivado
-  ///
-  /// **budget_config**: Sempre false
-  /// **budget_edit**: Usuário pode arquivar/desarquivar
   final bool? isArchived;
 
-  /// Total calculado do orçamento
   final double? total;
 
-  /// ID do usuário proprietário do orçamento
-  /// **Obrigatório para versionamento** (POST /api/orcamentos/{id}/versionar)
   final int? usuarioId;
 
-  /// ID da cidade principal do orçamento
-  /// **Obrigatório para versionamento** (POST /api/orcamentos/{id}/versionar)
   final int? cidadeId;
 
-  /// Array de IDs de cidades (relação N:N)
-  ///
-  /// **Importante**: Usado para adicionar/remover cidades via tabela pivô.
-  /// Não confundir com modificação de valores de indicadores.
   final List<int>? cidades;
 
-  /// Array de indicadores do Censo Escolar com valores atualizados
-  ///
-  /// Permite modificar VALORES dos indicadores (quantidades de alunos, turmas, etc)
-  /// sem alterar as cidades do orçamento.
   final List<IndicadorUpdateDto>? indicadores;
 
-  /// Array de produtos com estado de seleção e quantidade
-  ///
-  /// Sincroniza todos os produtos do orçamento (selecionados e não selecionados)
-  /// com seus estados atuais.
   final List<ProductSelectionUpdateDto>? produtos;
 
-  /// ID do parceiro destino (apenas admin pode alterar)
   final int? partnerDestinoId;
 
   const BudgetUpdateDto({
@@ -99,9 +40,6 @@ class BudgetUpdateDto extends Equatable {
     this.partnerDestinoId,
   });
 
-  /// Converte para Map para envio via API
-  ///
-  /// Apenas campos não-nulos são incluídos (partial update)
   Map<String, dynamic> toJson() {
     final map = <String, dynamic>{};
 
@@ -126,11 +64,6 @@ class BudgetUpdateDto extends Equatable {
     return map;
   }
 
-  /// Converte para Map no formato específico do endpoint /versionar-multi-cidade
-  ///
-  /// Diferenças do toJson():
-  /// - `cidades`: formato `[{ cidade_id: int, overrides: null }]`
-  /// - `produtos`: usa toJsonForMultiCity() (serviços com quantidade, demais com indicadores)
   Map<String, dynamic> toJsonForMultiCity() {
     final map = <String, dynamic>{};
 
@@ -139,13 +72,11 @@ class BudgetUpdateDto extends Equatable {
     if (status != null) map['orc_status'] = status;
     if (usuarioId != null) map['orc_usuario_id'] = usuarioId;
 
-    // 🔑 Cidades no formato esperado: [{ cidade_id, overrides }]
     if (cidades != null) {
       map['cidades'] =
           cidades!.map((id) => {'cidade_id': id, 'overrides': null}).toList();
     }
 
-    // 🔑 Produtos usando serialização específica para multi-cidade
     if (produtos != null) {
       map['produtos'] = produtos!.map((p) => p.toJsonForMultiCity()).toList();
     }

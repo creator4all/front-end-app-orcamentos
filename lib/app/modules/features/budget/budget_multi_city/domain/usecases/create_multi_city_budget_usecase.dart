@@ -1,17 +1,13 @@
-import 'package:dartz/dartz.dart';
+﻿import 'package:dartz/dartz.dart';
 import 'package:multimidiaapp/app/modules/features/budget/shared/errors/budget_failure.dart';
 
 import '../repositories/multi_city_budget_repository.dart';
 
-/// Caso de uso para criar orçamento multi-cidades
 class CreateMultiCityBudgetUseCase {
   final MultiCityBudgetRepository _repository;
 
   CreateMultiCityBudgetUseCase(this._repository);
 
-  /// Executa a criação do orçamento multi-cidades
-  ///
-  /// Retorna os dados completos do orçamento criado (categorias, cidades, censo_agregado)
   Future<Either<BudgetFailure, Map<String, dynamic>>> call({
     required String nome,
     required int diasValidade,
@@ -20,7 +16,6 @@ class CreateMultiCityBudgetUseCase {
     required Map<int, Map<int, double>> overridesPorCidade,
     int? partnerDestinoId,
   }) async {
-    // Validações
     if (nome.trim().isEmpty) {
       return const Left(ValidationFailure('Nome do orçamento é obrigatório'));
     }

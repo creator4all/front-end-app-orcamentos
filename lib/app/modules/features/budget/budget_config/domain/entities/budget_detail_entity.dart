@@ -1,4 +1,4 @@
-import 'package:copy_with_extension/copy_with_extension.dart';
+﻿import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:equatable/equatable.dart';
 
 import 'category_entity.dart';
@@ -6,53 +6,35 @@ import 'product_selection_entity.dart';
 
 part 'budget_detail_entity.g.dart';
 
-/// Entidade que representa os detalhes completos de um orçamento
-/// Utilizada na tela de configuração para exibir e editar dados
 @CopyWith()
 class BudgetDetailEntity extends Equatable {
-  /// ID do orçamento
   final int id;
 
-  /// Nome/título do orçamento
   final String? name;
-
-  /// Dias de validade
   final int validityDays;
 
-  /// Data de validade
   final DateTime? validityDate;
 
-  /// Data de criação
   final DateTime? creationDate;
 
-  /// Status atual (rascunho, pendente, aprovado, etc)
   final String status;
 
-  /// Valor total do orçamento
   final double total;
 
-  /// ID do usuário que criou
   final int userId;
 
-  /// ID do parceiro destino (se admin selecionou)
   final int? partnerId;
 
-  /// Lista de IDs das cidades
   final List<int> cityIds;
 
-  /// Lista de produtos selecionados (legado - manter para compatibilidade)
   final List<ProductSelectionEntity> products;
 
-  /// Estado das categorias (livros, portal, etc) - manter para compatibilidade
   final Map<String, bool> categoryStates;
 
-  /// ✅ Lista de categorias com subcategorias e produtos (nova estrutura)
   final List<CategoryEntity> categories;
 
-  /// ✅ Dados completos das cidades com indicadores para Censo Escolar
   final List<Map<String, dynamic>> citiesData;
 
-  /// ✅ Censo agregado para orçamentos multi-cidade (chave: nome_etapa, valor: quantidade)
   final Map<String, double> censoAgregado;
 
   const BudgetDetailEntity({
@@ -73,39 +55,28 @@ class BudgetDetailEntity extends Equatable {
     this.censoAgregado = const {},
   });
 
-  // ========== Regras de Negócio ==========
 
-  /// Verifica se o orçamento pode ser finalizado
   bool get canBeFinalized => products.isNotEmpty && total > 0;
 
-  /// Retorna a quantidade de produtos selecionados
   int get selectedProductsCount => products.where((p) => p.isSelected).length;
 
-  /// Verifica se é um rascunho
   bool get isDraft => status.toLowerCase() == 'rascunho';
 
-  /// Verifica se está pendente
   bool get isPending => status.toLowerCase() == 'pendente';
 
-  /// Verifica se tem múltiplas cidades
   bool get isMultiCity => cityIds.length > 1;
 
-  /// ✅ Quantidade total de produtos ativos em todas as categorias
   int get totalActiveProducts {
     return categories.fold(0, (sum, c) => sum + c.totalActiveProducts);
   }
 
-  /// ✅ Quantidade total de produtos selecionados em todas as categorias
   int get totalSelectedProducts {
     return categories.fold(0, (sum, c) => sum + c.selectedProductsCount);
   }
-
-  /// ✅ Valor total calculado a partir das categorias
   double get calculatedTotal {
     return categories.fold(0.0, (sum, c) => sum + c.totalValue);
   }
 
-  /// Verifica se tem categorias disponíveis
   bool get hasCategories => categories.isNotEmpty;
 
   @override

@@ -59,17 +59,13 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
 
     _validadeOrcamentoController.text = '60';
 
-    // ✅ Listener para mudanças no campo de validade
     _validadeOrcamentoController.addListener(_onValidityDaysChanged);
 
-    // Inicializar store com valor default de 60 dias
     _updateValidityDate(60);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final args = Modular.args.data;
 
-      // ✅ OTIMIZAÇÃO: Verificar se veio resposta multi-cidade completa
-      // Isso evita chamadas extras de GET /api/orcamentos/{id} e /produtos-completos
       if (args is Map<String, dynamic> &&
           args.containsKey('multiCityResponse')) {
         final multiCityData = args['multiCityResponse'] as Map<String, dynamic>;
@@ -79,7 +75,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
 
       BudgetDraftEntity? initialDraft;
 
-      // Extrair draft do novo formato de arguments
       if (args is Map<String, dynamic> && args.containsKey('budget')) {
         initialDraft = args['budget'] as BudgetDraftEntity?;
       } else if (args is BudgetDraftEntity) {
@@ -96,7 +91,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     });
   }
 
-  /// Atualiza validityDate na store quando usuário digita
   void _onValidityDaysChanged() {
     final text = _validadeOrcamentoController.text;
     if (text.isNotEmpty) {
@@ -107,7 +101,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     }
   }
 
-  /// Calcula e seta nova data de validade baseado nos dias
   void _updateValidityDate(int dias) {
     final hoje = DateTime.now();
     final hojeDate = DateTime(hoje.year, hoje.month, hoje.day);
@@ -123,7 +116,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     super.dispose();
   }
 
-  /// Gera título do header baseado na localização
   String _getHeaderTitle() {
     if (widget.cityName != null && widget.stateName != null) {
       return '${widget.cityName} - ${widget.stateName}';
@@ -136,7 +128,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
 
     result.fold(
       (failure) {
-        // Erro já foi definido na store
         CustomInfoDialog.show(
           context: context,
           type: DialogType.error,
@@ -145,7 +136,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
         );
       },
       (budget) async {
-        // Sucesso
         await CustomInfoDialog.show(
           context: context,
           type: DialogType.success,
@@ -153,7 +143,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
           message: 'Orçamento salvo com sucesso!',
         );
 
-        // Forçar atualização da lista e navegar para ela
         final listStore = Modular.get<BudgetListStore>();
         await listStore.refresh();
         Modular.to.navigate('/budget/');
@@ -161,9 +150,7 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     );
   }
 
-  /// Valida orçamento antes de salvar e mostra feedback apropriado
   Future<void> _handleSaveWithValidation() async {
-    // 1️⃣ Validar data de validade
     if (store.validityDate == null) {
       CustomInfoDialog.show(
         context: context,
@@ -174,7 +161,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
       return;
     }
 
-    // 2️⃣ Validar produtos selecionados (Dialog de confirmação se vazio)
     if (store.totalSelectedProducts == 0) {
       final confirm = await showDialog<bool>(
         context: context,
@@ -200,11 +186,9 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
         ),
       );
 
-      // Se usuário cancelou, não prosseguir
       if (confirm != true) return;
     }
 
-    // 3️⃣ Todas as validações passaram, prosseguir com save
     await _handleSave();
   }
 
@@ -218,7 +202,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
       ),
       body: Observer(
         builder: (_) {
-          // Mostrar skeleton enquanto carrega dados completos
           if (!store.isFullyLoaded) {
             return const BudgetSkeleton();
           }
@@ -261,7 +244,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
               padding: EdgeInsets.all(16.w),
               child: Column(
                 children: [
-                  // Resumo do orçamento
                   BudgetSummaryCard(
                     budgetValue: store.totalValue,
                     selectedProductsCount: store.selectedItemsCount,
@@ -269,23 +251,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
 
                   SizedBox(height: 12.h),
 
-                  // DEBUG: Verificar dados de cidades
-                  Builder(
-                    builder: (context) {
-                      final detail = store.budgetDetail;
-                      print('🔍 [ConfigPage] Debug Cidades:');
-                      print('   - cityIds: ${detail?.cityIds}');
-                      print(
-                          '   - citiesData (len): ${detail?.citiesData.length}');
-                      if (detail?.citiesData.isNotEmpty ?? false) {
-                        print(
-                            '   - citiesData[0]: ${detail?.citiesData.first}');
-                      }
-                      return const SizedBox.shrink();
-                    },
-                  ),
-
-                  // ✅ Card do Censo Escolar
                   if ((store.budgetDetail?.cityIds.isNotEmpty ?? false) ||
                       (store.budgetDetail?.citiesData.isNotEmpty ?? false))
                     Padding(
@@ -297,51 +262,37 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                         citiesData: _extractCitiesData(),
                         censoAgregado: store.censoEscolar?.valoresPorEtapa,
                         onTap: () async {
-                          print(
-                              '👆 [ConfigPage] Navegando para edição do Censo Escolar');
-
-                          // Verificar se é multi-cidade
                           final isMultiCity =
                               (store.budgetDetail?.cityIds.length ?? 0) > 1;
                           final cityId =
                               store.budgetDetail?.cityIds.firstOrNull ?? 0;
 
-                          // Navegar para tela de edição do censo
-                          final result = await Modular.to.pushNamed(
+                          await Modular.to.pushNamed(
                             '/budget/census/$cityId',
                             arguments: {
                               'censoEscolar': store.censoEscolar,
                               'budgetId': widget.budgetId,
                               'isMultiCityMode': isMultiCity,
                               'onCensusUpdated': (updatedCenso) {
-                                // Atualizar censo no store local
                                 store.updateCensoEscolar(updatedCenso);
                               },
                             },
                           );
 
-                          // Ao retornar da tela, verificar se houve atualização (retorna true)
-                          if (result == true) {
-                            print(
-                                '✅ [ConfigPage] Censo editado, produtos atualizados com sucesso!');
-                          }
                         },
                       ),
                     ),
 
                   SizedBox(height: 12.h),
 
-                  // ✅ Categorias Dinâmicas (baseadas no campo "expandido")
                   if (store.hasCategories) ...[
                     ...store.categories.map((category) {
                       if (category.expandido) {
-                        // Exibir como categoria expandida (header + subcategorias visíveis)
                         return [
                           _buildExpandedCategoryHeader(category),
                           ..._buildExpandedSubcategories(category),
                         ];
                       } else {
-                        // Exibir como card único (abre modal ao clicar)
                         return [
                           Padding(
                             padding: EdgeInsets.only(bottom: 12.h),
@@ -352,7 +303,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                     }).expand((widgets) => widgets),
                   ],
 
-                  // Mensagem se não houver categorias
                   if (!store.hasCategories)
                     Padding(
                       padding: EdgeInsets.symmetric(vertical: 24.h),
@@ -476,7 +426,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
 
                   SizedBox(height: 24.h),
 
-                  // Mensagem de erro
                   if (store.error != null)
                     Container(
                       padding: EdgeInsets.all(12.w),
@@ -500,7 +449,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                       ),
                     ),
 
-                  // Botão Salvar (sempre habilitado, exceto quando salvando)
                   SizedBox(
                     width: double.infinity,
                     height: 50.h,
@@ -535,9 +483,7 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     );
   }
 
-  // ========== MÉTODOS AUXILIARES ==========
 
-  /// Constrói o header para categorias expandidas
   Widget _buildExpandedCategoryHeader(CategoryEntity category) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(0, 0, 0, 10),
@@ -575,10 +521,7 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     );
   }
 
-  /// Constrói a lista de subcategorias expandidas
-  /// Ordena por campo "ordem" do backend
   List<Widget> _buildExpandedSubcategories(CategoryEntity category) {
-    // Ordenar subcategorias por ordem
     final sortedSubcategories = category.subcategorias.toList()
       ..sort((a, b) => a.ordem.compareTo(b.ordem));
 
@@ -590,18 +533,15 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     }).toList();
   }
 
-  /// Constrói um card para subcategoria usando ProductCategory widget
   Widget _buildSubcategoryCard(
       SubcategoryEntity subcategory, CategoryEntity parentCategory) {
     return Observer(
       builder: (_) {
-        // ✅ Buscar categoria atualizada da store
         final currentCategory = store.categories.firstWhere(
           (c) => c.id == parentCategory.id,
           orElse: () => parentCategory,
         );
 
-        // ✅ Buscar subcategoria atualizada dentro da categoria
         final currentSubcategory = currentCategory.subcategorias.firstWhere(
           (s) => s.id == subcategory.id,
           orElse: () => subcategory,
@@ -619,8 +559,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
           isSelected: currentSubcategory.selectedProductsCount > 0,
           onCheckboxChanged: (selected) {
             if (selected == null) return;
-            print(
-                '✅ [ConfigPage] Checkbox subcategoria ${currentSubcategory.nome}: ${selected ? "MARCAR" : "DESMARCAR"}');
             store.toggleSubcategoryWithCascade(
               currentCategory.id,
               currentSubcategory.id,
@@ -628,13 +566,9 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
             );
           },
           onCardTap: () {
-            print(
-                '👆 [ConfigPage] Card subcategoria clicado: ${currentSubcategory.nome}');
             _showProductsModal(currentCategory, currentSubcategory);
           },
           onActionTap: () {
-            print(
-                '👆 [ConfigPage] Botão ação subcategoria: ${currentSubcategory.nome}');
             _showProductsModal(currentCategory, currentSubcategory);
           },
         );
@@ -642,23 +576,17 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     );
   }
 
-  /// Extrai dados das cidades para o card do Censo Escolar
-  /// Retorna lista de mapas com {id, nome, indicadores}
   List<Map<String, dynamic>> _extractCitiesData() {
     if (store.budgetDetail == null) {
       return [];
     }
 
-    // Usar dados das cidades já parseadas do DTO
     return store.budgetDetail!.citiesData;
   }
 
-  // ========== MÉTODOS PARA MODAIS ==========
 
   void _showSubcategoriesModal(CategoryEntity category) {
-    // 🔒 GUARD: Não permitir abertura enquanto produtos estão carregando
     if (store.isLoadingProducts) {
-      print('⚠️ [ConfigPage] Modal bloqueado - produtos ainda carregando');
       CustomInfoDialog.show(
         context: context,
         type: DialogType.info,
@@ -668,16 +596,12 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
       return;
     }
 
-    print('🔍 [ConfigPage] Abrindo modal de subcategorias: ${category.nome}');
-    print('   📦 Subcategorias: ${category.subcategorias.length}');
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => Observer(
         builder: (_) {
-          // ✅ Buscar categoria atualizada da store
           final currentCategory = store.categories.firstWhere(
             (c) => c.id == category.id,
             orElse: () => category,
@@ -686,14 +610,10 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
           return SubcategoriesModal(
             category: currentCategory,
             onSubcategoryTap: (subcategory) {
-              print(
-                  '🔍 [ConfigPage] Subcategoria selecionada: ${subcategory.nome}');
               Navigator.pop(context);
               _showProductsModal(currentCategory, subcategory);
             },
             onCheckboxChanged: (categoryId, subcategoryId, selected) {
-              print(
-                  '✅ [ConfigPage] Checkbox subcategoria (modal): categoryId=$categoryId, subcategoryId=$subcategoryId, selected=$selected');
               store.toggleSubcategoryWithCascade(
                 categoryId,
                 subcategoryId,
@@ -708,9 +628,7 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
 
   void _showProductsModal(
       CategoryEntity category, SubcategoryEntity subcategory) {
-    // 🔒 GUARD: Não permitir abertura enquanto produtos estão carregando
     if (store.isLoadingProducts) {
-      print('⚠️ [ConfigPage] Modal de produtos bloqueado - ainda carregando');
       CustomInfoDialog.show(
         context: context,
         type: DialogType.info,
@@ -720,11 +638,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
       return;
     }
 
-    print('🔍 [ConfigPage] Abrindo modal de produtos: ${subcategory.nome}');
-    print('   📦 Produtos ativos: ${subcategory.activeProductsCount}');
-
-    // Usar o helper estático que encapsula CustomModal.show
-    // Agora recebe category completa para exibir título composto
     SubcategoryProductsModal.show(
       context: context,
       category: category,
@@ -744,7 +657,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     );
   }
 
-  // ========== HELPER PARA ÍCONES ==========
 
   IconData _getCategoryIcon(String categoryName) {
     switch (categoryName.toLowerCase()) {
@@ -757,17 +669,10 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     }
   }
 
-  // ========== BUILD CATEGORIA DINÂMICA ==========
 
   Widget _buildCategoryFromEntity(CategoryEntity category) {
-    print('🏗️ [ConfigPage] Construindo categoria: ${category.nome}');
-    print('   - Produtos ativos: ${category.totalActiveProducts}');
-    print('   - Produtos selecionados: ${category.selectedProductsCount}');
-    print('   - Valor total: ${category.formattedTotalValue}');
-
     return Observer(
       builder: (_) {
-        // ✅ Buscar categoria atualizada da store dentro do Observer
         final currentCategory = store.categories.firstWhere(
           (c) => c.id == category.id,
           orElse: () => category,
@@ -784,18 +689,12 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
           totalCount: currentCategory.totalActiveProducts,
           isSelected: currentCategory.hasSelectedProducts,
           onCheckboxChanged: (bool? value) {
-            print(
-                '☑️ [ConfigPage] Checkbox categoria: ${currentCategory.nome} = $value');
             store.toggleCategoryWithCascade(currentCategory.id, value ?? false);
           },
           onCardTap: () {
-            print(
-                '👆 [ConfigPage] Card categoria clicado: ${currentCategory.nome}');
             _showSubcategoriesModal(currentCategory);
           },
           onActionTap: () {
-            print(
-                '👆 [ConfigPage] Botão ação categoria: ${currentCategory.nome}');
             _showSubcategoriesModal(currentCategory);
           },
         );
@@ -803,14 +702,11 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     );
   }
 
-  // ========== BUILD CATEGORIA ANTIGA (MANTER PARA COMPATIBILIDADE) ==========
-
   Widget _buildCategory(String key, String title, IconData icon) {
     return Observer(
       builder: (_) {
         final isSelected = store.categoryStates[key] ?? false;
 
-        // Mock de dados - em produção viriam do budgetDetail
         const value = 'R\$ 0,00';
         const selectedCount = 0;
         const totalCount = 0;

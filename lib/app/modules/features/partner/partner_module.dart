@@ -1,4 +1,4 @@
-import 'package:flutter_modular/flutter_modular.dart';
+﻿import 'package:flutter_modular/flutter_modular.dart';
 
 import 'data/services/partner_service.dart';
 import 'presentation/pages/partner_edit_page.dart';

@@ -9,22 +9,11 @@ import '../../../budget/budget_config/domain/entities/product_entity.dart';
 import '../../../budget/budget_config/domain/entities/subcategory_entity.dart';
 import '../../../budget/budget_config/presentation/widgets/indicadores_etapa_section.dart';
 
-/// Modal de informações detalhadas do produto (READONLY)
-///
-/// Clone exato do ProductInfoModal do budget_config, apenas sem campos editáveis.
-///
-/// Exibe:
-/// - Informações básicas (Grupo, Sub-grupo, Solução, etc.)
-/// - Indicadores de etapa agrupados (sem checkboxes)
-/// - Botão Fechar (em vez de Salvar)
 class ReportProductInfoModal extends StatelessWidget {
-  /// Categoria do produto
   final CategoryEntity category;
 
-  /// Subcategoria do produto
   final SubcategoryEntity subcategory;
 
-  /// Produto a ser exibido
   final ProductEntity product;
 
   const ReportProductInfoModal({
@@ -34,7 +23,6 @@ class ReportProductInfoModal extends StatelessWidget {
     required this.product,
   });
 
-  /// Mostra a modal
   static Future<void> show({
     required BuildContext context,
     required CategoryEntity category,
@@ -52,7 +40,6 @@ class ReportProductInfoModal extends StatelessWidget {
     );
   }
 
-  /// Formata valor para padrão brasileiro
   String _formatCurrency(double value) {
     final formatter = NumberFormat.currency(
       locale: 'pt_BR',
@@ -62,7 +49,6 @@ class ReportProductInfoModal extends StatelessWidget {
     return formatter.format(value);
   }
 
-  /// Constrói linha de informação
   Widget _buildInfoRow(String label, String value) {
     return RichText(
       text: TextSpan(
@@ -90,7 +76,6 @@ class ReportProductInfoModal extends StatelessWidget {
     );
   }
 
-  /// Constrói container com informações do produto
   Widget _buildProductInfo() {
     return Container(
       padding: EdgeInsets.all(16.w),
@@ -121,7 +106,6 @@ class ReportProductInfoModal extends StatelessWidget {
     );
   }
 
-  /// Constrói campo de valor unitário (READONLY)
   Widget _buildValueField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -151,7 +135,6 @@ class ReportProductInfoModal extends StatelessWidget {
           ),
         ),
         SizedBox(height: 8.h),
-        // Campo readonly (visual apenas)
         Container(
           width: double.infinity,
           padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
@@ -172,7 +155,6 @@ class ReportProductInfoModal extends StatelessWidget {
     );
   }
 
-  /// Constrói campo de horas para serviços (READONLY)
   Widget _buildHorasField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -202,7 +184,6 @@ class ReportProductInfoModal extends StatelessWidget {
           ),
         ),
         SizedBox(height: 8.h),
-        // Campo readonly (visual apenas)
         Container(
           width: double.infinity,
           padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
@@ -248,7 +229,6 @@ class ReportProductInfoModal extends StatelessWidget {
     );
   }
 
-  /// Verifica se o produto é do tipo serviço
   bool _isServico() {
     final tipo = product.tipoProduto.toLowerCase();
     return tipo == 'servico' || tipo == 'serviço';
@@ -260,31 +240,25 @@ class ReportProductInfoModal extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Seção 1: Informações do Produto
         _buildProductInfo(),
 
         SizedBox(height: 24.h),
 
-        // Seção 2: Indicadores de Etapa OU Campo de Horas (dependendo do tipo)
         if (_isServico()) ...[
-          // Serviço: Mostrar campo de horas (readonly)
           _buildHorasField(),
           SizedBox(height: 24.h),
         ] else if (product.indicadoresEtapa.isNotEmpty) ...[
-          // Livro/Tecnologia: Mostrar indicadores de etapa (readonly - sem onToggle)
           IndicadoresEtapaSection(
             indicadores: product.indicadoresEtapa,
-            onToggle: null, // READONLY - sem edição
+            onToggle: null,
           ),
           SizedBox(height: 24.h),
         ],
 
-        // Seção 3: Campo de valor unitário (readonly)
         _buildValueField(),
 
         SizedBox(height: 24.h),
 
-        // Botão Fechar
         _buildCloseButton(context),
 
         SizedBox(height: 16.h),

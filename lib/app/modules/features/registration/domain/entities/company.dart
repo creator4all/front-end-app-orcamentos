@@ -1,11 +1,9 @@
 import 'package:equatable/equatable.dart';
 
-/// Entidade de domínio que representa uma Empresa/Parceiro
-/// Retornada pela busca de documento (CNPJ)
 class Company extends Equatable {
   final int id;
-  final String legalName; // Razão social
-  final String tradeName; // Nome fantasia
+  final String legalName;
+  final String tradeName;
   final String email;
   final String phone;
   final String cnpj;

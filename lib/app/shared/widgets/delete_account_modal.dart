@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class DeleteAccountModal extends StatefulWidget {
@@ -65,7 +65,6 @@ class _DeleteAccountModalState extends State<DeleteAccountModal> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Ícone de aviso
             Container(
               width: 64.w,
               height: 64.w,
@@ -82,7 +81,6 @@ class _DeleteAccountModalState extends State<DeleteAccountModal> {
 
             SizedBox(height: 16.h),
 
-            // Título
             Text(
               'Deletar Conta',
               style: TextStyle(
@@ -94,7 +92,6 @@ class _DeleteAccountModalState extends State<DeleteAccountModal> {
 
             SizedBox(height: 12.h),
 
-            // Aviso
             Text(
               'Esta ação é irreversível!',
               style: TextStyle(
@@ -107,7 +104,6 @@ class _DeleteAccountModalState extends State<DeleteAccountModal> {
 
             SizedBox(height: 8.h),
 
-            // Descrição
             Text(
               'Ao deletar sua conta, todos os seus dados serão permanentemente removidos e você será desconectado do aplicativo.',
               style: TextStyle(
@@ -119,7 +115,6 @@ class _DeleteAccountModalState extends State<DeleteAccountModal> {
 
             SizedBox(height: 20.h),
 
-            // Instrução de confirmação
             RichText(
               textAlign: TextAlign.center,
               text: TextSpan(
@@ -143,7 +138,6 @@ class _DeleteAccountModalState extends State<DeleteAccountModal> {
 
             SizedBox(height: 12.h),
 
-            // Campo de confirmação
             TextField(
               controller: _confirmController,
               textCapitalization: TextCapitalization.characters,
@@ -173,7 +167,6 @@ class _DeleteAccountModalState extends State<DeleteAccountModal> {
               onChanged: (_) => setState(() {}),
             ),
 
-            // Mensagem de erro
             if (_errorMessage != null) ...[
               SizedBox(height: 12.h),
               Text(
@@ -188,10 +181,8 @@ class _DeleteAccountModalState extends State<DeleteAccountModal> {
 
             SizedBox(height: 24.h),
 
-            // Botões
             Row(
               children: [
-                // Botão Cancelar
                 Expanded(
                   child: OutlinedButton(
                     onPressed: _isDeleting ? null : widget.onCancel,
@@ -212,7 +203,6 @@ class _DeleteAccountModalState extends State<DeleteAccountModal> {
 
                 SizedBox(width: 12.w),
 
-                // Botão Deletar
                 Expanded(
                   child: ElevatedButton(
                     onPressed: _canDelete ? _handleDelete : null,

@@ -1,12 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../../shared/utils/user_role_mapper.dart';
 import '../../../../../shared/widgets/user_avatar_widget.dart';
 import '../../domain/entities/managed_user.dart';
 
-/// Widget que representa um item da lista de usuários
-/// Layout horizontal: Avatar, Column (nome/role/email), Switch
 class UserListItemWidget extends StatelessWidget {
   final ManagedUser user;
   final bool hasPendingChanges;
@@ -25,17 +23,13 @@ class UserListItemWidget extends StatelessWidget {
     this.onPermissionDenied,
   });
 
-  /// Roles disponíveis para seleção (sem Administrador)
   static const List<Map<String, dynamic>> availableRoles = [
     {'id': 3, 'name': 'Vendedor'},
     {'id': 2, 'name': 'Gestor'},
   ];
 
-  /// Verifica se o usuário logado pode editar o usuário alvo
-  /// Hierarquia: Admin (1) > Gestor (2) > Vendedor (3)
   bool get _canEditUser => canEditUserWithRole(currentUserRoleId, user.roleId);
 
-  /// Obtém cor de fundo da tag de role
   Color _getRoleBackgroundColor(String roleName) {
     switch (roleName.toLowerCase()) {
       case 'gestor':
@@ -49,7 +43,6 @@ class UserListItemWidget extends StatelessWidget {
     }
   }
 
-  /// Obtém cor do texto da tag de role
   Color _getRoleTextColor(String roleName) {
     switch (roleName.toLowerCase()) {
       case 'gestor':
@@ -90,7 +83,6 @@ class UserListItemWidget extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Avatar
             UserAvatarWidget(
               avatarBase64: user.avatarBase64,
               userName: user.name,
@@ -99,13 +91,11 @@ class UserListItemWidget extends StatelessWidget {
 
             SizedBox(width: 10.w),
 
-            // Coluna com nome, role tag e email
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Nome
                   Text(
                     user.name,
                     style: TextStyle(
@@ -118,12 +108,10 @@ class UserListItemWidget extends StatelessWidget {
 
                   SizedBox(height: 3.h),
 
-                  // Tag de Role com dropdown
                   _buildRoleTag(),
 
                   SizedBox(height: 3.h),
 
-                  // Email
                   Text(
                     user.email,
                     style: TextStyle(
@@ -138,7 +126,6 @@ class UserListItemWidget extends StatelessWidget {
 
             SizedBox(width: 6.w),
 
-            // Switch
             SizedBox(
               height: 24.h,
               child: Switch(
@@ -163,7 +150,6 @@ class UserListItemWidget extends StatelessWidget {
   }
 
   Widget _buildRoleTag() {
-    // Se não pode editar, exibe apenas a tag sem dropdown
     if (!_canEditUser) {
       return GestureDetector(
         onTap: () => onPermissionDenied?.call(),

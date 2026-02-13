@@ -1,8 +1,7 @@
-import 'package:equatable/equatable.dart';
+﻿import 'package:equatable/equatable.dart';
 
 import 'cidade_indice_etapa_entity.dart';
 
-/// Entidade que representa uma Cidade com suas etapas
 class CidadeEntity extends Equatable {
   final int id;
   final String nome;
