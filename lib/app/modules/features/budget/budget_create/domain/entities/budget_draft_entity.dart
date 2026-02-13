@@ -11,8 +11,8 @@ part 'budget_draft_entity.g.dart';
 @CopyWith()
 class BudgetDraftEntity extends Equatable {
   final int id;
-  final int?
-      partnerId;
+  final String? name;
+  final int? partnerId;
   final String partnerName;
   final LocationEntity location;
   final String? responsibleName;
@@ -31,6 +31,7 @@ class BudgetDraftEntity extends Equatable {
 
   const BudgetDraftEntity({
     required this.id,
+    this.name,
     this.partnerId,
     required this.partnerName,
     required this.location,
@@ -72,6 +73,7 @@ class BudgetDraftEntity extends Equatable {
   @override
   List<Object?> get props => [
         id,
+        name,
         partnerId,
         partnerName,
         location,

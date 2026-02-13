@@ -1,31 +1,8 @@
-import 'dart:convert';
+﻿import 'package:multimidiaapp/app/shared/core/http/app_http_client.dart';
 
-import 'package:flutter/foundation.dart';
-import 'package:multimidiaapp/app/shared/core/http/app_http_client.dart';
-
-import '../../../budget_config/data/models/product_dto.dart';
 import '../../../shared/models/budget_update_dto.dart';
 import '../models/budget_edit_dto.dart';
 import 'budget_edit_remote_datasource.dart';
-
-/// Função Top-Level para ser executada em Isolate
-List<ProductDTO> _parseProductsInIsolate(String jsonString) {
-  try {
-    final jsonResponse = jsonDecode(jsonString) as Map<String, dynamic>;
-    final dados = jsonResponse['dados'] as Map<String, dynamic>?;
-    final productList = dados?['produtos'];
-
-    if (productList is List) {
-      return productList
-          .map((json) => ProductDTO.fromJson(json as Map<String, dynamic>))
-          .toList();
-    }
-
-    return [];
-  } catch (e) {
-    return [];
-  }
-}
 
 class BudgetEditRemoteDataSourceImpl implements BudgetEditRemoteDataSource {
   final AppHttpClient _client;
@@ -43,26 +20,6 @@ class BudgetEditRemoteDataSourceImpl implements BudgetEditRemoteDataSource {
       }
 
       throw Exception(response.body['error'] ?? 'Orçamento não encontrado');
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  @override
-  Future<Map<String, dynamic>> getBudgetProductsComplete(int id) async {
-    try {
-      final bytes = await _client.getBytes(
-        '/api/orcamentos/$id/produtos-completos',
-      );
-
-      final jsonString = utf8.decode(bytes, allowMalformed: false);
-      final produtos = await compute(_parseProductsInIsolate, jsonString);
-
-      return {
-        'orcamento_id': id,
-        'total_produtos': produtos.length,
-        'produtos': produtos.map((p) => p.toJson()).toList(),
-      };
     } catch (e) {
       rethrow;
     }
@@ -174,7 +131,8 @@ class BudgetEditRemoteDataSourceImpl implements BudgetEditRemoteDataSource {
       }
 
       throw Exception(
-          response.body['error'] ?? 'Erro ao versionar orçamento multi-cidade');
+        response.body['error'] ?? 'Erro ao versionar orçamento multi-cidade',
+      );
     } catch (e) {
       rethrow;
     }

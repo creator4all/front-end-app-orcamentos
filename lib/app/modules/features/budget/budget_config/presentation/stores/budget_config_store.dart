@@ -171,7 +171,7 @@ abstract class _BudgetConfigStoreBase with Store {
     try {
       budgetDetail = BudgetDetailEntity(
         id: draft.id,
-        name: draft.partnerName,
+        name: draft.name,
         validityDays: draft.validityDays,
         validityDate: draft.validityDate,
         creationDate: draft.createdAt,
@@ -194,7 +194,7 @@ abstract class _BudgetConfigStoreBase with Store {
 
       validityDate =
           draft.validityDate ?? DateTime.now().add(const Duration(days: 60));
-      budgetName = draft.partnerName;
+      budgetName = draft.name ?? '';
 
       final oldCensoEscolar = censoEscolar;
       censoEscolar = _convertCidadeToCensoEscolar(draft.cidade);

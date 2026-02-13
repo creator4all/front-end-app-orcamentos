@@ -18,7 +18,6 @@ import 'budget_config/domain/repositories/census_repository.dart';
 import 'budget_config/domain/services/product_calculation_service.dart';
 import 'budget_config/domain/usecases/calculate_totals_usecase.dart';
 import 'budget_config/domain/usecases/finalize_budget_usecase.dart';
-import 'budget_config/domain/usecases/get_all_budget_products_usecase.dart';
 import 'budget_config/domain/usecases/get_budget_census_usecase.dart';
 import 'budget_config/domain/usecases/get_budget_detail_usecase.dart';
 import 'budget_config/domain/usecases/get_category_products_usecase.dart';
@@ -153,9 +152,6 @@ class BudgetModuleNew extends Module {
 
     Bind.lazySingleton<GetBudgetDetailUseCase>(
       (i) => GetBudgetDetailUseCase(i.get<BudgetDetailRepository>()),
-    ),
-    Bind.lazySingleton<GetAllBudgetProductsUseCase>(
-      (i) => GetAllBudgetProductsUseCase(i.get<BudgetDetailRepository>()),
     ),
     Bind.lazySingleton<GetCategoryProductsUseCase>(
       (i) => GetCategoryProductsUseCase(i.get<BudgetDetailRepository>()),

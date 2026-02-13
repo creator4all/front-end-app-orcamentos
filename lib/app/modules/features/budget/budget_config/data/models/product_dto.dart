@@ -2,7 +2,6 @@ import '../../domain/entities/indicador_etapa_entity.dart';
 import '../../domain/entities/product_entity.dart';
 import 'indicador_etapa_dto.dart';
 
-/// DTO para parsing JSON dos produtos da API
 class ProductDTO {
   final int id;
   final String codigo;
@@ -49,7 +48,7 @@ class ProductDTO {
       final String solucao = (json['solucao'] ?? '') as String;
       final String tipo = (json['tipo'] ?? '') as String;
 
-      final dynamic rawAtivo = json['ativo'];
+      final dynamic rawAtivo = json['status'];
       final bool ativo = rawAtivo is bool ? rawAtivo : (rawAtivo == 1);
 
       final double valor = (json['valor'] as num? ?? 0).toDouble();
@@ -145,9 +144,7 @@ class ProductDTO {
       tipoProduto: tipoProduto,
       ordem: ordem,
       subcategoriaId: subcategoriaId,
-      selecionado: quantidade > 0
-          ? selecionado
-          : false,
+      selecionado: quantidade > 0 ? selecionado : false,
       quantidade: quantidade,
       temOverride: temOverride,
       observacoes: observacoes,

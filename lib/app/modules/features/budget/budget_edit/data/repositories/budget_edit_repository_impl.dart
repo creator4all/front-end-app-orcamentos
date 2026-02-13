@@ -1,8 +1,6 @@
 ﻿import 'package:dartz/dartz.dart';
 
 import '../../../../../../shared/core/constants/http_constants.dart';
-import '../../../budget_config/data/models/product_dto.dart';
-import '../../../budget_config/domain/entities/product_entity.dart';
 import '../../../shared/errors/budget_failure.dart';
 import '../../../shared/models/budget_update_dto.dart';
 import '../../domain/entities/budget_edit_entity.dart';
@@ -23,28 +21,6 @@ class BudgetEditRepositoryImpl implements BudgetEditRepository {
       final entity = dto.toEntity();
 
       return Right(entity);
-    } on Exception catch (e) {
-      return Left(_mapExceptionToFailure(e));
-    }
-  }
-
-  @override
-  Future<Either<BudgetFailure, List<ProductEntity>>> getAllProducts({
-    required int budgetId,
-  }) async {
-    try {
-      final productsData = await remoteDataSource.getBudgetProductsComplete(
-        budgetId,
-      );
-
-      final produtosJson = productsData['produtos'] as List<dynamic>? ?? [];
-
-      final produtos = produtosJson
-          .map((json) => ProductDTO.fromJson(json as Map<String, dynamic>))
-          .map((dto) => dto.toEntity())
-          .toList();
-
-      return Right(produtos);
     } on Exception catch (e) {
       return Left(_mapExceptionToFailure(e));
     }

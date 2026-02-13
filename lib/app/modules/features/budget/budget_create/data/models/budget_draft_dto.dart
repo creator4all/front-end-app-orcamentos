@@ -111,6 +111,7 @@ class BudgetDraftDto {
   BudgetDraftEntity toEntity() {
     return BudgetDraftEntity(
       id: id,
+      name: name,
       partnerId: partnerId,
       partnerName: partnerName ?? '',
       location: LocationEntity(

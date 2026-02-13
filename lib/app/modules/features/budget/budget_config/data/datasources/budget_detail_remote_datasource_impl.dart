@@ -1,7 +1,4 @@
-﻿import 'dart:convert';
-
-import 'package:flutter/foundation.dart';
-import 'package:multimidiaapp/app/shared/core/http/app_http_client.dart';
+﻿import 'package:multimidiaapp/app/shared/core/http/app_http_client.dart';
 import 'package:multimidiaapp/app/shared/core/http/http_request_config.dart';
 import 'package:multimidiaapp/app/shared/core/utils/token_cache.dart';
 
@@ -9,22 +6,6 @@ import '../../../shared/models/budget_update_dto.dart';
 import '../models/budget_detail_dto.dart';
 import '../models/product_dto.dart';
 import 'budget_detail_remote_datasource.dart';
-
-List<ProductDTO> _parseProductsInIsolate(String jsonString) {
-  try {
-    final jsonResponse = jsonDecode(jsonString) as Map<String, dynamic>;
-    final dados = jsonResponse['dados'] as Map<String, dynamic>?;
-    final productList = dados?['produtos'] as List<dynamic>?;
-
-    if (productList == null) return [];
-
-    return productList
-        .map((json) => ProductDTO.fromJson(json as Map<String, dynamic>))
-        .toList();
-  } catch (e) {
-    return [];
-  }
-}
 
 class BudgetDetailRemoteDataSourceImpl implements BudgetDetailRemoteDataSource {
   final AppHttpClient _client;
@@ -38,8 +19,7 @@ class BudgetDetailRemoteDataSourceImpl implements BudgetDetailRemoteDataSource {
   @override
   Future<BudgetDetailDto> getBudgetById(int id) async {
     try {
-      final response =
-          await _client.get('/api/orcamentos/$id', config: _config);
+      final response = await _client.get('/api/orcamentos/$id', config: _config);
 
       if (response.isSuccess) {
         final data = response.body['dados'] as Map<String, dynamic>;
@@ -48,25 +28,6 @@ class BudgetDetailRemoteDataSourceImpl implements BudgetDetailRemoteDataSource {
 
       throw Exception(response.body['error'] ?? 'Orçamento não encontrado');
     } catch (e) {
-      rethrow;
-    }
-  }
-
-  @override
-  Future<List<ProductDTO>> getAllProducts({
-    required int budgetId,
-  }) async {
-    try {
-      final bytes = await _client.getBytes(
-        '/api/orcamentos/$budgetId/produtos-completos',
-        config: _config,
-      );
-
-      final jsonString = utf8.decode(bytes, allowMalformed: false);
-      final produtos = await compute(_parseProductsInIsolate, jsonString);
-
-      return produtos;
-    } catch (e, stackTrace) {
       rethrow;
     }
   }

@@ -27,23 +27,6 @@ class BudgetDetailRepositoryImpl implements BudgetDetailRepository {
   }
 
   @override
-  Future<Either<BudgetFailure, List<ProductEntity>>> getAllProducts({
-    required int budgetId,
-  }) async {
-    try {
-      final dtos = await remoteDataSource.getAllProducts(
-        budgetId: budgetId,
-      );
-
-      final entities = dtos.map((dto) => dto.toEntity()).toList();
-
-      return Right(entities);
-    } on Exception catch (e) {
-      return Left(_mapExceptionToFailure(e));
-    }
-  }
-
-  @override
   Future<Either<BudgetFailure, List<ProductEntity>>> getCategoryProducts({
     required int budgetId,
     required int categoryId,
