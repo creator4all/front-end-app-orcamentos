@@ -22,15 +22,28 @@ class IndiceEtapaDto {
 
   factory IndiceEtapaDto.fromJson(Map<String, dynamic> json) {
     final grupoJson = json['grupo'] as Map<String, dynamic>?;
+    final grupoId = (json['grupos_grupo_id'] as num?)?.toInt() ??
+        (json['grupo_id'] as num?)?.toInt() ??
+        (grupoJson?['id'] as num?)?.toInt() ??
+        (grupoJson?['grupo_id'] as num?)?.toInt() ??
+        0;
+    final grupoNome = grupoJson?['nome'] as String? ??
+        grupoJson?['nome_grupo'] as String? ??
+        json['grupo_nome'] as String?;
 
     return IndiceEtapaDto(
-      id: (json['idindice_etapa'] as num?)?.toInt() ?? 0,
-      nome: json['nome_etapa'] as String? ?? '',
-      titulo: json['titulo_etapa'] as String? ??
+      id: (json['idindice_etapa'] as num?)?.toInt() ??
+          (json['id'] as num?)?.toInt() ??
+          (json['indice_etapa_id'] as num?)?.toInt() ??
+          0,
+      nome: json['nome_etapa'] as String? ?? json['nome'] as String? ?? '',
+      titulo: json['titulo'] as String? ??
+          json['titulo_etapa'] as String? ??
+          json['nome'] as String? ??
           json['nome_etapa'] as String? ??
           '',
-      grupoId: (json['grupos_grupo_id'] as num?)?.toInt() ?? 0,
-      grupoNome: grupoJson?['nome_grupo'] as String?,
+      grupoId: grupoId,
+      grupoNome: grupoNome,
       createdAt: parseDate(json['created_at']) ?? DateTime.now(),
       updatedAt: parseDate(json['updated_at']) ?? DateTime.now(),
     );
@@ -52,7 +65,12 @@ class IndiceEtapaDto {
     return {
       'idindice_etapa': id,
       'nome_etapa': nome,
+      'titulo_etapa': titulo,
       'grupos_grupo_id': grupoId,
+      'grupo': {
+        'grupo_id': grupoId,
+        'nome_grupo': grupoNome,
+      },
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };

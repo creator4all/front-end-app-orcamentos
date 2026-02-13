@@ -26,18 +26,36 @@ class CidadeIndiceEtapaDto {
   factory CidadeIndiceEtapaDto.fromJson(Map<String, dynamic> json) {
     final indiceEtapaJson = json;
     final pivotJson = json['pivot'] as Map<String, dynamic>? ?? {};
+    final grupoJson = json['grupo'] as Map<String, dynamic>? ?? {};
+
+    final grupoId = (indiceEtapaJson['grupos_grupo_id'] as num?)?.toInt() ??
+        (indiceEtapaJson['grupo_id'] as num?)?.toInt() ??
+        (grupoJson['id'] as num?)?.toInt() ??
+        (grupoJson['grupo_id'] as num?)?.toInt() ??
+        0;
+
+    final valor = indiceEtapaJson['valor'] ??
+        indiceEtapaJson['etapa_valor'] ??
+        pivotJson['etapa_valor'];
 
     return CidadeIndiceEtapaDto(
-      indiceEtapaId: (indiceEtapaJson['idindice_etapa'] as num?)?.toInt() ?? 0,
-      nomeEtapa: indiceEtapaJson['nome_etapa'] as String? ?? '',
-      tituloEtapa: indiceEtapaJson['titulo_etapa'] as String? ??
+      indiceEtapaId: (indiceEtapaJson['idindice_etapa'] as num?)?.toInt() ??
+          (indiceEtapaJson['id'] as num?)?.toInt() ??
+          (indiceEtapaJson['indice_etapa_id'] as num?)?.toInt() ??
+          0,
+      nomeEtapa:
+          indiceEtapaJson['nome_etapa'] as String? ??
+              indiceEtapaJson['nome'] as String? ??
+              '',
+      tituloEtapa: indiceEtapaJson['titulo'] as String? ??
+          indiceEtapaJson['titulo_etapa'] as String? ??
+          indiceEtapaJson['nome'] as String? ??
           indiceEtapaJson['nome_etapa'] as String? ??
           '',
-      grupoId: (indiceEtapaJson['grupos_grupo_id'] as num?)?.toInt() ?? 0,
+      grupoId: grupoId,
       createdAt: parseDate(indiceEtapaJson['created_at']) ?? DateTime.now(),
       updatedAt: parseDate(indiceEtapaJson['updated_at']) ?? DateTime.now(),
-      etapaValor:
-          double.tryParse(pivotJson['etapa_valor']?.toString() ?? '0') ?? 0.0,
+      etapaValor: double.tryParse(valor?.toString() ?? '0') ?? 0.0,
       indiceEtapa: IndiceEtapaDto.fromJson(indiceEtapaJson),
     );
   }
@@ -59,11 +77,17 @@ class CidadeIndiceEtapaDto {
     return {
       'idindice_etapa': indiceEtapaId,
       'nome_etapa': nomeEtapa,
+      'titulo_etapa': tituloEtapa,
       'grupos_grupo_id': grupoId,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
+      'valor': etapaValor,
+      'grupo': {
+        'grupo_id': grupoId,
+        'nome_grupo': indiceEtapa.grupoNome,
+      },
       'pivot': {
-        'etapa_valor': etapaValor.toString(),
+        'etapa_valor': etapaValor,
       },
     };
   }

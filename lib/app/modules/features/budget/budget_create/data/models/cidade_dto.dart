@@ -24,7 +24,10 @@ class CidadeDto {
   });
 
   factory CidadeDto.fromJson(Map<String, dynamic> json) {
-    final etapasArray = json['cidades_has_indice_etapa'] as List? ?? [];
+    final etapasArray = json['indices'] as List? ??
+        json['indicadores'] as List? ??
+        json['cidades_has_indice_etapa'] as List? ??
+        [];
     final etapas = etapasArray
         .map((item) =>
             CidadeIndiceEtapaDto.fromJson(item as Map<String, dynamic>))
@@ -65,6 +68,20 @@ class CidadeDto {
       'excluido': excluido,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
+      'indices': cidadesHasIndiceEtapa.map((dto) {
+        final item = dto.toJson();
+        final pivot = item['pivot'] as Map<String, dynamic>?;
+        return {
+          'id': item['idindice_etapa'],
+          'nome_etapa': item['nome_etapa'],
+          'titulo': dto.tituloEtapa,
+          'valor': pivot?['etapa_valor'],
+          'grupo': {
+            'id': item['grupos_grupo_id'],
+            'nome': dto.indiceEtapa.grupoNome,
+          },
+        };
+      }).toList(),
       'cidades_has_indice_etapa':
           cidadesHasIndiceEtapa.map((dto) => dto.toJson()).toList(),
     };

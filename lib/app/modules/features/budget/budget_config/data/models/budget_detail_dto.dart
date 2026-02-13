@@ -49,11 +49,16 @@ class BudgetDetailDto {
       for (final cidade in json['cidades'] as List) {
         if (cidade is Map<String, dynamic>) {
           final cidadeId = cidade['id'] as int;
+          final indicadores = (cidade['indices'] ??
+                  cidade['indicadores'] ??
+                  cidade['cidades_has_indice_etapa'] ??
+                  []) as List;
           cities.add(cidadeId);
           citiesDataList.add({
             'id': cidadeId,
             'nome': cidade['nome'] ?? 'Cidade $cidadeId',
-            'indicadores': (cidade['indicadores'] ?? []) as List,
+            'indices': indicadores,
+            'indicadores': indicadores,
           });
         }
       }
@@ -61,11 +66,16 @@ class BudgetDetailDto {
     else if (json['cidade'] != null && json['cidade'] is Map) {
       final cidadeMap = json['cidade'] as Map<String, dynamic>;
       final cidadeId = cidadeMap['id'] as int;
+      final indicadores = (cidadeMap['indices'] ??
+              cidadeMap['indicadores'] ??
+              cidadeMap['cidades_has_indice_etapa'] ??
+              []) as List;
       cities.add(cidadeId);
       citiesDataList.add({
         'id': cidadeId,
         'nome': cidadeMap['nome'] ?? 'Cidade $cidadeId',
-        'indicadores': (cidadeMap['indices'] ?? []) as List,
+        'indices': indicadores,
+        'indicadores': indicadores,
       });
     } else if (json['cidade_id'] != null) {
       final cidadeId = json['cidade_id'] as int;

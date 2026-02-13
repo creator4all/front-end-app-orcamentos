@@ -241,7 +241,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                           final cityId =
                               store.budgetData?.cityIds.firstOrNull ?? 0;
 
-                          await Modular.to.pushNamed(
+                          final censusUpdated = await Modular.to.pushNamed(
                             '/budget/census/$cityId',
                             arguments: {
                               'censoEscolar': store.censoEscolar,
@@ -253,7 +253,9 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                             },
                           );
 
-                          await store.reloadProductsAfterCensusEdit();
+                          if (censusUpdated == true) {
+                            await store.reloadProductsAfterCensusEdit();
+                          }
                         },
                       ),
                     ),
@@ -524,28 +526,33 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     final result = <Map<String, dynamic>>[];
 
     for (final cityData in store.budgetData!.citiesDataRaw) {
-      final cityId = cityData['id'] ?? 0;
-      final cityName = cityData['nome'] ?? '';
+      final cityId = cityData['id'] ?? cityData['idCidades'] ?? 0;
+      final cityName = cityData['nome'] ?? cityData['nome_cidade'] ?? '';
 
-      final indicadoresRaw =
-          cityData['cidades_has_indice_etapa'] as List? ?? [];
+      final indicadoresRaw = cityData['indices'] as List? ??
+          cityData['indicadores'] as List? ??
+          cityData['cidades_has_indice_etapa'] as List? ??
+          [];
 
       final indicadores = indicadoresRaw.map((ind) {
         if (ind is! Map<String, dynamic>) return <String, dynamic>{};
 
         final grupoObj = ind['grupo'] as Map<String, dynamic>?;
-        final nomeGrupo = grupoObj?['nome_grupo'] ?? '';
-        final idGrupo = grupoObj?['grupo_id'] ?? 0;
+        final nomeGrupo =
+            ind['grupo_nome'] ?? grupoObj?['nome'] ?? grupoObj?['nome_grupo'] ?? '';
+        final idGrupo =
+            ind['grupo_id'] ?? grupoObj?['id'] ?? grupoObj?['grupo_id'] ?? 0;
         final pivot = ind['pivot'] as Map<String, dynamic>?;
 
-        final valorRaw = pivot?['etapa_valor'] ?? ind['etapa_valor'] ?? 0;
+        final valorRaw =
+            ind['valor'] ?? pivot?['etapa_valor'] ?? ind['etapa_valor'] ?? 0;
         final valor = valorRaw is num
             ? valorRaw
             : double.tryParse(valorRaw.toString()) ?? 0;
 
         return {
-          'id': ind['idindice_etapa'],
-          'nome': ind['nome_etapa'],
+          'id': ind['id'] ?? ind['idindice_etapa'],
+          'nome': ind['nome_etapa'] ?? ind['nome'] ?? '',
           'valor': valor,
           'grupo_id': idGrupo,
           'grupo_nome': nomeGrupo,

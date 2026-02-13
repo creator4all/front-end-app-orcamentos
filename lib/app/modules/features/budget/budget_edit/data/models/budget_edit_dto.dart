@@ -39,6 +39,90 @@ class BudgetEditDto {
     this.censoAgregado = const {},
   });
 
+  static int _toInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  static double _toDouble(dynamic value) {
+    if (value is double) return value;
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? 0.0;
+  }
+
+  static List<Map<String, dynamic>> _normalizeIndicators(List<dynamic> raw) {
+    return raw.whereType<Map>().map((item) {
+      final map = Map<String, dynamic>.from(item);
+      final group = map['grupo'] as Map<String, dynamic>?;
+      final pivot = map['pivot'] as Map<String, dynamic>?;
+
+      final groupId = _toInt(
+        map['grupo_id'] ??
+            map['grupos_grupo_id'] ??
+            group?['id'] ??
+            group?['grupo_id'],
+      );
+      final groupName = (map['grupo_nome'] ??
+              group?['nome'] ??
+              group?['nome_grupo'] ??
+              '')
+          .toString();
+
+      return <String, dynamic>{
+        'id': _toInt(
+          map['id'] ??
+              map['idindice_etapa'] ??
+              map['indice_etapa_id'] ??
+              map['indice_etapa_idindice_etapa'],
+        ),
+        'nome': (map['nome'] ?? map['nome_etapa'] ?? '').toString(),
+        'titulo': (map['titulo'] ??
+                map['titulo_etapa'] ??
+                map['nome'] ??
+                map['nome_etapa'] ??
+                '')
+            .toString(),
+        'valor': _toDouble(
+          map['valor'] ?? map['etapa_valor'] ?? pivot?['etapa_valor'],
+        ),
+        'grupo_id': groupId,
+        'grupo_nome': groupName,
+      };
+    }).toList();
+  }
+
+  static Map<String, dynamic> _normalizeCityData(Map<String, dynamic> cityMap) {
+    final rawIndicators = cityMap['indices'] as List? ??
+        cityMap['indicadores'] as List? ??
+        cityMap['cidades_has_indice_etapa'] as List? ??
+        const [];
+    final indicadores = _normalizeIndicators(rawIndicators);
+
+    final indices = indicadores
+        .map(
+          (item) => <String, dynamic>{
+            'id': item['id'],
+            'nome_etapa': item['nome'],
+            'titulo': item['titulo'],
+            'valor': item['valor'],
+            'grupo': {
+              'id': item['grupo_id'],
+              'nome': item['grupo_nome'],
+            },
+          },
+        )
+        .toList();
+
+    return {
+      ...cityMap,
+      'id': _toInt(cityMap['id'] ?? cityMap['idCidades']),
+      'nome': (cityMap['nome'] ?? cityMap['nome_cidade'] ?? '').toString(),
+      'indices': indices,
+      'indicadores': indicadores,
+    };
+  }
+
   factory BudgetEditDto.fromJson(Map<String, dynamic> json) {
     final List<ProductSelectionDto> productsList = [];
 
@@ -49,9 +133,9 @@ class BudgetEditDto {
       final cidadesList = json['cidades'] as List;
       for (final cidade in cidadesList) {
         if (cidade is Map<String, dynamic> && cidade['id'] != null) {
-          cities.add(cidade['id'] as int);
-          citiesData.add(
-              Map<String, dynamic>.from(cidade));
+          final normalized = _normalizeCityData(cidade);
+          cities.add(_toInt(normalized['id']));
+          citiesData.add(normalized);
         }
         else if (cidade is int) {
           cities.add(cidade);
@@ -59,37 +143,17 @@ class BudgetEditDto {
       }
     } else if (json['cidade'] != null && json['cidade'] is Map) {
       final cidadeMap = json['cidade'] as Map<String, dynamic>;
-      final cidadeId = cidadeMap['id'] as int;
-      final cidadeName = cidadeMap['nome'] ?? 'Cidade $cidadeId';
+      final cidadeId = _toInt(cidadeMap['id']);
+      final cidadeName = (cidadeMap['nome'] ?? 'Cidade $cidadeId').toString();
 
       cities.add(cidadeId);
 
-      List<dynamic> indicadoresRaw = [];
-      if (cidadeMap['cidades_has_indice_etapa'] != null) {
-        indicadoresRaw = cidadeMap['cidades_has_indice_etapa'] as List;
-      }
-
-      final indicadores = indicadoresRaw.map((ind) {
-        final grupoObj = ind['grupo'] as Map<String, dynamic>?;
-        final nomeGrupo = grupoObj?['nome_grupo'] ?? '';
-        final idGrupo = grupoObj?['grupo_id'] ?? 0;
-
-        return {
-          'id': ind['idindice_etapa'],
-          'nome': ind['nome_etapa'],
-          'titulo': ind['titulo_etapa'],
-          'valor': ind['pivot']?['etapa_valor'] ?? 0,
-          'grupo_id': idGrupo,
-          'grupo_nome': nomeGrupo,
-        };
-      }).toList();
-
-      citiesData.add({
+      final normalizedCity = _normalizeCityData({
         ...cidadeMap,
         'id': cidadeId,
         'nome': cidadeName,
-        'indicadores': indicadores,
       });
+      citiesData.add(normalizedCity);
     }
 
     CensusDataDto? census;

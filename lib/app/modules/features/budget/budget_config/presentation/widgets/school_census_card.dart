@@ -18,6 +18,24 @@ class SchoolCensusCard extends StatelessWidget {
     this.onTap,
   });
 
+  List<dynamic> _extractIndicadores(Map<String, dynamic> city) {
+    return city['indices'] as List? ??
+        city['indicadores'] as List? ??
+        city['cidades_has_indice_etapa'] as List? ??
+        [];
+  }
+
+  double _parseValorIndicador(Map<String, dynamic> indicador) {
+    final pivot = indicador['pivot'] as Map<String, dynamic>?;
+    final valorRaw = indicador['valor'] ??
+        pivot?['etapa_valor'] ??
+        indicador['etapa_valor'] ??
+        0;
+
+    if (valorRaw is num) return valorRaw.toDouble();
+    return double.tryParse(valorRaw.toString()) ?? 0.0;
+  }
+
   int _calculateTotalClasses() {
     if (censoAgregado != null && censoAgregado!.isNotEmpty) {
       return censoAgregado!.values.where((v) => v > 0).length;
@@ -25,10 +43,7 @@ class SchoolCensusCard extends StatelessWidget {
 
     int totalClasses = 0;
     for (final city in citiesData) {
-      final indicadores = city['cidades_has_indice_etapa'] as List? ??
-          city['indicadores'] as List? ??
-          city['indices'] as List? ??
-          [];
+      final indicadores = _extractIndicadores(city);
       totalClasses += indicadores.length;
     }
     return totalClasses;
@@ -44,25 +59,12 @@ class SchoolCensusCard extends StatelessWidget {
 
     int totalStudents = 0;
     for (final city in citiesData) {
-      final indicadores = city['cidades_has_indice_etapa'] as List? ??
-          city['indicadores'] as List? ??
-          city['indices'] as List? ??
-          [];
+      final indicadores = _extractIndicadores(city);
       for (final indicador in indicadores) {
         if (indicador is Map<String, dynamic>) {
           final nome = indicador['nome_etapa'] ?? indicador['nome'] ?? '';
           if (nome.toString().endsWith('P')) continue;
-
-          final pivot = indicador['pivot'] as Map<String, dynamic>?;
-          final valor = pivot?['etapa_valor'] ??
-              indicador['etapa_valor'] ??
-              indicador['valor'] ??
-              0;
-          totalStudents += (valor is int
-              ? valor
-              : (valor is double
-                  ? valor.toInt()
-                  : int.tryParse(valor.toString().split('.').first) ?? 0));
+          totalStudents += _parseValorIndicador(indicador).toInt();
         }
       }
     }

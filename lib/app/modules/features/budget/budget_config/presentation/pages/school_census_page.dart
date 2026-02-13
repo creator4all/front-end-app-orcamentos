@@ -51,9 +51,9 @@ class _SchoolCensusPageState
       store.setBudgetId(widget.budgetId);
     }
 
-    if (widget.isMultiCityMode && widget.budgetId != null) {
+    if (widget.budgetId != null) {
       store.loadBudgetCensus(widget.budgetId!).then((_) {
-        if (store.isMultiCity && store.isAggregatedView) {
+        if (widget.isMultiCityMode && store.isMultiCity && store.isAggregatedView) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             _showInfoDialog();
           });
@@ -435,7 +435,7 @@ class _SchoolCensusPageState
   }
 
   Future<void> _retryLoad() async {
-    if (widget.isMultiCityMode && widget.budgetId != null) {
+    if (widget.budgetId != null) {
       await store.loadBudgetCensus(widget.budgetId!);
     } else {
       await store.loadCensus(widget.cityId);

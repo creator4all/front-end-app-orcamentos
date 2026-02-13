@@ -17,14 +17,20 @@ class BudgetSkeleton extends StatelessWidget {
     {
       'id': 1,
       'nome': 'Cidade Exemplo',
-      'cidades_has_indice_etapa': [
+      'indices': [
         {
+          'id': 1,
           'nome_etapa': 'EF1',
-          'pivot': {'etapa_valor': 500}
+          'titulo': '1º Ano',
+          'valor': 500,
+          'grupo': {'id': 2, 'nome': 'Ensino Fundamental'},
         },
         {
+          'id': 2,
           'nome_etapa': 'EF2',
-          'pivot': {'etapa_valor': 750}
+          'titulo': '2º Ano',
+          'valor': 750,
+          'grupo': {'id': 2, 'nome': 'Ensino Fundamental'},
         },
       ],
     },
