@@ -124,6 +124,13 @@ class _ProfilePageState extends State<ProfilePage> {
               title: 'Sucesso',
               message: 'Avatar atualizado com sucesso!',
             );
+          } else if (!success && mounted && _store.error != null) {
+            CustomInfoDialog.show(
+              context: context,
+              type: DialogType.error,
+              title: 'Erro ao atualizar avatar',
+              message: _store.error!,
+            );
           }
         }
       }

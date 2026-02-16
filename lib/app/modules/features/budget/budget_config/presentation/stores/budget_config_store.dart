@@ -485,58 +485,30 @@ abstract class _BudgetConfigStoreBase with Store {
     Map<String, dynamic> cityData,
   ) {
     final rawIndices = cityData['indices'] as List? ??
-        cityData['indicadores'] as List? ??
         cityData['cidades_has_indice_etapa'] as List? ??
         const [];
 
     return rawIndices
         .whereType<Map>()
         .map((item) => _normalizeCityIndice(Map<String, dynamic>.from(item)))
-        .where((item) => item['nome_etapa'].toString().isNotEmpty)
+        .whereType<Map<String, dynamic>>()
         .toList();
   }
 
-  Map<String, dynamic> _normalizeCityIndice(Map<String, dynamic> item) {
+  Map<String, dynamic>? _normalizeCityIndice(Map<String, dynamic> item) {
+    final nomeEtapa = item['nome_etapa']?.toString();
+    if (nomeEtapa == null || nomeEtapa.isEmpty) return null;
+
     final group = item['grupo'] as Map<String, dynamic>?;
-    final pivot = item['pivot'] as Map<String, dynamic>?;
-
-    final groupId = _toInt(
-      item['grupo_id'] ??
-          item['grupos_grupo_id'] ??
-          group?['id'] ??
-          group?['grupo_id'],
-    );
-    final groupName = (item['grupo_nome'] ??
-            group?['nome'] ??
-            group?['nome_grupo'] ??
-            '')
-        .toString();
-
-    final nomeEtapa = (item['nome_etapa'] ?? item['nome'] ?? '').toString();
-    final titulo = (item['titulo'] ??
-            item['titulo_etapa'] ??
-            item['nome'] ??
-            item['nome_etapa'] ??
-            '')
-        .toString();
-
-    final valor = _toDouble(
-      item['valor'] ?? item['etapa_valor'] ?? pivot?['etapa_valor'],
-    );
 
     return <String, dynamic>{
-      'id': _toInt(
-        item['id'] ??
-            item['idindice_etapa'] ??
-            item['indice_etapa_id'] ??
-            item['indice_etapa_idindice_etapa'],
-      ),
+      'id': _toInt(item['id']),
       'nome_etapa': nomeEtapa,
-      'titulo': titulo,
-      'valor': valor,
+      'titulo': (item['titulo'] ?? nomeEtapa).toString(),
+      'valor': _toDouble(item['valor']),
       'grupo': {
-        'id': groupId,
-        'nome': groupName,
+        'id': _toInt(group?['id']),
+        'nome': (group?['nome'] ?? '').toString(),
       },
     };
   }
@@ -585,9 +557,8 @@ abstract class _BudgetConfigStoreBase with Store {
         .toList();
 
     return CensoEscolarEntity(
-      cidadeId: _toInt(cityData['id'] ?? cityData['idCidades']),
-      cidadeNome:
-          (cityData['nome'] ?? cityData['nome_cidade'] ?? '').toString(),
+      cidadeId: _toInt(cityData['id']),
+      cidadeNome: (cityData['nome'] ?? '').toString(),
       censoAno: _toInt(cityData['censo_ano']) == 0
           ? null
           : _toInt(cityData['censo_ano']),
@@ -665,15 +636,15 @@ abstract class _BudgetConfigStoreBase with Store {
     CensoEscolarEntity updatedCenso,
   ) {
     final indices = _buildIndicesFromCenso(updatedCenso);
-    final existingName = cityData['nome'] ?? cityData['nome_cidade'];
+    final existingName = cityData['nome'];
     final cityName = existingName == null || existingName.toString().isEmpty
         ? updatedCenso.cidadeNome
         : existingName.toString();
 
     return {
       ...cityData,
-      'id': _toInt(cityData['id'] ?? cityData['idCidades']) > 0
-          ? _toInt(cityData['id'] ?? cityData['idCidades'])
+      'id': _toInt(cityData['id']) > 0
+          ? _toInt(cityData['id'])
           : updatedCenso.cidadeId,
       'nome': cityName,
       'indices': indices,
@@ -1491,9 +1462,27 @@ abstract class _BudgetConfigStoreBase with Store {
     if (budgetDetail == null) return;
 
     try {
+      final oldCenso = censoEscolar;
       await loadBudgetDetail(budgetDetail!.id);
+      _recalculateProductQuantities();
+      if (oldCenso != null && censoEscolar != null) {
+        _checkForProductsToRemark(oldCenso, censoEscolar!);
+      }
     } catch (e) {
       error = 'Erro ao recarregar orçamento: $e';
+    }
+  }
+
+  @action
+  void _recalculateProductQuantities() {
+    if (censoEscolar == null) return;
+
+    final updated = calculationService.recalcularQuantidadesProdutos(
+      categories.toList(),
+      censoEscolar!,
+    );
+    for (var i = 0; i < updated.length; i++) {
+      categories[i] = updated[i];
     }
   }
 

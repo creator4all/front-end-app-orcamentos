@@ -39,7 +39,6 @@ abstract class _BudgetEditStoreBase with Store {
     required this.calculationService,
   });
 
-
   @observable
   bool isLoading = false;
 
@@ -91,7 +90,6 @@ abstract class _BudgetEditStoreBase with Store {
   @observable
   ObservableList<ProductEntity> productsNeedingRemark =
       ObservableList<ProductEntity>();
-
 
   @computed
   bool get hasData => budgetData != null;
@@ -148,7 +146,6 @@ abstract class _BudgetEditStoreBase with Store {
 
   @computed
   bool get isFullyLoaded => !isLoading && !isLoadingProducts;
-
 
   @action
   Future<void> initialize(int budgetId) async {
@@ -396,7 +393,6 @@ abstract class _BudgetEditStoreBase with Store {
     isLoadingCensus = false;
   }
 
-
   @action
   void toggleCategoryWithCascade(int categoryId, bool selected) {
     final categoryIndex = categories.indexWhere((c) => c.id == categoryId);
@@ -612,6 +608,7 @@ abstract class _BudgetEditStoreBase with Store {
       }
     }
   }
+
   @action
   void toggleProductIndicator(int productId, int indicatorId) {
     for (var i = 0; i < categories.length; i++) {
@@ -769,7 +766,6 @@ abstract class _BudgetEditStoreBase with Store {
     }
   }
 
-
   void _parseCensoEscolarFromCitiesData() {
     if (budgetData == null) {
       censoEscolar = null;
@@ -832,7 +828,8 @@ abstract class _BudgetEditStoreBase with Store {
         censoAgregado: updatedCensoAgregado,
       );
     } else if (budgetData != null && updatedCenso.cidadeId > 0) {
-      final newCityData = _updateCityDataWithCenso(<String, dynamic>{}, updatedCenso);
+      final newCityData =
+          _updateCityDataWithCenso(<String, dynamic>{}, updatedCenso);
       budgetData = budgetData!.copyWith(
         citiesDataRaw: [newCityData],
         censoAgregado: Map<String, double>.from(updatedCenso.valoresPorEtapa),
@@ -856,6 +853,8 @@ abstract class _BudgetEditStoreBase with Store {
 
       await loadBudgetForEdit(budgetData!.id);
 
+      _recalculateProductQuantities();
+
       if (oldCenso != null && censoEscolar != null) {
         _checkForProductsToRemark(oldCenso, censoEscolar!);
       }
@@ -864,6 +863,19 @@ abstract class _BudgetEditStoreBase with Store {
     } finally {
       isLoading = false;
       isLoadingProducts = false;
+    }
+  }
+
+  @action
+  void _recalculateProductQuantities() {
+    if (censoEscolar == null) return;
+
+    final updated = calculationService.recalcularQuantidadesProdutos(
+      categories.toList(),
+      censoEscolar!,
+    );
+    for (var i = 0; i < updated.length; i++) {
+      categories[i] = updated[i];
     }
   }
 
@@ -982,11 +994,9 @@ abstract class _BudgetEditStoreBase with Store {
           group?['id'] ??
           group?['grupo_id'],
     );
-    final groupName = (item['grupo_nome'] ??
-            group?['nome'] ??
-            group?['nome_grupo'] ??
-            '')
-        .toString();
+    final groupName =
+        (item['grupo_nome'] ?? group?['nome'] ?? group?['nome_grupo'] ?? '')
+            .toString();
     final nomeEtapa = (item['nome_etapa'] ?? item['nome'] ?? '').toString();
     final titulo = (item['titulo'] ??
             item['titulo_etapa'] ??

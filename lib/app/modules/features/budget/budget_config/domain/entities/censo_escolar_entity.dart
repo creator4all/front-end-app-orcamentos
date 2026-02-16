@@ -24,6 +24,16 @@ class CensoEscolarEntity extends Equatable {
   double get valorTotal {
     return grupos.fold(0.0, (sum, grupo) => sum + grupo.valorTotal);
   }
+
+  double get valorTotalAlunos {
+    return grupos.fold(0.0, (sum, grupo) {
+      return sum +
+          grupo.titulos
+              .where((titulo) => !titulo.isProfessores)
+              .fold(0.0, (s, titulo) => s + titulo.valor);
+    });
+  }
+
   double? getValorEtapa(String nomeEtapa) {
     return valoresPorEtapa[nomeEtapa];
   }

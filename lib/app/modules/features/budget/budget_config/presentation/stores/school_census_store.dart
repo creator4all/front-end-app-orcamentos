@@ -20,7 +20,6 @@ abstract class _SchoolCensusStoreBase with Store {
     this._getBudgetCensusUseCase,
   ]);
 
-
   @observable
   CensoEscolarEntity? censoEscolar;
 
@@ -42,7 +41,6 @@ abstract class _SchoolCensusStoreBase with Store {
   @observable
   int? budgetId;
 
-
   @observable
   bool isMultiCity = false;
 
@@ -55,9 +53,8 @@ abstract class _SchoolCensusStoreBase with Store {
   @observable
   int? selectedCityId;
 
-
   @computed
-  double get totalStudents => censoEscolar?.valorTotal ?? 0.0;
+  double get totalStudents => censoEscolar?.valorTotalAlunos ?? 0.0;
 
   @computed
   bool get hasChanges {
@@ -102,7 +99,6 @@ abstract class _SchoolCensusStoreBase with Store {
 
     return options;
   }
-
 
   @action
   void setBudgetId(int? id) {
@@ -202,7 +198,6 @@ abstract class _SchoolCensusStoreBase with Store {
     isSaving = false;
   }
 
-
   @action
   Future<void> loadBudgetCensus(int budgetIdParam) async {
     if (_getBudgetCensusUseCase == null) {
@@ -260,7 +255,6 @@ abstract class _SchoolCensusStoreBase with Store {
     }
   }
 
-
   void _initEditedValues() {
     editedValues.clear();
     if (censoEscolar != null) {
@@ -278,16 +272,13 @@ abstract class _SchoolCensusStoreBase with Store {
     final firstCity = cidades.first;
     final aggregatedEntity = firstCity.toEntity();
 
-    final updatedGroups =
-        aggregatedEntity.grupos.map((group) {
-          final updatedTitles =
-              group.titulos.map((title) {
-                final aggregatedValue =
-                    censoAgregado[title.nomeEtapa] ?? title.valor;
-                return title.copyWith(valor: aggregatedValue);
-              }).toList();
-          return group.copyWith(titulos: updatedTitles);
-        }).toList();
+    final updatedGroups = aggregatedEntity.grupos.map((group) {
+      final updatedTitles = group.titulos.map((title) {
+        final aggregatedValue = censoAgregado[title.nomeEtapa] ?? title.valor;
+        return title.copyWith(valor: aggregatedValue);
+      }).toList();
+      return group.copyWith(titulos: updatedTitles);
+    }).toList();
 
     censoEscolar = CensoEscolarEntity(
       cidadeId: 0,

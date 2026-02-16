@@ -2,7 +2,7 @@
 class HttpRequestInfo {
   final String method;
   final String url;
-  final Map<String, dynamic>? data;
+  final dynamic data;
   final Map<String, dynamic> headers;
   final Duration? timeout;
 

@@ -154,6 +154,7 @@ class _SchoolCensusPageState
         appBar: CustomTopBar(
           title: 'Censo escolar',
           showBackButton: true,
+          onBackPressed: () => Navigator.of(context).pop(_hasSavedChanges),
           actionButton:
               widget.budgetId != null
                   ? IconButton(

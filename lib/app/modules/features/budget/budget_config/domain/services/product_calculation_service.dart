@@ -1,9 +1,10 @@
+import '../entities/category_entity.dart';
 import '../entities/censo_escolar_entity.dart';
 import '../entities/product_entity.dart';
+import '../entities/subcategory_entity.dart';
 
 class ProductCalculationService {
   const ProductCalculationService();
-
 
   double calcularQuantidade(
     ProductEntity produto,
@@ -67,7 +68,6 @@ class ProductCalculationService {
         'Total: R\$ ${valorTotal.toStringAsFixed(2)}';
   }
 
-
   bool _isLivro(String tipoProduto) {
     final tipo = tipoProduto.toLowerCase();
     return tipo.contains('livro') || tipo.contains('colecao');
@@ -92,7 +92,6 @@ class ProductCalculationService {
     if (_isServico(tipoProduto)) return 'Serviço';
     return 'Produto';
   }
-
 
   double _calcularQuantidadeLivro(
     List<dynamic> indicadores,
@@ -146,5 +145,45 @@ class ProductCalculationService {
     }
 
     return total;
+  }
+
+  List<CategoryEntity> recalcularQuantidadesProdutos(
+    List<CategoryEntity> categories,
+    CensoEscolarEntity censo,
+  ) {
+    final result = <CategoryEntity>[];
+
+    for (final category in categories) {
+      var categoryChanged = false;
+      final updatedSubs = List<SubcategoryEntity>.from(category.subcategorias);
+
+      for (var j = 0; j < updatedSubs.length; j++) {
+        final sub = updatedSubs[j];
+        var subChanged = false;
+        final updatedProds = List<ProductEntity>.from(sub.produtos);
+
+        for (var k = 0; k < updatedProds.length; k++) {
+          final product = updatedProds[k];
+          if (!product.selecionado) continue;
+
+          final novaQtd = calcularQuantidade(product, censo);
+          if (novaQtd.round() != product.quantidade) {
+            updatedProds[k] = product.copyWith(quantidade: novaQtd.round());
+            subChanged = true;
+          }
+        }
+
+        if (subChanged) {
+          updatedSubs[j] = sub.copyWith(produtos: updatedProds);
+          categoryChanged = true;
+        }
+      }
+
+      result.add(categoryChanged
+          ? category.copyWith(subcategorias: updatedSubs)
+          : category);
+    }
+
+    return result;
   }
 }

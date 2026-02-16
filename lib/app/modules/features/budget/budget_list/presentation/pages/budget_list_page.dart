@@ -98,7 +98,6 @@ class _BudgetListPageState extends State<BudgetListPage> {
                 onReset: _handleReset,
               ),
             ),
-
             SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
@@ -149,7 +148,6 @@ class _BudgetListPageState extends State<BudgetListPage> {
                 ),
               ),
             ),
-
             Observer(
               builder: (_) {
                 if (_store.isLoading && _store.items.isEmpty) {
@@ -205,6 +203,10 @@ class _BudgetListPageState extends State<BudgetListPage> {
                     delegate: SliverChildBuilderDelegate((context, index) {
                       final b = _store.items[index];
 
+                      final showAdminIcon = b.criadoPorAdmin &&
+                          b.partnerDestinoId != null &&
+                          b.partnerDestinoId != _authStore.partnerId;
+
                       BudgetStatus status;
                       switch (b.status.toLowerCase()) {
                         case 'aprovado':
@@ -249,8 +251,8 @@ class _BudgetListPageState extends State<BudgetListPage> {
                           status: status,
                           isArchived: b.isArchived,
                           userRole: mapStringToUserRole(_authStore.userRole),
-                          createdByAdmin: b.criadoPorAdmin,
-                          onInfoTap: b.criadoPorAdmin
+                          createdByAdmin: showAdminIcon,
+                          onInfoTap: showAdminIcon
                               ? () => CustomInfoDialog.show(
                                     context: context,
                                     type: DialogType.info,
