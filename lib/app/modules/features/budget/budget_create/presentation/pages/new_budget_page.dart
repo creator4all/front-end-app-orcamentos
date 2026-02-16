@@ -284,13 +284,8 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
             children: [
               SizedBox(height: 5.h),
 
-              // CAMPO PARCEIRO (apenas para admins)
               Observer(
                 builder: (_) {
-                  // ✅ REMOVIDO: Lógica de carregamento movida para initState
-                  // Evita loop infinito quando API retorna lista vazia
-
-                  // Não mostrar campo se não for admin
                   if (!_authStore.isAdmin) {
                     return const SizedBox.shrink();
                   }
@@ -372,7 +367,6 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                 },
               ),
 
-              // ESTADO
               Observer(
                 builder: (_) {
                   final List<String> estadosNomes = _geo.estados
@@ -458,7 +452,6 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
 
               SizedBox(height: 20.h),
 
-              // RESPONSÁVEL
               Text(
                 'Responsável cliente (opcional):',
                 style: TextStyle(
@@ -494,7 +487,6 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
 
               SizedBox(height: 10.h),
 
-                    // EMAIL
                     Text(
                       'Email (opcional):',
                       style: TextStyle(
@@ -541,7 +533,6 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
 
               SizedBox(height: 10.h),
 
-                    // TELEFONE
                     Text(
                       'Telefone (opcional):',
                       style: TextStyle(
@@ -557,7 +548,6 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
                         inputFormatters: [
-                          // Máscara para telefone brasileiro: (XX) XXXXX-XXXX
                           TextInputFormatter.withFunction((oldValue, newValue) {
                             String text =
                                 newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
@@ -612,10 +602,8 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                 ),
               ),
 
-              // Espaçamento antes dos botões
               SizedBox(height: 32.h),
 
-              // Botão Próximo
               Observer(
                 builder: (_) => SizedBox(
                   width: double.infinity,
@@ -664,24 +652,20 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
 
               SizedBox(height: 10.h),
 
-                  // Link Orçamento multi-cidades
                   Center(
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onTap: () async {
-                        // 1. Modal de nome do orçamento
                         final budgetName =
                             await _showMultiCityBudgetNameModal();
                         if (budgetName == null || budgetName.isEmpty) return;
 
-                        // 2. Modal de seleção de cidades
                         if (!mounted) return;
                         final selectedCities =
                             await _showMultiCityCitySelectionModal();
                         if (selectedCities == null || selectedCities.isEmpty)
                           return;
 
-                        // 3. Navegar para tela de orçamento multi-cidades
                         if (!mounted) return;
                         await Modular.to.pushNamed(
                           '/budget/multi-city/census',
@@ -710,7 +694,6 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                     ),
                   ),
 
-              // Padding inferior para safe area
               SizedBox(height: 16.h),
             ],
           ),

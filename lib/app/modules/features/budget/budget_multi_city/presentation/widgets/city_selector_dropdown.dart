@@ -26,7 +26,6 @@ class CitySelectorDropdown extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    // Ordenar cidades alfabeticamente
     final sortedCities = List<Map<String, dynamic>>.from(cities)
       ..sort((a, b) =>
           compareIgnoringAccents(a['nome'] as String, b['nome'] as String));

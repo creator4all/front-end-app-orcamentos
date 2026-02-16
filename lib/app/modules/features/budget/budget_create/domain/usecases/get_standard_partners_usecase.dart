@@ -25,7 +25,6 @@ class GetStandardPartnersUseCase {
             return true;
           }).toList();
 
-          // Ordena alfabeticamente por nome (ignorando acentos)
           activePartners.sort((a, b) => compareIgnoringAccents(a.name, b.name));
 
           return Right(activePartners);

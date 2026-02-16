@@ -499,7 +499,6 @@ class _SchoolCensusPageState
             final file = File('${tempDir.path}/censo_escolar_$timestamp.csv');
             await file.writeAsBytes(csvBytes);
 
-            // Compartilhar
             await Share.shareXFiles(
               [XFile(file.path)],
               subject: 'Censo Escolar - Orçamento ${widget.budgetId}',

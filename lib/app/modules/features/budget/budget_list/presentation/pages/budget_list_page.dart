@@ -212,83 +212,86 @@ class _BudgetListPageState extends State<BudgetListPage> {
                       delegate: SliverChildBuilderDelegate((context, index) {
                         final b = _store.items[index];
 
-                      final showAdminIcon = b.criadoPorAdmin &&
-                          b.partnerDestinoId != null &&
-                          b.partnerDestinoId != _authStore.partnerId;
+                        final showAdminIcon = b.criadoPorAdmin &&
+                            b.partnerDestinoId != null &&
+                            b.partnerDestinoId != _authStore.partnerId;
 
-                      BudgetStatus status;
-                      switch (b.status.toLowerCase()) {
-                        case 'aprovado':
-                          status = BudgetStatus.approved;
-                          break;
-                        case 'nao_aprovado':
-                          status = BudgetStatus.notApproved;
-                          break;
-                        case 'expirado':
-                          status = BudgetStatus.expired;
-                          break;
-                        default:
-                          status = BudgetStatus.pending;
-                      }
+                        BudgetStatus status;
+                        switch (b.status.toLowerCase()) {
+                          case 'aprovado':
+                            status = BudgetStatus.approved;
+                            break;
+                          case 'nao_aprovado':
+                            status = BudgetStatus.notApproved;
+                            break;
+                          case 'expirado':
+                            status = BudgetStatus.expired;
+                            break;
+                          default:
+                            status = BudgetStatus.pending;
+                        }
 
-                      // Calcular dias restantes
-                      int daysRemaining = 0;
-                      if (b.dataValidade != null) {
-                        final now = DateTime.now();
-                        final difference =
-                            b.dataValidade!.difference(now).inDays;
-                        daysRemaining = difference > 0 ? difference : 0;
-                      }
+                        // Calcular dias restantes
+                        int daysRemaining = 0;
+                        if (b.dataValidade != null) {
+                          final now = DateTime.now();
+                          final difference =
+                              b.dataValidade!.difference(now).inDays;
+                          daysRemaining = difference > 0 ? difference : 0;
+                        }
 
-                      return GestureDetector(
-                        onLongPress: () {
-                          _handleRenameBudget(
-                            b.id,
-                            b.nome ?? 'Orçamento #${b.id}',
-                          );
-                        },
-                        child: BudgetCardWidget(
-                          title: b.nome ?? 'Orçamento #${b.id}',
-                          partner: b.empresaRazaoSocial,
-                          seller: b.usuarioNome,
-                          budgetCode: 'ORC-${b.id.toString().padLeft(4, '0')}',
-                          dueDate: b.dataValidade ??
-                              DateTime.now().add(
-                                Duration(days: b.diasValidade),
-                              ),
-                          totalValue: b.total,
-                          daysRemaining: daysRemaining,
-                          status: status,
-                          isArchived: b.isArchived,
-                          userRole: mapStringToUserRole(_authStore.userRole),
-                          createdByAdmin: b.criadoPorAdmin,
-                          onInfoTap: b.criadoPorAdmin
-                              ? () => CustomInfoDialog.show(
-                                    context: context,
-                                    type: DialogType.info,
-                                    title: 'Orçamento criado por Administrador',
-                                    message:
-                                        'Este orçamento foi criado por um usuário '
-                                        'administrador e direcionado para você. '
-                                        'Por isso ele aparece na sua lista.',
-                                  )
-                              : null,
-                          onTap: () async {
-                            final result = await Modular.to.pushNamed(
-                              '/budget/edit/${b.id}',
+                        return GestureDetector(
+                          onLongPress: () {
+                            _handleRenameBudget(
+                              b.id,
+                              b.nome ?? 'Orçamento #${b.id}',
                             );
-                            if (result == true) {
-                              _store.refresh();
-                            }
                           },
-                        ),
-                      );
-                    }, childCount: _store.items.length),
-                  ),
-                );
-              },
-            ),
-          ],
+                          child: BudgetCardWidget(
+                            title: b.nome ?? 'Orçamento #${b.id}',
+                            partner: b.empresaRazaoSocial,
+                            seller: b.usuarioNome,
+                            budgetCode:
+                                'ORC-${b.id.toString().padLeft(4, '0')}',
+                            dueDate: b.dataValidade ??
+                                DateTime.now().add(
+                                  Duration(days: b.diasValidade),
+                                ),
+                            totalValue: b.total,
+                            daysRemaining: daysRemaining,
+                            status: status,
+                            isArchived: b.isArchived,
+                            userRole: mapStringToUserRole(_authStore.userRole),
+                            createdByAdmin: b.criadoPorAdmin,
+                            onInfoTap: b.criadoPorAdmin
+                                ? () => CustomInfoDialog.show(
+                                      context: context,
+                                      type: DialogType.info,
+                                      title:
+                                          'Orçamento criado por Administrador',
+                                      message:
+                                          'Este orçamento foi criado por um usuário '
+                                          'administrador e direcionado para você. '
+                                          'Por isso ele aparece na sua lista.',
+                                    )
+                                : null,
+                            onTap: () async {
+                              final result = await Modular.to.pushNamed(
+                                '/budget/edit/${b.id}',
+                              );
+                              if (result == true) {
+                                _store.refresh();
+                              }
+                            },
+                          ),
+                        );
+                      }, childCount: _store.items.length),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
