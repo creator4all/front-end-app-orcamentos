@@ -3,6 +3,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../../../shared/widgets/custom_info_dialog.dart';
 import '../../../../../shared/widgets/custom_top_bar.dart';
 import '../../../auth/presentation/stores/auth_store.dart';
 import '../stores/prospect_store.dart';
@@ -52,18 +53,18 @@ class _ProspectListPageState extends State<ProspectListPage> {
     if (!mounted) return;
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Prospect marcado como contactado'),
-          backgroundColor: Colors.green,
-        ),
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.success,
+        title: 'Contato registrado',
+        message: 'Possível parceiro marcado como contatado com sucesso!',
       );
     } else if (_store.error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(_store.error!),
-          backgroundColor: Colors.red,
-        ),
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.error,
+        title: 'Erro',
+        message: _store.error!,
       );
     }
   }

@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class CensusInputRowWidget extends StatelessWidget {
@@ -60,11 +61,12 @@ class CensusInputRowWidget extends StatelessWidget {
       controller: controller,
       onChanged: (text) {
         final parsed = double.tryParse(text);
-        if (parsed != null && onChanged != null) {
+        if (parsed != null && parsed >= 0 && onChanged != null) {
           onChanged!(parsed);
         }
       },
       keyboardType: const TextInputType.numberWithOptions(decimal: false),
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
       textAlign: TextAlign.right,
       decoration: InputDecoration(
         isDense: true,

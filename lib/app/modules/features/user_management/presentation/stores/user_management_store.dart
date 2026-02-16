@@ -17,6 +17,7 @@ abstract class _UserManagementStoreBase with Store {
     required this.updateUsersUsecase,
   });
 
+  final Map<int, _OriginalUserState> _originalStates = {};
 
   @observable
   ObservableList<ManagedUser> users = ObservableList<ManagedUser>();
@@ -50,6 +51,9 @@ abstract class _UserManagementStoreBase with Store {
   int? partnerId;
 
   @observable
+  int? currentUserId;
+
+  @observable
   String searchQuery = '';
   @computed
   bool get hasChanges => pendingChanges.isNotEmpty;
@@ -62,20 +66,27 @@ abstract class _UserManagementStoreBase with Store {
 
   @computed
   List<ManagedUser> get filteredUsers {
+    final baseList = currentUserId != null
+        ? users.where((user) => user.id != currentUserId).toList()
+        : users.toList();
     if (searchQuery.isEmpty) {
-      return users.toList();
+      return baseList;
     }
     final query = searchQuery.toLowerCase();
-    return users.where((user) {
+    return baseList.where((user) {
       return user.name.toLowerCase().contains(query) ||
           user.email.toLowerCase().contains(query);
     }).toList();
   }
 
-
   @action
   void setPartnerId(int? id) {
     partnerId = id;
+  }
+
+  @action
+  void setCurrentUserId(int? id) {
+    currentUserId = id;
   }
 
   @action
@@ -90,6 +101,7 @@ abstract class _UserManagementStoreBase with Store {
     currentPage = 1;
     users.clear();
     pendingChanges.clear();
+    _originalStates.clear();
 
     final result = await listUsersUsecase(page: 1, partnerId: partnerId);
 
@@ -99,6 +111,10 @@ abstract class _UserManagementStoreBase with Store {
       },
       (paginatedUsers) {
         users.addAll(paginatedUsers.users);
+        for (final u in paginatedUsers.users) {
+          _originalStates[u.id] =
+              _OriginalUserState(status: u.status, roleId: u.roleId);
+        }
         currentPage = paginatedUsers.currentPage;
         lastPage = paginatedUsers.lastPage;
         totalUsers = paginatedUsers.total;
@@ -123,6 +139,10 @@ abstract class _UserManagementStoreBase with Store {
       },
       (paginatedUsers) {
         users.addAll(paginatedUsers.users);
+        for (final u in paginatedUsers.users) {
+          _originalStates[u.id] =
+              _OriginalUserState(status: u.status, roleId: u.roleId);
+        }
         currentPage = paginatedUsers.currentPage;
         lastPage = paginatedUsers.lastPage;
       },
@@ -137,8 +157,17 @@ abstract class _UserManagementStoreBase with Store {
     if (index == -1) return;
 
     final user = users[index];
-
     users[index] = user.copyWith(status: status);
+
+    final original = _originalStates[userId];
+    final currentRoleId = pendingChanges[userId]?.roleId ?? user.roleId;
+
+    if (original != null &&
+        status == original.status &&
+        currentRoleId == original.roleId) {
+      pendingChanges.remove(userId);
+      return;
+    }
 
     final existing = pendingChanges[userId];
     if (existing != null) {
@@ -161,8 +190,17 @@ abstract class _UserManagementStoreBase with Store {
     if (index == -1) return;
 
     final user = users[index];
-
     users[index] = user.copyWith(roleId: roleId, roleName: roleName);
+
+    final original = _originalStates[userId];
+    final currentStatus = pendingChanges[userId]?.status ?? user.status;
+
+    if (original != null &&
+        roleId == original.roleId &&
+        currentStatus == original.status) {
+      pendingChanges.remove(userId);
+      return;
+    }
 
     final existing = pendingChanges[userId];
     if (existing != null) {
@@ -215,9 +253,16 @@ abstract class _UserManagementStoreBase with Store {
   void clearPendingChange(int userId) {
     pendingChanges.remove(userId);
   }
+
   @action
   Future<void> discardChangesAndReload() async {
     pendingChanges.clear();
     await loadUsers();
   }
+}
+
+class _OriginalUserState {
+  final bool status;
+  final int roleId;
+  const _OriginalUserState({required this.status, required this.roleId});
 }

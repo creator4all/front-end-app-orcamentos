@@ -262,8 +262,8 @@ class _BudgetListPageState extends State<BudgetListPage> {
                             status: status,
                             isArchived: b.isArchived,
                             userRole: mapStringToUserRole(_authStore.userRole),
-                            createdByAdmin: b.criadoPorAdmin,
-                            onInfoTap: b.criadoPorAdmin
+                            createdByAdmin: showAdminIcon,
+                            onInfoTap: showAdminIcon
                                 ? () => CustomInfoDialog.show(
                                       context: context,
                                       type: DialogType.info,

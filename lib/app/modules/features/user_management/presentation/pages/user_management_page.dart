@@ -35,6 +35,8 @@ class _UserManagementPageState extends State<UserManagementPage> {
     _store = Modular.get<UserManagementStore>();
     _authStore = Modular.get<AuthStore>();
 
+    _store.setCurrentUserId(_authStore.currentUser?.id);
+
     if (widget.partnerId != null) {
       _store.setPartnerId(widget.partnerId);
     }
@@ -50,6 +52,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
     _scrollController.dispose();
     _searchController.dispose();
     _store.setPartnerId(null);
+    _store.setCurrentUserId(null);
     super.dispose();
   }
 
@@ -64,6 +67,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
   int get _currentUserRoleId {
     return getRoleIdFromName(_authStore.currentUser?.role?.name);
   }
+
   void _showPermissionDeniedDialog() {
     CustomInfoDialog.show(
       context: context,
@@ -146,7 +150,6 @@ class _UserManagementPageState extends State<UserManagementPage> {
               ),
             ),
           ),
-
           Expanded(
             child: Observer(
               builder: (_) {

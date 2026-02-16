@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -6,7 +6,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:multimidiaapp/app/shared/utils/document_validators.dart';
 import 'package:multimidiaapp/app/shared/utils/email_validator.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_info_dialog.dart';
-import 'package:video_player/video_player.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
 import '../../../../../../theme/app_theme.dart';
 import '../../../../../../widgets/index.dart';
@@ -32,26 +33,51 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
   PublicSectorExperience _publicSectorExperience = PublicSectorExperience.never;
 
   late final RegistrationStore store;
-  late VideoPlayerController _videoController;
-  bool _isVideoInitialized = false;
+  static const String _youtubeVideoId = '-Pr16hWc-Dc';
+  static const String _youtubeVideoUrl =
+      'https://www.youtube.com/watch?v=-Pr16hWc-Dc';
+  late final YoutubePlayerController _youtubeController;
 
   @override
   void initState() {
     super.initState();
     store = Modular.get<RegistrationStore>();
+    _youtubeController = YoutubePlayerController.fromVideoId(
+      videoId: _youtubeVideoId,
+      autoPlay: true,
+      params: const YoutubePlayerParams(
+        mute: false,
+        showControls: true,
+        showFullscreenButton: true,
+        strictRelatedVideos: true,
+      ),
+    );
+  }
 
-    _videoController = VideoPlayerController.asset(
-      'assets/videos/oportunidade_de_vendas.mp4',
-    )..initialize().then((_) {
-        if (mounted) {
-          setState(() => _isVideoInitialized = true);
-        }
-      });
+  Future<void> _openVideoInYoutubeApp() async {
+    final uri = Uri.parse(_youtubeVideoUrl);
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (opened || !mounted) return;
+
+    CustomInfoDialog.show(
+      context: context,
+      type: DialogType.error,
+      title: 'Erro ao abrir vídeo',
+      message:
+          'Não foi possível abrir o YouTube no dispositivo. Verifique se há um navegador ou app compatível.',
+    );
+  }
+
+  Widget _buildVideoPlayer() {
+    return YoutubePlayer(
+      controller: _youtubeController,
+      aspectRatio: 16 / 9,
+    );
   }
 
   @override
   void dispose() {
-    _videoController.dispose();
+    _youtubeController.close();
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
@@ -252,7 +278,6 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
                   ),
                 ),
                 SizedBox(height: 24.h),
-
                 Center(
                   child: Text(
                     'Seja nosso parceiro!',
@@ -264,7 +289,6 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
                   ),
                 ),
                 SizedBox(height: 32.h),
-
                 Text(
                   '1- Assista ao vídeo',
                   style: TextStyle(
@@ -273,49 +297,22 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
                   ),
                 ),
                 SizedBox(height: 16.h),
-
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8.r),
                   child: AspectRatio(
                     aspectRatio: 16 / 9,
-                    child: _isVideoInitialized
-                        ? GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _videoController.value.isPlaying
-                                    ? _videoController.pause()
-                                    : _videoController.play();
-                              });
-                            },
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                VideoPlayer(_videoController),
-                                if (!_videoController.value.isPlaying)
-                                  Container(
-                                    decoration: const BoxDecoration(
-                                      color: Colors.black26,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    padding: EdgeInsets.all(12.w),
-                                    child: Icon(
-                                      Icons.play_arrow,
-                                      color: Colors.white,
-                                      size: 48.sp,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          )
-                        : Container(
-                            color: Colors.grey[200],
-                            child: const Center(
-                                child: CircularProgressIndicator()),
-                          ),
+                    child: _buildVideoPlayer(),
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: _openVideoInYoutubeApp,
+                    icon: const Icon(Icons.open_in_new),
+                    label: const Text('Abrir no YouTube'),
                   ),
                 ),
                 SizedBox(height: 32.h),
-
                 Text(
                   '2- Caso você tenha interesse em ser parceiro, preencha os dados abaixo e entraremos em contato.',
                   style: TextStyle(
@@ -324,7 +321,6 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
                   ),
                 ),
                 SizedBox(height: 24.h),
-
                 CustomTextField(
                   controller: _nameController,
                   label: 'Nome:',
@@ -338,7 +334,6 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
                   },
                 ),
                 SizedBox(height: 16.h),
-
                 CustomTextField(
                   controller: _emailController,
                   label: 'E-mail:',
@@ -348,7 +343,6 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
                   validator: EmailValidator.getError,
                 ),
                 SizedBox(height: 16.h),
-
                 CustomTextField(
                   controller: _phoneController,
                   label: 'Telefone:',
@@ -377,7 +371,6 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
                   },
                 ),
                 SizedBox(height: 16.h),
-
                 CustomTextField(
                   controller: _companyController,
                   label: 'Empresa:',
@@ -391,7 +384,6 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
                   },
                 ),
                 SizedBox(height: 16.h),
-
                 CustomTextField(
                   controller: _cnpjController,
                   label: 'CPF/CNPJ:',
@@ -412,7 +404,6 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
                       DocumentValidators.getDocumentError(value ?? ''),
                 ),
                 SizedBox(height: 24.h),
-
                 Text(
                   'Você atua ou já atuou com vendas na área pública?',
                   style: TextStyle(
@@ -421,7 +412,6 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
                   ),
                 ),
                 SizedBox(height: 8.h),
-
                 RadioListTile<PublicSectorExperience>(
                   title: const Text('Não, nunca atuei'),
                   value: PublicSectorExperience.never,
@@ -456,7 +446,6 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
                   },
                 ),
                 SizedBox(height: 32.h),
-
                 Observer(
                   builder: (_) => PrimaryButton(
                     text: 'Quero ser parceiro',
