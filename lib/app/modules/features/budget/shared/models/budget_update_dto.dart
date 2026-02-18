@@ -46,7 +46,7 @@ class BudgetUpdateDto extends Equatable {
     if (nome != null) map['orc_nome'] = nome;
     if (diasValidade != null) map['orc_dias_validade'] = diasValidade;
     if (status != null) map['orc_status'] = status;
-    if (isArchived != null) map['orc_arquivado'] = isArchived;
+    if (isArchived != null) map['isArchived'] = isArchived;
     if (total != null) map['orc_total'] = total;
     if (usuarioId != null) map['orc_usuario_id'] = usuarioId;
     if (cidadeId != null) map['orc_cidade_id'] = cidadeId;
@@ -70,6 +70,8 @@ class BudgetUpdateDto extends Equatable {
     if (nome != null) map['orc_nome'] = nome;
     if (diasValidade != null) map['orc_dias_validade'] = diasValidade;
     if (status != null) map['orc_status'] = status;
+    if (isArchived != null) map['isArchived'] = isArchived;
+    if (total != null) map['orc_total'] = total;
     if (usuarioId != null) map['orc_usuario_id'] = usuarioId;
 
     if (cidades != null) {
@@ -90,18 +92,18 @@ class BudgetUpdateDto extends Equatable {
 
   @override
   List<Object?> get props => [
-    nome,
-    diasValidade,
-    status,
-    isArchived,
-    total,
-    usuarioId,
-    cidadeId,
-    cidades,
-    indicadores,
-    produtos,
-    partnerDestinoId,
-  ];
+        nome,
+        diasValidade,
+        status,
+        isArchived,
+        total,
+        usuarioId,
+        cidadeId,
+        cidades,
+        indicadores,
+        produtos,
+        partnerDestinoId,
+      ];
 
   @override
   String toString() {

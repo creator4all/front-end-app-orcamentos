@@ -26,10 +26,11 @@ class ProductSelectionUpdateDto extends Equatable {
   }
 
   factory ProductSelectionUpdateDto.fromEntity(ProductEntity entity) {
-    final indicadoresDto =
-        entity.indicadoresEtapa
-            .map((ind) => IndicadorProdutoUpdateDto.fromEntity(ind))
-            .toList();
+    final indicadoresDto = (entity.indicadoresEtapa.toList()
+          ..sort(
+              (a, b) => a.produtoIndicadorId.compareTo(b.produtoIndicadorId)))
+        .map((ind) => IndicadorProdutoUpdateDto.fromEntity(ind))
+        .toList();
 
     final valorAlterado = entity.hasValueOverride ? entity.valor : null;
 
@@ -44,31 +45,31 @@ class ProductSelectionUpdateDto extends Equatable {
   }
 
   Map<String, dynamic> toJson() => {
-    'produto_id': productId,
-    'selecionado': selecionado,
-    if (isServico) 'quantidade': quantidade,
-    if (indicadores != null)
-      'indicadores_etapa': indicadores!.map((i) => i.toJson()).toList(),
-    if (valor != null) 'valor': valor,
-  };
+        'produto_id': productId,
+        'selecionado': selecionado,
+        if (isServico) 'quantidade': quantidade,
+        if (indicadores != null)
+          'indicadores_etapa': indicadores!.map((i) => i.toJson()).toList(),
+        if (valor != null) 'valor': valor,
+      };
 
   Map<String, dynamic> toJsonForMultiCity() => {
-    'produto_id': productId,
-    'selecionado': selecionado,
-    if (isServico) 'quantidade': quantidade,
-    if (!isServico && indicadores != null && indicadores!.isNotEmpty)
-      'indicadores_etapa': indicadores!.map((i) => i.toJson()).toList(),
-  };
+        'produto_id': productId,
+        'selecionado': selecionado,
+        if (isServico) 'quantidade': quantidade,
+        if (!isServico && indicadores != null && indicadores!.isNotEmpty)
+          'indicadores_etapa': indicadores!.map((i) => i.toJson()).toList(),
+      };
 
   @override
   List<Object?> get props => [
-    productId,
-    selecionado,
-    quantidade,
-    tipoProduto,
-    indicadores,
-    valor,
-  ];
+        productId,
+        selecionado,
+        quantidade,
+        tipoProduto,
+        indicadores,
+        valor,
+      ];
 
   @override
   String toString() =>

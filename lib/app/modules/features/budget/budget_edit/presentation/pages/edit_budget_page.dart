@@ -399,31 +399,29 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                     ],
                   ),
                   _buildStatusControls(),
-                  if (!store.isArchived)
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50.h,
-                      child: ElevatedButton(
-                        onPressed:
-                            store.isSaving ? null : _handleSaveWithValidation,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF117BBD),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8.r),
-                          ),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50.h,
+                    child: ElevatedButton(
+                      onPressed:
+                          store.isSaving ? null : _handleSaveWithValidation,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF117BBD),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.r),
                         ),
-                        child: store.isSaving
-                            ? const CircularProgressIndicator(
-                                color: Colors.white)
-                            : Text(
-                                'Salvar Alterações',
-                                style: TextStyle(
-                                  fontSize: 16.sp,
-                                  color: Colors.white,
-                                ),
-                              ),
                       ),
+                      child: store.isSaving
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : Text(
+                              'Salvar Alterações',
+                              style: TextStyle(
+                                fontSize: 16.sp,
+                                color: Colors.white,
+                              ),
+                            ),
                     ),
+                  ),
                   SizedBox(height: 24.h),
                 ],
               ),
@@ -503,17 +501,14 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
           selectedCount: currentSubcategory.selectedProductsCount,
           totalCount: currentSubcategory.activeProductsCount,
           isSelected: currentSubcategory.selectedProductsCount > 0,
-          isReadOnly: store.isArchived,
-          onCheckboxChanged: store.isArchived
-              ? null
-              : (selected) {
-                  if (selected == null) return;
-                  store.toggleSubcategoryWithCascade(
-                    currentCategory.id,
-                    currentSubcategory.id,
-                    selected,
-                  );
-                },
+          onCheckboxChanged: (selected) {
+            if (selected == null) return;
+            store.toggleSubcategoryWithCascade(
+              currentCategory.id,
+              currentSubcategory.id,
+              selected,
+            );
+          },
           onCardTap: () {
             _showProductsModal(currentCategory, currentSubcategory);
           },
@@ -602,20 +597,17 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
 
           return SubcategoriesModal(
             category: currentCategory,
-            isReadOnly: store.isArchived,
             onSubcategoryTap: (subcategory) {
               Navigator.pop(context);
               _showProductsModal(currentCategory, subcategory);
             },
-            onCheckboxChanged: store.isArchived
-                ? null
-                : (categoryId, subcategoryId, selected) {
-                    store.toggleSubcategoryWithCascade(
-                      categoryId,
-                      subcategoryId,
-                      selected,
-                    );
-                  },
+            onCheckboxChanged: (categoryId, subcategoryId, selected) {
+              store.toggleSubcategoryWithCascade(
+                categoryId,
+                subcategoryId,
+                selected,
+              );
+            },
           );
         },
       ),
@@ -629,7 +621,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
       category: category,
       subcategory: subcategory,
       store: store,
-      isReadOnly: store.isArchived,
     );
   }
 
@@ -677,13 +668,9 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
           selectedCount: currentCategory.selectedProductsCount,
           totalCount: currentCategory.totalActiveProducts,
           isSelected: currentCategory.hasSelectedProducts,
-          isReadOnly: store.isArchived,
-          onCheckboxChanged: store.isArchived
-              ? null
-              : (bool? value) {
-                  store.toggleCategoryWithCascade(
-                      currentCategory.id, value ?? false);
-                },
+          onCheckboxChanged: (bool? value) {
+            store.toggleCategoryWithCascade(currentCategory.id, value ?? false);
+          },
           onCardTap: () {
             _showSubcategoriesModal(currentCategory);
           },
