@@ -16,12 +16,14 @@ class SubcategoryProductsModal extends StatelessWidget {
   final int categoryId;
   final int subcategoryId;
   final dynamic store;
+  final bool isReadOnly;
 
   const SubcategoryProductsModal({
     super.key,
     required this.categoryId,
     required this.subcategoryId,
     this.store,
+    this.isReadOnly = false,
   });
 
   static Future<void> show({
@@ -29,6 +31,7 @@ class SubcategoryProductsModal extends StatelessWidget {
     required CategoryEntity category,
     required SubcategoryEntity subcategory,
     dynamic store,
+    bool isReadOnly = false,
   }) {
     return CustomModal.show(
       context: context,
@@ -38,6 +41,7 @@ class SubcategoryProductsModal extends StatelessWidget {
         categoryId: category.id,
         subcategoryId: subcategory.id,
         store: store,
+        isReadOnly: isReadOnly,
       ),
     );
   }
@@ -110,46 +114,46 @@ class SubcategoryProductsModal extends StatelessWidget {
 
                 return ProductItemCard(
                   product: product,
-                  onToggle: (isSelected) {
-                    storeInstance.toggleProduct(product.id, isSelected);
-                  },
+                  onToggle: isReadOnly
+                      ? null
+                      : (isSelected) {
+                          storeInstance.toggleProduct(product.id, isSelected);
+                        },
                   onInfoTap: () => _handleInfoTap(
                       context, product, storeInstance, category, subcategory),
                 );
               },
             ),
-
             SizedBox(height: 24.h),
-
-            SizedBox(
-              width: double.infinity,
-              height: 48.h,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                icon: const Icon(
-                  Icons.save,
-                  color: Color(0xFFFFFFFF),
-                ),
-                label: Text(
-                  'Salvar',
-                  style: TextStyle(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFFFFFFFF),
+            if (!isReadOnly)
+              SizedBox(
+                width: double.infinity,
+                height: 48.h,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  icon: const Icon(
+                    Icons.save,
+                    color: Color(0xFFFFFFFF),
                   ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF56B34A),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10.r),
+                  label: Text(
+                    'Salvar',
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFFFFFFFF),
+                    ),
                   ),
-                  elevation: 0,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF56B34A),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.r),
+                    ),
+                    elevation: 0,
+                  ),
                 ),
               ),
-            ),
-
             SizedBox(height: 16.h),
           ],
         );

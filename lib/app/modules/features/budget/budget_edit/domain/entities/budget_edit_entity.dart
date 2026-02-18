@@ -18,11 +18,11 @@ class BudgetEditEntity extends Equatable {
   final int userId;
   final int? partnerId;
   final List<int> cityIds;
-  final List<Map<String, dynamic>>
-      citiesDataRaw;
+  final List<Map<String, dynamic>> citiesDataRaw;
   final List<ProductSelectionEntity> products;
   final dynamic categoriesData;
   final CensusDataEntity? censusData;
+  final bool isArchived;
 
   final Map<String, double> censoAgregado;
 
@@ -41,9 +41,9 @@ class BudgetEditEntity extends Equatable {
     required this.products,
     required this.categoriesData,
     this.censusData,
+    this.isArchived = false,
     this.censoAgregado = const {},
   });
-
 
   bool get canBeEdited => status.toLowerCase() != 'aprovado';
 
@@ -57,8 +57,6 @@ class BudgetEditEntity extends Equatable {
   double get calculatedTotal => products
       .where((p) => p.isSelected)
       .fold(0.0, (sum, p) => sum + p.totalPrice);
-
-  bool get isArchived => status.toLowerCase() == 'arquivado';
 
   bool get isMultiCity => cityIds.length > 1;
 
@@ -78,6 +76,7 @@ class BudgetEditEntity extends Equatable {
         products,
         categoriesData,
         censusData,
+        isArchived,
         censoAgregado,
       ];
 }

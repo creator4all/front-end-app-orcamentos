@@ -1,3 +1,4 @@
+import 'package:chewie/chewie.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -6,8 +7,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:multimidiaapp/app/shared/utils/document_validators.dart';
 import 'package:multimidiaapp/app/shared/utils/email_validator.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_info_dialog.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:youtube_player_iframe/youtube_player_iframe.dart';
+import 'package:video_player/video_player.dart';
 
 import '../../../../../../theme/app_theme.dart';
 import '../../../../../../widgets/index.dart';
@@ -33,51 +33,68 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
   PublicSectorExperience _publicSectorExperience = PublicSectorExperience.never;
 
   late final RegistrationStore store;
-  static const String _youtubeVideoId = '-Pr16hWc-Dc';
-  static const String _youtubeVideoUrl =
-      'https://www.youtube.com/watch?v=-Pr16hWc-Dc';
-  late final YoutubePlayerController _youtubeController;
+  VideoPlayerController? _videoController;
+  ChewieController? _chewieController;
+  bool _isVideoInitialized = false;
 
   @override
   void initState() {
     super.initState();
     store = Modular.get<RegistrationStore>();
-    _youtubeController = YoutubePlayerController.fromVideoId(
-      videoId: _youtubeVideoId,
-      autoPlay: true,
-      params: const YoutubePlayerParams(
-        mute: false,
-        showControls: true,
-        showFullscreenButton: true,
-        strictRelatedVideos: true,
-      ),
-    );
+    _initializeVideoPlayer();
   }
 
-  Future<void> _openVideoInYoutubeApp() async {
-    final uri = Uri.parse(_youtubeVideoUrl);
-    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (opened || !mounted) return;
+  Future<void> _initializeVideoPlayer() async {
+    try {
+      _videoController = VideoPlayerController.asset(
+        'assets/videos/vendas.mp4',
+      );
 
-    CustomInfoDialog.show(
-      context: context,
-      type: DialogType.error,
-      title: 'Erro ao abrir vídeo',
-      message:
-          'Não foi possível abrir o YouTube no dispositivo. Verifique se há um navegador ou app compatível.',
-    );
+      await _videoController!.initialize();
+
+      if (!mounted) return;
+
+      setState(() {
+        _chewieController = ChewieController(
+          videoPlayerController: _videoController!,
+          aspectRatio: _videoController!.value.aspectRatio,
+          autoPlay: false,
+          looping: false,
+          allowFullScreen: true,
+          showControlsOnInitialize: true,
+          materialProgressColors: ChewieProgressColors(
+            playedColor: const Color(0xFF117BBD),
+            handleColor: const Color(0xFF0C498E),
+            backgroundColor: Colors.grey.shade300,
+            bufferedColor: Colors.grey.shade400,
+          ),
+        );
+        _isVideoInitialized = true;
+      });
+    } catch (e) {
+      debugPrint('Erro ao inicializar vídeo: $e');
+    }
   }
 
   Widget _buildVideoPlayer() {
-    return YoutubePlayer(
-      controller: _youtubeController,
-      aspectRatio: 16 / 9,
-    );
+    if (!_isVideoInitialized || _chewieController == null) {
+      return Container(
+        color: Colors.black,
+        child: const Center(
+          child: CircularProgressIndicator(
+            color: Color(0xFF117BBD),
+          ),
+        ),
+      );
+    }
+
+    return Chewie(controller: _chewieController!);
   }
 
   @override
   void dispose() {
-    _youtubeController.close();
+    _chewieController?.dispose();
+    _videoController?.dispose();
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
@@ -302,14 +319,6 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
                   child: AspectRatio(
                     aspectRatio: 16 / 9,
                     child: _buildVideoPlayer(),
-                  ),
-                ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    onPressed: _openVideoInYoutubeApp,
-                    icon: const Icon(Icons.open_in_new),
-                    label: const Text('Abrir no YouTube'),
                   ),
                 ),
                 SizedBox(height: 32.h),

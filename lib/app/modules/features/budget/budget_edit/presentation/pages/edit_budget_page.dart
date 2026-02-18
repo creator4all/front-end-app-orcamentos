@@ -399,29 +399,31 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                     ],
                   ),
                   _buildStatusControls(),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50.h,
-                    child: ElevatedButton(
-                      onPressed:
-                          store.isSaving ? null : _handleSaveWithValidation,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF117BBD),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.r),
+                  if (!store.isArchived)
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50.h,
+                      child: ElevatedButton(
+                        onPressed:
+                            store.isSaving ? null : _handleSaveWithValidation,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF117BBD),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8.r),
+                          ),
                         ),
-                      ),
-                      child: store.isSaving
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : Text(
-                              'Salvar Alterações',
-                              style: TextStyle(
-                                fontSize: 16.sp,
-                                color: Colors.white,
+                        child: store.isSaving
+                            ? const CircularProgressIndicator(
+                                color: Colors.white)
+                            : Text(
+                                'Salvar Alterações',
+                                style: TextStyle(
+                                  fontSize: 16.sp,
+                                  color: Colors.white,
+                                ),
                               ),
-                            ),
+                      ),
                     ),
-                  ),
                   SizedBox(height: 24.h),
                 ],
               ),
@@ -501,14 +503,17 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
           selectedCount: currentSubcategory.selectedProductsCount,
           totalCount: currentSubcategory.activeProductsCount,
           isSelected: currentSubcategory.selectedProductsCount > 0,
-          onCheckboxChanged: (selected) {
-            if (selected == null) return;
-            store.toggleSubcategoryWithCascade(
-              currentCategory.id,
-              currentSubcategory.id,
-              selected,
-            );
-          },
+          isReadOnly: store.isArchived,
+          onCheckboxChanged: store.isArchived
+              ? null
+              : (selected) {
+                  if (selected == null) return;
+                  store.toggleSubcategoryWithCascade(
+                    currentCategory.id,
+                    currentSubcategory.id,
+                    selected,
+                  );
+                },
           onCardTap: () {
             _showProductsModal(currentCategory, currentSubcategory);
           },
@@ -540,8 +545,10 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
         if (ind is! Map<String, dynamic>) return <String, dynamic>{};
 
         final grupoObj = ind['grupo'] as Map<String, dynamic>?;
-        final nomeGrupo =
-            ind['grupo_nome'] ?? grupoObj?['nome'] ?? grupoObj?['nome_grupo'] ?? '';
+        final nomeGrupo = ind['grupo_nome'] ??
+            grupoObj?['nome'] ??
+            grupoObj?['nome_grupo'] ??
+            '';
         final idGrupo =
             ind['grupo_id'] ?? grupoObj?['id'] ?? grupoObj?['grupo_id'] ?? 0;
         final pivot = ind['pivot'] as Map<String, dynamic>?;
@@ -595,17 +602,20 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
 
           return SubcategoriesModal(
             category: currentCategory,
+            isReadOnly: store.isArchived,
             onSubcategoryTap: (subcategory) {
               Navigator.pop(context);
               _showProductsModal(currentCategory, subcategory);
             },
-            onCheckboxChanged: (categoryId, subcategoryId, selected) {
-              store.toggleSubcategoryWithCascade(
-                categoryId,
-                subcategoryId,
-                selected,
-              );
-            },
+            onCheckboxChanged: store.isArchived
+                ? null
+                : (categoryId, subcategoryId, selected) {
+                    store.toggleSubcategoryWithCascade(
+                      categoryId,
+                      subcategoryId,
+                      selected,
+                    );
+                  },
           );
         },
       ),
@@ -619,6 +629,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
       category: category,
       subcategory: subcategory,
       store: store,
+      isReadOnly: store.isArchived,
     );
   }
 
@@ -666,9 +677,13 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
           selectedCount: currentCategory.selectedProductsCount,
           totalCount: currentCategory.totalActiveProducts,
           isSelected: currentCategory.hasSelectedProducts,
-          onCheckboxChanged: (bool? value) {
-            store.toggleCategoryWithCascade(currentCategory.id, value ?? false);
-          },
+          isReadOnly: store.isArchived,
+          onCheckboxChanged: store.isArchived
+              ? null
+              : (bool? value) {
+                  store.toggleCategoryWithCascade(
+                      currentCategory.id, value ?? false);
+                },
           onCardTap: () {
             _showSubcategoriesModal(currentCategory);
           },

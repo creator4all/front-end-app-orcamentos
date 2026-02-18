@@ -43,7 +43,7 @@ dependencies:
   share_plus: ^7.2.1
   path_provider: ^2.1.1
   url_launcher: ^6.2.5
-  youtube_player_iframe: ^5.2.1
+
   
   # Drive Module - File Management
   open_filex: ^4.3.2
@@ -80,6 +80,7 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/videos/
 
 # Configuração do ícone do app
 flutter_launcher_icons:

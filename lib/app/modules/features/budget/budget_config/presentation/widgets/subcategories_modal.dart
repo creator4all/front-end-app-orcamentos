@@ -11,12 +11,14 @@ class SubcategoriesModal extends StatelessWidget {
   final Function(SubcategoryEntity) onSubcategoryTap;
   final Function(int categoryId, int subcategoryId, bool selected)?
       onCheckboxChanged;
+  final bool isReadOnly;
 
   const SubcategoriesModal({
     super.key,
     required this.category,
     required this.onSubcategoryTap,
     this.onCheckboxChanged,
+    this.isReadOnly = false,
   });
 
   @override
@@ -58,23 +60,29 @@ class SubcategoriesModal extends StatelessWidget {
         child: Row(
           children: [
             GestureDetector(
-              onTap: () {
-                onCheckboxChanged?.call(
-                  category.id,
-                  subcategory.id,
-                  !hasSelectedProducts,
-                );
-              },
+              onTap: isReadOnly
+                  ? null
+                  : () {
+                      onCheckboxChanged?.call(
+                        category.id,
+                        subcategory.id,
+                        !hasSelectedProducts,
+                      );
+                    },
               child: Container(
                 width: 17.w,
                 height: 17.h,
                 decoration: BoxDecoration(
                   color: hasSelectedProducts
-                      ? const Color(0xFF2830F2)
+                      ? (isReadOnly
+                          ? Colors.grey[400]
+                          : const Color(0xFF2830F2))
                       : Colors.white,
                   border: Border.all(
                     color: hasSelectedProducts
-                        ? const Color(0xFF2830F2)
+                        ? (isReadOnly
+                            ? Colors.grey[400]!
+                            : const Color(0xFF2830F2))
                         : const Color(0xFFEAEAEA),
                     width: 2,
                   ),

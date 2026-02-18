@@ -13,11 +13,11 @@ class BudgetEditDto {
   final int userId;
   final int? partnerId;
   final List<int> cityIds;
-  final List<Map<String, dynamic>>
-      citiesDataRaw;
+  final List<Map<String, dynamic>> citiesDataRaw;
   final List<ProductSelectionDto> products;
   final dynamic categoriesData;
   final CensusDataDto? censusData;
+  final bool isArchived;
 
   final Map<String, double> censoAgregado;
 
@@ -36,6 +36,7 @@ class BudgetEditDto {
     required this.products,
     required this.categoriesData,
     this.censusData,
+    this.isArchived = false,
     this.censoAgregado = const {},
   });
 
@@ -63,11 +64,9 @@ class BudgetEditDto {
             group?['id'] ??
             group?['grupo_id'],
       );
-      final groupName = (map['grupo_nome'] ??
-              group?['nome'] ??
-              group?['nome_grupo'] ??
-              '')
-          .toString();
+      final groupName =
+          (map['grupo_nome'] ?? group?['nome'] ?? group?['nome_grupo'] ?? '')
+              .toString();
 
       return <String, dynamic>{
         'id': _toInt(
@@ -136,8 +135,7 @@ class BudgetEditDto {
           final normalized = _normalizeCityData(cidade);
           cities.add(_toInt(normalized['id']));
           citiesData.add(normalized);
-        }
-        else if (cidade is int) {
+        } else if (cidade is int) {
           cities.add(cidade);
         }
       }
@@ -188,6 +186,7 @@ class BudgetEditDto {
       products: productsList,
       categoriesData: json['categorias'] ?? [],
       censusData: census,
+      isArchived: json['is_archived'] as bool? ?? false,
       censoAgregado: censoAgregado,
     );
   }
@@ -225,8 +224,7 @@ class BudgetEditDto {
       categoriesData: categoriesData,
       censusData: censusData?.toEntity(),
       censoAgregado: censoAgregado,
+      isArchived: isArchived,
     );
   }
-
-  bool get isArchived => status.toLowerCase() == 'arquivado';
 }
