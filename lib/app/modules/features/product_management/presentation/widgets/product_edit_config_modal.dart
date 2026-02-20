@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../../../shared/widgets/custom_info_dialog.dart';
 import '../../../../../shared/widgets/custom_modal.dart';
 import '../../domain/entities/indicator_group_entity.dart';
 import '../../domain/entities/product_config_entity.dart';
@@ -10,7 +11,7 @@ class ProductEditConfigModal extends StatefulWidget {
   final String categoryName;
   final String subcategoryName;
   final List<IndicatorGroupEntity> indicatorGroups;
-  final Future<bool> Function(ProductConfigEntity) onSave;
+  final Future<String?> Function(ProductConfigEntity) onSave;
 
   const ProductEditConfigModal({
     super.key,
@@ -27,7 +28,7 @@ class ProductEditConfigModal extends StatefulWidget {
     required String categoryName,
     required String subcategoryName,
     required List<IndicatorGroupEntity> indicatorGroups,
-    required Future<bool> Function(ProductConfigEntity) onSave,
+    required Future<String?> Function(ProductConfigEntity) onSave,
   }) {
     return CustomModal.show(
       context: context,
@@ -49,7 +50,8 @@ class ProductEditConfigModal extends StatefulWidget {
 class _ProductEditConfigModalState extends State<ProductEditConfigModal> {
   late TextEditingController _solucaoController;
   late TextEditingController _indicacaoController;
-  late TextEditingController _tipoController;
+  late String _selectedTipo;
+  static const _tipoOptions = ['mensal', 'anual', 'horas'];
   late TextEditingController _isbnController;
   late TextEditingController _percentController;
   late Map<String, bool> _indicadores;
@@ -62,7 +64,9 @@ class _ProductEditConfigModalState extends State<ProductEditConfigModal> {
     _solucaoController = TextEditingController(text: widget.product.solucao);
     _indicacaoController =
         TextEditingController(text: widget.product.indicacao);
-    _tipoController = TextEditingController(text: widget.product.tipo);
+    _selectedTipo = _tipoOptions.contains(widget.product.tipo.toLowerCase())
+        ? widget.product.tipo.toLowerCase()
+        : _tipoOptions.first;
     _isbnController = TextEditingController(text: widget.product.isbn ?? '');
     _percentController = TextEditingController(
       text: widget.product.percent?.toString() ?? '',
@@ -75,7 +79,7 @@ class _ProductEditConfigModalState extends State<ProductEditConfigModal> {
   void dispose() {
     _solucaoController.dispose();
     _indicacaoController.dispose();
-    _tipoController.dispose();
+
     _isbnController.dispose();
     _percentController.dispose();
     super.dispose();
@@ -104,10 +108,7 @@ class _ProductEditConfigModalState extends State<ProductEditConfigModal> {
           controller: _indicacaoController,
         ),
         SizedBox(height: 16.h),
-        _buildTextField(
-          label: 'Tipo:',
-          controller: _tipoController,
-        ),
+        _buildTipoDropdown(),
         if (widget.product.isLivro) ...[
           SizedBox(height: 16.h),
           _buildTextField(
@@ -386,13 +387,57 @@ class _ProductEditConfigModalState extends State<ProductEditConfigModal> {
     );
   }
 
+  Widget _buildTipoDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Tipo:',
+          style: TextStyle(
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w500,
+            color: const Color(0xFF484848),
+          ),
+        ),
+        SizedBox(height: 8.h),
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(horizontal: 12.w),
+          decoration: BoxDecoration(
+            border: Border.all(color: const Color(0xFFD9D9D9)),
+            borderRadius: BorderRadius.circular(8.r),
+          ),
+          child: DropdownButton<String>(
+            value: _selectedTipo,
+            isExpanded: true,
+            underline: const SizedBox(),
+            items: _tipoOptions
+                .map((tipo) => DropdownMenuItem(
+                      value: tipo,
+                      child: Text(
+                        tipo[0].toUpperCase() + tipo.substring(1),
+                        style: TextStyle(fontSize: 14.sp),
+                      ),
+                    ))
+                .toList(),
+            onChanged: (value) {
+              if (value != null) {
+                setState(() => _selectedTipo = value);
+              }
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
   Future<void> _handleSave() async {
     setState(() => _isSaving = true);
 
     final updatedProduct = widget.product.copyWith(
       solucao: _solucaoController.text,
       indicacao: _indicacaoController.text,
-      tipo: _tipoController.text,
+      tipo: _selectedTipo,
       isbn: widget.product.isLivro ? _isbnController.text : null,
       percent: widget.product.isServico
           ? double.tryParse(_percentController.text)
@@ -401,12 +446,19 @@ class _ProductEditConfigModalState extends State<ProductEditConfigModal> {
       indicadores: _indicadores,
     );
 
-    final success = await widget.onSave(updatedProduct);
+    final error = await widget.onSave(updatedProduct);
 
     setState(() => _isSaving = false);
 
-    if (success && mounted) {
+    if (error == null && mounted) {
       Navigator.of(context).pop();
+    } else if (mounted) {
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.error,
+        title: 'Erro ao salvar',
+        message: error!,
+      );
     }
   }
 }

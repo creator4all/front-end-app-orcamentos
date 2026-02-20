@@ -303,10 +303,7 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
         categoryName: _store.selectedCategory?.nome ?? '',
         subcategoryName: _store.selectedSubcategory?.nome ?? '',
         indicatorGroups: _store.indicatorGroups.toList(),
-        onSave: (updatedProduct) async {
-          final success = await _store.updateProduct(updatedProduct);
-          return success;
-        },
+        onSave: (updatedProduct) => _store.updateProduct(updatedProduct),
       );
 
       _store.clearSelectedProduct();

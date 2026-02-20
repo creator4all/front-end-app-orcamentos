@@ -164,27 +164,25 @@ abstract class _ProductManagementStoreBase with Store {
   }
 
   @action
-  Future<bool> updateProduct(ProductConfigEntity product) async {
+  Future<String?> updateProduct(ProductConfigEntity product) async {
     isSaving = true;
-    errorMessage = null;
 
     final result = await repository.updateProduct(product);
 
-    bool success = false;
+    String? error;
     result.fold(
-      (failure) => errorMessage = failure.message,
+      (failure) => error = failure.message,
       (data) {
         final index = products.indexWhere((p) => p.id == data.id);
         if (index != -1) {
           products[index] = data;
         }
         selectedProduct = null;
-        success = true;
       },
     );
 
     isSaving = false;
-    return success;
+    return error;
   }
 
   @action
