@@ -58,15 +58,14 @@ class ReportUserCard extends StatelessWidget {
               ),
             ),
             SizedBox(height: 12.h),
-            Row(
+            Wrap(
+              spacing: 8.w,
+              runSpacing: 8.h,
               children: [
                 _buildStatusBadge('Aprovado', user.aprovados),
-                SizedBox(width: 8.w),
                 _buildStatusBadge('Pendente', user.pendentes),
-                SizedBox(width: 8.w),
                 _buildStatusBadge('Expirado', user.expirados),
-                SizedBox(width: 8.w),
-                _buildStatusBadge('NÃ£o aprovado', user.naoAprovados),
+                _buildStatusBadge('N. aprovado', user.naoAprovados),
               ],
             ),
           ],
@@ -120,25 +119,21 @@ class ReportUserCard extends StatelessWidget {
   }
 
   Widget _buildStatusBadge(String label, int count) {
-    return Expanded(
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: 6.h, horizontal: 4.w),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(4.r),
-          border: Border.all(color: const Color(0xFF0E3562)),
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 6.h, horizontal: 8.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(4.r),
+        border: Border.all(color: const Color(0xFF0E3562)),
+      ),
+      child: Text(
+        '$label: $count',
+        style: TextStyle(
+          fontSize: 10.sp,
+          fontWeight: FontWeight.w600,
+          color: const Color(0xFF0E3562),
         ),
-        child: Text(
-          '$label: $count',
-          style: TextStyle(
-            fontSize: 10.sp,
-            fontWeight: FontWeight.w600,
-            color: const Color(0xFF0E3562),
-          ),
-          textAlign: TextAlign.center,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
+        textAlign: TextAlign.center,
       ),
     );
   }

@@ -100,6 +100,18 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
   }
 
   Future<void> _handleSaveWithValidation() async {
+    final diasText = _validadeOrcamentoController.text;
+    final dias = int.tryParse(diasText);
+    if (dias == null || dias < 1 || dias > 365) {
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.warning,
+        title: 'Atenção',
+        message: 'Validade do orçamento deve estar entre 1 e 365 dias',
+      );
+      return;
+    }
+
     if (store.validityDate == null) {
       CustomInfoDialog.show(
         context: context,

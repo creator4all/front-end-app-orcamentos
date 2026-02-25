@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:multimidiaapp/app/shared/widgets/custom_info_dialog.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_top_bar.dart';
 
 import '../../../auth/presentation/stores/auth_store.dart';
@@ -77,7 +78,6 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
           return Column(
             children: [
               _buildBreadcrumb(folder),
-
               Padding(
                 padding: EdgeInsets.symmetric(
                   horizontal: 10.w,
@@ -85,7 +85,6 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
                 ),
                 child: _buildSearchField(),
               ),
-
               Padding(
                 padding: EdgeInsets.only(
                   left: 10.w,
@@ -104,7 +103,6 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
                   ),
                 ),
               ),
-
               Expanded(
                 child: DriveItemListView(
                   items: items,
@@ -141,7 +139,6 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
                 ),
               ),
             ),
-
             Observer(
               builder: (_) {
                 return Row(
@@ -330,8 +327,36 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
         context: context,
         item: item,
         onOpen: () => fileOpenerStore.openFile(item),
-        onDownload: () => fileOpenerStore.openFile(item),
+        onDownload: () => _handleDownload(item),
       );
+    }
+  }
+
+  Future<void> _handleDownload(DriveItem item) async {
+    final savedPath = await fileOpenerStore.downloadFile(item);
+    if (!mounted) return;
+
+    if (savedPath != null) {
+      final fileName = savedPath.split('/').last;
+      final folderPath = savedPath.substring(0, savedPath.lastIndexOf('/'));
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.success,
+        title: 'Download concluído',
+        message: 'O arquivo "$fileName" foi salvo em:\n$folderPath',
+      );
+      return;
+    }
+
+    final error = fileOpenerStore.errorMessage;
+    if (error != null && error.isNotEmpty) {
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.error,
+        title: 'Erro no download',
+        message: error,
+      );
+      fileOpenerStore.clearError();
     }
   }
 }

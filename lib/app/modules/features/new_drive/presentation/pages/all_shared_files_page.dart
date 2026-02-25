@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:multimidiaapp/app/shared/widgets/custom_info_dialog.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_top_bar.dart';
 
 import '../../../auth/presentation/stores/auth_store.dart';
@@ -46,51 +47,49 @@ class _AllSharedFilesPageState extends State<AllSharedFilesPage> {
         showBackButton: true,
         authStore: _authStore,
       ),
-      body: Observer(
-        builder: (_) {
-          final items = store.filteredViewItems;
-
-          if (items.isEmpty) {
-            return _buildEmptyState();
-          }
-
-          return Column(
-            children: [
-              Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: 10.w,
-                  vertical: 16.h,
-                ),
-                child: _buildSearchField(),
-              ),
-              Padding(
-                padding: EdgeInsets.only(
-                  left: 10.w,
-                  right: 10.w,
-                  bottom: 12.h,
-                ),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Arquivos compartilhados com você',
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w500,
-                      color: const Color(0xFF565E6C),
-                    ),
-                  ),
+      body: Column(
+        children: [
+          Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: 10.w,
+              vertical: 16.h,
+            ),
+            child: _buildSearchField(),
+          ),
+          Padding(
+            padding: EdgeInsets.only(
+              left: 10.w,
+              right: 10.w,
+              bottom: 12.h,
+            ),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Arquivos compartilhados com você',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF565E6C),
                 ),
               ),
-              Expanded(
-                child: DriveItemListView(
+            ),
+          ),
+          Expanded(
+            child: Observer(
+              builder: (_) {
+                final items = store.filteredViewItems;
+                if (items.isEmpty) {
+                  return _buildEmptyState();
+                }
+                return DriveItemListView(
                   items: items,
                   onItemTap: _showFileDetails,
                   showMenu: false,
-                ),
-              ),
-            ],
-          );
-        },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -163,7 +162,31 @@ class _AllSharedFilesPageState extends State<AllSharedFilesPage> {
   }
 
   Future<void> _handleDownload(DriveItem item) async {
-    await fileOpenerStore.openFile(item);
+    final savedPath = await fileOpenerStore.downloadFile(item);
+    if (!mounted) return;
+
+    if (savedPath != null) {
+      final fileName = savedPath.split('/').last;
+      final folderPath = savedPath.substring(0, savedPath.lastIndexOf('/'));
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.success,
+        title: 'Download concluído',
+        message: 'O arquivo "$fileName" foi salvo em:\n$folderPath',
+      );
+      return;
+    }
+
+    final error = fileOpenerStore.errorMessage;
+    if (error != null && error.isNotEmpty) {
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.error,
+        title: 'Erro no download',
+        message: error,
+      );
+      fileOpenerStore.clearError();
+    }
   }
 
   void _handleFileOpen(DriveItem item) {

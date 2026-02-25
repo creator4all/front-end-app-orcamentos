@@ -44,6 +44,12 @@ class SaveBudgetUseCase {
         );
       }
 
+      if (updateData.diasValidade! > 365) {
+        return const Left(
+          ValidationFailure('Validade do orçamento deve estar entre 1 e 365 dias'),
+        );
+      }
+
 
       if (updateData.produtos == null || updateData.produtos!.isEmpty) {
         return const Left(

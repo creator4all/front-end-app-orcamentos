@@ -5,6 +5,7 @@ import 'data/datasources/drive_remote_datasource.dart';
 import 'data/repositories/drive_repository_impl.dart';
 import 'domain/entities/drive_item.dart';
 import 'domain/repositories/drive_repository.dart';
+import 'domain/usecases/download_file_usecase.dart';
 import 'domain/usecases/download_and_open_file_usecase.dart';
 import 'domain/usecases/get_folder_contents_usecase.dart';
 import 'domain/usecases/get_own_files_usecase.dart';
@@ -42,6 +43,9 @@ class NewDriveModule extends Module {
         Bind.singleton<DownloadAndOpenFileUsecase>(
           (i) => DownloadAndOpenFileUsecase(i.get<DriveRepository>()),
         ),
+        Bind.singleton<DownloadFileUsecase>(
+          (i) => DownloadFileUsecase(i.get<DriveRepository>()),
+        ),
         Bind.singleton<NewDriveStore>(
           (i) => NewDriveStore(
             getRecentItemsUseCase: i.get<GetRecentItemsUseCase>(),
@@ -51,7 +55,10 @@ class NewDriveModule extends Module {
           ),
         ),
         Bind.singleton<FileOpenerStore>(
-          (i) => FileOpenerStore(i.get<DownloadAndOpenFileUsecase>()),
+          (i) => FileOpenerStore(
+            i.get<DownloadAndOpenFileUsecase>(),
+            i.get<DownloadFileUsecase>(),
+          ),
         ),
       ];
 

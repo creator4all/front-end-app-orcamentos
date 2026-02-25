@@ -1,6 +1,7 @@
 import 'package:mobx/mobx.dart';
 
 import '../../domain/entities/drive_item.dart';
+import '../../domain/usecases/download_file_usecase.dart';
 import '../../domain/usecases/download_and_open_file_usecase.dart';
 import '../../new_drive_failure.dart';
 
@@ -10,8 +11,12 @@ class FileOpenerStore = _FileOpenerStoreBase with _$FileOpenerStore;
 
 abstract class _FileOpenerStoreBase with Store {
   final DownloadAndOpenFileUsecase downloadAndOpenFileUsecase;
+  final DownloadFileUsecase downloadFileUsecase;
 
-  _FileOpenerStoreBase(this.downloadAndOpenFileUsecase);
+  _FileOpenerStoreBase(
+    this.downloadAndOpenFileUsecase,
+    this.downloadFileUsecase,
+  );
 
   @observable
   bool isDownloading = false;
@@ -60,6 +65,48 @@ abstract class _FileOpenerStoreBase with Store {
     }
   }
 
+  Future<String?> downloadFile(DriveItem item) async {
+    try {
+      runInAction(() {
+        errorMessage = null;
+        currentItem = item;
+        isDownloading = true;
+        downloadProgress = 0.0;
+      });
+
+      final result = await downloadFileUsecase(
+        item,
+        onProgress: (progress) {
+          setDownloadProgress(progress);
+        },
+      );
+
+      return result.fold(
+        (failure) {
+          _handleFailure(failure);
+          return null;
+        },
+        (filePath) {
+          runInAction(() {
+            lastFilePath = filePath;
+          });
+          return filePath;
+        },
+      );
+    } catch (e) {
+      runInAction(() {
+        errorMessage = 'Erro inesperado: $e';
+      });
+      return null;
+    } finally {
+      runInAction(() {
+        isDownloading = false;
+        downloadProgress = 0.0;
+        currentItem = null;
+      });
+    }
+  }
+
   @action
   void setDownloadProgress(double progress) {
     downloadProgress = progress;
@@ -92,8 +139,7 @@ abstract class _FileOpenerStoreBase with Store {
       errorMessage = 'Arquivo não encontrado após download.\n'
           'Tente novamente.';
     } else if (failure is DownloadFileFailure) {
-      errorMessage = 'Erro ao fazer download do arquivo.\n'
-          'Verifique sua conexão e tente novamente.';
+      errorMessage = failure.message;
     } else if (failure is ConnectionFailure) {
       errorMessage = 'Erro de conexão.\n'
           'Verifique sua internet e tente novamente.';

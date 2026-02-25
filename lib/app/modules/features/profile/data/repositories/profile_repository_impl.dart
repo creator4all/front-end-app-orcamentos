@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:dartz/dartz.dart';
 
+import '../../../../../shared/core/errors/app_error.dart';
 import '../../../../../shared/core/errors/failures.dart';
 import '../../../../../shared/core/errors/http_exceptions.dart';
 import '../../domain/entities/user_profile.dart';
@@ -18,6 +19,10 @@ class ProfileRepositoryImpl implements ProfileRepository {
     try {
       final model = await datasource.getProfile();
       return Right(model.toEntity());
+    } on AppInternetError catch (e) {
+      return Left(NetworkFailure(e.message));
+    } on AppError catch (e) {
+      return Left(ServerFailure(e.message));
     } on ConnectionException {
       return const Left(NetworkFailure('Falha na conexão com o servidor'));
     } on TimeoutException {
@@ -35,6 +40,10 @@ class ProfileRepositoryImpl implements ProfileRepository {
     try {
       final model = await datasource.updateProfile(data);
       return Right(model.toEntity());
+    } on AppInternetError catch (e) {
+      return Left(NetworkFailure(e.message));
+    } on AppError catch (e) {
+      return Left(ServerFailure(e.message));
     } on ConnectionException {
       return const Left(NetworkFailure('Falha na conexão com o servidor'));
     } on TimeoutException {
@@ -51,6 +60,10 @@ class ProfileRepositoryImpl implements ProfileRepository {
     try {
       final message = await datasource.deleteAccount();
       return Right(message);
+    } on AppInternetError catch (e) {
+      return Left(NetworkFailure(e.message));
+    } on AppError catch (e) {
+      return Left(ServerFailure(e.message));
     } on ConnectionException {
       return const Left(NetworkFailure('Falha na conexão com o servidor'));
     } on TimeoutException {
@@ -67,6 +80,10 @@ class ProfileRepositoryImpl implements ProfileRepository {
     try {
       final model = await datasource.uploadAvatar(imageFile);
       return Right(model.toEntity());
+    } on AppInternetError catch (e) {
+      return Left(NetworkFailure(e.message));
+    } on AppError catch (e) {
+      return Left(ServerFailure(e.message));
     } on ConnectionException {
       return const Left(NetworkFailure('Falha na conexão com o servidor'));
     } on TimeoutException {
@@ -84,6 +101,10 @@ class ProfileRepositoryImpl implements ProfileRepository {
     try {
       final model = await datasource.removeAvatar();
       return Right(model.toEntity());
+    } on AppInternetError catch (e) {
+      return Left(NetworkFailure(e.message));
+    } on AppError catch (e) {
+      return Left(ServerFailure(e.message));
     } on ConnectionException {
       return const Left(NetworkFailure('Falha na conexão com o servidor'));
     } on TimeoutException {

@@ -93,7 +93,6 @@ class _NewDrivePageState extends State<NewDrivePage> {
                               ],
                             ),
                           ),
-
                           Observer(
                             builder: (_) {
                               if (store.recentItems.isNotEmpty) {
@@ -133,7 +132,6 @@ class _NewDrivePageState extends State<NewDrivePage> {
                           ),
                         ],
                       ),
-
                       Column(
                         children: [
                           Padding(
@@ -144,14 +142,11 @@ class _NewDrivePageState extends State<NewDrivePage> {
                                   _buildMyFilesButton(),
                                   SizedBox(height: 12.h),
                                 ],
-
                                 _buildSharedFilesButton(),
-
                                 SizedBox(height: 16.h),
                               ],
                             ),
                           ),
-
                           _buildCategoriesSection(),
                         ],
                       ),
@@ -214,7 +209,6 @@ class _NewDrivePageState extends State<NewDrivePage> {
           ),
         ),
         SizedBox(height: 12.h),
-
         Observer(
           builder: (_) {
             final items = store.recentItems.take(4).toList();
@@ -283,8 +277,33 @@ class _NewDrivePageState extends State<NewDrivePage> {
   Future<void> _handleFileOpenAsync(DriveItem item) async {
     await _handleFileOpen(item);
   }
+
   Future<void> _handleDownloadAsync(DriveItem item) async {
-    await fileOpenerStore.openFile(item);
+    final savedPath = await fileOpenerStore.downloadFile(item);
+    if (!mounted) return;
+
+    if (savedPath != null) {
+      final fileName = savedPath.split('/').last;
+      final folderPath = savedPath.substring(0, savedPath.lastIndexOf('/'));
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.success,
+        title: 'Download concluído',
+        message: 'O arquivo "$fileName" foi salvo em:\n$folderPath',
+      );
+      return;
+    }
+
+    final error = fileOpenerStore.errorMessage;
+    if (error != null && error.isNotEmpty) {
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.error,
+        title: 'Erro no download',
+        message: error,
+      );
+      fileOpenerStore.clearError();
+    }
   }
 
   Widget _buildMyFilesButton() {
@@ -394,7 +413,6 @@ class _NewDrivePageState extends State<NewDrivePage> {
             ],
           ),
           SizedBox(height: 16.h),
-
           Observer(
             builder: (_) {
               final categories = store.categories;

@@ -259,7 +259,7 @@ class _ProfilePageState extends State<ProfilePage> {
         context: context,
         type: DialogType.error,
         title: 'Erro na Atualização',
-        message: 'Erro ao atualizar perfil: ${_store.error}',
+        message: _store.error ?? 'Não foi possível atualizar o perfil.',
       );
     }
   }

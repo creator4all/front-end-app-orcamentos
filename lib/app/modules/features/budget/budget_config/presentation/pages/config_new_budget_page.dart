@@ -152,6 +152,18 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
   }
 
   Future<void> _handleSaveWithValidation() async {
+    final diasText = _validadeOrcamentoController.text;
+    final dias = int.tryParse(diasText);
+    if (dias == null || dias < 1 || dias > 365) {
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.warning,
+        title: 'Atenção',
+        message: 'Validade do orçamento deve estar entre 1 e 365 dias',
+      );
+      return;
+    }
+
     if (store.validityDate == null) {
       CustomInfoDialog.show(
         context: context,
@@ -424,28 +436,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                     ],
                   ),
                   SizedBox(height: 24.h),
-                  if (store.error != null)
-                    Container(
-                      padding: EdgeInsets.all(12.w),
-                      margin: EdgeInsets.only(bottom: 16.h),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(8.r),
-                        border: Border.all(color: Colors.red),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.error, color: Colors.red),
-                          SizedBox(width: 8.w),
-                          Expanded(
-                            child: Text(
-                              store.error!,
-                              style: const TextStyle(color: Colors.red),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                   SizedBox(
                     width: double.infinity,
                     height: 50.h,
