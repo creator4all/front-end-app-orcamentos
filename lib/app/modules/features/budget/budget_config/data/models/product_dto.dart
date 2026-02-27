@@ -1,6 +1,7 @@
+import '../../domain/entities/indicador_etapa_entity.dart';
 import '../../domain/entities/product_entity.dart';
+import 'indicador_etapa_dto.dart';
 
-/// DTO para parsing JSON dos produtos da API
 class ProductDTO {
   final int id;
   final String codigo;
@@ -18,7 +19,7 @@ class ProductDTO {
   final String? observacoes;
   final double valorOriginal;
   final bool ativoOriginal;
-  final List<dynamic> indicadoresEtapa;
+  final List<IndicadorEtapaEntity> indicadoresEtapa;
 
   ProductDTO({
     required this.id,
@@ -40,70 +41,72 @@ class ProductDTO {
     required this.indicadoresEtapa,
   });
 
-  /// Cria um DTO a partir do JSON da API
   factory ProductDTO.fromJson(Map<String, dynamic> json) {
     try {
-      print(
-          '         🔍 [ProductDTO] Parseando produto ID: ${json['id']}, Código: ${json['codigo']}');
-
-      // Parse cada campo individualmente com tratamento de erro
       final int id = json['id'] as int;
-      print('            ✅ id: $id');
+      final String codigo = (json['codigo'] ?? '') as String;
+      final String solucao = (json['solucao'] ?? '') as String;
+      final String tipo = (json['tipo'] ?? '') as String;
 
-      final String codigo = json['codigo'] as String;
-      print('            ✅ codigo: $codigo');
+      final dynamic rawAtivo = json['status'];
+      final bool ativo = rawAtivo is bool ? rawAtivo : (rawAtivo == 1);
 
-      final String solucao = json['solucao'] as String;
-      print('            ✅ solucao: $solucao (${solucao.length} chars)');
+      final double valor = (json['valor'] as num? ?? 0).toDouble();
+      final String indicacao = (json['indicacao'] ?? '') as String;
+      final String tipoProduto = (json['tipo_produto'] ?? '') as String;
 
-      // tipo: campo obrigatório da API
-      final String tipo = json['tipo'] as String;
-      print('            ✅ tipo: $tipo');
+      final int ordem = (json['ordem'] as int?) ?? 0;
+      final int subcategoriaId = (json['subcategoria_id'] as int?) ?? 0;
 
-      final bool ativo = json['ativo'] as bool;
-      print('            ✅ ativo: $ativo');
+      // Contrato backend ainda não está unificado:
+      final orcProduto = json['orcamento_produto'] as Map<String, dynamic>?;
+      final bool selecionado =
+          (orcProduto?['selecionado'] ?? json['selecionado']) as bool? ?? true;
+      final int quantidade =
+          ((orcProduto?['quantidade'] ?? json['quantidade']) as num?)
+                  ?.toInt() ??
+              0;
 
-      final double valor = (json['valor'] as num).toDouble();
-      print('            ✅ valor: $valor');
-
-      // indicacao: campo obrigatório da API
-      final String indicacao = json['indicacao'] as String;
-      print('            ✅ indicacao: $indicacao');
-
-      final String tipoProduto = json['tipo_produto'] as String;
-      print('            ✅ tipo_produto: $tipoProduto');
-
-      final int ordem = json['ordem'] as int;
-      print('            ✅ ordem: $ordem');
-
-      final int subcategoriaId = json['subcategoria_id'] as int;
-      print('            ✅ subcategoria_id: $subcategoriaId');
-
-      final bool selecionado = json['selecionado'] as bool;
-      print('            ✅ selecionado: $selecionado');
-
-      final int quantidade = (json['quantidade'] as num).toInt();
-      print('            ✅ quantidade: $quantidade');
-
-      // tem_override: campo obrigatório da API
-      final bool temOverride = json['tem_override'] as bool;
-      print('            ✅ tem_override: $temOverride');
-
+      final bool temOverride = (json['tem_override'] as bool?) ?? false;
       final String? observacoes = json['observacoes'] as String?;
-      print('            ✅ observacoes: $observacoes');
 
-      // valor_original e ativo_original: campos obrigatórios da API
-      final double valorOriginal = (json['valor_original'] as num).toDouble();
-      print('            ✅ valor_original: $valorOriginal');
+      // Valores originais com fallback para valores atuais
+      final double valorOriginal =
+          (json['valor_original'] as num?)?.toDouble() ?? valor;
+      final bool ativoOriginal = (json['ativo_original'] as bool?) ?? ativo;
 
-      final bool ativoOriginal = json['ativo_original'] as bool;
-      print('            ✅ ativo_original: $ativoOriginal');
+      List<IndicadorEtapaEntity> indicadoresEtapa = [];
 
-      // indicadores_etapa: campo obrigatório da API (pode ser array vazio)
-      final List<dynamic> indicadoresEtapa =
-          json['indicadores_etapa'] as List<dynamic>;
-      print(
-          '            ✅ indicadores_etapa: ${indicadoresEtapa.length} itens');
+      if (json['indicadores_etapa'] != null &&
+          json['indicadores_etapa'] is List) {
+        indicadoresEtapa = (json['indicadores_etapa'] as List<dynamic>)
+            .map((item) =>
+                IndicadorEtapaDTO.fromJson(item as Map<String, dynamic>)
+                    .toEntity())
+            .toList();
+      } else if (json['indicadores'] != null && json['indicadores'] is List) {
+        // Fallback de contrato: em alguns endpoints os indicadores vêm em
+        indicadoresEtapa = (json['indicadores'] as List<dynamic>).map((item) {
+          final ind = item as Map<String, dynamic>;
+          final indEtapa = ind['indicador_etapa'] as Map<String, dynamic>?;
+          final grupo = indEtapa?['grupo'] as Map<String, dynamic>?;
+
+          final bool selecionado = ind['selecionado'] is bool
+              ? ind['selecionado'] as bool
+              : (ind['selecionado'] == 1);
+
+          return IndicadorEtapaEntity(
+            produtoIndicadorId: ind['id'] as int? ?? 0,
+            indicadorId: indEtapa?['id'] as int? ?? 0,
+            indicadorNome:
+                (indEtapa?['titulo'] ?? indEtapa?['nome'] ?? '') as String,
+            nomeEtapa: (indEtapa?['nome'] ?? '') as String,
+            grupoId: grupo?['id'] as int? ?? 0,
+            grupoNome: (grupo?['nome'] ?? grupo?['nome_grupo'] ?? '') as String,
+            selecionado: selecionado,
+          );
+        }).toList();
+      }
 
       return ProductDTO(
         id: id,
@@ -124,16 +127,11 @@ class ProductDTO {
         ativoOriginal: ativoOriginal,
         indicadoresEtapa: indicadoresEtapa,
       );
-    } catch (e, stackTrace) {
-      print('❌ [ProductDTO] Erro ao parsear produto: $e');
-      print('📄 JSON recebido: $json');
-      print('📋 Tipo do erro: ${e.runtimeType}');
-      print('Stack trace: $stackTrace');
+    } catch (e) {
       rethrow;
     }
   }
 
-  /// Converte o DTO para Entity
   ProductEntity toEntity() {
     return ProductEntity(
       id: id,
@@ -146,7 +144,7 @@ class ProductDTO {
       tipoProduto: tipoProduto,
       ordem: ordem,
       subcategoriaId: subcategoriaId,
-      selecionado: selecionado,
+      selecionado: quantidade > 0 ? selecionado : false,
       quantidade: quantidade,
       temOverride: temOverride,
       observacoes: observacoes,
@@ -156,7 +154,6 @@ class ProductDTO {
     );
   }
 
-  /// Converte o DTO para JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -175,11 +172,12 @@ class ProductDTO {
       'observacoes': observacoes,
       'valor_original': valorOriginal,
       'ativo_original': ativoOriginal,
-      'indicadores_etapa': indicadoresEtapa,
+      'indicadores_etapa': indicadoresEtapa
+          .map((e) => IndicadorEtapaDTO.fromEntity(e).toJson())
+          .toList(),
     };
   }
 
-  /// Converte uma Entity para DTO
   factory ProductDTO.fromEntity(ProductEntity entity) {
     return ProductDTO(
       id: entity.id,

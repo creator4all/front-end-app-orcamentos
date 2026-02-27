@@ -2,19 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:multimidiaapp/app/shared/widgets/custom_info_dialog.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_top_bar.dart';
 
+import '../../../auth/presentation/stores/auth_store.dart';
 import '../../domain/entities/drive_item.dart';
 import '../stores/file_opener_store.dart';
 import '../stores/new_drive_store.dart';
-import '../widgets/item_card_doc.dart';
+import '../widgets/drive_item_list_view.dart';
+import '../widgets/file_details_modal.dart';
 
-/// Página para exibir conteúdo de uma pasta
-///
-/// Permite ao usuário:
-/// - Ver todos os arquivos dentro de uma pasta específica
-/// - Navegar com breadcrumb
-/// - Abrir arquivos ou pastas aninhadas
 class FolderContentsPage extends StatefulWidget {
   final String folderId;
   final String? folderName;
@@ -32,12 +29,12 @@ class FolderContentsPage extends StatefulWidget {
 class _FolderContentsPageState extends State<FolderContentsPage> {
   final NewDriveStore store = Modular.get<NewDriveStore>();
   final FileOpenerStore fileOpenerStore = Modular.get<FileOpenerStore>();
+  final AuthStore _authStore = Modular.get<AuthStore>();
   final TextEditingController searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    // Carregar conteúdo da pasta
     store.loadFolderContents(widget.folderId);
   }
 
@@ -54,6 +51,11 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
       appBar: CustomTopBar(
         title: widget.folderName ?? 'Pasta',
         showBackButton: true,
+        onBackPressed: () {
+          store.navigateBack();
+          Navigator.of(context).pop();
+        },
+        authStore: _authStore,
       ),
       body: Observer(
         builder: (_) {
@@ -75,10 +77,7 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
 
           return Column(
             children: [
-              // Breadcrumb (opcional)
               _buildBreadcrumb(folder),
-
-              // Barra de pesquisa
               Padding(
                 padding: EdgeInsets.symmetric(
                   horizontal: 10.w,
@@ -86,8 +85,6 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
                 ),
                 child: _buildSearchField(),
               ),
-
-              // Texto informativo
               Padding(
                 padding: EdgeInsets.only(
                   left: 10.w,
@@ -106,29 +103,10 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
                   ),
                 ),
               ),
-
-              // ListView dos itens
               Expanded(
-                child: ListView.builder(
-                  padding: EdgeInsets.symmetric(horizontal: 10.w),
-                  itemCount: items.length,
-                  physics: const BouncingScrollPhysics(),
-                  itemBuilder: (context, index) {
-                    final item = items[index];
-                    return Column(
-                      children: [
-                        ItemCardDoc(
-                          itemName: item.name,
-                          itemSize: item.size,
-                          itemDate: item.getFormattedDate(),
-                          itemType: item.type,
-                          thumbnailUrl: item.thumbnailUrl,
-                          onTap: () => _handleItemTap(item),
-                        ),
-                        if (index < items.length - 1) SizedBox(height: 12.h),
-                      ],
-                    );
-                  },
+                child: DriveItemListView(
+                  items: items,
+                  onItemTap: _handleItemTap,
                 ),
               ),
             ],
@@ -138,7 +116,6 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
     );
   }
 
-  /// Breadcrumb para mostrar caminho dentro de pastas
   Widget _buildBreadcrumb(DriveItem folder) {
     return Padding(
       padding: EdgeInsets.symmetric(
@@ -149,30 +126,65 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            // Drive
-            Text(
-              'Drive',
-              style: TextStyle(
-                fontSize: 12.sp,
-                color: const Color(0xFF565E6C),
+            GestureDetector(
+              onTap: () {
+                store.navigateToStackIndex(-1);
+                Modular.to.popUntil(ModalRoute.withName('/drive/'));
+              },
+              child: Text(
+                'Drive',
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  color: const Color(0xFF565E6C),
+                ),
               ),
             ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8.w),
-              child: Icon(
-                Icons.chevron_right,
-                size: 16.sp,
-                color: const Color(0xFF565E6C),
-              ),
-            ),
-            // Pasta atual
-            Text(
-              folder.name,
-              style: TextStyle(
-                fontSize: 12.sp,
-                color: const Color(0xFF171A1F),
-                fontWeight: FontWeight.w600,
-              ),
+            Observer(
+              builder: (_) {
+                return Row(
+                  children: store.folderStack.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final breadcrumb = entry.value;
+                    final isLast = index == store.folderStack.length - 1;
+
+                    return Row(
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 8.w),
+                          child: Icon(
+                            Icons.chevron_right,
+                            size: 16.sp,
+                            color: const Color(0xFF565E6C),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: isLast
+                              ? null
+                              : () {
+                                  store.navigateToStackIndex(index);
+                                  final pops =
+                                      store.folderStack.length - 1 - index;
+                                  for (var i = 0; i < pops; i++) {
+                                    Navigator.of(context).pop();
+                                  }
+                                },
+                          child: Text(
+                            breadcrumb.name,
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: isLast
+                                  ? const Color(0xFF171A1F)
+                                  : const Color(0xFF565E6C),
+                              fontWeight:
+                                  isLast ? FontWeight.w600 : FontWeight.normal,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  }).toList(),
+                );
+              },
             ),
           ],
         ),
@@ -180,7 +192,6 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
     );
   }
 
-  /// Campo de busca
   Widget _buildSearchField() {
     return Container(
       constraints: BoxConstraints(maxHeight: 50.h),
@@ -215,7 +226,6 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
     );
   }
 
-  /// Estado vazio
   Widget _buildEmptyState() {
     return Center(
       child: Column(
@@ -248,7 +258,6 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
     );
   }
 
-  /// Estado de erro
   Widget _buildErrorState() {
     return Center(
       child: Column(
@@ -292,10 +301,10 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
     );
   }
 
-  /// Trata clique em item
   void _handleItemTap(DriveItem item) {
     if (item.type == DriveItemType.folder) {
-      // Navegar para a pasta
+      store.navigateToFolder(item.id, item.name);
+
       Modular.to.pushNamed(
         './folder',
         arguments: {
@@ -304,20 +313,50 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
         },
       );
     } else if (item.type == DriveItemType.video) {
-      // Navegar para video player
       Modular.to.pushNamed(
         './video-player',
         arguments: item,
       );
     } else if (item.type == DriveItemType.image) {
-      // Navegar para image viewer
       Modular.to.pushNamed(
         './image-viewer',
         arguments: item,
       );
     } else {
-      // Download e abrir arquivo (documento, etc)
-      fileOpenerStore.openFile(item);
+      FileDetailsModal.show(
+        context: context,
+        item: item,
+        onOpen: () => fileOpenerStore.openFile(item),
+        onDownload: () => _handleDownload(item),
+      );
+    }
+  }
+
+  Future<void> _handleDownload(DriveItem item) async {
+    final savedPath = await fileOpenerStore.downloadFile(item);
+    if (!mounted) return;
+
+    if (savedPath != null) {
+      final fileName = savedPath.split('/').last;
+      final folderPath = savedPath.substring(0, savedPath.lastIndexOf('/'));
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.success,
+        title: 'Download concluído',
+        message: 'O arquivo "$fileName" foi salvo em:\n$folderPath',
+      );
+      return;
+    }
+
+    final error = fileOpenerStore.errorMessage;
+    if (error != null && error.isNotEmpty) {
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.error,
+        title: 'Erro no download',
+        message: error,
+      );
+      fileOpenerStore.clearError();
     }
   }
 }

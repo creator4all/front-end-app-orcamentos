@@ -3,13 +3,15 @@ description: "Aplicativo para gerenciamento de orçamentos empresariais"
 
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
-version: 1.0.0+1
+version: 1.0.7+11
 
 environment:
   sdk: '>=3.4.1 <4.0.0'
 
 dependencies:
   flutter:
+    sdk: flutter
+  flutter_localizations:
     sdk: flutter
 
   cupertino_icons: ^1.0.2
@@ -20,6 +22,9 @@ dependencies:
   dartz: ^0.10.1
   flutter_screenutil: ^5.7.0
   equatable: ^2.0.5
+  collection: ^1.18.0
+  connectivity_plus: ^5.0.2
+  internet_connection_checker: ^1.0.0+1
   
   # State Management
   mobx: ^2.2.0
@@ -33,17 +38,27 @@ dependencies:
   skeletonizer: ^0.6.0
   copy_with_extension: ^5.0.0
   flutter_svg: ^2.0.9
-  intl: ^0.18.0
+  intl: ^0.19.0
   image_picker: ^1.0.4
   share_plus: ^7.2.1
   path_provider: ^2.1.1
+  url_launcher: ^6.2.5
+
   
   # Drive Module - File Management
   open_filex: ^4.3.2
   permission_handler: ^11.0.1
   photo_view: ^0.14.0
-  video_player: ^2.8.1
-  chewie: 1.7.0
+  video_player: ^2.9.1
+  chewie: ^1.8.1
+  
+  # Wakelock fix for Xcode 16+ (fixes 'messages.g.h' not found error)
+  wakelock_plus: ^1.4.0
+  
+  # Image Cropping & Upload
+  image_cropper: 9.0.0
+  http_parser: ^4.0.2
+
 
 dev_dependencies:
   flutter_test:
@@ -65,6 +80,7 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/videos/
 
 # Configuração do ícone do app
 flutter_launcher_icons:

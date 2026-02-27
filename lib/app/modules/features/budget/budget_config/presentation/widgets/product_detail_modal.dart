@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 
 import '../../domain/entities/product_entity.dart';
+import 'indicadores_etapa_section.dart';
 
-/// Modal que exibe detalhes completos de um produto
 class ProductDetailModal extends StatefulWidget {
   final ProductEntity product;
   final Function(int quantity, String? observations)? onSave;
@@ -51,10 +52,7 @@ class _ProductDetailModalState extends State<ProductDetailModal> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Header
             _buildHeader(context),
-
-            // Conteúdo
             Expanded(
               child: SingleChildScrollView(
                 padding: EdgeInsets.all(16.w),
@@ -69,23 +67,18 @@ class _ProductDetailModalState extends State<ProductDetailModal> {
                         'Tipo de Produto', widget.product.tipoProduto),
                     _buildSection(
                         'Valor Unitário', widget.product.formattedValue),
-
                     SizedBox(height: 16.h),
-
-                    // Quantidade
                     _buildQuantitySection(),
-
                     SizedBox(height: 16.h),
-
-                    // Valor Total
                     _buildTotalSection(),
-
                     SizedBox(height: 16.h),
-
-                    // Observações
                     _buildObservationsSection(),
-
-                    // Informações adicionais
+                    if (widget.product.indicadoresEtapa.isNotEmpty) ...[
+                      SizedBox(height: 16.h),
+                      IndicadoresEtapaSection(
+                        indicadores: widget.product.indicadoresEtapa,
+                      ),
+                    ],
                     if (widget.product.hasAnyOverride) ...[
                       SizedBox(height: 16.h),
                       _buildOverrideInfo(),
@@ -94,8 +87,6 @@ class _ProductDetailModalState extends State<ProductDetailModal> {
                 ),
               ),
             ),
-
-            // Footer
             if (widget.onSave != null) _buildFooter(context),
           ],
         ),
@@ -232,6 +223,7 @@ class _ProductDetailModalState extends State<ProductDetailModal> {
 
   Widget _buildTotalSection() {
     final total = widget.product.valor * _quantity;
+
     return Container(
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
@@ -250,7 +242,7 @@ class _ProductDetailModalState extends State<ProductDetailModal> {
             ),
           ),
           Text(
-            'R\$ ${total.toStringAsFixed(2)}',
+            CurrencyUtils.formatBRL(total),
             style: TextStyle(
               fontSize: 18.sp,
               fontWeight: FontWeight.bold,

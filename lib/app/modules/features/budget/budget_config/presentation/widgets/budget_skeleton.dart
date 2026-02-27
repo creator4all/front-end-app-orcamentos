@@ -1,9 +1,7 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
-/// Skeleton loading para tela de configuração de orçamento
-/// Exibe placeholders animados enquanto carrega dados completos
 class BudgetSkeleton extends StatelessWidget {
   const BudgetSkeleton({super.key});
 
@@ -21,142 +19,166 @@ class BudgetSkeleton extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Skeleton do BudgetSummaryCard
-            _buildSummaryCardSkeleton(),
-
+            _buildSummaryCardPlaceholder(),
+            SizedBox(height: 12.h),
+            _buildCensusPlaceholder(),
             SizedBox(height: 24.h),
-
-            // Skeleton do SchoolCensusCard
-            _buildCensusCardSkeleton(),
-
-            SizedBox(height: 24.h),
-
-            // Título "Categorias"
-            Container(
-              width: 120.w,
-              height: 20.h,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(4.r),
-              ),
-            ),
-
-            SizedBox(height: 16.h),
-
-            // Skeletons de Categorias (4 placeholders)
             ...List.generate(
               4,
               (index) => Padding(
                 padding: EdgeInsets.only(bottom: 12.h),
-                child: _buildCategoryCardSkeleton(),
+                child: _buildCategoryPlaceholder(),
               ),
             ),
-
-            SizedBox(height: 32.h),
-
-            // Skeleton do botão "Finalizar"
-            Container(
+            SizedBox(height: 24.h),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Data do orçamento',
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      SizedBox(height: 8.h),
+                      TextField(
+                        enabled: false,
+                        decoration: InputDecoration(
+                          hintText: '01/01/2026',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.r),
+                          ),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12.w,
+                            vertical: 12.h,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Validade do orç. *',
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      SizedBox(height: 8.h),
+                      TextField(
+                        enabled: false,
+                        decoration: InputDecoration(
+                          hintText: '60',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.r),
+                          ),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12.w,
+                            vertical: 12.h,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 24.h),
+            SizedBox(
               width: double.infinity,
               height: 50.h,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(8.r),
+              child: ElevatedButton(
+                onPressed: null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFBDBDBD),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                ),
+                child: Text(
+                  'Salvar Orçamento',
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    color: const Color(0xFF9E9E9E),
+                  ),
+                ),
               ),
             ),
+            SizedBox(height: 24.h),
           ],
         ),
       ),
     );
   }
 
-  /// Skeleton do card de resumo (topo)
-  Widget _buildSummaryCardSkeleton() {
+  Widget _buildSummaryCardPlaceholder() {
     return Container(
-      padding: EdgeInsets.all(16.w),
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Linha 1: Valor Total
-          _buildSkeletonRow(120.w, 140.w),
-          SizedBox(height: 12.h),
-          Divider(height: 1.h, color: Colors.grey[200]),
-          SizedBox(height: 12.h),
-          // Linha 2: Produtos
-          _buildSkeletonRow(100.w, 100.w),
-        ],
-      ),
-    );
-  }
-
-  /// Skeleton do card do censo escolar
-  Widget _buildCensusCardSkeleton() {
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: const Color(0xFFE0E0E0),
+        borderRadius: BorderRadius.circular(8.r),
       ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Ícone
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'R\$ 12.500,00',
+                style: TextStyle(
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF9E9E9E),
+                ),
+              ),
+              Text(
+                'Custo total',
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.normal,
+                  color: const Color(0xFF9E9E9E),
+                ),
+              ),
+            ],
+          ),
           Container(
             width: 48.w,
-            height: 48.h,
+            height: 37.h,
             decoration: BoxDecoration(
-              color: Colors.grey[300],
-              shape: BoxShape.circle,
+              color: const Color(0xFFBDBDBD),
+              borderRadius: BorderRadius.circular(10.r),
             ),
-          ),
-          SizedBox(width: 16.w),
-          // Textos
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Container(
-                  width: 150.w,
-                  height: 16.h,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(4.r),
-                  ),
+                const Icon(
+                  Icons.shopping_cart_outlined,
+                  color: Color(0xFF9E9E9E),
+                  size: 24,
                 ),
-                SizedBox(height: 8.h),
-                Container(
-                  width: 200.w,
-                  height: 14.h,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(4.r),
+                SizedBox(width: 4.w),
+                Text(
+                  '8',
+                  style: TextStyle(
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF9E9E9E),
                   ),
                 ),
               ],
-            ),
-          ),
-          // Ícone de seta
-          Container(
-            width: 24.w,
-            height: 24.h,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              shape: BoxShape.circle,
             ),
           ),
         ],
@@ -164,82 +186,53 @@ class BudgetSkeleton extends StatelessWidget {
     );
   }
 
-  /// Skeleton de um card de categoria
-  Widget _buildCategoryCardSkeleton() {
+  Widget _buildCategoryPlaceholder() {
     return Container(
-      padding: EdgeInsets.all(16.w),
+      width: double.infinity,
+      padding:
+          EdgeInsets.only(left: 12.w, top: 12.h, right: 12.w, bottom: 12.h),
+      constraints: BoxConstraints(maxHeight: 85.h),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(
-          color: Colors.grey[200]!,
-          width: 1.5,
-        ),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey[300]!, width: 1.0),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Checkbox
-          Container(
-            width: 20.w,
-            height: 20.h,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(5.r),
-            ),
+          const Icon(
+            Icons.category,
+            color: Colors.grey,
+            size: 24,
           ),
           SizedBox(width: 12.w),
-          // Ícone da categoria
-          Container(
-            width: 32.w,
-            height: 32.h,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              shape: BoxShape.circle,
-            ),
-          ),
-          SizedBox(width: 12.w),
-          // Informações
           Expanded(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 140.w,
-                  height: 16.h,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(4.r),
+                Text(
+                  'Categoria Exemplo',
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                SizedBox(height: 6.h),
-                Container(
-                  width: 100.w,
-                  height: 14.h,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(4.r),
+                SizedBox(height: 2.h),
+                Text(
+                  'R\$ 2.500,00',
+                  style: TextStyle(
+                    fontSize: 12.sp,
                   ),
                 ),
               ],
             ),
           ),
-          // Contador de produtos
-          Container(
-            width: 60.w,
-            height: 14.h,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(4.r),
-            ),
-          ),
-          SizedBox(width: 8.w),
-          // Ícone de ação
-          Container(
-            width: 24.w,
-            height: 24.h,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              shape: BoxShape.circle,
+          Text(
+            '3/10',
+            style: TextStyle(
+              fontSize: 12.sp,
+              color: Colors.grey[600],
             ),
           ),
         ],
@@ -247,28 +240,59 @@ class BudgetSkeleton extends StatelessWidget {
     );
   }
 
-  /// Helper para criar uma linha de skeleton com dois elementos
-  Widget _buildSkeletonRow(double leftWidth, double rightWidth) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Container(
-          width: leftWidth,
-          height: 16.h,
-          decoration: BoxDecoration(
-            color: Colors.grey[300],
-            borderRadius: BorderRadius.circular(4.r),
+  Widget _buildCensusPlaceholder() {
+    return Container(
+      width: double.infinity,
+      padding:
+          EdgeInsets.only(left: 12.w, top: 12.h, right: 12.w, bottom: 12.h),
+      constraints: BoxConstraints(maxHeight: 85.h),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.2),
+            blurRadius: 5,
+            offset: const Offset(0, 2),
           ),
-        ),
-        Container(
-          width: rightWidth,
-          height: 18.h,
-          decoration: BoxDecoration(
-            color: Colors.grey[300],
-            borderRadius: BorderRadius.circular(4.r),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.people,
+            color: Colors.grey,
+            size: 24,
           ),
-        ),
-      ],
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Censo Escolar',
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 2.h),
+                Text(
+                  '2 Turmas',
+                  style: TextStyle(fontSize: 12.sp),
+                ),
+                SizedBox(height: 2.h),
+                Text(
+                  '1.250 Estudantes',
+                  style: TextStyle(fontSize: 12.sp),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -1,35 +1,29 @@
-import 'package:dartz/dartz.dart';
+﻿import 'package:dartz/dartz.dart';
 
 import '../../../shared/errors/budget_failure.dart';
 import '../entities/budget_draft_entity.dart';
 import '../repositories/budget_draft_repository.dart';
 
-/// Caso de uso para criar um novo orçamento em rascunho
 class CreateDraftBudgetUseCase {
   final BudgetDraftRepository _repository;
 
   CreateDraftBudgetUseCase(this._repository);
 
-  /// Executa a criação do orçamento em rascunho
-  /// Retorna Either<BudgetFailure, BudgetDraftEntity>
   Future<Either<BudgetFailure, BudgetDraftEntity>> call(
     CreateBudgetDraftParams params,
   ) async {
     try {
-      // Validações básicas antes de chamar o repositório
       if (!params.isValid) {
         return const Left(ValidationFailure(
           'Dados inválidos para criar orçamento',
         ));
       }
 
-      // Cria o orçamento via repositório
       final result = await _repository.createDraft(params);
 
       return result.fold(
         (failure) => Left(failure),
         (draft) {
-          // Validação pós-criação
           if (!draft.isDraft) {
             return const Left(ValidationFailure(
               'Orçamento criado não está em estado de rascunho',

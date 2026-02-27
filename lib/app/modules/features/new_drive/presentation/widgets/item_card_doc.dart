@@ -4,7 +4,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../domain/entities/drive_item.dart';
 import 'authenticated_thumbnail.dart';
 
-/// Configuração de cores para cada tipo de item
 class DriveItemColors {
   final Color backgroundColor;
   final Color iconColor;
@@ -34,7 +33,6 @@ class DriveItemColors {
     iconColor: Color(0xFFFFD932),
   );
 
-  /// Retorna as cores baseadas no tipo de item
   static DriveItemColors fromType(DriveItemType type) {
     switch (type) {
       case DriveItemType.document:
@@ -49,42 +47,35 @@ class DriveItemColors {
   }
 }
 
-/// Componente reutilizável para exibir itens do drive
-///
-/// Suporta duas variantes:
-/// 1. Icon-based: Ícone colorido no topo esquerdo (padrão para documentos, imagens e pastas)
-/// 2. Image-based: Thumbnail de imagem quando o item é um vídeo
 class ItemCardDoc extends StatelessWidget {
-  final String itemName;
-  final String itemSize;
-  final String itemDate;
-  final DriveItemType itemType;
-  final String? thumbnailUrl;
+  final DriveItem item;
   final VoidCallback? onTap;
   final VoidCallback? onMenuTap;
-  final bool showDate; // Para cards de categoria que não mostram data
+  final VoidCallback? onLongPress;
+  final bool showDate;
+  final bool showMenu;
+  final int? maxNameLines;
 
   const ItemCardDoc({
     super.key,
-    required this.itemName,
-    required this.itemSize,
-    required this.itemDate,
-    required this.itemType,
-    this.thumbnailUrl,
+    required this.item,
     this.onTap,
     this.onMenuTap,
+    this.onLongPress,
     this.showDate = true,
+    this.showMenu = true,
+    this.maxNameLines,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Determina se deve usar variante com imagem (apenas para vídeos)
-    final bool hasImage = itemType == DriveItemType.video &&
-        thumbnailUrl != null &&
-        thumbnailUrl!.isNotEmpty;
+    final bool hasImage = item.type == DriveItemType.video &&
+        item.thumbnailUrl != null &&
+        item.thumbnailUrl!.isNotEmpty;
 
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onLongPress,
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -99,73 +90,68 @@ class ItemCardDoc extends StatelessWidget {
     );
   }
 
-  /// Variante com ícone colorido
   Widget _buildIconVariant() {
-    final colors = DriveItemColors.fromType(itemType);
+    final colors = DriveItemColors.fromType(item.type);
 
     return Padding(
-      padding: EdgeInsets.all(12.w),
-      child: Column(
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
         children: [
-          // Row com ícone e menu
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Container do ícone
-              Container(
-                width: 48.w,
-                height: 48.h,
-                decoration: BoxDecoration(
-                  color: colors.backgroundColor,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  _getIconForType(itemType),
-                  color: colors.iconColor,
-                  size: 24.sp,
-                ),
-              ),
-              const Spacer(),
-              // Menu de três pontos
-              GestureDetector(
-                onTap: onMenuTap,
-                child: Icon(
-                  Icons.more_horiz,
-                  color: const Color(0xFF565E6C),
-                  size: 20.sp,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 12.h),
-          // Nome do item
-          Text(
-            itemName,
-            style: TextStyle(
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF171A1F),
+          Container(
+            width: 36.w,
+            height: 36.h,
+            decoration: BoxDecoration(
+              color: colors.backgroundColor,
+              shape: BoxShape.circle,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+            child: Icon(
+              _getIconForType(item.type),
+              color: colors.iconColor,
+              size: 18.sp,
+            ),
           ),
-          SizedBox(height: 4.h),
-          // Metadata row (tamanho e data)
-          _buildMetadataRow(),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  item.name,
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF171A1F),
+                  ),
+                  maxLines: maxNameLines,
+                  overflow: maxNameLines != null ? TextOverflow.ellipsis : null,
+                ),
+                SizedBox(height: 4.h),
+                _buildMetadataRow(),
+              ],
+            ),
+          ),
+          SizedBox(width: 8.w),
+          if (showMenu)
+            GestureDetector(
+              onTap: onMenuTap,
+              child: Icon(
+                Icons.more_horiz,
+                color: const Color(0xFF565E6C),
+                size: 20.sp,
+              ),
+            ),
         ],
       ),
     );
   }
 
-  /// Variante com imagem de thumbnail
   Widget _buildImageVariant() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Container da imagem com menu sobreposto
         Stack(
           children: [
             ClipRRect(
@@ -173,59 +159,55 @@ class ItemCardDoc extends StatelessWidget {
                 topLeft: Radius.circular(6),
                 topRight: Radius.circular(6),
               ),
-              child: SizedBox(
-                height: 62.h,
-                width: double.infinity,
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
                 child: AuthenticatedThumbnail(
-                  url: thumbnailUrl!,
+                  url: item.thumbnailUrl!,
                   width: double.infinity,
-                  height: 62.h,
+                  height: double.infinity,
                   fit: BoxFit.cover,
                 ),
               ),
             ),
-            // Menu posicionado sobre a imagem
-            Positioned(
-              top: 8.h,
-              right: 8.w,
-              child: GestureDetector(
-                onTap: onMenuTap,
-                child: Container(
-                  padding: EdgeInsets.all(4.w),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.3),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.more_horiz,
-                    color: Colors.white,
-                    size: 20.sp,
+            if (showMenu)
+              Positioned(
+                top: 8.h,
+                right: 8.w,
+                child: GestureDetector(
+                  onTap: onMenuTap,
+                  child: Container(
+                    padding: EdgeInsets.all(4.w),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.3),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.more_horiz,
+                      color: Colors.white,
+                      size: 20.sp,
+                    ),
                   ),
                 ),
               ),
-            ),
           ],
         ),
-        // Informações do item
         Padding(
           padding: EdgeInsets.all(12.w),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Nome do item
               Text(
-                itemName,
+                item.name,
                 style: TextStyle(
                   fontSize: 14.sp,
                   fontWeight: FontWeight.w600,
                   color: const Color(0xFF171A1F),
                 ),
-                maxLines: 1,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
               SizedBox(height: 4.h),
-              // Metadata row
               _buildMetadataRow(),
             ],
           ),
@@ -234,48 +216,19 @@ class ItemCardDoc extends StatelessWidget {
     );
   }
 
-  /// Constrói a row de metadata (tamanho • data de compartilhamento ou tamanho • contagem)
   Widget _buildMetadataRow() {
-    return Row(
-      children: [
-        // Tamanho do arquivo
-        Text(
-          itemSize,
-          style: TextStyle(
-            fontSize: 12.sp,
-            color: const Color(0xFF565E6C),
-          ),
-        ),
-        if (showDate) ...[
-          SizedBox(width: 8.w),
-          // Separador circular
-          Container(
-            width: 4.w,
-            height: 4.h,
-            decoration: const BoxDecoration(
-              color: Color(0xFFDEE1E6),
-              shape: BoxShape.circle,
-            ),
-          ),
-          SizedBox(width: 8.w),
-          // Data de compartilhamento
-          Expanded(
-            child: Text(
-              itemDate,
-              style: TextStyle(
-                fontSize: 12.sp,
-                color: const Color(0xFF565E6C),
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ],
+    final formattedDate = item.getFormattedDate();
+    return Text(
+      showDate ? '${item.size} • $formattedDate' : item.size,
+      style: TextStyle(
+        fontSize: 12.sp,
+        color: const Color(0xFF565E6C),
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
     );
   }
 
-  /// Retorna o ícone apropriado para cada tipo de item
   IconData _getIconForType(DriveItemType type) {
     switch (type) {
       case DriveItemType.document:

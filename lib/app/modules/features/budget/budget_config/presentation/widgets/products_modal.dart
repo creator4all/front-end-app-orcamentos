@@ -1,10 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../domain/entities/product_entity.dart';
 import '../../domain/entities/subcategory_entity.dart';
 
-/// Modal que exibe os produtos de uma subcategoria
 class ProductsModal extends StatefulWidget {
   final SubcategoryEntity subcategory;
   final Function(ProductEntity) onProductTap;
@@ -24,14 +23,12 @@ class ProductsModal extends StatefulWidget {
 }
 
 class _ProductsModalState extends State<ProductsModal> {
-  // Estado local para controle de seleção
   final Map<int, bool> _localSelection = {};
   final Map<int, int> _localQuantities = {};
 
   @override
   void initState() {
     super.initState();
-    // Inicializar estado local com dados do widget
     for (var product in widget.subcategory.activeProdutos) {
       _localSelection[product.id] = product.selecionado;
       _localQuantities[product.id] = product.quantidade;
@@ -52,13 +49,10 @@ class _ProductsModalState extends State<ProductsModal> {
       ),
       child: Column(
         children: [
-          // Header
           _buildHeader(context),
 
-          // Divider
           Divider(height: 1, color: Colors.grey[300]),
 
-          // Lista de produtos
           Expanded(
             child: activeProducts.isEmpty
                 ? _buildEmptyState()
@@ -91,7 +85,6 @@ class _ProductsModalState extends State<ProductsModal> {
                   ),
           ),
 
-          // Footer com botão de aplicar
           _buildFooter(context),
         ],
       ),
@@ -182,7 +175,6 @@ class _ProductsModalState extends State<ProductsModal> {
         height: 48.h,
         child: ElevatedButton(
           onPressed: () {
-            // Aplicar mudanças
             _localSelection.forEach((productId, selected) {
               widget.onProductToggle(productId, selected);
             });
@@ -251,11 +243,9 @@ class _ProductCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Linha 1: Checkbox + Nome + Info
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Checkbox
               SizedBox(
                 width: 24.w,
                 height: 24.h,
@@ -266,7 +256,6 @@ class _ProductCard extends StatelessWidget {
                 ),
               ),
               SizedBox(width: 8.w),
-              // Nome do produto
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -292,7 +281,6 @@ class _ProductCard extends StatelessWidget {
                   ],
                 ),
               ),
-              // Botão de info
               IconButton(
                 icon: Icon(
                   Icons.info_outline,
@@ -308,7 +296,6 @@ class _ProductCard extends StatelessWidget {
 
           SizedBox(height: 8.h),
 
-          // Linha 2: Indicação + Valor
           Row(
             children: [
               Expanded(
@@ -336,7 +323,6 @@ class _ProductCard extends StatelessWidget {
 
           SizedBox(height: 8.h),
 
-          // Linha 3: Quantidade
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [

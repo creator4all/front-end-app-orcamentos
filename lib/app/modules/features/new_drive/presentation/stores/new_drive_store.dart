@@ -2,26 +2,34 @@ import 'package:mobx/mobx.dart';
 
 import '../../domain/entities/drive_category.dart';
 import '../../domain/entities/drive_item.dart';
+import '../../domain/repositories/drive_repository.dart';
 import '../../domain/usecases/get_folder_contents_usecase.dart';
 import '../../domain/usecases/get_own_files_usecase.dart';
 import '../../domain/usecases/get_recent_items_usecase.dart';
 
 part 'new_drive_store.g.dart';
 
+class FolderBreadcrumb {
+  final String id;
+  final String name;
+
+  FolderBreadcrumb({required this.id, required this.name});
+}
+
 class NewDriveStore = _NewDriveStoreBase with _$NewDriveStore;
 
 abstract class _NewDriveStoreBase with Store {
-  final GetRecentItemsUseCase? getRecentItemsUseCase;
-  final GetOwnFilesUseCase? getOwnFilesUseCase;
-  final GetFolderContentsUseCase? getFolderContentsUseCase;
+  final GetRecentItemsUseCase getRecentItemsUseCase;
+  final GetOwnFilesUseCase getOwnFilesUseCase;
+  final GetFolderContentsUseCase getFolderContentsUseCase;
+  final DriveRepository driveRepository;
 
   _NewDriveStoreBase({
-    this.getRecentItemsUseCase,
-    this.getOwnFilesUseCase,
-    this.getFolderContentsUseCase,
+    required this.getRecentItemsUseCase,
+    required this.getOwnFilesUseCase,
+    required this.getFolderContentsUseCase,
+    required this.driveRepository,
   });
-
-  // Observables
 
   @observable
   ObservableList<DriveItem> allItems = ObservableList<DriveItem>();
@@ -42,7 +50,7 @@ abstract class _NewDriveStoreBase with Store {
   DriveItemType? selectedCategoryType;
 
   @observable
-  String? viewMode; // 'category', 'my-files', 'all-shared'
+  String? viewMode;
 
   @observable
   ObservableList<DriveItem> ownFiles = ObservableList<DriveItem>();
@@ -51,33 +59,36 @@ abstract class _NewDriveStoreBase with Store {
   bool isLoadingOwnFiles = false;
 
   @observable
-  DriveItem? currentFolder; // Pasta atualmente aberta
+  DriveItem? currentFolder;
 
   @observable
   bool isLoadingFolder = false;
 
-  // Computed
+  @observable
+  ObservableList<FolderBreadcrumb> folderStack =
+      ObservableList<FolderBreadcrumb>();
 
   @computed
   List<DriveItem> get recentItems {
-    // Retorna os 4 itens compartilhados mais recentemente
-    final sorted = allItems.toList()
+    final sorted = allItems.where((item) => item.parentId == null).toList()
       ..sort((a, b) => b.lastViewed.compareTo(a.lastViewed));
     return sorted.take(4).toList();
   }
 
   @computed
   List<DriveItem> get selectedCategoryItems {
-    // Retorna itens filtrados pela categoria selecionada
     if (selectedCategoryType == null) {
       return [];
     }
-    return allItems.where((item) => item.type == selectedCategoryType).toList();
+    return allItems
+        .where(
+          (item) => item.type == selectedCategoryType && item.parentId == null,
+        )
+        .toList();
   }
 
   @computed
   List<DriveItem> get filteredCategoryItems {
-    // Retorna itens da categoria filtrados por busca
     var items = selectedCategoryItems;
 
     if (searchQuery.isEmpty) {
@@ -92,15 +103,12 @@ abstract class _NewDriveStoreBase with Store {
 
   @computed
   List<DriveItem> get viewItems {
-    // Retorna itens baseado no modo de visualização
     switch (viewMode) {
       case 'category':
         return selectedCategoryItems;
       case 'my-files':
-        // Arquivos enviados pelo usuário
         return ownFiles.toList();
       case 'all-shared':
-        // Todos os arquivos compartilhados
         return allItems;
       default:
         return [];
@@ -109,7 +117,6 @@ abstract class _NewDriveStoreBase with Store {
 
   @computed
   List<DriveItem> get filteredViewItems {
-    // Retorna itens do modo de visualização filtrados por busca
     var items = viewItems;
 
     if (searchQuery.isEmpty) {
@@ -122,12 +129,9 @@ abstract class _NewDriveStoreBase with Store {
         .toList();
   }
 
-  // Actions
-
   @action
   void setSearchQuery(String query) {
     searchQuery = query;
-    // TODO: Implementar busca quando usecase estiver disponível
   }
 
   @action
@@ -136,30 +140,15 @@ abstract class _NewDriveStoreBase with Store {
     errorMessage = null;
 
     try {
-      if (getRecentItemsUseCase != null) {
-        // Usar UseCase real
-        final result = await getRecentItemsUseCase!();
+      final result = await getRecentItemsUseCase();
 
-        result.fold(
-          (failure) {
-            errorMessage = failure.message;
-            isLoading = false;
-          },
-          (items) {
-            allItems.clear();
-            allItems.addAll(items);
-            isLoading = false;
-          },
-        );
-      } else {
-        // Fallback para dados mockados
-        await Future.delayed(const Duration(milliseconds: 500));
+      result.fold((failure) => errorMessage = failure.message, (items) {
         allItems.clear();
-        allItems.addAll(_getMockedRecentItems());
-        isLoading = false;
-      }
+        allItems.addAll(items);
+      });
     } catch (e) {
       errorMessage = 'Erro ao carregar itens compartilhados recentemente';
+    } finally {
       isLoading = false;
     }
   }
@@ -170,30 +159,15 @@ abstract class _NewDriveStoreBase with Store {
     errorMessage = null;
 
     try {
-      if (getOwnFilesUseCase != null) {
-        // Usar UseCase real
-        final result = await getOwnFilesUseCase!();
+      final result = await getOwnFilesUseCase();
 
-        result.fold(
-          (failure) {
-            errorMessage = failure.message;
-            isLoadingOwnFiles = false;
-          },
-          (items) {
-            ownFiles.clear();
-            ownFiles.addAll(items);
-            isLoadingOwnFiles = false;
-          },
-        );
-      } else {
-        // Fallback para dados mockados
-        await Future.delayed(const Duration(milliseconds: 500));
+      result.fold((failure) => errorMessage = failure.message, (items) {
         ownFiles.clear();
-        ownFiles.addAll(_getMockedRecentItems());
-        isLoadingOwnFiles = false;
-      }
+        ownFiles.addAll(items);
+      });
     } catch (e) {
       errorMessage = 'Erro ao carregar meus arquivos';
+    } finally {
       isLoadingOwnFiles = false;
     }
   }
@@ -204,56 +178,46 @@ abstract class _NewDriveStoreBase with Store {
     errorMessage = null;
 
     try {
-      if (getFolderContentsUseCase != null) {
-        // Usar UseCase real
-        final result = await getFolderContentsUseCase!(folderId);
+      final result = await getFolderContentsUseCase(folderId);
 
-        result.fold(
-          (failure) {
-            errorMessage = failure.message;
-            isLoadingFolder = false;
-          },
-          (folderItem) {
-            currentFolder = folderItem;
-            isLoadingFolder = false;
-          },
-        );
-      } else {
-        // Fallback para dados mockados
-        await Future.delayed(const Duration(milliseconds: 500));
-        currentFolder = _getMockedFolderItem();
-        isLoadingFolder = false;
-      }
+      result.fold(
+        (failure) => errorMessage = failure.message,
+        (folderItem) => currentFolder = folderItem,
+      );
     } catch (e) {
       errorMessage = 'Erro ao carregar conteúdo da pasta';
+    } finally {
       isLoadingFolder = false;
     }
   }
 
   @action
   Future<void> loadCategories() async {
-    // Categorias são fixas, mas as estatísticas vêm dos itens carregados
     categories.clear();
 
-    // Contar itens por tipo
-    final documents =
-        allItems.where((item) => item.type == DriveItemType.document).length;
-    final images =
-        allItems.where((item) => item.type == DriveItemType.image).length;
-    final videos =
-        allItems.where((item) => item.type == DriveItemType.video).length;
-    final folders =
-        allItems.where((item) => item.type == DriveItemType.folder).length;
+    final rootItems = allItems.where((item) => item.parentId == null);
 
-    // Calcular tamanho total por categoria
+    final documents =
+        rootItems.where((item) => item.type == DriveItemType.document).length;
+    final images =
+        rootItems.where((item) => item.type == DriveItemType.image).length;
+    final videos =
+        rootItems.where((item) => item.type == DriveItemType.video).length;
+    final folders =
+        rootItems.where((item) => item.type == DriveItemType.folder).length;
+
     final documentsSize = _calculateTotalSize(
-        allItems.where((item) => item.type == DriveItemType.document));
+      rootItems.where((item) => item.type == DriveItemType.document),
+    );
     final imagesSize = _calculateTotalSize(
-        allItems.where((item) => item.type == DriveItemType.image));
+      rootItems.where((item) => item.type == DriveItemType.image),
+    );
     final videosSize = _calculateTotalSize(
-        allItems.where((item) => item.type == DriveItemType.video));
+      rootItems.where((item) => item.type == DriveItemType.video),
+    );
     final foldersSize = _calculateTotalSize(
-        allItems.where((item) => item.type == DriveItemType.folder));
+      rootItems.where((item) => item.type == DriveItemType.folder),
+    );
 
     categories.addAll([
       DriveCategory(
@@ -287,27 +251,50 @@ abstract class _NewDriveStoreBase with Store {
     ]);
   }
 
-  /// Calcula tamanho total de uma lista de itens
   String _calculateTotalSize(Iterable<DriveItem> items) {
     if (items.isEmpty) return '0 MB';
 
-    // Como o size já vem formatado (ex: "2.5 MB"), precisamos fazer parse
-    // Por enquanto, vamos retornar uma estimativa baseada na contagem
-    // TODO: Melhorar quando backend fornecer tamanho em bytes
-    final count = items.length;
-    return '${(count * 10.5).toStringAsFixed(1)} MB';
+    double totalMB = 0.0;
+    for (final item in items) {
+      totalMB += _parseSizeToMB(item.size);
+    }
+    return '${totalMB.toStringAsFixed(1)} MB';
+  }
+
+  double _parseSizeToMB(String size) {
+    final regex = RegExp(r'([\d.]+)\s*(B|KB|MB|GB)', caseSensitive: false);
+    final match = regex.firstMatch(size);
+    if (match == null) return 0.0;
+
+    final value = double.tryParse(match.group(1)!) ?? 0.0;
+    final unit = match.group(2)!.toUpperCase();
+
+    return switch (unit) {
+      'B' => value / (1024 * 1024),
+      'KB' => value / 1024,
+      'MB' => value,
+      'GB' => value * 1024,
+      _ => 0.0,
+    };
   }
 
   @action
   Future<void> initialize() async {
     await loadRecentItems();
-    // Carregar categorias após ter os itens
     await loadCategories();
   }
 
   @action
   void clearError() {
     errorMessage = null;
+  }
+
+  Future<DriveItem?> getFileDetails(String fileId) async {
+    final result = await driveRepository.getFileDetails(fileId);
+    return result.fold((failure) {
+      errorMessage = failure.message;
+      return null;
+    }, (item) => item);
   }
 
   @action
@@ -323,10 +310,8 @@ abstract class _NewDriveStoreBase with Store {
   @action
   void setViewMode(String mode) {
     viewMode = mode;
-    // Limpar busca ao mudar de modo
     searchQuery = '';
 
-    // Carregar dados específicos do modo
     if (mode == 'my-files') {
       loadOwnFiles();
     }
@@ -338,100 +323,38 @@ abstract class _NewDriveStoreBase with Store {
     searchQuery = '';
   }
 
-  // Métodos auxiliares para dados mockados
-  // TODO: Remover quando integrar com backend
-
-  List<DriveItem> _getMockedRecentItems() {
-    final now = DateTime.now();
-    return [
-      DriveItem(
-        id: '1',
-        name: 'Relatório Mensal.pdf',
-        type: DriveItemType.document,
-        size: '2.5 MB',
-        lastViewed: now,
-      ),
-      DriveItem(
-        id: '2',
-        name: 'Apresentação Q4.pptx',
-        type: DriveItemType.document,
-        size: '8.3 MB',
-        lastViewed: now.subtract(const Duration(days: 1)),
-      ),
-      DriveItem(
-        id: '3',
-        name: 'Video Tutorial.mp4',
-        type: DriveItemType.video,
-        size: '101 MB',
-        lastViewed: now,
-        thumbnailUrl: 'https://via.placeholder.com/300x200',
-      ),
-      DriveItem(
-        id: '4',
-        name: 'Logo Empresa.png',
-        type: DriveItemType.image,
-        size: '512 KB',
-        lastViewed: now.subtract(const Duration(days: 2)),
-        thumbnailUrl: 'https://via.placeholder.com/300x200',
-      ),
-    ];
+  @action
+  void navigateToFolder(String folderId, String folderName) {
+    if (folderStack.isNotEmpty && folderStack.last.id == folderId) {
+      return;
+    }
+    folderStack.add(FolderBreadcrumb(id: folderId, name: folderName));
   }
 
-  List<DriveCategory> _getMockedCategories() {
-    return [
-      const DriveCategory(
-        id: 'cat_1',
-        name: 'Documentos',
-        type: DriveItemType.document,
-        itemCount: 300,
-        totalSize: '30.5 MB',
-      ),
-      const DriveCategory(
-        id: 'cat_2',
-        name: 'Imagens',
-        type: DriveItemType.image,
-        itemCount: 300,
-        totalSize: '30.5 MB',
-      ),
-      const DriveCategory(
-        id: 'cat_3',
-        name: 'Vídeos',
-        type: DriveItemType.video,
-        itemCount: 300,
-        totalSize: '30.5 MB',
-      ),
-      const DriveCategory(
-        id: 'cat_4',
-        name: 'Pastas',
-        type: DriveItemType.folder,
-        itemCount: 300,
-        totalSize: '30.5 MB',
-      ),
-    ];
+  @action
+  void navigateBack() {
+    if (folderStack.isNotEmpty) {
+      folderStack.removeLast();
+
+      if (folderStack.isNotEmpty) {
+        loadFolderContents(folderStack.last.id);
+      } else {
+        currentFolder = null;
+      }
+    }
   }
 
-  DriveItem _getMockedFolderItem() {
-    final now = DateTime.now();
-    return DriveItem(
-      id: '46',
-      name: 'Fundamental II',
-      type: DriveItemType.folder,
-      size: '0 B',
-      lastViewed: now,
-      parentId: null,
-      parentName: null,
-      children: [
-        DriveItem(
-          id: '45',
-          name: 'Ativação VPN Opera.mp4',
-          type: DriveItemType.video,
-          size: '35.6 MB',
-          lastViewed: now,
-          thumbnailUrl: 'https://via.placeholder.com/300x200',
-          parentId: 46,
-          parentName: 'Fundamental II',
-        ),
-      ],
-    );
+  @action
+  void navigateToStackIndex(int index) {
+    if (index >= 0 && index < folderStack.length) {
+      final itemsToRemove = folderStack.length - 1 - index;
+      for (var i = 0; i < itemsToRemove; i++) {
+        folderStack.removeLast();
+      }
+      loadFolderContents(folderStack.last.id);
+    } else if (index == -1) {
+      folderStack.clear();
+      currentFolder = null;
+    }
   }
 }

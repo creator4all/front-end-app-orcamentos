@@ -6,13 +6,6 @@ import 'package:photo_view/photo_view.dart';
 import '../../../../../../config/api_config.dart';
 import '../../domain/entities/drive_item.dart';
 
-/// Página de visualização de imagens com zoom
-///
-/// Features:
-/// - Carregamento direto por URL (streaming leve)
-/// - Zoom e pan
-/// - Loading states
-/// - Error handling
 class ImageViewerPage extends StatefulWidget {
   final DriveItem item;
 
@@ -46,7 +39,6 @@ class _ImageViewerPageState extends State<ImageViewerPage> {
 
   @override
   Widget build(BuildContext context) {
-    // URL da imagem (usa endpoint de view que já existe)
     final imageUrl = '${ApiConfig.baseUrl}/api/files/${widget.item.id}/view';
 
     if (_isLoading) {
@@ -81,15 +73,6 @@ class _ImageViewerPageState extends State<ImageViewerPage> {
         ),
         backgroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          // TODO: Adicionar botão de compartilhar, baixar, etc
-          IconButton(
-            icon: const Icon(Icons.more_vert),
-            onPressed: () {
-              // Menu de opções
-            },
-          ),
-        ],
       ),
       body: PhotoView(
         imageProvider: NetworkImage(

@@ -21,7 +21,7 @@ class _BudgetFilterWidgetState extends State<BudgetFilterWidget> {
   final TextEditingController _searchController = TextEditingController();
   final List<String> _selectedFilters = [
     'pendente'
-  ]; // Pendentes marcado por padrão
+  ];
 
   final List<Map<String, String>> _filterOptions = [
     {'key': 'aprovado', 'label': 'Aprovados'},
@@ -34,7 +34,6 @@ class _BudgetFilterWidgetState extends State<BudgetFilterWidget> {
   @override
   void initState() {
     super.initState();
-    // Informa ao widget pai que "Pendentes" já está selecionado por padrão
     WidgetsBinding.instance.addPostFrameCallback((_) {
       widget.onFiltersChanged?.call(_selectedFilters);
     });
@@ -60,7 +59,7 @@ class _BudgetFilterWidgetState extends State<BudgetFilterWidget> {
   void _resetFilters() {
     setState(() {
       _selectedFilters.clear();
-      _selectedFilters.add('pendente'); // Volta ao padrão com "Pendentes"
+      _selectedFilters.add('pendente');
       _searchController.clear();
     });
     widget.onFiltersChanged?.call(_selectedFilters);
@@ -84,7 +83,6 @@ class _BudgetFilterWidgetState extends State<BudgetFilterWidget> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header com título e botão resetar
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -113,7 +111,6 @@ class _BudgetFilterWidgetState extends State<BudgetFilterWidget> {
 
           SizedBox(height: 8.h),
 
-          // Campo de busca
           TextField(
             controller: _searchController,
             onChanged: widget.onSearchChanged,
@@ -149,7 +146,6 @@ class _BudgetFilterWidgetState extends State<BudgetFilterWidget> {
 
           SizedBox(height: 8.h),
 
-          // Chips de filtro em grid responsivo
           Wrap(
             spacing: 10.w,
             runSpacing: 10.h,

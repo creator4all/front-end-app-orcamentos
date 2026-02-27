@@ -8,14 +8,6 @@ import 'package:video_player/video_player.dart';
 import '../../../../../../config/api_config.dart';
 import '../../domain/entities/drive_item.dart';
 
-/// Página de reprodução de vídeo com Chewie
-///
-/// Features:
-/// - Streaming progressivo com Range Requests
-/// - Controles completos (play, pause, seek, volume, fullscreen)
-/// - Fullscreen com rotação automática
-/// - Auto-hide dos controles
-/// - Loading states e error handling
 class VideoPlayerPage extends StatefulWidget {
   final DriveItem item;
 
@@ -42,7 +34,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     _initializePlayer();
   }
 
-  /// Inicializa o player de vídeo com Chewie
   Future<void> _initializePlayer() async {
     try {
       setState(() {
@@ -50,11 +41,9 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         _errorMessage = null;
       });
 
-      // URL de streaming (usa Range Requests automaticamente)
       final streamUrl =
           '${ApiConfig.baseUrl}/api/files/${widget.item.id}/stream';
 
-      // Obter token de autenticação
       final token = await _secureStorage.read(key: 'auth_token') ?? '';
 
       if (token.isEmpty) {
@@ -65,9 +54,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         return;
       }
 
-      debugPrint('✅ Inicializando VideoPlayer com URL: $streamUrl');
-
-      // 1. Criar VideoPlayerController
       _videoController = VideoPlayerController.networkUrl(
         Uri.parse(streamUrl),
         httpHeaders: {
@@ -79,25 +65,20 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         ),
       );
 
-      // 2. Inicializar VideoPlayerController
       await _videoController!.initialize();
 
-      // 3. Criar ChewieController com controles completos
       _chewieController = ChewieController(
         videoPlayerController: _videoController!,
 
-        // Configurações de reprodução
         autoPlay: true,
         looping: false,
 
-        // Configurações de UI
         autoInitialize: true,
         allowFullScreen: true,
         allowMuting: true,
         showControlsOnInitialize: true,
         hideControlsTimer: const Duration(seconds: 3),
 
-        // Placeholder durante loading
         placeholder: Container(
           color: Colors.black,
           child: Center(
@@ -129,7 +110,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           ),
         ),
 
-        // Cores personalizadas (Material Design)
+        
         materialProgressColors: ChewieProgressColors(
           playedColor: const Color(0xFF2196F3),
           handleColor: const Color(0xFF1976D2),
@@ -137,12 +118,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           bufferedColor: Colors.grey.shade600,
         ),
 
-        // Orientações após sair do fullscreen
+        
         deviceOrientationsAfterFullScreen: [
           DeviceOrientation.portraitUp,
         ],
-
-        // Overlays do sistema após fullscreen
         systemOverlaysAfterFullScreen: [
           SystemUiOverlay.top,
           SystemUiOverlay.bottom,
@@ -152,10 +131,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       setState(() {
         _isInitialized = true;
       });
-
-      debugPrint('✅ Chewie inicializado com sucesso');
     } catch (e) {
-      debugPrint('❌ Erro ao inicializar player: $e');
       setState(() {
         _hasError = true;
         _errorMessage = 'Erro ao carregar vídeo: $e';
@@ -168,7 +144,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     _chewieController?.dispose();
     _videoController?.dispose();
 
-    // Restaurar orientação ao sair
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
     ]);
@@ -193,17 +168,13 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   }
 
   Widget _buildBody() {
-    // Estado de erro
     if (_hasError) {
       return _buildErrorState();
     }
-
-    // Estado de loading (antes de inicializar)
     if (!_isInitialized || _chewieController == null) {
       return _buildLoadingState();
     }
 
-    // Player Chewie (com todos os controles)
     return Center(
       child: Chewie(
         controller: _chewieController!,
@@ -211,7 +182,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     );
   }
 
-  /// Estado de loading inicial
   Widget _buildLoadingState() {
     return Center(
       child: Column(
@@ -233,7 +203,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     );
   }
 
-  /// Estado de erro com retry
   Widget _buildErrorState() {
     return Center(
       child: Padding(

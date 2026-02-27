@@ -1,14 +1,13 @@
-import 'package:dartz/dartz.dart';
+﻿import 'package:dartz/dartz.dart';
 
 import '../../../shared/errors/budget_failure.dart';
+import '../../../shared/models/budget_update_dto.dart';
 import '../entities/budget_edit_entity.dart';
 
-/// Contrato abstrato para operações de edição de orçamento
 abstract class BudgetEditRepository {
-  /// Busca os detalhes completos de um orçamento para edição
   Future<Either<BudgetFailure, BudgetEditEntity>> getBudgetForEdit(int id);
 
-  /// Atualiza um orçamento existente
+  @Deprecated('Use updateBudgetWithDto')
   Future<Either<BudgetFailure, BudgetEditEntity>> updateBudget({
     required int id,
     String? name,
@@ -17,5 +16,19 @@ abstract class BudgetEditRepository {
     String? status,
     bool? isArchived,
     List<int>? selectedProductIds,
+  });
+
+  Future<Either<BudgetFailure, BudgetEditEntity>> updateBudgetWithDto({
+    required int budgetId,
+    required BudgetUpdateDto updateData,
+  });
+
+  Future<Either<BudgetFailure, BudgetEditEntity>> versionBudgetWithDto({
+    required int budgetId,
+    required BudgetUpdateDto updateData,
+  });
+  Future<Either<BudgetFailure, BudgetEditEntity>> versionMultiCityBudgetWithDto({
+    required int budgetId,
+    required BudgetUpdateDto updateData,
   });
 }

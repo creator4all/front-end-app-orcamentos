@@ -2,17 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:multimidiaapp/app/modules/features/new_drive/presentation/widgets/drive_item_list_view.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_top_bar.dart';
 
+import '../../../auth/presentation/stores/auth_store.dart';
 import '../../domain/entities/drive_item.dart';
 import '../stores/file_opener_store.dart';
 import '../stores/new_drive_store.dart';
-import '../widgets/item_card_doc.dart';
 
-/// Página de detalhes de uma categoria
-///
-/// Exibe todos os itens de uma categoria específica em uma ListView full-width
-/// Permite ao usuário navegar entre itens, abrir e gerenciar arquivos
 class CategoryDetailsPage extends StatefulWidget {
   final DriveItemType categoryType;
 
@@ -28,18 +25,17 @@ class CategoryDetailsPage extends StatefulWidget {
 class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
   final NewDriveStore store = Modular.get<NewDriveStore>();
   final FileOpenerStore fileOpenerStore = Modular.get<FileOpenerStore>();
+  final AuthStore _authStore = Modular.get<AuthStore>();
   final TextEditingController searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    // Selecionar a categoria
     store.selectCategory(widget.categoryType);
   }
 
   @override
   void dispose() {
-    // Limpar seleção ao sair da página
     store.clearSelectedCategory();
     searchController.dispose();
     super.dispose();
@@ -52,82 +48,55 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
       appBar: CustomTopBar(
         title: _getCategoryTitle(widget.categoryType),
         showBackButton: true,
+        authStore: _authStore,
       ),
-      body: Observer(
-        builder: (_) {
-          final items = store.filteredCategoryItems;
-
-          if (items.isEmpty) {
-            return _buildEmptyState();
-          }
-
-          return Column(
-            children: [
-              // Barra de pesquisa
-              Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: 10.w,
-                  vertical: 16.h,
-                ),
-                child: _buildSearchField(),
-              ),
-
-              // Texto "Arquivos compartilhados com você"
-              Padding(
-                padding: EdgeInsets.only(
-                  left: 10.w,
-                  right: 10.w,
-                  bottom: 12.h,
-                ),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Arquivos compartilhados com você',
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w500,
-                      color: const Color(0xFF565E6C),
-                    ),
-                  ),
+      body: Column(
+        children: [
+          Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: 10.w,
+              vertical: 16.h,
+            ),
+            child: _buildSearchField(),
+          ),
+          Padding(
+            padding: EdgeInsets.only(
+              left: 10.w,
+              right: 10.w,
+              bottom: 12.h,
+            ),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Arquivos compartilhados com você',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF565E6C),
                 ),
               ),
-
-              // ListView dos itens
-              Expanded(
-                child: ListView.builder(
-                  padding: EdgeInsets.symmetric(horizontal: 10.w),
-                  itemCount: items.length,
-                  physics: const BouncingScrollPhysics(),
-                  itemBuilder: (context, index) {
-                    final item = items[index];
-                    return Column(
-                      children: [
-                        ItemCardDoc(
-                          itemName: item.name,
-                          itemSize: item.size,
-                          itemDate: item.getFormattedDate(),
-                          itemType: item.type,
-                          thumbnailUrl: item.thumbnailUrl,
-                          onTap: () => _handleFileOpen(item),
-                          onMenuTap: () {
-                            // TODO: Implementar menu de opções
-                            debugPrint('Menu tap on item: ${item.name}');
-                          },
-                        ),
-                        if (index < items.length - 1) SizedBox(height: 12.h),
-                      ],
-                    );
-                  },
-                ),
-              ),
-            ],
-          );
-        },
+            ),
+          ),
+          Expanded(
+            child: Observer(
+              builder: (_) {
+                final items = store.filteredCategoryItems;
+                if (items.isEmpty) {
+                  return _buildEmptyState();
+                }
+                return DriveItemListView(
+                  items: items,
+                  onItemTap: _handleFileOpen,
+                  onMenuTap: (item) {},
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  /// Campo de pesquisa de arquivos
   Widget _buildSearchField() {
     return Container(
       constraints: BoxConstraints(maxHeight: 50.h),
@@ -163,10 +132,8 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
     );
   }
 
-  /// Abre o arquivo, navega para pasta ou video
   void _handleFileOpen(DriveItem item) {
     if (item.type == DriveItemType.folder) {
-      // Navegar para a pasta
       Modular.to.pushNamed(
         './folder',
         arguments: {
@@ -175,24 +142,20 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
         },
       );
     } else if (item.type == DriveItemType.video) {
-      // Navegar para video player
       Modular.to.pushNamed(
         './video-player',
         arguments: item,
       );
     } else if (item.type == DriveItemType.image) {
-      // Navegar para image viewer
       Modular.to.pushNamed(
         './image-viewer',
         arguments: item,
       );
     } else {
-      // Download e abrir arquivo (documento, etc)
       fileOpenerStore.openFile(item);
     }
   }
 
-  /// Widget de estado vazio
   Widget _buildEmptyState() {
     final categoryName = _getCategoryTitle(widget.categoryType).toLowerCase();
     return Center(
@@ -217,7 +180,6 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
     );
   }
 
-  /// Obtém o título formatado da categoria
   String _getCategoryTitle(DriveItemType type) {
     switch (type) {
       case DriveItemType.document:

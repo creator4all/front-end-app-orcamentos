@@ -9,8 +9,14 @@ class BudgetDto {
   final int diasValidade;
   final DateTime? dataValidade;
   final String status;
+  final bool isArchived;
   final double total;
   final int cidadesCount;
+  final bool criadoPorAdmin;
+  final int? partnerDestinoId;
+  final int? usuarioId;
+  final String? usuarioNome;
+  final String? empresaRazaoSocial;
 
   BudgetDto({
     required this.id,
@@ -18,31 +24,39 @@ class BudgetDto {
     required this.diasValidade,
     this.dataValidade,
     required this.status,
+    this.isArchived = false,
     required this.total,
     required this.cidadesCount,
+    this.criadoPorAdmin = false,
+    this.partnerDestinoId,
+    this.usuarioId,
+    this.usuarioNome,
+    this.empresaRazaoSocial,
   });
 
   /// Factory para criar DTO a partir de JSON da API
   factory BudgetDto.fromJson(Map<String, dynamic> json) {
+    final usuarioJson = json['usuario'] as Map<String, dynamic>?;
+    final partnerDestinoJson = json['partner_destino'] as Map<String, dynamic>?;
+    final cidadesJson = json['cidades'];
+
     return BudgetDto(
-      id: (json['id'] ?? 0) is String
-          ? int.tryParse(json['id']) ?? 0
-          : (json['id'] ?? 0) as int,
+      id: json['id'] as int? ?? 0,
       nome: json['nome'] as String?,
-      diasValidade: (json['dias_validade'] ?? 0) is String
-          ? int.tryParse(json['dias_validade']) ?? 0
-          : (json['dias_validade'] ?? 0) as int,
+      diasValidade: json['dias_validade'] as int? ?? 0,
       dataValidade: json['data_validade'] != null &&
               (json['data_validade'] as String).isNotEmpty
           ? DateTime.tryParse(json['data_validade'])
           : null,
-      status: (json['status'] ?? '').toString(),
-      total: (json['total'] is int)
-          ? (json['total'] as int).toDouble()
-          : (json['total'] as num?)?.toDouble() ?? 0.0,
-      cidadesCount: (json['cidades'] ?? 0) is String
-          ? int.tryParse(json['cidades']) ?? 0
-          : (json['cidades'] ?? 0) as int,
+      status: json['status'] as String? ?? '',
+      isArchived: json['is_archived'] as bool? ?? false,
+      total: (json['total'] as num?)?.toDouble() ?? 0.0,
+      cidadesCount: cidadesJson is List ? cidadesJson.length : 0,
+      criadoPorAdmin: json['criado_por_admin'] as bool? ?? false,
+      partnerDestinoId: json['partner_destino_id'] as int?,
+      usuarioId: usuarioJson?['id'] as int?,
+      usuarioNome: usuarioJson?['nome'] as String?,
+      empresaRazaoSocial: partnerDestinoJson?['razao_social'] as String?,
     );
   }
 
@@ -54,8 +68,14 @@ class BudgetDto {
       diasValidade: diasValidade,
       dataValidade: dataValidade,
       status: status,
+      isArchived: isArchived,
       total: total,
       cidadesCount: cidadesCount,
+      criadoPorAdmin: criadoPorAdmin,
+      partnerDestinoId: partnerDestinoId,
+      usuarioId: usuarioId,
+      usuarioNome: usuarioNome,
+      empresaRazaoSocial: empresaRazaoSocial,
     );
   }
 
@@ -67,8 +87,14 @@ class BudgetDto {
       diasValidade: entity.diasValidade,
       dataValidade: entity.dataValidade,
       status: entity.status,
+      isArchived: entity.isArchived,
       total: entity.total,
       cidadesCount: entity.cidadesCount,
+      criadoPorAdmin: entity.criadoPorAdmin,
+      partnerDestinoId: entity.partnerDestinoId,
+      usuarioId: entity.usuarioId,
+      usuarioNome: entity.usuarioNome,
+      empresaRazaoSocial: entity.empresaRazaoSocial,
     );
   }
 
@@ -80,8 +106,19 @@ class BudgetDto {
       'dias_validade': diasValidade,
       'data_validade': dataValidade?.toIso8601String(),
       'status': status,
+      'is_archived': isArchived,
       'total': total,
-      'cidades': cidadesCount,
+      'criado_por_admin': criadoPorAdmin,
+      'partner_destino_id': partnerDestinoId,
+      'usuario': usuarioId != null
+          ? {
+              'id': usuarioId,
+              'nome': usuarioNome,
+            }
+          : null,
+      'partner_destino': empresaRazaoSocial != null
+          ? {'razao_social': empresaRazaoSocial}
+          : null,
     };
   }
 }

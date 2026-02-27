@@ -3,6 +3,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:mobx/mobx.dart';
+import 'package:multimidiaapp/app/shared/widgets/custom_info_dialog.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_top_bar.dart';
 
 import '../../../auth/presentation/stores/auth_store.dart';
@@ -10,16 +11,9 @@ import '../../domain/entities/drive_item.dart';
 import '../stores/file_opener_store.dart';
 import '../stores/new_drive_store.dart';
 import '../widgets/category_card.dart';
+import '../widgets/file_details_modal.dart';
 import '../widgets/item_card_doc.dart';
 
-/// Tela principal do módulo Multi Drive
-///
-/// Exibe:
-/// - Campo de busca
-/// - Seção de arquivos compartilhados recentemente (limitado a 4)
-/// - Botão para meus arquivos (apenas administradores)
-/// - Botão para todos os arquivos compartilhados
-/// - Seção de categorias (Documentos, Imagens, Vídeos, Pastas)
 class NewDrivePage extends StatefulWidget {
   const NewDrivePage({super.key});
 
@@ -36,15 +30,20 @@ class _NewDrivePageState extends State<NewDrivePage> {
   @override
   void initState() {
     super.initState();
-    // Carregar dados iniciais
-    store.initialize();
+    store.folderStack.clear();
+    store.currentFolder = null;
 
-    // Observar erros da FileOpenerStore e mostrar SnackBar
+    store.initialize();
     reaction(
       (_) => fileOpenerStore.errorMessage,
       (String? errorMessage) {
         if (errorMessage != null && errorMessage.isNotEmpty) {
-          _showErrorSnackBar(errorMessage);
+          CustomInfoDialog.show(
+            context: context,
+            type: DialogType.error,
+            title: 'Erro',
+            message: errorMessage,
+          );
           fileOpenerStore.clearError();
         }
       },
@@ -61,9 +60,10 @@ class _NewDrivePageState extends State<NewDrivePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF3F4F6),
-      appBar: const CustomTopBar(
+      appBar: CustomTopBar(
         title: 'Multi Drive',
         showBackButton: true,
+        authStore: authStore,
       ),
       body: Observer(
         builder: (_) {
@@ -71,63 +71,96 @@ class _NewDrivePageState extends State<NewDrivePage> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          return SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Conteúdo com padding lateral
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 10.w),
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight,
+                  ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      SizedBox(height: 16.h),
-
-                      // Campo de busca
-                      _buildSearchField(),
-
-                      SizedBox(height: 24.h),
-
-                      // Seção de vistos recentemente (apenas se houver itens)
-                      Observer(
-                        builder: (_) {
-                          if (store.recentItems.isNotEmpty) {
-                            return Column(
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 10.w),
+                            child: Column(
                               children: [
-                                _buildRecentSection(),
-                                SizedBox(height: 24.h),
+                                SizedBox(height: 16.h),
+                                _buildSearchField(),
                               ],
-                            );
-                          }
-                          return const SizedBox.shrink();
-                        },
+                            ),
+                          ),
+                          Observer(
+                            builder: (_) {
+                              if (store.recentItems.isNotEmpty) {
+                                return Padding(
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 10.w, vertical: 24.h),
+                                  child: _buildRecentSection(),
+                                );
+                              }
+                              return Padding(
+                                padding: EdgeInsets.symmetric(vertical: 48.h),
+                                child: Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.folder_open_outlined,
+                                        size: 48.sp,
+                                        color: const Color(0xFF9095A0),
+                                      ),
+                                      SizedBox(height: 12.h),
+                                      Text(
+                                        authStore.isAdmin
+                                            ? 'Nenhum item compartilhado com você\nou enviado por você'
+                                            : 'Nenhum item compartilhado com você ainda',
+                                        style: TextStyle(
+                                          fontSize: 13.sp,
+                                          color: const Color(0xFF565E6C),
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
-
-                      // Botão "Meus arquivos" (apenas para admin)
-                      if (authStore.isAdmin) ...[
-                        _buildMyFilesButton(),
-                        SizedBox(height: 12.h),
-                      ],
-
-                      // Botão de todos os arquivos compartilhados
-                      _buildSharedFilesButton(),
-
-                      SizedBox(height: 24.h),
+                      Column(
+                        children: [
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 10.w),
+                            child: Column(
+                              children: [
+                                if (authStore.isAdmin) ...[
+                                  _buildMyFilesButton(),
+                                  SizedBox(height: 12.h),
+                                ],
+                                _buildSharedFilesButton(),
+                                SizedBox(height: 16.h),
+                              ],
+                            ),
+                          ),
+                          _buildCategoriesSection(),
+                        ],
+                      ),
                     ],
                   ),
                 ),
-
-                // Seção de categorias (largura total, dentro do scroll)
-                _buildCategoriesSection(),
-              ],
-            ),
+              );
+            },
           );
         },
       ),
     );
   }
 
-  /// Campo de busca de arquivos
   Widget _buildSearchField() {
     return Container(
       constraints: BoxConstraints(maxHeight: 50.h),
@@ -163,12 +196,10 @@ class _NewDrivePageState extends State<NewDrivePage> {
     );
   }
 
-  /// Seção de arquivos compartilhados recentemente
   Widget _buildRecentSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Título da seção
         Text(
           'Compartilhados recentemente',
           style: TextStyle(
@@ -178,8 +209,6 @@ class _NewDrivePageState extends State<NewDrivePage> {
           ),
         ),
         SizedBox(height: 12.h),
-
-        // Grid de 2x2 com arquivos recentes
         Observer(
           builder: (_) {
             final items = store.recentItems.take(4).toList();
@@ -190,7 +219,6 @@ class _NewDrivePageState extends State<NewDrivePage> {
 
             return Column(
               children: [
-                // Primeira linha (2 cards)
                 Row(
                   children: [
                     Expanded(
@@ -203,7 +231,6 @@ class _NewDrivePageState extends State<NewDrivePage> {
                   ],
                 ),
                 SizedBox(height: 12.h),
-                // Segunda linha (2 cards)
                 Row(
                   children: [
                     Expanded(
@@ -223,31 +250,65 @@ class _NewDrivePageState extends State<NewDrivePage> {
     );
   }
 
-  /// Constrói um card de item recente
   Widget _buildRecentItemCard(DriveItem? item) {
     if (item == null) {
       return const SizedBox.shrink();
     }
 
     return ItemCardDoc(
-      itemName: item.name,
-      itemSize: item.size,
-      itemDate: item.getFormattedDate(),
-      itemType: item.type,
-      thumbnailUrl: item.thumbnailUrl,
-      onTap: () => _handleFileOpen(item),
-      onMenuTap: () {
-        // TODO: Implementar menu de opções
-        debugPrint('Menu tap on item: ${item.name}');
-      },
+      item: item,
+      maxNameLines: 2,
+      showMenu: false,
+      onTap: item.type == DriveItemType.folder
+          ? () => _handleFileOpen(item)
+          : () => _showFileDetails(item),
     );
   }
 
-  /// Botão para meus arquivos (apenas administrador)
+  void _showFileDetails(DriveItem item) {
+    FileDetailsModal.show(
+      context: context,
+      item: item,
+      onOpen: () => _handleFileOpenAsync(item),
+      onDownload: () => _handleDownloadAsync(item),
+    );
+  }
+
+  Future<void> _handleFileOpenAsync(DriveItem item) async {
+    await _handleFileOpen(item);
+  }
+
+  Future<void> _handleDownloadAsync(DriveItem item) async {
+    final savedPath = await fileOpenerStore.downloadFile(item);
+    if (!mounted) return;
+
+    if (savedPath != null) {
+      final fileName = savedPath.split('/').last;
+      final folderPath = savedPath.substring(0, savedPath.lastIndexOf('/'));
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.success,
+        title: 'Download concluído',
+        message: 'O arquivo "$fileName" foi salvo em:\n$folderPath',
+      );
+      return;
+    }
+
+    final error = fileOpenerStore.errorMessage;
+    if (error != null && error.isNotEmpty) {
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.error,
+        title: 'Erro no download',
+        message: error,
+      );
+      fileOpenerStore.clearError();
+    }
+  }
+
   Widget _buildMyFilesButton() {
     return InkWell(
       onTap: () {
-        // Navegar para meus arquivos
         Modular.to.pushNamed('./my-files');
       },
       child: Container(
@@ -282,11 +343,9 @@ class _NewDrivePageState extends State<NewDrivePage> {
     );
   }
 
-  /// Botão de todos os arquivos compartilhados
   Widget _buildSharedFilesButton() {
     return InkWell(
       onTap: () {
-        // Navegar para todos os arquivos compartilhados
         Modular.to.pushNamed('./shared-files');
       },
       child: Container(
@@ -321,7 +380,6 @@ class _NewDrivePageState extends State<NewDrivePage> {
     );
   }
 
-  /// Seção de categorias de arquivos
   Widget _buildCategoriesSection() {
     return Container(
       width: double.infinity,
@@ -334,8 +392,8 @@ class _NewDrivePageState extends State<NewDrivePage> {
       ),
       padding: EdgeInsets.all(10.w),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Header da seção
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -355,8 +413,6 @@ class _NewDrivePageState extends State<NewDrivePage> {
             ],
           ),
           SizedBox(height: 16.h),
-
-          // Grid de categorias
           Observer(
             builder: (_) {
               final categories = store.categories;
@@ -372,7 +428,7 @@ class _NewDrivePageState extends State<NewDrivePage> {
                   crossAxisCount: 2,
                   crossAxisSpacing: 12.w,
                   mainAxisSpacing: 12.h,
-                  childAspectRatio: 1.3,
+                  childAspectRatio: 2.5,
                 ),
                 itemCount: categories.length,
                 itemBuilder: (context, index) {
@@ -383,7 +439,6 @@ class _NewDrivePageState extends State<NewDrivePage> {
                     itemCount: category.itemCount,
                     totalSize: category.totalSize,
                     onTap: () {
-                      // Navegar para a página de detalhes da categoria
                       Modular.to.pushNamed(
                         './category',
                         arguments: category.type,
@@ -399,7 +454,6 @@ class _NewDrivePageState extends State<NewDrivePage> {
     );
   }
 
-  /// Estado vazio genérico
   Widget _buildEmptyState(String message) {
     return Center(
       child: Padding(
@@ -416,10 +470,9 @@ class _NewDrivePageState extends State<NewDrivePage> {
     );
   }
 
-  /// Manipula a abertura de um arquivo
   Future<void> _handleFileOpen(DriveItem item) async {
-    // 1. Pastas -> Navegar para pasta
     if (item.type == DriveItemType.folder) {
+      store.navigateToFolder(item.id, item.name);
       Modular.to.pushNamed(
         './folder',
         arguments: {
@@ -430,19 +483,15 @@ class _NewDrivePageState extends State<NewDrivePage> {
       return;
     }
 
-    // 2. Vídeos -> Streaming player
     if (item.type == DriveItemType.video) {
       Modular.to.pushNamed('./video-player', arguments: item);
       return;
     }
-
-    // 3. Imagens -> Viewer com zoom
     if (item.type == DriveItemType.image) {
       Modular.to.pushNamed('./image-viewer', arguments: item);
       return;
     }
 
-    // 4. Documentos/PDFs/outros -> Download + App nativo
     _showLoadingDialog();
     await fileOpenerStore.openFile(item);
     if (mounted) {
@@ -450,7 +499,6 @@ class _NewDrivePageState extends State<NewDrivePage> {
     }
   }
 
-  /// Exibe modal de loading durante download
   void _showLoadingDialog() {
     showDialog(
       context: context,
@@ -482,25 +530,6 @@ class _NewDrivePageState extends State<NewDrivePage> {
               ],
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  /// Exibe SnackBar com mensagem de erro
-  void _showErrorSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 4),
-        behavior: SnackBarBehavior.floating,
-        action: SnackBarAction(
-          label: 'OK',
-          textColor: Colors.white,
-          onPressed: () {
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          },
         ),
       ),
     );

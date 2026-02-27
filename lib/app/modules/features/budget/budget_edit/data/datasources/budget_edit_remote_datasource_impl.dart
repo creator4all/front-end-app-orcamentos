@@ -1,30 +1,27 @@
-import 'package:dio/dio.dart';
+﻿import 'package:multimidiaapp/app/shared/core/http/app_http_client.dart';
 
-import '../../../../../../../services/api_service.dart';
+import '../../../shared/models/budget_update_dto.dart';
 import '../models/budget_edit_dto.dart';
 import 'budget_edit_remote_datasource.dart';
 
 class BudgetEditRemoteDataSourceImpl implements BudgetEditRemoteDataSource {
-  final ApiService apiService;
+  final AppHttpClient _client;
 
-  BudgetEditRemoteDataSourceImpl(this.apiService);
+  BudgetEditRemoteDataSourceImpl(this._client);
 
   @override
   Future<BudgetEditDto> getBudgetForEdit(int id) async {
     try {
-      print('🌐 [BudgetEditDataSource] GET /api/orcamentos/$id');
+      final response = await _client.get('/api/orcamentos/$id');
 
-      final response = await apiService.get('/api/orcamentos/$id');
-      print('📡 [BudgetEditDataSource] Response: $response');
+      if (response.isSuccess) {
+        final data = response.body['dados'] as Map<String, dynamic>;
+        return BudgetEditDto.fromJson(data);
+      }
 
-      final data = response['dados'] ?? response['data'] ?? response;
-
-      print('✅ [BudgetEditDataSource] Orçamento carregado para edição');
-
-      return BudgetEditDto.fromJson(Map<String, dynamic>.from(data as Map));
-    } on DioException catch (e) {
-      print('❌ [BudgetEditDataSource] Erro Dio: ${e.message}');
-      throw _handleDioError(e);
+      throw Exception(response.body['error'] ?? 'Orçamento não encontrado');
+    } catch (e) {
+      rethrow;
     }
   }
 
@@ -39,54 +36,105 @@ class BudgetEditRemoteDataSourceImpl implements BudgetEditRemoteDataSource {
     List<int>? selectedProductIds,
   }) async {
     try {
-      print('🌐 [BudgetEditDataSource] PUT /api/orcamentos/$id');
-
       final Map<String, dynamic> body = {};
 
       if (name != null) body['nome'] = name;
       if (validityDays != null) body['orc_dias_validade'] = validityDays;
-      if (validityDate != null)
+      if (validityDate != null) {
         body['orc_data_validade'] = validityDate.toIso8601String();
+      }
       if (status != null) body['orc_status'] = status;
-      if (selectedProductIds != null)
+      if (selectedProductIds != null) {
         body['produtos_selecionados'] = selectedProductIds;
+      }
 
-      print('📋 [BudgetEditDataSource] Body: $body');
+      final response = await _client.put(
+        '/api/orcamentos/$id',
+        data: body,
+      );
 
-      final response = await apiService.put('/api/orcamentos/$id', body);
-      print('📡 [BudgetEditDataSource] Response: $response');
+      if (response.isSuccess) {
+        final data = response.body['dados'] as Map<String, dynamic>;
+        return BudgetEditDto.fromJson(data);
+      }
 
-      final data = response['dados'] ?? response['data'] ?? response;
-
-      print('✅ [BudgetEditDataSource] Orçamento atualizado');
-
-      return BudgetEditDto.fromJson(Map<String, dynamic>.from(data as Map));
-    } on DioException catch (e) {
-      print('❌ [BudgetEditDataSource] Erro Dio: ${e.message}');
-      throw _handleDioError(e);
+      throw Exception(response.body['error'] ?? 'Erro ao atualizar orçamento');
+    } catch (e) {
+      rethrow;
     }
   }
 
-  Exception _handleDioError(DioException error) {
-    switch (error.type) {
-      case DioExceptionType.connectionTimeout:
-      case DioExceptionType.sendTimeout:
-      case DioExceptionType.receiveTimeout:
-        return Exception('Timeout na conexão com o servidor');
-      case DioExceptionType.badResponse:
-        final statusCode = error.response?.statusCode;
-        if (statusCode == 404) {
-          return Exception('Orçamento não encontrado');
-        } else if (statusCode == 401 || statusCode == 403) {
-          return Exception('Não autorizado');
-        }
-        return Exception('Erro no servidor: ${error.response?.data}');
-      case DioExceptionType.cancel:
-        return Exception('Requisição cancelada');
-      case DioExceptionType.connectionError:
-        return Exception('Sem conexão com a internet');
-      default:
-        return Exception('Erro desconhecido: ${error.message}');
+  @override
+  Future<BudgetEditDto> updateBudgetWithDto({
+    required int budgetId,
+    required BudgetUpdateDto updateData,
+  }) async {
+    try {
+      final body = updateData.toJson();
+
+      final response = await _client.put(
+        '/api/orcamentos/$budgetId',
+        data: body,
+      );
+
+      if (response.isSuccess) {
+        final data = response.body['dados'] as Map<String, dynamic>;
+        return BudgetEditDto.fromJson(data);
+      }
+
+      throw Exception(response.body['error'] ?? 'Erro ao atualizar orçamento');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
+  Future<BudgetEditDto> versionBudgetWithDto({
+    required int budgetId,
+    required BudgetUpdateDto updateData,
+  }) async {
+    try {
+      final body = updateData.toJson();
+
+      final response = await _client.post(
+        '/api/orcamentos/$budgetId/versionar',
+        data: body,
+      );
+
+      if (response.isSuccess) {
+        final data = response.body['dados'] as Map<String, dynamic>;
+        return BudgetEditDto.fromJson(data);
+      }
+
+      throw Exception(response.body['error'] ?? 'Erro ao versionar orçamento');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  @override
+  Future<BudgetEditDto> versionMultiCityBudgetWithDto({
+    required int budgetId,
+    required BudgetUpdateDto updateData,
+  }) async {
+    try {
+      final body = updateData.toJsonForMultiCity();
+
+      final response = await _client.post(
+        '/api/orcamentos/$budgetId/versionar-multi-cidade',
+        data: body,
+      );
+
+      if (response.isSuccess) {
+        final data = response.body['dados'] as Map<String, dynamic>;
+        return BudgetEditDto.fromJson(data);
+      }
+
+      throw Exception(
+        response.body['error'] ?? 'Erro ao versionar orçamento multi-cidade',
+      );
+    } catch (e) {
+      rethrow;
     }
   }
 }

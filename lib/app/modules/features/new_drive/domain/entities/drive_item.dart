@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
-/// Enum para tipos de itens do drive
+import 'shared_by_user.dart';
+
 enum DriveItemType {
   document,
   video,
@@ -8,8 +9,6 @@ enum DriveItemType {
   folder,
 }
 
-/// Entidade que representa um item do drive
-/// Esta é uma entidade pura de domínio sem dependências externas
 class DriveItem extends Equatable {
   final String id;
   final String name;
@@ -17,10 +16,11 @@ class DriveItem extends Equatable {
   final String size;
   final DateTime lastViewed;
   final String? thumbnailUrl;
-  final int? itemCount; // Para pastas/categorias
-  final int? parentId; // ID da pasta pai
-  final String? parentName; // Nome da pasta pai (para exibição)
-  final List<DriveItem>? children; // Itens dentro desta pasta
+  final int? parentId;
+  final String? parentName;
+  final List<DriveItem>? children;
+  final SharedByUser? sharedBy;
+  final String? downloadUrl;
 
   const DriveItem({
     required this.id,
@@ -29,18 +29,12 @@ class DriveItem extends Equatable {
     required this.size,
     required this.lastViewed,
     this.thumbnailUrl,
-    this.itemCount,
     this.parentId,
     this.parentName,
     this.children,
+    this.sharedBy,
+    this.downloadUrl,
   });
-
-  /// Formata a data de compartilhamento de acordo com as regras de negócio
-  /// - "compartilhado hoje" se for hoje
-  /// - "compartilhado ontem" se foi ontem
-  /// - "compartilhado semana passada" se foi nos últimos 7 dias
-  /// - "DD/MM" para outras datas no mesmo ano
-  /// - "DD/MM/YYYY" para datas de anos anteriores
   String getFormattedDate() {
     final now = DateTime.now();
     final difference = now.difference(lastViewed);
@@ -52,15 +46,16 @@ class DriveItem extends Equatable {
     } else if (difference.inDays <= 7) {
       return 'compartilhado semana passada';
     } else {
-      // Se for do mesmo ano, não mostra o ano
       if (lastViewed.year == now.year) {
         return '${lastViewed.day.toString().padLeft(2, '0')}/${lastViewed.month.toString().padLeft(2, '0')}';
       } else {
-        // Se for de outro ano, mostra o ano completo
         return '${lastViewed.day.toString().padLeft(2, '0')}/${lastViewed.month.toString().padLeft(2, '0')}/${lastViewed.year}';
       }
     }
   }
+
+  @override
+  bool get stringify => true;
 
   @override
   List<Object?> get props => [
@@ -70,9 +65,10 @@ class DriveItem extends Equatable {
         size,
         lastViewed,
         thumbnailUrl,
-        itemCount,
         parentId,
         parentName,
         children,
+        sharedBy,
+        downloadUrl,
       ];
 }

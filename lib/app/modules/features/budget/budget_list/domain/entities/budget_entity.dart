@@ -10,8 +10,14 @@ class BudgetEntity extends Equatable {
   final int diasValidade;
   final DateTime? dataValidade;
   final String status;
+  final bool isArchived;
   final double total;
   final int cidadesCount;
+  final bool criadoPorAdmin;
+  final int? partnerDestinoId;
+  final int? usuarioId;
+  final String? usuarioNome;
+  final String? empresaRazaoSocial;
 
   const BudgetEntity({
     required this.id,
@@ -19,8 +25,14 @@ class BudgetEntity extends Equatable {
     required this.diasValidade,
     this.dataValidade,
     required this.status,
+    this.isArchived = false,
     required this.total,
     required this.cidadesCount,
+    this.criadoPorAdmin = false,
+    this.partnerDestinoId,
+    this.usuarioId,
+    this.usuarioNome,
+    this.empresaRazaoSocial,
   });
 
   /// Calcula se o orçamento está expirado
@@ -36,9 +48,6 @@ class BudgetEntity extends Equatable {
     return difference > 0 ? difference : 0;
   }
 
-  /// Verifica se o orçamento está arquivado
-  bool get isArchived => status.toLowerCase() == 'arquivado';
-
   /// Verifica se o orçamento está aprovado
   bool get isApproved => status.toLowerCase() == 'aprovado';
 
@@ -52,12 +61,16 @@ class BudgetEntity extends Equatable {
         diasValidade,
         dataValidade,
         status,
+        isArchived,
         total,
         cidadesCount,
+        criadoPorAdmin,
+        partnerDestinoId,
+        usuarioId,
+        usuarioNome,
+        empresaRazaoSocial,
       ];
 
   @override
-  String toString() {
-    return 'BudgetEntity(id: $id, nome: $nome, status: $status, total: $total)';
-  }
+  bool get stringify => true;
 }

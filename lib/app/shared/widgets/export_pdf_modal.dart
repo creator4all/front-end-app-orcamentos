@@ -1,98 +1,112 @@
-import 'dart:io';
 import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:flutter_modular/flutter_modular.dart';
+import 'package:share_plus/share_plus.dart';
+
+import '../../../../widgets/custom_text_field.dart';
+import '../../modules/features/auth/presentation/stores/auth_store.dart';
+import '../../modules/features/budget/budget_edit/domain/repositories/budget_pdf_repository.dart';
+import '../../modules/features/budget/budget_edit/domain/usecases/generate_pdf_usecase.dart';
+import '../../modules/features/partner/data/services/partner_service.dart';
+import 'custom_info_dialog.dart';
 import 'custom_modal.dart';
-import '../../modules/budget/external/services/budget_service.dart';
-import '../../../stores/auth_store.dart';
 
-/// Modal para exportar PDF com informações do vendedor e logo personalizada
-class ExportPdfModal extends StatefulWidget {
-  final int orcamentoId;
-  
-  const ExportPdfModal({
-    super.key,
-    required this.orcamentoId,
-  });
-
-  /// Método estático para mostrar o modal
+abstract class ExportPdfModal {
   static Future<T?> show<T>({
     required BuildContext context,
     required int orcamentoId,
+    GeneratePdfUseCase? generatePdfUseCase,
   }) {
     return CustomModal.show<T>(
       context: context,
       title: 'Exportar PDF',
-      content: _ExportPdfContent(orcamentoId: orcamentoId),
+      content: _ExportPdfContent(
+        orcamentoId: orcamentoId,
+        generatePdfUseCase: generatePdfUseCase,
+      ),
     );
-  }
-
-  @override
-  State<ExportPdfModal> createState() => _ExportPdfModalState();
-}
-
-class _ExportPdfModalState extends State<ExportPdfModal> {
-  @override
-  Widget build(BuildContext context) {
-    return _ExportPdfContent(orcamentoId: widget.orcamentoId);
   }
 }
 
 class _ExportPdfContent extends StatefulWidget {
   final int orcamentoId;
-  
-  const _ExportPdfContent({required this.orcamentoId});
+  final GeneratePdfUseCase? generatePdfUseCase;
+
+  const _ExportPdfContent({
+    required this.orcamentoId,
+    this.generatePdfUseCase,
+  });
 
   @override
   State<_ExportPdfContent> createState() => _ExportPdfContentState();
 }
 
 class _ExportPdfContentState extends State<_ExportPdfContent> {
-  // Controllers para os campos de texto
   final TextEditingController _nomeVendedorController = TextEditingController();
   final TextEditingController _cargoController = TextEditingController();
   final TextEditingController _telefoneController = TextEditingController();
   final TextEditingController _urlController = TextEditingController();
 
-  // Variáveis para gerenciar a logo
   File? _logoImage;
+  String? _partnerLogoBase64;
   final ImagePicker _picker = ImagePicker();
-  
-  // Estado de loading
+
+  bool _incluirLogoNoPdf = true;
+  bool _incluirCensoNoPdf = false;
+
   bool _isLoading = false;
+  bool _isLoadingPartnerLogo = false;
 
   @override
   void initState() {
     super.initState();
     _preencherDadosUsuario();
+    _carregarLogoParceiro();
+  }
+
+  Future<void> _carregarLogoParceiro() async {
+    setState(() => _isLoadingPartnerLogo = true);
+
+    try {
+      final partnerService = Modular.get<PartnerService>();
+      final partner = await partnerService.obterParceiro();
+
+      if (partner.logoBase64 != null && partner.logoBase64!.isNotEmpty) {
+        setState(() {
+          _partnerLogoBase64 = partner.logoBase64;
+        });
+      }
+    } catch (_) {
+      _partnerLogoBase64 = null;
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingPartnerLogo = false);
+      }
+    }
   }
 
   void _preencherDadosUsuario() {
-    try {
-      final authStore = Modular.get<AuthStore>();
-      final user = authStore.user;
-      
-      if (user != null) {
-        // Preencher nome
-        _nomeVendedorController.text = user.name;
-        
-        // Preencher cargo baseado no role
-        _cargoController.text = user.normalizedRole;
-        
-        // URL padrão (pode ser configurada)
-        _urlController.text = 'www.multimidiaeducacional.com.br';
-        
-        print('✅ Dados do usuário preenchidos automaticamente');
-        print('   Nome: ${user.name}');
-        print('   Cargo: ${user.normalizedRole}');
-      }
-    } catch (e) {
-      print('⚠️ Erro ao carregar dados do usuário: $e');
+    final authStore = Modular.get<AuthStore>();
+    final user = authStore.currentUser;
+    if (user == null) return;
+
+    _nomeVendedorController.text = user.name;
+    if (user.cargo != null && user.cargo!.isNotEmpty) {
+      _cargoController.text = user.cargo!;
+    } else if (user.role != null) {
+      _cargoController.text = user.role!.name;
     }
+
+    if (user.phone != null && user.phone!.isNotEmpty) {
+      _telefoneController.text = user.phone!;
+    }
+
+    _urlController.text = 'www.multimidiaeducacional.com.br';
   }
 
   @override
@@ -109,99 +123,90 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Campo Nome do Vendedor
-        _buildTextField(
+        CustomTextField(
           controller: _nomeVendedorController,
-          label: 'Nome vendedor:',
+          label: 'Nome vendedor',
           hintText: 'Digite o nome do vendedor',
+          isRequired: true,
+          height: 44.h,
         ),
         SizedBox(height: 16.h),
 
-        // Campo Cargo
-        _buildTextField(
+        CustomTextField(
           controller: _cargoController,
-          label: 'Cargo:',
+          label: 'Cargo',
           hintText: 'Digite o cargo',
+          isRequired: true,
+          height: 44.h,
         ),
         SizedBox(height: 16.h),
 
-        // Campo Telefone
-        _buildTextField(
+        CustomTextField(
           controller: _telefoneController,
-          label: 'Telefone:',
+          label: 'Telefone',
           hintText: 'Digite o telefone',
           keyboardType: TextInputType.phone,
+          isRequired: true,
+          height: 44.h,
         ),
         SizedBox(height: 16.h),
 
-        // Campo URL
-        _buildTextField(
+        CustomTextField(
           controller: _urlController,
-          label: 'URL:',
+          label: 'URL',
           hintText: 'Digite a URL',
           keyboardType: TextInputType.url,
+          height: 44.h,
         ),
         SizedBox(height: 24.h),
 
-        // Seção da Logo
         _buildLogoSection(),
+        SizedBox(height: 24.h),
+
+        _buildCheckboxSection(),
         SizedBox(height: 32.h),
 
-        // Botão Compartilhar PDF
         _buildShareButton(),
         SizedBox(height: 16.h),
       ],
     );
   }
 
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required String hintText,
-    TextInputType? keyboardType,
-  }) {
+  Widget _buildCheckboxSection() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w500,
-            color: Colors.black87,
-          ),
-        ),
-        SizedBox(height: 8.h),
-        SizedBox(
-          height: 44.h,
-          child: TextFormField(
-            controller: controller,
-            keyboardType: keyboardType,
-            decoration: InputDecoration(
-              hintText: hintText,
-              hintStyle: TextStyle(
-                fontSize: 14.sp,
-                color: Colors.grey[500],
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8.r),
-                borderSide: BorderSide(color: Colors.grey[300]!),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8.r),
-                borderSide: BorderSide(color: Colors.grey[300]!),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8.r),
-                borderSide: const BorderSide(color: Color(0xFF117BBD)),
-              ),
-              contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
-            ),
+        CheckboxListTile(
+          title: Text(
+            'Incluir logo no PDF',
             style: TextStyle(
               fontSize: 14.sp,
               color: Colors.black87,
             ),
           ),
+          value: _incluirLogoNoPdf,
+          onChanged: (value) {
+            setState(() => _incluirLogoNoPdf = value ?? true);
+          },
+          activeColor: const Color(0xFF117BBD),
+          controlAffinity: ListTileControlAffinity.leading,
+          contentPadding: EdgeInsets.zero,
+        ),
+
+        CheckboxListTile(
+          title: Text(
+            'Incluir dados do censo escolar',
+            style: TextStyle(
+              fontSize: 14.sp,
+              color: Colors.black87,
+            ),
+          ),
+          value: _incluirCensoNoPdf,
+          onChanged: (value) {
+            setState(() => _incluirCensoNoPdf = value ?? false);
+          },
+          activeColor: const Color(0xFF117BBD),
+          controlAffinity: ListTileControlAffinity.leading,
+          contentPadding: EdgeInsets.zero,
         ),
       ],
     );
@@ -221,7 +226,6 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
         ),
         SizedBox(height: 12.h),
 
-        // Preview da logo
         Container(
           width: double.infinity,
           height: 120.h,
@@ -230,62 +234,37 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
             borderRadius: BorderRadius.circular(8.r),
             color: Colors.grey[50],
           ),
-          child: _logoImage != null
-              ? Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8.r),
-                      child: Image.file(
-                        _logoImage!,
-                        fit: BoxFit.contain,
-                        width: double.infinity,
-                        height: double.infinity,
-                      ),
-                    ),
-                    // Botão para remover a imagem
-                    Positioned(
-                      top: 8.h,
-                      right: 8.w,
-                      child: GestureDetector(
-                        onTap: _removeLogo,
-                        child: Container(
-                          padding: EdgeInsets.all(4.w),
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.close,
-                            color: Colors.white,
-                            size: 16.sp,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+          child: _isLoadingPartnerLogo
+              ? const Center(
+                  child: CircularProgressIndicator(
+                    color: Color(0xFF117BBD),
+                  ),
                 )
-              : Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.image_outlined,
-                      size: 40.sp,
-                      color: Colors.grey[400],
-                    ),
-                    SizedBox(height: 8.h),
-                    Text(
-                      'Nenhuma logo selecionada',
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color: Colors.grey[500],
-                      ),
-                    ),
-                  ],
-                ),
+              : _logoImage != null
+                  ? _buildPreviewImage(file: _logoImage)
+                  : _partnerLogoBase64 != null
+                      ? _buildPreviewImage(base64: _partnerLogoBase64)
+                      : Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.image_outlined,
+                              size: 40.sp,
+                              color: Colors.grey[400],
+                            ),
+                            SizedBox(height: 8.h),
+                            Text(
+                              'Nenhuma logo selecionada',
+                              style: TextStyle(
+                                fontSize: 12.sp,
+                                color: Colors.grey[500],
+                              ),
+                            ),
+                          ],
+                        ),
         ),
         SizedBox(height: 12.h),
 
-        // Botão Enviar Logo
         SizedBox(
           width: double.infinity,
           height: 40.h,
@@ -312,6 +291,49 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
             ),
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildPreviewImage({File? file, String? base64}) {
+    return Stack(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8.r),
+          child: file != null
+              ? Image.file(
+                  file,
+                  fit: BoxFit.contain,
+                  width: double.infinity,
+                  height: double.infinity,
+                )
+              : Image.memory(
+                  base64Decode(_extractBase64Data(base64!)),
+                  fit: BoxFit.contain,
+                  width: double.infinity,
+                  height: double.infinity,
+                ),
+        ),
+        if (file != null)
+          Positioned(
+            top: 8.h,
+            right: 8.w,
+            child: GestureDetector(
+              onTap: _removeLogo,
+              child: Container(
+                padding: EdgeInsets.all(4.w),
+                decoration: const BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.close,
+                  color: Colors.white,
+                  size: 16.sp,
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -363,25 +385,23 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
         setState(() {
           _logoImage = File(pickedFile.path);
         });
-        
+
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Logo selecionada com sucesso!'),
-              backgroundColor: Color(0xFF56B34A),
-              duration: Duration(seconds: 2),
-            ),
+          CustomInfoDialog.show(
+            context: context,
+            type: DialogType.success,
+            title: 'Sucesso',
+            message: 'Logo selecionada com sucesso!',
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao selecionar imagem: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
+        CustomInfoDialog.show(
+          context: context,
+          type: DialogType.error,
+          title: 'Erro',
+          message: 'Erro ao selecionar imagem: $e',
         );
       }
     }
@@ -391,20 +411,25 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
     setState(() {
       _logoImage = null;
     });
-    
+
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Logo removida'),
-          backgroundColor: Colors.orange,
-          duration: Duration(seconds: 2),
-        ),
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.warning,
+        title: 'Logo removida',
+        message: 'A logo temporária foi removida.',
       );
     }
   }
 
+  String _extractBase64Data(String dataUri) {
+    if (dataUri.contains(',')) {
+      return dataUri.split(',').last;
+    }
+    return dataUri;
+  }
+
   Future<void> _handleSharePdf() async {
-    // Validar campos obrigatórios
     if (_nomeVendedorController.text.trim().isEmpty) {
       _showErrorMessage('Nome do vendedor é obrigatório');
       return;
@@ -420,139 +445,98 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
       return;
     }
 
-    print('🚀 [Modal] Iniciando geração de PDF...');
-    
     setState(() {
       _isLoading = true;
     });
 
     try {
-      print('🔧 [Modal] Buscando BudgetService...');
-      // Buscar BudgetService via Modular
-      final budgetService = Modular.get<BudgetService>();
-      print('✅ [Modal] BudgetService obtido');
-
-      // Converter logo para base64 se existir
+      final generatePdfUseCase =
+          widget.generatePdfUseCase ?? Modular.get<GeneratePdfUseCase>();
       String? logoBase64;
-      if (_logoImage != null) {
-        print('📸 [Modal] Convertendo logo para base64...');
-        final bytes = await _logoImage!.readAsBytes();
-        logoBase64 = base64Encode(bytes);
-        print('✅ [Modal] Logo convertida');
+      if (_incluirLogoNoPdf) {
+        if (_logoImage != null) {
+          final bytes = await _logoImage!.readAsBytes();
+          logoBase64 = base64Encode(bytes);
+        } else if (_partnerLogoBase64 != null) {
+          logoBase64 = _extractBase64Data(_partnerLogoBase64!);
+        }
       }
 
-      print('📡 [Modal] Chamando API para gerar PDF...');
-      // Chamar API para gerar PDF
-      final result = await budgetService.gerarPdf(
+      final params = GeneratePdfParams(
         orcamentoId: widget.orcamentoId,
         nomeVendedor: _nomeVendedorController.text.trim(),
         cargo: _cargoController.text.trim(),
         telefone: _telefoneController.text.trim(),
-        url: _urlController.text.trim().isNotEmpty ? _urlController.text.trim() : null,
+        url: _urlController.text.trim().isNotEmpty
+            ? _urlController.text.trim()
+            : null,
+        incluirLogo: _incluirLogoNoPdf,
+        incluirCenso: _incluirCensoNoPdf,
         logoBase64: logoBase64,
       );
 
-      print('✅ [Modal] API retornou dados');
-      print('🔍 [Modal] Resposta da API: $result');
-      print('🔍 [Modal] Tipo do result: ${result.runtimeType}');
-      print('🔍 [Modal] Keys do result: ${result.keys.toList()}');
+      final result = await generatePdfUseCase(params);
 
-      // Extrair dados do envelope da API
-      // A resposta vem como: {sucesso: true, dados: {pdf: "...", nome_arquivo: "..."}, statusCodeHttp: 200}
-      final dados = result['dados'] as Map<String, dynamic>?;
-      
-      if (dados == null) {
-        print('❌ [Modal] Campo dados é null!');
-        throw Exception('Resposta da API não contém dados');
-      }
+      final pdfResult = result.fold(
+        (failure) {
+          throw Exception(failure.message);
+        },
+        (success) => success,
+      );
 
-      print('🔍 [Modal] Dados extraídos, keys: ${dados.keys.toList()}');
-
-      // Extrair PDF em base64 com tratamento de erro
-      print('🔍 [Modal] Verificando campo pdf...');
-      if (dados['pdf'] == null) {
-        print('❌ [Modal] Campo pdf é null!');
-        throw Exception('PDF não foi gerado pela API');
-      }
-      
-      print('✅ [Modal] Campo pdf existe, extraindo...');
-      final pdfBase64 = dados['pdf'] as String;
-      final nomeArquivo = dados['nome_arquivo'] as String? ?? 'orcamento.pdf';
-      print('✅ [Modal] PDF extraído: ${pdfBase64.substring(0, 50)}...');
-
-      print('📄 [Modal] PDF recebido, tamanho: ${pdfBase64.length} caracteres');
-
-      // Decodificar e salvar PDF
-      print('🔄 [Modal] Decodificando PDF...');
+      final pdfBase64 = pdfResult.pdfBase64;
+      final nomeArquivo = pdfResult.nomeArquivo ?? 'orcamento.pdf';
       final pdfBytes = base64Decode(pdfBase64);
-      print('✅ [Modal] PDF decodificado, tamanho: ${pdfBytes.length} bytes');
-      
-      print('📁 [Modal] Obtendo diretório temporário...');
       final tempDir = await getTemporaryDirectory();
-      print('✅ [Modal] Diretório temporário: ${tempDir.path}');
-      
       final file = File('${tempDir.path}/$nomeArquivo');
-      print('💾 [Modal] Salvando arquivo em: ${file.path}');
       await file.writeAsBytes(pdfBytes);
-      print('✅ [Modal] Arquivo salvo');
-      
       final fileExists = await file.exists();
-      print('📄 [Modal] Arquivo existe: $fileExists');
-      
       if (!fileExists) {
         throw Exception('Arquivo não foi salvo corretamente');
       }
 
-      // Compartilhar PDF usando o share nativo (ANTES de fechar a modal)
-      print('📤 [Modal] Iniciando compartilhamento...');
-      print('📤 [Modal] Arquivo: ${file.path}');
-      
       final shareResult = await Share.shareXFiles(
         [XFile(file.path)],
         text: 'Orçamento - ${_nomeVendedorController.text.trim()}',
         subject: 'Orçamento - ${_nomeVendedorController.text.trim()}',
+        sharePositionOrigin: _getSharePositionOrigin(context),
       );
-      
-      print('✅ [Modal] Compartilhamento concluído');
-      print('📤 [Modal] Status: ${shareResult.status}');
 
-      // Fechar modal DEPOIS do compartilhamento
-      print('🚪 [Modal] Fechando modal...');
       if (mounted) {
         Navigator.of(context).pop();
-        print('✅ [Modal] Modal fechada');
-        
-        // Mostrar mensagem de sucesso
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('PDF gerado e compartilhado com sucesso!'),
-            backgroundColor: Color(0xFF56B34A),
-            duration: Duration(seconds: 3),
-          ),
+        CustomInfoDialog.show(
+          context: context,
+          type: DialogType.success,
+          title: 'Sucesso!',
+          message: 'PDF gerado e compartilhado com sucesso!',
         );
       }
     } catch (e, stackTrace) {
-      // Mostrar erro
-      print('❌ [Modal] ERRO: $e');
-      print('❌ [Modal] Stack trace: $stackTrace');
-      
       setState(() {
         _isLoading = false;
       });
-      
+
       if (mounted) {
         _showErrorMessage('Erro ao gerar PDF: $e');
       }
     }
   }
 
+  Rect _getSharePositionOrigin(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    return Rect.fromCenter(
+      center: Offset(size.width / 2, size.height / 2),
+      width: 1,
+      height: 1,
+    );
+  }
+
   void _showErrorMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 2),
-      ),
+    CustomInfoDialog.show(
+      context: context,
+      type: DialogType.error,
+      title: 'Atenção',
+      message: message,
     );
   }
 }

@@ -1,129 +1,90 @@
 import 'dart:convert';
 
-import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../../../../config/api_config.dart';
+import '../../../../../shared/core/constants/http_constants.dart';
+import '../../../../../shared/core/errors/http_exceptions.dart';
+import '../../../../../shared/core/http/app_http_client.dart';
+import '../../../../../shared/core/http/http_request_config.dart';
+import '../../../../../shared/core/utils/token_cache.dart';
 import '../models/user_model.dart';
 import 'auth_datasource.dart';
 
-/// Implementação do DataSource de autenticação usando Dio
-/// Responsável por fazer chamadas HTTP e gerenciar armazenamento seguro
 class AuthApiDatasource implements AuthDatasource {
-  final Dio dio;
+  final AppHttpClient httpClient;
   final FlutterSecureStorage secureStorage;
 
-  // Keys para storage
   static const String _tokenKey = 'auth_token';
   static const String _userKey = 'user_data';
 
   AuthApiDatasource({
-    required this.dio,
+    required this.httpClient,
     required this.secureStorage,
   });
+
+  HttpRequestConfig get _defaultConfig => HttpRequestConfig(
+        headers: {HttpHeaders.userAgent: HttpHeaders.userAgentValue},
+      );
 
   @override
   Future<UserModel> login({
     required String email,
     required String password,
   }) async {
-    print('🌐 AuthApiDatasource.login() iniciado');
-    print('   URL: ${ApiConfig.loginEndpoint}');
-    print('   Email: $email');
-
     try {
-      print('📡 Fazendo POST para ${ApiConfig.loginEndpoint}...');
-      final response = await dio.post(
+      final response = await httpClient.post(
         ApiConfig.loginEndpoint,
-        options: Options(
-          headers: ApiConfig.headers,
-        ),
         data: {
           'usr_email': email,
           'usr_password': password,
         },
+        config: _defaultConfig,
       );
 
-      if (response.statusCode == 200) {
-        final data = response.data;
+      final data = response.body;
 
-        // Validar estrutura da resposta
-        if (data is! Map<String, dynamic>) {
-          throw Exception(
-              'Resposta da API inválida: esperado Map<String, dynamic>');
-        }
+      if (!data.containsKey('dados')) {
+        throw Exception(
+            'Resposta da API inválida: chave "dados" não encontrada');
+      }
 
-        if (!data.containsKey('dados')) {
-          throw Exception(
-              'Resposta da API inválida: chave "dados" não encontrada');
-        }
+      final dadosResponse = data['dados'] as Map<String, dynamic>;
 
-        final dadosResponse = data['dados'] as Map<String, dynamic>;
+      if (dadosResponse.containsKey('token') &&
+          dadosResponse['token'] != null) {
+        final token = dadosResponse['token'].toString();
 
-        // === PASSO 1: Salvar token ===
-        if (dadosResponse.containsKey('token') &&
-            dadosResponse['token'] != null) {
-          final token = dadosResponse['token'].toString();
-          await secureStorage.write(
-            key: _tokenKey,
-            value: token,
-          );
-
-          print('✅ Token salvo com sucesso');
-          print('📝 Token: ${token.substring(0, 20)}...');
-        } else {
-          throw Exception('Token não retornado pela API de login');
-        }
-
-        // === PASSO 2: SEMPRE buscar dados completos do usuário via /api/perfil/me ===
-        print('🔍 Buscando dados completos do usuário via /api/perfil/me...');
-        final userModel =
-            await getCurrentUser(forceRefresh: true); // ⭐ FORÇA BUSCAR DA API
-
-        // === PASSO 3: Salvar dados completos do usuário no cache ===
         await secureStorage.write(
-          key: _userKey,
-          value: jsonEncode(userModel.toJson()),
+          key: _tokenKey,
+          value: token,
         );
 
-        print('✅ Dados completos do usuário salvos no cache');
+        TokenCache.instance.setToken(token);
+      } else {
+        throw Exception('Token não retornado pela API de login');
+      }
 
-        return userModel;
-      } else {
-        throw Exception('Login failed: ${response.statusMessage}');
-      }
-    } on DioException catch (e) {
-      // Tratar erros do Dio com mensagens amigáveis
-      if (e.response != null) {
-        final statusCode = e.response!.statusCode;
-        switch (statusCode) {
-          case 401:
-            throw Exception(
-                'Credenciais inválidas. Verifique seu email e senha.');
-          case 403:
-            throw Exception('Acesso negado. Conta pode estar desativada.');
-          case 404:
-            throw Exception(
-                'Serviço não encontrado. Tente novamente mais tarde.');
-          case 500:
-            throw Exception(
-                'Erro interno do servidor. Tente novamente mais tarde.');
-          default:
-            throw Exception(
-                'Erro no servidor (código $statusCode). Tente novamente.');
-        }
-      } else {
-        // Erro de rede
-        if (e.type == DioExceptionType.connectionTimeout ||
-            e.type == DioExceptionType.receiveTimeout) {
-          throw Exception('Tempo de conexão esgotado. Verifique sua internet.');
-        } else if (e.type == DioExceptionType.connectionError) {
-          throw Exception(
-              'Falha na conexão. Verifique sua internet e tente novamente.');
-        } else {
-          throw Exception('Erro de rede: ${e.message}');
-        }
-      }
+      final userModel = await getCurrentUser(forceRefresh: true);
+
+      await secureStorage.write(
+        key: _userKey,
+        value: jsonEncode(userModel.toJson()),
+      );
+
+      return userModel;
+    } on UnauthorizedException {
+      rethrow;
+    } on ForbiddenException {
+      rethrow;
+    } on NotFoundException {
+      rethrow;
+    } on InternalServerException {
+      rethrow;
+    } on TimeoutException {
+      rethrow;
+    } on ConnectionException {
+      rethrow;
     } catch (e) {
       throw Exception('Erro inesperado ao fazer login: $e');
     }
@@ -136,25 +97,19 @@ class AuthApiDatasource implements AuthDatasource {
 
       if (token != null) {
         try {
-          // Chamar endpoint de logout
-          await dio.post(
-            '${ApiConfig.baseUrl}/api/auth/logout',
-            options: Options(
-              headers: {
-                ...ApiConfig.headers,
-                'Authorization': 'Bearer $token',
-              },
+          await httpClient.post(
+            '/api/auth/logout',
+            config: HttpRequestConfig(
+              token: token,
+              headers: {HttpHeaders.userAgent: HttpHeaders.userAgentValue},
             ),
           );
-        } catch (e) {
-          // Mesmo se falhar na API, limpar dados locais
-          print('Erro ao chamar logout na API: $e');
-        }
+        } catch (_) {}
       }
 
-      // Limpar dados armazenados
       await secureStorage.delete(key: _tokenKey);
       await secureStorage.delete(key: _userKey);
+      TokenCache.instance.clearToken();
     } catch (e) {
       throw Exception('Erro ao fazer logout: $e');
     }
@@ -169,66 +124,30 @@ class AuthApiDatasource implements AuthDatasource {
         throw Exception('Token não encontrado. Faça login novamente.');
       }
 
-      // Se forceRefresh = false, tentar buscar do cache primeiro
       if (!forceRefresh) {
         final cachedUser = await secureStorage.read(key: _userKey);
         if (cachedUser != null) {
           try {
-            print(
-                '📦 [getCurrentUser] Retornando do cache (forceRefresh=false)');
             final userJson = jsonDecode(cachedUser) as Map<String, dynamic>;
             return UserModel.fromJson(userJson);
-          } catch (e) {
-            print('⚠️ Erro ao decodificar usuário do cache: $e');
-          }
+          } catch (_) {}
         }
-      } else {
-        print('🔄 [getCurrentUser] forceRefresh=true - Ignorando cache');
       }
 
-      // Se forceRefresh = true OU não houver cache, buscar da API
-      print('🌐 Chamando GET /api/perfil/me...');
-      final response = await dio.get(
-        '${ApiConfig.baseUrl}/api/perfil/me',
-        options: Options(
-          headers: {
-            ...ApiConfig.headers,
-            'Authorization': 'Bearer $token',
-          },
+      final response = await httpClient.get(
+        '/api/perfil/me',
+        config: HttpRequestConfig(
+          token: token,
+          headers: {HttpHeaders.userAgent: HttpHeaders.userAgentValue},
         ),
       );
 
-      print('📡 Status Code: ${response.statusCode}');
-
       if (response.statusCode == 200) {
-        final data = response.data;
-
-        print('📦 Resposta completa da API:');
-        print(data);
-
-        if (data is! Map<String, dynamic>) {
-          throw Exception('Resposta da API inválida');
-        }
-
-        // A API pode retornar dentro de 'dados' ou diretamente
-        final userData = data.containsKey('dados')
-            ? data['dados'] as Map<String, dynamic>
-            : data;
-
-        print('👤 Dados do usuário extraídos:');
-        print(userData);
+        final data = response.body;
+        final userData = data['dados'] as Map<String, dynamic>;
 
         final userModel = UserModel.fromJson(userData);
 
-        print('✅ UserModel criado com sucesso:');
-        print('   - ID: ${userModel.id}');
-        print('   - Nome: ${userModel.name}');
-        print('   - Email: ${userModel.email}');
-        print('   - Role: ${userModel.role?.name ?? "N/A"}');
-        print('   - Partner: ${userModel.partner?.tradeName ?? "N/A"}');
-        print('   - Status: ${userModel.status}');
-
-        // Atualizar cache
         await secureStorage.write(
           key: _userKey,
           value: jsonEncode(userModel.toJson()),
@@ -238,14 +157,10 @@ class AuthApiDatasource implements AuthDatasource {
       } else {
         throw Exception('Falha ao obter dados do usuário');
       }
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 401) {
-        // Token inválido - limpar e forçar novo login
-        await secureStorage.delete(key: _tokenKey);
-        await secureStorage.delete(key: _userKey);
-        throw Exception('Sessão expirada. Faça login novamente.');
-      }
-      throw Exception('Erro ao obter usuário: ${e.message}');
+    } on UnauthorizedException {
+      await secureStorage.delete(key: _tokenKey);
+      await secureStorage.delete(key: _userKey);
+      throw Exception('Sessão expirada. Faça login novamente.');
     } catch (e) {
       throw Exception('Erro inesperado ao obter usuário: $e');
     }
@@ -263,32 +178,158 @@ class AuthApiDatasource implements AuthDatasource {
   @override
   Future<bool> validateToken(String token) async {
     try {
-      final response = await dio.get(
-        '${ApiConfig.baseUrl}/api/auth/validate',
-        options: Options(
-          headers: {
-            ...ApiConfig.headers,
-            'Authorization': 'Bearer $token',
-          },
+      final response = await httpClient.get(
+        '/api/auth/validate',
+        config: HttpRequestConfig(
+          token: token,
+          headers: {HttpHeaders.userAgent: HttpHeaders.userAgentValue},
         ),
       );
 
       if (response.statusCode == 200) {
-        final data = response.data;
-        if (data is Map<String, dynamic>) {
-          return data['valid'] == true || data['valido'] == true;
-        }
-        return true; // Se retornou 200, consideramos válido
+        final data = response.body;
+        final dados = data['dados'] as Map<String, dynamic>?;
+        return dados?['valido'] == true;
       }
 
       return false;
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 401) {
-        return false; // Token inválido
-      }
-      throw Exception('Erro ao validar token: ${e.message}');
+    } on UnauthorizedException {
+      return false;
     } catch (e) {
       throw Exception('Erro inesperado ao validar token: $e');
+    }
+  }
+
+  @override
+  Future<void> requestPasswordReset(String email) async {
+    try {
+      await httpClient.post(
+        '/api/auth/forgot-password',
+        data: {'usr_email': email},
+        config: _defaultConfig,
+      );
+    } on NotFoundException {
+      throw Exception('Usuário não encontrado com este email');
+    } on BadRequestException catch (e) {
+      throw Exception('Email inválido: ${e.message}');
+    } on InternalServerException {
+      throw Exception('Erro no servidor. Tente novamente mais tarde.');
+    } on ConnectionException {
+      throw Exception('Falha na conexão. Verifique sua internet.');
+    } catch (e) {
+      throw Exception('Erro ao enviar email de recuperação: $e');
+    }
+  }
+
+  @override
+  Future<void> resendOtpCode(String email) async {
+    try {
+      await httpClient.post(
+        '/api/auth/forgot-password/resend',
+        data: {'usr_email': email},
+        config: _defaultConfig,
+      );
+    } on NotFoundException {
+      throw Exception('Usuário não encontrado');
+    } on TooManyRequestsException {
+      throw Exception('Aguarde antes de solicitar um novo código');
+    } on InternalServerException {
+      throw Exception('Erro no servidor. Tente novamente mais tarde.');
+    } on ConnectionException {
+      throw Exception('Falha na conexão. Verifique sua internet.');
+    } catch (e) {
+      throw Exception('Erro ao reenviar código: $e');
+    }
+  }
+
+  @override
+  Future<bool> verifyOtpCode(String email, String otpCode) async {
+    try {
+      final response = await httpClient.post(
+        '/api/auth/forgot-password/validate-otp',
+        data: {
+          'usr_email': email,
+          'otp_code': otpCode,
+        },
+        config: _defaultConfig,
+      );
+
+      final data = response.body;
+      final dados = data['dados'] as Map<String, dynamic>?;
+      return dados?['valido'] == true;
+    } on UnauthorizedException {
+      throw Exception('Código OTP inválido');
+    } on BadRequestException {
+      throw Exception('Código OTP inválido ou expirado');
+    } on NotFoundException {
+      throw Exception('Solicitação de recuperação não encontrada');
+    } on InternalServerException {
+      throw Exception('Erro no servidor. Tente novamente mais tarde.');
+    } on ConnectionException {
+      throw Exception('Falha na conexão. Verifique sua internet.');
+    } catch (e) {
+      throw Exception('Erro ao verificar código: $e');
+    }
+  }
+
+  @override
+  Future<void> resetPassword(
+    String email,
+    String otpCode,
+    String novaSenha,
+    String confirmarSenha,
+  ) async {
+    try {
+      await httpClient.post(
+        '/api/auth/reset-password',
+        data: {
+          'usr_email': email,
+          'otp_code': otpCode,
+          'nova_senha': novaSenha,
+          'confirmar_senha': confirmarSenha,
+        },
+        config: _defaultConfig,
+      );
+    } on UnauthorizedException {
+      throw Exception('Código OTP inválido ou expirado');
+    } on BadRequestException catch (e) {
+      throw Exception('Erro ao redefinir senha: ${e.message}');
+    } on NotFoundException {
+      throw Exception('Solicitação de recuperação não encontrada');
+    } on InternalServerException {
+      throw Exception('Erro no servidor. Tente novamente mais tarde.');
+    } on ConnectionException {
+      throw Exception('Falha na conexão. Verifique sua internet.');
+    } catch (e) {
+      throw Exception('Erro ao redefinir senha: $e');
+    }
+  }
+
+  @override
+  Future<UserModel> removeAvatar() async {
+    try {
+      final response = await httpClient.delete(
+        '/api/perfil/me/avatar',
+        config: _defaultConfig,
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.body;
+        final userData = data['dados'] as Map<String, dynamic>;
+
+        final userModel = UserModel.fromJson(userData);
+
+        await secureStorage.write(
+          key: _userKey,
+          value: jsonEncode(userModel.toJson()),
+        );
+
+        return userModel;
+      } else {
+        throw Exception('Falha ao remover avatar');
+      }
+    } catch (e) {
+      throw Exception('Erro ao remover avatar: $e');
     }
   }
 }

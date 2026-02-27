@@ -1,114 +1,93 @@
+﻿import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:equatable/equatable.dart';
+import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 
 import 'statistics_entity.dart';
 import 'subcategory_entity.dart';
 
-/// Entidade que representa uma categoria de produtos no orçamento
+part 'category_entity.g.dart';
+
+@CopyWith()
 class CategoryEntity extends Equatable {
-  /// ID da categoria
   final int id;
 
-  /// Nome para exibição (ex: "Livros", "Tecnologias")
   final String nome;
 
-  /// Ordem de exibição (menor valor = maior prioridade)
   final int ordem;
 
-  /// Lista de subcategorias
+  final bool expandido;
+
   final List<SubcategoryEntity> subcategorias;
 
-  /// Estatísticas agregadas da categoria (soma de todas subcategorias)
   final StatisticsEntity? estatisticas;
 
   const CategoryEntity({
     required this.id,
     required this.nome,
     required this.ordem,
+    required this.expandido,
     required this.subcategorias,
     this.estatisticas,
   });
 
-  // ========== Getters Úteis ==========
-
-  /// Lista todas as subcategorias que têm produtos ativos
   List<SubcategoryEntity> get activeSubcategories {
     return subcategorias.where((s) => s.hasActiveProducts).toList();
   }
 
-  /// Quantidade total de subcategorias com produtos ativos
+  List<SubcategoryEntity> get orderedSubcategorias {
+    return subcategorias.toList()..sort((a, b) => a.ordem.compareTo(b.ordem));
+  }
+  
   int get activeSubcategoriesCount => activeSubcategories.length;
 
-  /// Quantidade total de produtos ativos em todas as subcategorias
   int get totalActiveProducts {
     return subcategorias.fold(0, (sum, s) => sum + s.activeProductsCount);
   }
 
-  /// Quantidade de produtos selecionados em todas as subcategorias
   int get selectedProductsCount {
     return subcategorias.fold(0, (sum, s) => sum + s.selectedProductsCount);
   }
 
-  /// Valor total dos produtos selecionados
   double get totalValue {
     return subcategorias.fold(0.0, (sum, s) => sum + s.totalValue);
   }
 
-  /// Valor total se todos os produtos fossem selecionados
   double get maxPossibleValue {
     return subcategorias.fold(0.0, (sum, s) => sum + s.maxPossibleValue);
   }
 
-  /// Verifica se todos os produtos da categoria estão selecionados
   bool get isFullySelected {
     return totalActiveProducts > 0 &&
         selectedProductsCount == totalActiveProducts;
   }
 
-  /// Calcula percentual de seleção
   double get selectionPercentage {
     if (totalActiveProducts == 0) return 0.0;
     return (selectedProductsCount / totalActiveProducts) * 100;
   }
 
-  /// Verifica se tem algum produto selecionado
   bool get hasSelectedProducts => selectedProductsCount > 0;
 
-  /// Verifica se tem subcategorias disponíveis
   bool get hasSubcategories => subcategorias.isNotEmpty;
 
-  /// Verifica se tem subcategorias com produtos ativos
   bool get hasActiveSubcategories => activeSubcategoriesCount > 0;
 
-  /// Formata o valor total para exibição
-  String get formattedTotalValue => 'R\$ ${totalValue.toStringAsFixed(2)}';
+  String get formattedTotalValue => CurrencyUtils.formatBRL(totalValue);
+
+  bool get deveExibirExpandida => expandido;
+
+  bool get deveExibirComoCard => !expandido;
 
   @override
   List<Object?> get props => [
         id,
         nome,
         ordem,
+        expandido,
         subcategorias,
         estatisticas,
       ];
 
-  /// Cria uma cópia com campos alterados
-  CategoryEntity copyWith({
-    int? id,
-    String? nome,
-    int? ordem,
-    List<SubcategoryEntity>? subcategorias,
-    StatisticsEntity? estatisticas,
-  }) {
-    return CategoryEntity(
-      id: id ?? this.id,
-      nome: nome ?? this.nome,
-      ordem: ordem ?? this.ordem,
-      subcategorias: subcategorias ?? this.subcategorias,
-      estatisticas: estatisticas ?? this.estatisticas,
-    );
-  }
-
-  /// Atualiza uma subcategoria específica na lista
   CategoryEntity updateSubcategory(SubcategoryEntity updatedSubcategory) {
     final updatedSubcategorias = subcategorias.map((s) {
       return s.id == updatedSubcategory.id ? updatedSubcategory : s;

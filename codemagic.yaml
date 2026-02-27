@@ -1,0 +1,16 @@
+workflows:
+  ios-release:
+    name: iOS Release
+    environment:
+      flutter: stable
+    scripts:
+      - name: Flutter pub get
+        script: flutter pub get
+
+      - name: Generate *.g.dart (build_runner)
+        script: |
+          flutter pub run build_runner build --delete-conflicting-outputs
+
+      - name: Build IPA
+        script: |
+          flutter build ipa --release --export-options-plist /Users/builder/export_options.plist

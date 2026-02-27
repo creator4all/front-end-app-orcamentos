@@ -1,5 +1,7 @@
-import "package:flutter/material.dart";
-import "../theme/app_theme.dart";
+import 'package:flutter/material.dart';
+
+import '../app/shared/widgets/days_remaining_widget.dart';
+import '../theme/app_theme.dart';
 
 class BudgetCard extends StatelessWidget {
   final String city;
@@ -12,7 +14,7 @@ class BudgetCard extends StatelessWidget {
   final VoidCallback onTap;
 
   const BudgetCard({
-    Key? key,
+    super.key,
     required this.city,
     required this.state,
     required this.code,
@@ -21,19 +23,19 @@ class BudgetCard extends StatelessWidget {
     required this.value,
     required this.status,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   Color _getStatusColor() {
     switch (status.toLowerCase()) {
-      case "aprovado":
+      case 'aprovado':
         return Colors.green;
-      case "pendente":
+      case 'pendente':
         return Colors.orange;
-      case "expirado":
+      case 'expirado':
         return Colors.red;
-      case "não aprovado":
+      case 'não aprovado':
         return Colors.red;
-      case "arquivado":
+      case 'arquivado':
         return Colors.grey;
       default:
         return Colors.grey;
@@ -57,7 +59,7 @@ class BudgetCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "$city - $state",
+                '$city - $state',
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -88,7 +90,7 @@ class BudgetCard extends StatelessWidget {
                     ],
                   ),
                   Text(
-                    "R\$${_formatCurrency(value)}",
+                    'R\$${_formatCurrency(value)}',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -101,21 +103,10 @@ class BudgetCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.access_time, size: 14, color: Colors.grey),
-                      const SizedBox(width: 4),
-                      Text(
-                        "$daysRemaining dias rest.",
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
+                  DaysRemainingWidget(daysRemaining: daysRemaining),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: _getStatusColor().withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
@@ -137,8 +128,8 @@ class BudgetCard extends StatelessWidget {
       ),
     );
   }
-  
+
   String _formatCurrency(double value) {
-    return value.toStringAsFixed(2).replaceAll(".", ",");
+    return value.toStringAsFixed(2).replaceAll('.', ',');
   }
 }

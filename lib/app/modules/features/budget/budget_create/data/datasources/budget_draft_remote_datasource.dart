@@ -8,7 +8,4 @@ abstract class BudgetDraftRemoteDataSource {
 
   /// Busca um orçamento em rascunho por ID
   Future<BudgetDraftEntity> getDraftById(int budgetId);
-
-  /// Valida se um orçamento pode ser criado
-  Future<bool> validateBudgetCreation(CreateBudgetDraftParams params);
 }

@@ -51,20 +51,20 @@ class FileTypeIconWidget extends StatelessWidget {
   Color _getBackgroundColor() {
     switch (type) {
       case FileType.pdf:
-        return const Color(0xFFDC2626); // Vermelho
+        return const Color(0xFFDC2626);
       case FileType.docx:
-        return const Color(0xFF2563EB); // Azul
+        return const Color(0xFF2563EB);
       case FileType.xlsx:
-        return const Color(0xFF16A34A); // Verde
+        return const Color(0xFF16A34A);
       case FileType.pptx:
-        return const Color(0xFFD97706); // Laranja
+        return const Color(0xFFD97706);
       case FileType.mp4:
-        return const Color(0xFF7C3AED); // Roxo
+        return const Color(0xFF7C3AED);
       case FileType.jpg:
       case FileType.png:
-        return const Color(0xFF0891B2); // Ciano
+        return const Color(0xFF0891B2);
       case FileType.folder:
-        return const Color(0xFFF59E0B); // Âmbar
+        return const Color(0xFFF59E0B);
     }
   }
 }

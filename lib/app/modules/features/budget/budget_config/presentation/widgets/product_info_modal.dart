@@ -1,43 +1,42 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:intl/intl.dart';
+import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 
-import '../../../../../../shared/widgets/custom_checkbox.dart';
+import '../../../../../../shared/utils/string_utils.dart';
 import '../../../../../../shared/widgets/custom_modal.dart';
+import '../../domain/entities/indicador_etapa_entity.dart';
 import '../../domain/entities/product_entity.dart';
 import '../stores/budget_config_store.dart';
+import 'indicadores_etapa_section.dart';
 
-/// Modal de informações detalhadas do produto
-///
-/// Exibe:
-/// - Informações básicas (Grupo, Sub-grupo, Solução, etc.)
-/// - Indicadores de etapa agrupados com checkboxes
-/// - Botão Salvar
 class ProductInfoModal extends StatefulWidget {
-  /// ID da categoria
-  final int categoryId;
-
-  /// ID da subcategoria
-  final int subcategoryId;
-
-  /// ID do produto
-  final int productId;
+  final int? categoryId;
+  final int? subcategoryId;
+  final int? productId;
+  final dynamic store;
+  final ProductEntity? product;
+  final VoidCallback? onSave;
 
   const ProductInfoModal({
     super.key,
-    required this.categoryId,
-    required this.subcategoryId,
-    required this.productId,
+    this.categoryId,
+    this.subcategoryId,
+    this.productId,
+    this.store,
+    this.product,
+    this.onSave,
   });
 
-  /// Mostra a modal
   static Future<void> show({
     required BuildContext context,
-    required int categoryId,
-    required int subcategoryId,
-    required int productId,
+    int? categoryId,
+    int? subcategoryId,
+    int? productId,
+    dynamic store,
+    ProductEntity? product,
+    VoidCallback? onSave,
   }) {
     return CustomModal.show(
       context: context,
@@ -46,6 +45,9 @@ class ProductInfoModal extends StatefulWidget {
         categoryId: categoryId,
         subcategoryId: subcategoryId,
         productId: productId,
+        store: store,
+        product: product,
+        onSave: onSave,
       ),
     );
   }
@@ -55,71 +57,54 @@ class ProductInfoModal extends StatefulWidget {
 }
 
 class _ProductInfoModalState extends State<ProductInfoModal> {
-  // Mapa para armazenar indicadores selecionados
-  // Key: grupo, Value: lista de indicadores selecionados
-  final Map<String, List<String>> _selectedIndicators = {};
+  late TextEditingController _valueController;
+  late TextEditingController _horasController;
+
+  bool get _isStoreMode =>
+      widget.categoryId != null &&
+      widget.subcategoryId != null &&
+      widget.productId != null;
 
   @override
   void initState() {
     super.initState();
-    // Inicializar indicadores selecionados do produto
-    _initializeSelectedIndicators();
-  }
-
-  void _initializeSelectedIndicators() {
-    // TODO: Carregar indicadores já selecionados do produto
-    // Por enquanto, inicializa vazio
-  }
-
-  /// Formata valor para padrão brasileiro
-  String _formatCurrency(double value) {
-    final formatter = NumberFormat.currency(
-      locale: 'pt_BR',
-      symbol: 'R\$',
-      decimalDigits: 2,
-    );
-    return formatter.format(value);
-  }
-
-  /// Verifica se um indicador está selecionado
-  bool _isIndicatorSelected(String group, String indicator) {
-    return _selectedIndicators[group]?.contains(indicator) ?? false;
-  }
-
-  /// Alterna seleção de um indicador
-  void _toggleIndicator(String group, String indicator, bool selected) {
-    setState(() {
-      if (selected) {
-        // Adiciona o indicador
-        if (_selectedIndicators[group] == null) {
-          _selectedIndicators[group] = [];
-        }
-        if (!_selectedIndicators[group]!.contains(indicator)) {
-          _selectedIndicators[group]!.add(indicator);
-        }
-      } else {
-        // Remove o indicador
-        _selectedIndicators[group]?.remove(indicator);
-        // Remove o grupo se estiver vazio
-        if (_selectedIndicators[group]?.isEmpty ?? false) {
-          _selectedIndicators.remove(group);
-        }
-      }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeValueController();
     });
   }
 
-  /// Salva as alterações
+  void _initializeValueController() {
+    setState(() {
+      _valueController = TextEditingController();
+      _horasController = TextEditingController();
+    });
+  }
+
+  bool _isServico(ProductEntity product) {
+    final tipo = product.tipoProduto.toLowerCase();
+    return tipo == 'servico' || tipo == 'serviço';
+  }
+
   void _handleSave() {
-    final store = Modular.get<BudgetConfigStore>();
+    if (_isStoreMode) {
+      final storeInstance = widget.store ?? Modular.get<BudgetConfigStore>();
 
-    // Salvar indicadores selecionados
-    store.updateProductIndicators(widget.productId, _selectedIndicators);
+      String cleanValue =
+          _valueController.text.replaceAll(RegExp(r'[^\d.,]'), '');
+      cleanValue = cleanValue.replaceAll(',', '.');
 
-    // Fechar modal
+      final newValue = double.tryParse(cleanValue);
+
+      if (newValue != null) {
+        storeInstance.updateProductValue(widget.productId!, newValue);
+      }
+    } else {
+      widget.onSave?.call();
+    }
+
     Navigator.pop(context);
   }
 
-  /// Constrói linha de informação
   Widget _buildInfoRow(String label, String value) {
     return RichText(
       text: TextSpan(
@@ -147,7 +132,6 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
     );
   }
 
-  /// Constrói container com informações do produto
   Widget _buildProductInfo(
     ProductEntity product,
     String categoryName,
@@ -156,8 +140,8 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: const Color(0xFFF9F9F9),
-        borderRadius: BorderRadius.circular(10.r),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8.r),
         border: Border.all(
           color: const Color(0xFFD9D9D9),
           width: 1,
@@ -166,80 +150,79 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildInfoRow('Grupo', categoryName),
+          _buildInfoRow('Grupo', capitalizeFirstLetter(categoryName)),
           SizedBox(height: 8.h),
-          _buildInfoRow('Sub-grupo', subcategoryName),
+          _buildInfoRow('Sub-grupo', capitalizeFirstLetter(subcategoryName)),
           SizedBox(height: 8.h),
-          _buildInfoRow('Solução', product.solucao),
+          _buildInfoRow('Solução', capitalizeFirstLetter(product.solucao)),
           SizedBox(height: 8.h),
           _buildInfoRow('Indicação', product.indicacao),
           SizedBox(height: 8.h),
           _buildInfoRow('Tipo', product.tipo),
           SizedBox(height: 8.h),
-          _buildInfoRow('Valor total', _formatCurrency(product.totalValue)),
+          _buildInfoRow(
+              'Valor total', CurrencyUtils.formatBRL(product.totalValue)),
         ],
       ),
     );
   }
 
-  /// Constrói grupo de indicadores
-  Widget _buildIndicatorGroup(String groupName, List<dynamic> indicators) {
+  @override
+  Widget build(BuildContext context) {
+    if (!_isStoreMode && widget.product == null) {
+      return const Center(child: Text('Erro: Produto não fornecido'));
+    }
+
+    if (_isStoreMode) {
+      return _buildStoreContent();
+    } else {
+      return _buildStandaloneContent();
+    }
+  }
+
+  Widget _buildStandaloneContent() {
+    final product = widget.product!;
+
     return Column(
+      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Título do grupo
-        Text(
-          groupName,
-          style: TextStyle(
-            fontSize: 14.sp,
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFF000000),
+        _buildProductInfo(product, 'N/A', 'N/A'),
+        SizedBox(height: 24.h),
+        if (product.indicadoresEtapa.isNotEmpty) ...[
+          IndicadoresEtapaSection(
+            indicadores: product.indicadoresEtapa,
+            onToggle: (indicadorId, valor) {
+              setState(() {
+                final index = product.indicadoresEtapa
+                    .indexWhere((i) => i.produtoIndicadorId == indicadorId);
+                if (index != -1) {
+                  final oldInd = product.indicadoresEtapa[index];
+                  final newInd = oldInd.copyWith(selecionado: valor);
+
+                  final newList =
+                      List<IndicadorEtapaEntity>.from(product.indicadoresEtapa);
+                  newList[index] = newInd;
+                }
+              });
+            },
           ),
-        ),
-        SizedBox(height: 8.h),
-
-        // Lista de indicadores
-        ...indicators.map((indicator) {
-          final indicatorName = indicator.toString();
-          return Padding(
-            padding: EdgeInsets.only(bottom: 8.h),
-            child: Row(
-              children: [
-                CustomCheckbox(
-                  value: _isIndicatorSelected(groupName, indicatorName),
-                  onChanged: (value) {
-                    _toggleIndicator(groupName, indicatorName, value);
-                  },
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: Text(
-                    indicatorName,
-                    style: TextStyle(
-                      fontSize: 13.sp,
-                      fontWeight: FontWeight.w400,
-                      color: const Color(0xFF000000),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }),
-
+          SizedBox(height: 24.h),
+        ],
+        _buildValueField(product),
+        SizedBox(height: 24.h),
+        _buildSaveButton(),
         SizedBox(height: 16.h),
       ],
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final store = Modular.get<BudgetConfigStore>();
+  Widget _buildStoreContent() {
+    final storeInstance = widget.store ?? Modular.get<BudgetConfigStore>();
 
     return Observer(
       builder: (_) {
-        // Busca dados da store
-        final category = store.categories.firstWhere(
+        final category = storeInstance.categories.firstWhere(
           (c) => c.id == widget.categoryId,
           orElse: () => throw Exception('Categoria não encontrada'),
         );
@@ -258,68 +241,186 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Seção 1: Informações do Produto
             _buildProductInfo(product, category.nome, subcategory.nome),
-
             SizedBox(height: 24.h),
-
-            // Seção 2: Indicadores de Etapa
-            if (product.indicadoresEtapa.isNotEmpty) ...[
-              // Parsear e exibir indicadores agrupados
-              ...(() {
-                final List<Widget> indicatorWidgets = [];
-
-                for (var indicatorGroup in product.indicadoresEtapa) {
-                  if (indicatorGroup is Map) {
-                    final groupName =
-                        indicatorGroup['grupo']?.toString() ?? 'Sem grupo';
-                    final itens = indicatorGroup['itens'] as List? ?? [];
-
-                    if (itens.isNotEmpty) {
-                      indicatorWidgets
-                          .add(_buildIndicatorGroup(groupName, itens));
-                    }
-                  }
-                }
-
-                return indicatorWidgets;
-              })(),
-            ],
-
-            SizedBox(height: 24.h),
-
-            // Botão Salvar
-            SizedBox(
-              width: double.infinity,
-              height: 48.h,
-              child: ElevatedButton.icon(
-                onPressed: _handleSave,
-                icon: const Icon(
-                  Icons.save,
-                  color: Color(0xFFFFFFFF),
-                ),
-                label: Text(
-                  'Salvar',
-                  style: TextStyle(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFFFFFFFF),
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF56B34A),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10.r),
-                  ),
-                  elevation: 0,
-                ),
+            if (_isServico(product)) ...[
+              _buildHorasField(product, storeInstance),
+              SizedBox(height: 24.h),
+            ] else if (product.indicadoresEtapa.isNotEmpty) ...[
+              IndicadoresEtapaSection(
+                indicadores: product.indicadoresEtapa,
+                onToggle: (indicadorId, valor) {
+                  storeInstance.toggleProductIndicator(product.id, indicadorId);
+                },
               ),
-            ),
-
+              SizedBox(height: 24.h),
+            ],
+            _buildValueField(product),
+            SizedBox(height: 24.h),
+            _buildSaveButton(),
             SizedBox(height: 16.h),
           ],
         );
       },
+    );
+  }
+
+  Widget _buildHorasField(ProductEntity product, dynamic storeInstance) {
+    if (_horasController.text.isEmpty && product.quantidade > 0) {
+      _horasController.text = product.quantidade.toString();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        RichText(
+          text: TextSpan(
+            children: [
+              TextSpan(
+                text: 'Horas de Serviço: ',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                  fontFamily: 'Roboto',
+                ),
+              ),
+              TextSpan(
+                text: '${product.quantidade} hora(s)',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w400,
+                  color: Colors.black,
+                  fontFamily: 'Roboto',
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: 8.h),
+        TextField(
+          controller: _horasController,
+          keyboardType: TextInputType.number,
+          onChanged: (value) {
+            final horas = int.tryParse(value) ?? 0;
+            if (horas > 0) {
+              storeInstance.updateProductQuantity(product.id, horas);
+            }
+          },
+          decoration: InputDecoration(
+            hintText: 'Insira a quantidade de horas',
+            hintStyle: TextStyle(
+              color: const Color(0xFF8C8C8C),
+              fontSize: 14.sp,
+            ),
+            contentPadding:
+                EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8.r),
+              borderSide: const BorderSide(color: Color(0xFFD9D9D9)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8.r),
+              borderSide: const BorderSide(color: Color(0xFFD9D9D9)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8.r),
+              borderSide: const BorderSide(color: Color(0xFF2830F2)),
+            ),
+          ),
+          style: TextStyle(
+            fontSize: 14.sp,
+            color: Colors.black,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildValueField(ProductEntity product) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        RichText(
+          text: TextSpan(
+            children: [
+              TextSpan(
+                text: 'Valor Unitário: ',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                  fontFamily: 'Roboto',
+                ),
+              ),
+              TextSpan(
+                text: CurrencyUtils.formatBRL(product.valor),
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w400,
+                  color: Colors.black,
+                  fontFamily: 'Roboto',
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: 8.h),
+        TextField(
+          controller: _valueController,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: InputDecoration(
+            hintText: 'Insira o novo valor',
+            hintStyle: TextStyle(
+              color: const Color(0xFF8C8C8C),
+              fontSize: 14.sp,
+            ),
+            contentPadding:
+                EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8.r),
+              borderSide: const BorderSide(color: Color(0xFFD9D9D9)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8.r),
+              borderSide: const BorderSide(color: Color(0xFFD9D9D9)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8.r),
+              borderSide: const BorderSide(color: Color(0xFF2830F2)),
+            ),
+          ),
+          style: TextStyle(
+            fontSize: 14.sp,
+            color: Colors.black,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSaveButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 48.h,
+      child: ElevatedButton(
+        onPressed: _handleSave,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF56B34A),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.r),
+          ),
+          elevation: 0,
+        ),
+        child: Text(
+          'Salvar',
+          style: TextStyle(
+            fontSize: 16.sp,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+      ),
     );
   }
 }

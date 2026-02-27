@@ -1,11 +1,10 @@
-import 'package:mobx/mobx.dart';
+﻿import 'package:mobx/mobx.dart';
 
 import '../../domain/entities/budget_draft_entity.dart';
 import '../../domain/entities/partner_entity.dart';
 import '../../domain/repositories/budget_draft_repository.dart';
 import '../../domain/usecases/create_draft_budget_usecase.dart';
 import '../../domain/usecases/get_standard_partners_usecase.dart';
-import '../../domain/usecases/validate_budget_data_usecase.dart';
 
 part 'budget_create_store.g.dart';
 
@@ -14,15 +13,17 @@ class BudgetCreateStore = _BudgetCreateStoreBase with _$BudgetCreateStore;
 abstract class _BudgetCreateStoreBase with Store {
   final GetStandardPartnersUseCase getStandardPartnersUseCase;
   final CreateDraftBudgetUseCase createDraftBudgetUseCase;
-  final ValidateBudgetDataUseCase validateBudgetDataUseCase;
 
   _BudgetCreateStoreBase({
     required this.getStandardPartnersUseCase,
     required this.createDraftBudgetUseCase,
-    required this.validateBudgetDataUseCase,
   });
 
-  // ========== LOADING STATES ==========
+  String? _normalizeInput(String? value) {
+    if (value == null) return null;
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? null : trimmed;
+  }
 
   @observable
   bool isLoading = false;
@@ -33,12 +34,8 @@ abstract class _BudgetCreateStoreBase with Store {
   @observable
   bool isCreatingDraft = false;
 
-  /// Flag para controlar se já tentou carregar parceiros
-  /// Evita loop infinito quando a API retorna lista vazia
   @observable
   bool hasAttemptedLoadPartners = false;
-
-  // ========== ERROR HANDLING ==========
 
   @observable
   String? error;
@@ -49,15 +46,11 @@ abstract class _BudgetCreateStoreBase with Store {
   @observable
   String? validationError;
 
-  // ========== PARTNERS ==========
-
   @observable
   ObservableList<PartnerEntity> partners = ObservableList<PartnerEntity>();
 
   @observable
   PartnerEntity? selectedPartner;
-
-  // ========== LOCATION ==========
 
   @observable
   String? selectedStateCode;
@@ -71,7 +64,8 @@ abstract class _BudgetCreateStoreBase with Store {
   @observable
   String? selectedCityName;
 
-  // ========== FORM FIELDS ==========
+  @observable
+  int? selectedCityId;
 
   @observable
   String? responsibleName;
@@ -80,27 +74,22 @@ abstract class _BudgetCreateStoreBase with Store {
   String? responsibleEmail;
 
   @observable
-  DateTime? validityDate;
+  String? responsiblePhone;
 
-  // ========== RESULT ==========
+  @observable
+  DateTime? validityDate;
 
   @observable
   BudgetDraftEntity? createdDraft;
 
-  // ========== COMPUTED PROPERTIES ==========
-
-  /// Verifica se todos os campos obrigatórios estão preenchidos
   @computed
   bool get isFormValid {
-    // Parceiro é obrigatório apenas para admins (verificado externamente)
-    // Estado e cidade sempre obrigatórios
     return selectedStateCode != null &&
         selectedStateCode!.isNotEmpty &&
         selectedCityCode != null &&
         selectedCityCode!.isNotEmpty;
   }
 
-  /// Verifica se o email está em formato válido
   @computed
   bool get isEmailValid {
     if (responsibleEmail == null || responsibleEmail!.isEmpty) return true;
@@ -110,7 +99,6 @@ abstract class _BudgetCreateStoreBase with Store {
     return emailRegex.hasMatch(responsibleEmail!);
   }
 
-  /// Retorna a localização completa formatada
   @computed
   String? get locationDisplay {
     if (selectedCityName != null && selectedStateCode != null) {
@@ -119,11 +107,9 @@ abstract class _BudgetCreateStoreBase with Store {
     return null;
   }
 
-  /// Verifica se tem parceiros carregados
   @computed
   bool get hasPartners => partners.isNotEmpty;
 
-  /// Verifica se a localização está completa
   @computed
   bool get isLocationComplete {
     return selectedStateCode != null &&
@@ -132,16 +118,9 @@ abstract class _BudgetCreateStoreBase with Store {
         selectedCityName != null;
   }
 
-  // ========== ACTIONS ==========
-
-  /// Carrega a lista de parceiros padrão
-  /// Só executa uma vez para evitar loop infinito
   @action
-  Future<void> loadPartners() async {
-    // ✅ Evita múltiplas tentativas
+  Future<void> loadPartners({int? excludePartnerId}) async {
     if (hasAttemptedLoadPartners) {
-      print(
-          '⚠️ [BudgetCreateStore] Já tentou carregar parceiros anteriormente');
       return;
     }
 
@@ -150,108 +129,81 @@ abstract class _BudgetCreateStoreBase with Store {
     partnerError = null;
 
     try {
-      print('🔄 [BudgetCreateStore] Carregando parceiros...');
-
-      final result = await getStandardPartnersUseCase();
+      final result =
+          await getStandardPartnersUseCase(excludePartnerId: excludePartnerId);
 
       result.fold(
         (failure) {
-          print(
-              '❌ [BudgetCreateStore] Erro ao carregar parceiros: ${failure.message}');
           partnerError = failure.message;
           partners.clear();
         },
         (partnerList) {
-          print(
-              '✅ [BudgetCreateStore] Parceiros carregados: ${partnerList.length}');
-
-          // Debug detalhado
-          for (var partner in partnerList) {
-            print('   📌 Parceiro ID ${partner.id}: ${partner.displayName}');
-          }
-
           partners.clear();
           partners.addAll(partnerList);
-
-          print('   📊 hasPartners após adicionar: $hasPartners');
-          print('   📊 partners.length: ${partners.length}');
         },
       );
     } catch (e) {
-      print('❌ [BudgetCreateStore] Erro inesperado: $e');
       partnerError = 'Erro ao carregar parceiros: $e';
     } finally {
       isLoadingPartners = false;
     }
   }
 
-  /// Seleciona um parceiro
   @action
   void selectPartner(PartnerEntity partner) {
     selectedPartner = partner;
-    print('✅ [BudgetCreateStore] Parceiro selecionado: ${partner.name}');
   }
 
-  /// Remove seleção de parceiro
   @action
   void clearPartner() {
     selectedPartner = null;
-    print('🔄 [BudgetCreateStore] Seleção de parceiro removida');
   }
 
-  /// Define o estado selecionado
   @action
   void setSelectedState(String code, String name) {
     selectedStateCode = code;
     selectedStateName = name;
-    // Limpa cidade ao trocar estado
     selectedCityCode = null;
     selectedCityName = null;
-    print('✅ [BudgetCreateStore] Estado selecionado: $name ($code)');
   }
 
-  /// Define a cidade selecionada
   @action
-  void setSelectedCity(String code, String name) {
+  void setSelectedCity(String code, String name, {int? cityId}) {
     selectedCityCode = code;
     selectedCityName = name;
-    print('✅ [BudgetCreateStore] Cidade selecionada: $name ($code)');
+    selectedCityId = cityId ?? int.tryParse(code);
   }
 
-  /// Limpa seleção de localização
   @action
   void clearLocation() {
     selectedStateCode = null;
     selectedStateName = null;
     selectedCityCode = null;
     selectedCityName = null;
-    print('🔄 [BudgetCreateStore] Localização limpa');
   }
 
-  /// Define o nome do responsável
   @action
   void setResponsibleName(String? name) {
-    responsibleName = name;
+    responsibleName = _normalizeInput(name);
   }
 
-  /// Define o email do responsável
   @action
   void setResponsibleEmail(String? email) {
-    responsibleEmail = email;
+    responsibleEmail = _normalizeInput(email);
   }
 
-  /// Define a data de validade
+  @action
+  void setResponsiblePhone(String? phone) {
+    responsiblePhone = _normalizeInput(phone);
+  }
+
   @action
   void setValidityDate(DateTime? date) {
     validityDate = date;
-    print('✅ [BudgetCreateStore] Data de validade: ${date?.toString()}');
   }
 
-  /// Valida os dados antes de criar
-  ///
-  /// Requer partnerId e userId para validação completa
   @action
-  Future<bool> validateForm(int partnerId, int userId) async {
+  bool validateForm(int partnerId, int userId) {
     validationError = null;
 
     if (!isFormValid) {
@@ -269,43 +221,14 @@ abstract class _BudgetCreateStoreBase with Store {
       return false;
     }
 
-    try {
-      print('🔍 [BudgetCreateStore] Validando dados...');
-
-      final params = CreateBudgetDraftParams(
-        partnerId: partnerId,
-        userId: userId, // ✅ Adiciona userId
-        stateCode: selectedStateCode!,
-        cityCode: selectedCityCode!,
-        responsibleName: responsibleName,
-        responsibleEmail: responsibleEmail,
-        validityDate: validityDate,
-        total: 0.0,
-      );
-
-      final result = await validateBudgetDataUseCase(params);
-
-      return result.fold(
-        (failure) {
-          print('❌ [BudgetCreateStore] Validação falhou: ${failure.message}');
-          validationError = failure.message;
-          return false;
-        },
-        (isValid) {
-          print('✅ [BudgetCreateStore] Validação passou');
-          return isValid;
-        },
-      );
-    } catch (e) {
-      print('❌ [BudgetCreateStore] Erro na validação: $e');
-      validationError = 'Erro ao validar dados';
+    if (validityDate != null && validityDate!.isBefore(DateTime.now())) {
+      validationError = 'Data de validade deve ser futura';
       return false;
     }
+
+    return true;
   }
 
-  /// Cria um novo orçamento em rascunho
-  ///
-  /// Requer partnerId do parceiro selecionado e userId do usuário autenticado
   @action
   Future<bool> createDraft(int partnerId, int userId) async {
     if (!isFormValid) {
@@ -322,36 +245,32 @@ abstract class _BudgetCreateStoreBase with Store {
     error = null;
 
     try {
-      print('🔄 [BudgetCreateStore] Criando orçamento em rascunho...');
-
       final params = CreateBudgetDraftParams(
         partnerId: partnerId,
-        userId: userId, // ✅ Adiciona ID do usuário
+        userId: userId,
         stateCode: selectedStateCode!,
         cityCode: selectedCityCode!,
+        cityId: selectedCityId ?? int.parse(selectedCityCode!),
+        cityName: selectedCityName!,
         responsibleName: responsibleName,
         responsibleEmail: responsibleEmail,
         validityDate: validityDate,
-        total: 0.0, // Rascunho começa com total 0
+        total: 0.0,
       );
 
       final result = await createDraftBudgetUseCase(params);
 
       return result.fold(
         (failure) {
-          print(
-              '❌ [BudgetCreateStore] Erro ao criar orçamento: ${failure.message}');
           error = failure.message;
           return false;
         },
         (draft) {
-          print('✅ [BudgetCreateStore] Orçamento criado: ID ${draft.id}');
           createdDraft = draft;
           return true;
         },
       );
     } catch (e) {
-      print('❌ [BudgetCreateStore] Erro inesperado: $e');
       error = 'Erro ao criar orçamento: $e';
       return false;
     } finally {
@@ -359,7 +278,6 @@ abstract class _BudgetCreateStoreBase with Store {
     }
   }
 
-  /// Limpa todos os dados do formulário
   @action
   void clearForm() {
     selectedPartner = null;
@@ -367,17 +285,15 @@ abstract class _BudgetCreateStoreBase with Store {
     selectedStateName = null;
     selectedCityCode = null;
     selectedCityName = null;
+    selectedCityId = null;
     responsibleName = null;
     responsibleEmail = null;
     validityDate = null;
     createdDraft = null;
     error = null;
     validationError = null;
-    // Não resetar hasAttemptedLoadPartners - mantém cache da tentativa
-    print('🔄 [BudgetCreateStore] Formulário limpo');
   }
 
-  /// Limpa apenas os erros
   @action
   void clearErrors() {
     error = null;
@@ -385,7 +301,6 @@ abstract class _BudgetCreateStoreBase with Store {
     validationError = null;
   }
 
-  /// Reseta completamente a store (incluindo flag de tentativa de parceiros)
   @action
   void reset() {
     clearForm();
@@ -393,6 +308,5 @@ abstract class _BudgetCreateStoreBase with Store {
     partners.clear();
     hasAttemptedLoadPartners = false;
     isLoadingPartners = false;
-    print('🔄 [BudgetCreateStore] Store resetada completamente');
   }
 }

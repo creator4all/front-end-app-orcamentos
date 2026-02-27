@@ -1,65 +1,40 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'action_button.dart';
 
-/// Um componente base reutilizável para cards com layout flexível.
-///
-/// Estrutura:
-/// - Row com 3 colunas (flex: 2, 7, 2) ~ 20%, 60-66%, 20%.
-/// - Col 1: Widget customizável (checkbox + ícone, ou apenas ícone, etc)
-/// - Col 2: Widget customizável (coluna de textos, etc)
-/// - Col 3: Widget customizável para contador + ActionButton
 class CardLayout extends StatelessWidget {
-  /// Widget da primeira coluna (~20% da largura)
   final Widget? firstColumn;
 
-  /// Widget da segunda coluna (~60-66% da largura)
   final Widget? secondColumn;
 
-  /// Widget da terceira coluna (~20% da largura) acima do ActionButton
   final Widget? thirdColumnTop;
 
-  /// Se deve mostrar o ActionButton
   final bool showActionButton;
-
-  /// Callback do ActionButton
   final VoidCallback? onActionTap;
 
-  /// Se deve exibir checkbox na primeira coluna
   final bool showCheckbox;
 
-  /// Valor do checkbox
   final bool isChecked;
 
-  /// Callback de mudança do checkbox
   final ValueChanged<bool?>? onCheckboxChanged;
 
-  /// Ícone da primeira coluna (após checkbox se houver)
   final Widget? icon;
 
-  /// Se deve exibir borda
   final bool showBorder;
 
-  /// Cor da borda (quando showBorder = true)
   final Color borderColor;
 
-  /// Se deve exibir drop-shadow
   final bool showShadow;
 
-  /// Cor do shadow
   final Color shadowColor;
 
-  /// Cor de fundo do card
   final Color backgroundColor;
 
-  /// Border radius do card
   final double borderRadius;
 
-  /// Altura máxima do card
   final double maxHeight;
 
-  /// Padding do card
   final EdgeInsets padding;
 
   const CardLayout({
@@ -111,7 +86,6 @@ class CardLayout extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Primeira coluna: checkbox + ícone (~20%)
             if (firstColumn != null || showCheckbox || icon != null)
               Expanded(
                 flex: showCheckbox ? 2 : 1,
@@ -124,7 +98,6 @@ class CardLayout extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.start,
                         children: [
-                          // Checkbox
                           if (showCheckbox)
                             SizedBox(
                               width: 20.w,
@@ -155,7 +128,6 @@ class CardLayout extends StatelessWidget {
                             ),
                           if (showCheckbox && icon != null)
                             SizedBox(width: 8.w),
-                          // Ícone
                           if (icon != null)
                             Flexible(
                               child: icon!,
@@ -165,7 +137,6 @@ class CardLayout extends StatelessWidget {
                 ),
               ),
 
-            // Segunda coluna: conteúdo customizável (~60-66%)
             if (secondColumn != null)
               Expanded(
                 flex: showCheckbox ? 7 : 8,
@@ -175,7 +146,6 @@ class CardLayout extends StatelessWidget {
                 ),
               ),
 
-            // Terceira coluna: contador + ActionButton (~20%)
             if (thirdColumnTop != null || showActionButton)
               Expanded(
                 flex: 2,
@@ -187,13 +157,11 @@ class CardLayout extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.end,
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      // Widget customizável da terceira coluna (topo)
                       if (thirdColumnTop != null)
                         Padding(
                           padding: EdgeInsets.only(top: 8.h, right: 8.w),
                           child: thirdColumnTop!,
                         ),
-                      // ActionButton (fundo)
                       if (showActionButton)
                         ActionButton(
                           onTap: onActionTap,

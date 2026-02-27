@@ -1,18 +1,27 @@
 import 'package:dartz/dartz.dart';
 import 'package:mobx/mobx.dart';
 
+import '../../../budget_create/domain/entities/budget_draft_entity.dart';
+import '../../../budget_create/domain/entities/cidade_entity.dart';
 import '../../../shared/errors/budget_failure.dart';
+import '../../../shared/models/budget_update_dto.dart';
+import '../../../shared/models/product_selection_update_dto.dart';
 import '../../domain/entities/budget_detail_entity.dart';
 import '../../domain/entities/category_entity.dart';
+import '../../domain/entities/censo_escolar_entity.dart';
+import '../../domain/entities/censo_group_entity.dart';
+import '../../domain/entities/censo_title_entity.dart';
 import '../../domain/entities/census_data_entity.dart';
+import '../../domain/entities/indicador_etapa_entity.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../domain/entities/subcategory_entity.dart';
+import '../../domain/services/product_calculation_service.dart';
 import '../../domain/usecases/calculate_totals_usecase.dart';
 import '../../domain/usecases/finalize_budget_usecase.dart';
-import '../../domain/usecases/get_all_budget_products_usecase.dart';
 import '../../domain/usecases/get_budget_detail_usecase.dart';
 import '../../domain/usecases/get_category_products_usecase.dart';
 import '../../domain/usecases/get_census_data_usecase.dart';
+import '../../domain/usecases/save_budget_usecase.dart';
 import '../../domain/usecases/toggle_category_usecase.dart';
 
 part 'budget_config_store.g.dart';
@@ -21,24 +30,24 @@ class BudgetConfigStore = _BudgetConfigStoreBase with _$BudgetConfigStore;
 
 abstract class _BudgetConfigStoreBase with Store {
   final GetBudgetDetailUseCase getBudgetDetailUseCase;
-  final GetAllBudgetProductsUseCase getAllBudgetProductsUseCase;
   final GetCategoryProductsUseCase getCategoryProductsUseCase;
   final GetCensusDataUseCase getCensusDataUseCase;
   final ToggleCategoryUseCase toggleCategoryUseCase;
   final CalculateTotalsUseCase calculateTotalsUseCase;
   final FinalizeBudgetUseCase finalizeBudgetUseCase;
+  final SaveBudgetUseCase saveBudgetUseCase;
+  final ProductCalculationService calculationService;
 
   _BudgetConfigStoreBase({
     required this.getBudgetDetailUseCase,
-    required this.getAllBudgetProductsUseCase,
     required this.getCategoryProductsUseCase,
     required this.getCensusDataUseCase,
     required this.toggleCategoryUseCase,
     required this.calculateTotalsUseCase,
     required this.finalizeBudgetUseCase,
+    required this.saveBudgetUseCase,
+    required this.calculationService,
   });
-
-  // ========== OBSERVABLES ==========
 
   @observable
   bool isLoading = false;
@@ -62,6 +71,9 @@ abstract class _BudgetConfigStoreBase with Store {
   CensusDataEntity? censusData;
 
   @observable
+  CensoEscolarEntity? censoEscolar;
+
+  @observable
   ObservableMap<String, bool> categoryStates = ObservableMap<String, bool>();
 
   @observable
@@ -70,7 +82,6 @@ abstract class _BudgetConfigStoreBase with Store {
   @observable
   String? budgetName;
 
-  // ✅ Novos observables para categorias
   @observable
   ObservableList<CategoryEntity> categories = ObservableList<CategoryEntity>();
 
@@ -80,14 +91,14 @@ abstract class _BudgetConfigStoreBase with Store {
   @observable
   SubcategoryEntity? selectedSubcategory;
 
-  // ========== COMPUTED ==========
+  @observable
+  List<ProductEntity> productsNeedingRemark = [];
 
   @computed
   bool get canFinalize {
     if (budgetDetail == null) return false;
     if (validityDate == null) return false;
 
-    // ✅ Verificar se tem produtos selecionados nas categorias
     return totalSelectedProducts > 0;
   }
 
@@ -98,26 +109,36 @@ abstract class _BudgetConfigStoreBase with Store {
 
   @computed
   double get totalValue {
-    // ✅ Calcular total a partir das categorias
     return categories.fold(0.0, (sum, c) => sum + c.totalValue);
   }
 
   @computed
   int get selectedProductsCount {
-    // ✅ Contar produtos selecionados nas categorias
     return categories.fold(0, (sum, c) => sum + c.selectedProductsCount);
   }
 
-  // ✅ Novo computed para total de produtos ativos
   @computed
   int get totalActiveProducts {
     return categories.fold(0, (sum, c) => sum + c.totalActiveProducts);
   }
 
-  // ✅ Novo computed para total de produtos selecionados
   @computed
   int get totalSelectedProducts {
     return categories.fold(0, (sum, c) => sum + c.selectedProductsCount);
+  }
+
+  @computed
+  int get selectedItemsCount {
+    return categories.fold(0, (sum, category) {
+      if (category.expandido) {
+        final selectedSubcategories = category.subcategorias
+            .where((subcategory) => subcategory.hasSelectedProducts)
+            .length;
+        return sum + selectedSubcategories;
+      } else {
+        return sum + (category.hasSelectedProducts ? 1 : 0);
+      }
+    });
   }
 
   @computed
@@ -126,24 +147,658 @@ abstract class _BudgetConfigStoreBase with Store {
   @computed
   bool get hasCensusData => censusData != null && censusData!.hasData;
 
-  // ✅ Novo computed para verificar se tem categorias
   @computed
   bool get hasCategories => categories.isNotEmpty;
 
   @computed
   bool get isFullyLoaded => !isLoading && !isLoadingProducts;
 
-  // ========== ACTIONS ==========
-
   @action
   Future<void> initialize(int budgetId) async {
-    print('🔄 [BudgetConfigStore] Inicializando com orçamento ID: $budgetId');
-
     await loadBudgetDetail(budgetId);
 
-    // Carregar censo se tiver cidade
     if (budgetDetail != null && budgetDetail!.cityIds.isNotEmpty) {
       await loadCensusData(budgetDetail!.cityIds.first);
+    }
+  }
+
+  @action
+  Future<void> initializeWithDraft(BudgetDraftEntity draft) async {
+    isLoading = true;
+    isLoadingProducts = false;
+    error = null;
+
+    try {
+      budgetDetail = BudgetDetailEntity(
+        id: draft.id,
+        name: draft.name,
+        validityDays: draft.validityDays,
+        validityDate: draft.validityDate,
+        creationDate: draft.createdAt,
+        status: draft.status,
+        total: draft.total,
+        userId: draft.createdByUserId,
+        partnerId: draft.partnerId,
+        cityIds:
+            [draft.location.cityCode].map((e) => int.tryParse(e) ?? 0).toList(),
+        products: const [],
+        categoryStates: const {},
+        categories: draft.categories,
+        citiesData: _extractCitiesDataFromDraft(draft),
+      );
+
+      categories.clear();
+      categories.addAll(draft.categories);
+
+      categoryStates.clear();
+
+      validityDate =
+          draft.validityDate ?? DateTime.now().add(const Duration(days: 60));
+      budgetName = draft.name ?? '';
+
+      final oldCensoEscolar = censoEscolar;
+      censoEscolar = _convertCidadeToCensoEscolar(draft.cidade);
+
+      if (oldCensoEscolar != null && censoEscolar != null) {
+        _checkForProductsToRemark(oldCensoEscolar, censoEscolar!);
+      }
+
+      isLoading = false;
+
+      if (draft.location.cityCode.isNotEmpty) {
+        final cityId = int.tryParse(draft.location.cityCode);
+        if (cityId != null && cityId > 0) {
+          await loadCensusData(cityId);
+        }
+      }
+    } catch (e) {
+      error = 'Erro ao inicializar orçamento: $e';
+      isLoading = false;
+    }
+  }
+
+  List<Map<String, dynamic>> _extractCitiesDataFromDraft(
+      BudgetDraftEntity draft) {
+    if (draft.cidade == null) return [];
+
+    final cidade = draft.cidade!;
+    final indices = cidade.cidadesHasIndiceEtapa.map((etapa) {
+      final grupoNome = etapa.indiceEtapa.grupoNome;
+      return <String, dynamic>{
+        'id': etapa.indiceEtapaId,
+        'nome_etapa': etapa.nomeEtapa,
+        'titulo': etapa.tituloEtapa.isNotEmpty
+            ? etapa.tituloEtapa
+            : etapa.indiceEtapa.titulo,
+        'valor': etapa.etapaValor,
+        'grupo': {
+          'id': etapa.grupoId,
+          'nome': grupoNome,
+        },
+      };
+    }).toList();
+
+    return [
+      {
+        'id': cidade.id,
+        'nome': cidade.nome,
+        'indices': indices,
+        'indicadores': indices
+            .map((item) => <String, dynamic>{
+                  'id': item['id'],
+                  'nome': item['nome_etapa'],
+                  'titulo': item['titulo'],
+                  'valor': item['valor'],
+                  'grupo_id': (item['grupo'] as Map<String, dynamic>)['id'],
+                  'grupo_nome': (item['grupo'] as Map<String, dynamic>)['nome'],
+                })
+            .toList(),
+      }
+    ];
+  }
+
+  @action
+  Future<void> initializeWithMultiCityResponse(
+      Map<String, dynamic> response) async {
+    isLoading = true;
+    isLoadingProducts = false;
+    error = null;
+
+    try {
+      final id = response['orc_orcamentoId'] ?? response['id'];
+      final nome = response['orc_nome'] ?? '';
+      final status = response['orc_status'] ?? 'rascunho';
+      final diasValidade = response['orc_dias_validade'] ?? 60;
+      final dataValidade = response['orc_data_validade'] != null
+          ? DateTime.parse(response['orc_data_validade'].toString())
+          : DateTime.now().add(const Duration(days: 60));
+
+      final cidadesJson = response['cidades'] as List<dynamic>? ?? [];
+      final cityIds = cidadesJson.map((c) => c['id'] as int? ?? 0).toList();
+      final citiesData = cidadesJson
+          .map((c) => <String, dynamic>{
+                'id': c['id'],
+                'nome': c['nome'],
+                'indices': c['indices'],
+              })
+          .toList();
+
+      final categoriasJson = response['categorias'] as List<dynamic>? ?? [];
+      final categoriasParsed =
+          _parseCategoriasFromMultiCityResponse(categoriasJson);
+
+      final censoAgregado =
+          response['censo_agregado'] as Map<String, dynamic>? ?? {};
+      final valoresPorEtapa = <String, double>{};
+      censoAgregado.forEach((key, value) {
+        valoresPorEtapa[key] = (value as num).toDouble();
+      });
+
+      budgetDetail = BudgetDetailEntity(
+        id: id is int ? id : int.tryParse(id.toString()) ?? 0,
+        name: nome,
+        status: status,
+        validityDays: diasValidade,
+        validityDate: dataValidade,
+        creationDate: DateTime.now(),
+        total: 0.0,
+        userId: response['orc_usuario_id'] as int? ?? 0,
+        partnerId: response['orc_partner_destino_id'] as int?,
+        cityIds: cityIds,
+        products: const [],
+        categoryStates: const {},
+        categories: categoriasParsed,
+        citiesData: citiesData,
+        censoAgregado: valoresPorEtapa,
+      );
+
+      categories.clear();
+      categories.addAll(categoriasParsed);
+
+      censoEscolar = CensoEscolarEntity(
+        cidadeId: 0,
+        cidadeNome: 'Agregado',
+        grupos: const [],
+        valoresPorEtapa: valoresPorEtapa,
+      );
+
+      validityDate = dataValidade;
+      budgetName = nome;
+
+      isLoading = false;
+      isLoadingProducts = false;
+    } catch (e) {
+      error = 'Erro ao inicializar orçamento: $e';
+      isLoading = false;
+    }
+  }
+
+  List<CategoryEntity> _parseCategoriasFromMultiCityResponse(
+      List<dynamic> categoriasJson) {
+    return categoriasJson.map((catJson) {
+      final subcategoriasJson =
+          catJson['subcategorias'] as List<dynamic>? ?? [];
+
+      final subcategorias = subcategoriasJson.map((subJson) {
+        final produtosJson = subJson['produtos'] as List<dynamic>? ?? [];
+
+        final produtos = produtosJson.map((prodJson) {
+          final indicadoresJson =
+              prodJson['indicadores'] as List<dynamic>? ?? [];
+          final indicadores = indicadoresJson.map((indJson) {
+            final etapaJson =
+                indJson['indicador_etapa'] as Map<String, dynamic>? ?? {};
+            final grupoJson = etapaJson['grupo'] as Map<String, dynamic>? ?? {};
+
+            return IndicadorEtapaEntity(
+              produtoIndicadorId: indJson['id'] as int? ?? 0,
+              indicadorId: etapaJson['id'] as int? ?? 0,
+              indicadorNome: etapaJson['titulo'] as String? ?? '',
+              nomeEtapa: etapaJson['nome'] as String? ?? '',
+              grupoId: grupoJson['id'] as int? ?? 0,
+              grupoNome: grupoJson['nome'] as String? ?? '',
+              selecionado: indJson['selecionado'] as bool? ?? false,
+            );
+          }).toList();
+
+          final orcProdJson =
+              prodJson['orcamento_produto'] as Map<String, dynamic>? ?? {};
+          final valor = (prodJson['valor'] as num?)?.toDouble() ?? 0.0;
+
+          final quantidade = (orcProdJson['quantidade'] as num?)?.toInt() ?? 0;
+          final selecionadoJson = orcProdJson['selecionado'] as bool? ?? false;
+          final selecionado = quantidade > 0 ? selecionadoJson : false;
+
+          return ProductEntity(
+            id: prodJson['id'] as int? ?? 0,
+            codigo: prodJson['codigo'] as String? ?? '',
+            solucao: prodJson['solucao'] as String? ?? '',
+            tipo: prodJson['tipo'] as String? ?? '',
+            ativo: prodJson['status'] as bool? ?? true,
+            valor: valor,
+            indicacao: prodJson['indicacao'] as String? ?? '',
+            tipoProduto: prodJson['tipo_produto'] as String? ?? '',
+            ordem: prodJson['ordem'] as int? ?? 0,
+            subcategoriaId: subJson['id'] as int? ?? 0,
+            selecionado: selecionado,
+            quantidade: quantidade,
+            temOverride: false,
+            valorOriginal: valor,
+            ativoOriginal: prodJson['status'] as bool? ?? true,
+            indicadoresEtapa: indicadores,
+          );
+        }).toList();
+
+        return SubcategoryEntity(
+          id: subJson['id'] as int? ?? 0,
+          nome: subJson['nome'] as String? ?? '',
+          ordem: subJson['ordem'] as int? ?? 0,
+          produtos: produtos,
+        );
+      }).toList();
+
+      return CategoryEntity(
+        id: catJson['id'] as int? ?? 0,
+        nome: catJson['nome'] as String? ?? '',
+        ordem: catJson['ordem'] as int? ?? 0,
+        expandido: catJson['expandido'] as bool? ?? false,
+        subcategorias: subcategorias,
+      );
+    }).toList();
+  }
+
+  ProductEntity _synchronizeProductSelection(ProductEntity product) {
+    final shouldBeSelected = product.quantidade > 0;
+
+    if (product.selecionado != shouldBeSelected) {
+      return product.copyWith(selecionado: shouldBeSelected);
+    }
+
+    return product;
+  }
+
+  CensoEscolarEntity? _convertCidadeToCensoEscolar(CidadeEntity? cidade) {
+    if (cidade == null) return null;
+
+    try {
+      final valoresPorEtapa = <String, double>{};
+      final gruposMap = <int, List<CensoTitleEntity>>{};
+      final grupoNomes = <int, String>{};
+
+      for (final etapa in cidade.cidadesHasIndiceEtapa) {
+        final nomeEtapa = etapa.nomeEtapa;
+        final valor = etapa.etapaValor;
+        final grupoId = etapa.grupoId;
+        final grupoNome = etapa.indiceEtapa.grupoNome;
+
+        valoresPorEtapa[nomeEtapa] = valor;
+
+        grupoNomes[grupoId] = grupoNome;
+
+        final titulo = CensoTitleEntity(
+          id: etapa.indiceEtapaId,
+          nomeEtapa: nomeEtapa,
+          tituloExibicao: etapa.indiceEtapa.titulo,
+          valor: valor,
+          isProfessores: nomeEtapa.endsWith('P'),
+          grupoId: grupoId,
+        );
+
+        gruposMap.putIfAbsent(grupoId, () => []);
+        gruposMap[grupoId]!.add(titulo);
+      }
+
+      final grupos = gruposMap.entries.map((entry) {
+        return CensoGroupEntity(
+          id: entry.key,
+          nome: grupoNomes[entry.key] ?? '',
+          titulos: entry.value,
+        );
+      }).toList();
+
+      final censoEscolarEntity = CensoEscolarEntity(
+        cidadeId: cidade.id,
+        cidadeNome: cidade.nome,
+        grupos: grupos,
+        valoresPorEtapa: valoresPorEtapa,
+      );
+
+      return censoEscolarEntity;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  int _toInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  double _toDouble(dynamic value) {
+    if (value is double) return value;
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? 0.0;
+  }
+
+  List<Map<String, dynamic>> _extractIndicesFromCityData(
+    Map<String, dynamic> cityData,
+  ) {
+    final rawIndices = cityData['indices'] as List? ??
+        cityData['cidades_has_indice_etapa'] as List? ??
+        const [];
+
+    return rawIndices
+        .whereType<Map>()
+        .map((item) => _normalizeCityIndice(Map<String, dynamic>.from(item)))
+        .whereType<Map<String, dynamic>>()
+        .toList();
+  }
+
+  Map<String, dynamic>? _normalizeCityIndice(Map<String, dynamic> item) {
+    final nomeEtapa = item['nome_etapa']?.toString();
+    if (nomeEtapa == null || nomeEtapa.isEmpty) return null;
+
+    final group = item['grupo'] as Map<String, dynamic>?;
+
+    return <String, dynamic>{
+      'id': _toInt(item['id']),
+      'nome_etapa': nomeEtapa,
+      'titulo': (item['titulo'] ?? nomeEtapa).toString(),
+      'valor': _toDouble(item['valor']),
+      'grupo': {
+        'id': _toInt(group?['id']),
+        'nome': (group?['nome'] ?? '').toString(),
+      },
+    };
+  }
+
+  CensoEscolarEntity? _buildCensoFromCityData(Map<String, dynamic> cityData) {
+    final normalizedIndices = _extractIndicesFromCityData(cityData);
+    if (normalizedIndices.isEmpty) return null;
+
+    final valoresPorEtapa = <String, double>{};
+    final gruposMap = <int, List<CensoTitleEntity>>{};
+    final grupoNomes = <int, String>{};
+
+    for (final indice in normalizedIndices) {
+      final nomeEtapa = indice['nome_etapa'].toString();
+      final titulo = indice['titulo'].toString();
+      final valor = _toDouble(indice['valor']);
+      final group = indice['grupo'] as Map<String, dynamic>? ?? const {};
+      final grupoId = _toInt(group['id']);
+      final grupoNome = (group['nome'] ?? '').toString();
+      final id = _toInt(indice['id']);
+
+      valoresPorEtapa[nomeEtapa] = valor;
+      grupoNomes[grupoId] = grupoNome;
+
+      gruposMap.putIfAbsent(grupoId, () => []);
+      gruposMap[grupoId]!.add(
+        CensoTitleEntity(
+          id: id,
+          nomeEtapa: nomeEtapa,
+          tituloExibicao: titulo,
+          valor: valor,
+          isProfessores: nomeEtapa.endsWith('P'),
+          grupoId: grupoId,
+        ),
+      );
+    }
+
+    final grupos = gruposMap.entries
+        .map(
+          (entry) => CensoGroupEntity(
+            id: entry.key,
+            nome: grupoNomes[entry.key] ?? '',
+            titulos: entry.value,
+          ),
+        )
+        .toList();
+
+    return CensoEscolarEntity(
+      cidadeId: _toInt(cityData['id']),
+      cidadeNome: (cityData['nome'] ?? '').toString(),
+      censoAno: _toInt(cityData['censo_ano']) == 0
+          ? null
+          : _toInt(cityData['censo_ano']),
+      grupos: grupos,
+      valoresPorEtapa: valoresPorEtapa,
+    );
+  }
+
+  List<Map<String, dynamic>> _buildIndicesFromCenso(CensoEscolarEntity censo) {
+    final indices = <Map<String, dynamic>>[];
+
+    for (final grupo in censo.grupos) {
+      for (final titulo in grupo.titulos) {
+        indices.add({
+          'id': titulo.id,
+          'nome_etapa': titulo.nomeEtapa,
+          'titulo': titulo.tituloExibicao,
+          'valor': titulo.valor,
+          'grupo': {
+            'id': grupo.id,
+            'nome': grupo.nome,
+          },
+        });
+      }
+    }
+
+    return indices;
+  }
+
+  List<Map<String, dynamic>> _buildIndicadoresFromIndices(
+    List<Map<String, dynamic>> indices,
+  ) {
+    return indices.map((item) {
+      final grupo = item['grupo'] as Map<String, dynamic>? ?? const {};
+      return <String, dynamic>{
+        'id': item['id'],
+        'nome': item['nome_etapa'],
+        'titulo': item['titulo'],
+        'valor': item['valor'],
+        'grupo_id': _toInt(grupo['id']),
+        'grupo_nome': (grupo['nome'] ?? '').toString(),
+      };
+    }).toList();
+  }
+
+  List<Map<String, dynamic>> _buildLegacyIndicesFromIndices(
+    List<Map<String, dynamic>> indices,
+    int cidadeId,
+  ) {
+    return indices.map((item) {
+      final grupo = item['grupo'] as Map<String, dynamic>? ?? const {};
+      final grupoId = _toInt(grupo['id']);
+      final grupoNome = (grupo['nome'] ?? '').toString();
+
+      return <String, dynamic>{
+        'idindice_etapa': _toInt(item['id']),
+        'nome_etapa': item['nome_etapa'],
+        'titulo_etapa': item['titulo'],
+        'grupos_grupo_id': grupoId,
+        'grupo': {
+          'grupo_id': grupoId,
+          'nome_grupo': grupoNome,
+        },
+        'pivot': {
+          'cidades_idCidades': cidadeId,
+          'indice_etapa_idindice_etapa': _toInt(item['id']),
+          'etapa_valor': _toDouble(item['valor']),
+        },
+      };
+    }).toList();
+  }
+
+  Map<String, dynamic> _updateCityDataWithCenso(
+    Map<String, dynamic> cityData,
+    CensoEscolarEntity updatedCenso,
+  ) {
+    final indices = _buildIndicesFromCenso(updatedCenso);
+    final existingName = cityData['nome'];
+    final cityName = existingName == null || existingName.toString().isEmpty
+        ? updatedCenso.cidadeNome
+        : existingName.toString();
+
+    return {
+      ...cityData,
+      'id': _toInt(cityData['id']) > 0
+          ? _toInt(cityData['id'])
+          : updatedCenso.cidadeId,
+      'nome': cityName,
+      'indices': indices,
+      'indicadores': _buildIndicadoresFromIndices(indices),
+      'cidades_has_indice_etapa':
+          _buildLegacyIndicesFromIndices(indices, updatedCenso.cidadeId),
+    };
+  }
+
+  Map<String, double> _calculateAggregatedCensoFromCities(
+    List<Map<String, dynamic>> citiesData,
+    Map<String, double> fallback,
+  ) {
+    final aggregated = <String, double>{};
+
+    for (final city in citiesData) {
+      final indices = _extractIndicesFromCityData(city);
+      for (final indice in indices) {
+        final nomeEtapa = indice['nome_etapa'].toString();
+        if (nomeEtapa.isEmpty) continue;
+        aggregated[nomeEtapa] =
+            (aggregated[nomeEtapa] ?? 0) + _toDouble(indice['valor']);
+      }
+    }
+
+    if (aggregated.isNotEmpty) return aggregated;
+    return Map<String, double>.from(fallback);
+  }
+
+  @action
+  void _checkForProductsToRemark(
+    CensoEscolarEntity oldCenso,
+    CensoEscolarEntity newCenso,
+  ) {
+    final productsToRemark = <ProductEntity>[];
+
+    for (final category in categories) {
+      for (final subcategory in category.subcategorias) {
+        for (final product in subcategory.produtos) {
+          final oldQuantity = calculationService.calcularQuantidade(
+            product,
+            oldCenso,
+          );
+          final newQuantity = calculationService.calcularQuantidade(
+            product,
+            newCenso,
+          );
+
+          if (oldQuantity == 0 && newQuantity > 0 && !product.selecionado) {
+            final updatedProduct =
+                product.copyWith(quantidade: newQuantity.round());
+            productsToRemark.add(updatedProduct);
+          }
+        }
+      }
+    }
+
+    productsNeedingRemark = productsToRemark;
+  }
+
+  @action
+  void confirmProductRemark() {
+    if (productsNeedingRemark.isEmpty) return;
+
+    _remarkProducts(productsNeedingRemark);
+
+    productsNeedingRemark = [];
+  }
+
+  @action
+  void rejectProductRemark() {
+    if (productsNeedingRemark.isEmpty) return;
+
+    productsNeedingRemark = [];
+  }
+
+  @action
+  void updateCensoEscolar(CensoEscolarEntity updatedCenso) {
+    final oldCenso = censoEscolar;
+    censoEscolar = updatedCenso;
+
+    if (budgetDetail != null) {
+      final currentCities = budgetDetail!.citiesData;
+      final updatedCities = <Map<String, dynamic>>[];
+      var cityUpdated = false;
+
+      for (final cityData in currentCities) {
+        final cityId = _toInt(cityData['id'] ?? cityData['idCidades']);
+        if (cityId == updatedCenso.cidadeId && updatedCenso.cidadeId > 0) {
+          updatedCities.add(_updateCityDataWithCenso(cityData, updatedCenso));
+          cityUpdated = true;
+        } else {
+          updatedCities.add(cityData);
+        }
+      }
+
+      if (!cityUpdated && updatedCenso.cidadeId > 0) {
+        updatedCities.add(
+          _updateCityDataWithCenso(<String, dynamic>{}, updatedCenso),
+        );
+      }
+
+      final updatedCensoAgregado = _calculateAggregatedCensoFromCities(
+        updatedCities,
+        budgetDetail!.censoAgregado,
+      );
+
+      budgetDetail = budgetDetail!.copyWith(
+        citiesData: updatedCities,
+        censoAgregado: updatedCensoAgregado,
+      );
+    }
+
+    if (oldCenso != null) {
+      _checkForProductsToRemark(oldCenso, updatedCenso);
+    }
+  }
+
+  @action
+  void _remarkProducts(List<ProductEntity> productsToRemark) {
+    for (final product in productsToRemark) {
+      for (var i = 0; i < categories.length; i++) {
+        final category = categories[i];
+
+        for (var j = 0; j < category.subcategorias.length; j++) {
+          final subcategory = category.subcategorias[j];
+
+          final productIndex =
+              subcategory.produtos.indexWhere((p) => p.id == product.id);
+
+          if (productIndex != -1) {
+            final updatedProduct = subcategory.produtos[productIndex]
+                .copyWith(selecionado: true, quantidade: product.quantidade);
+
+            final updatedProducts =
+                List<ProductEntity>.from(subcategory.produtos);
+            updatedProducts[productIndex] = updatedProduct;
+
+            final updatedSubcategory =
+                subcategory.copyWith(produtos: updatedProducts);
+
+            final updatedSubcategories =
+                List<SubcategoryEntity>.from(category.subcategorias);
+            updatedSubcategories[j] = updatedSubcategory;
+
+            final updatedCategory =
+                category.copyWith(subcategorias: updatedSubcategories);
+
+            categories[i] = updatedCategory;
+
+            break;
+          }
+        }
+      }
     }
   }
 
@@ -154,133 +809,108 @@ abstract class _BudgetConfigStoreBase with Store {
     error = null;
 
     try {
-      print('🔄 [BudgetConfigStore] Carregando detalhes do orçamento...');
-
       final result = await getBudgetDetailUseCase(budgetId);
 
       await result.fold(
         (failure) async {
-          print('❌ [BudgetConfigStore] Erro: ${failure.message}');
           error = failure.message;
           budgetDetail = null;
           isLoading = false;
           isLoadingProducts = false;
         },
         (budget) async {
-          print('✅ [BudgetConfigStore] Orçamento carregado: ${budget.id}');
-          print(
-              '📦 [BudgetConfigStore] Categorias recebidas: ${budget.categories.length}');
-
           budgetDetail = budget;
 
-          // ✅ Inicializar categorias COM estatísticas (sem produtos ainda)
           categories.clear();
           categories.addAll(budget.categories);
 
-          print(
-              '📊 [BudgetConfigStore] Categorias na store: ${categories.length}');
-          for (var cat in categories) {
-            print(
-                '   - ${cat.nome}: ${cat.subcategorias.length} subcategorias');
-          }
-
-          // Inicializar estados de categorias (manter para compatibilidade)
           categoryStates.clear();
           categoryStates.addAll(budget.categoryStates);
 
-          // Inicializar data de validade
-          validityDate = budget.validityDate;
+          validityDate = budget.validityDate ??
+              DateTime.now().add(const Duration(days: 60));
 
-          // Inicializar nome
           budgetName = budget.name;
 
-          // ✅ Info básica carregada
+          if (budget.censoAgregado.isNotEmpty) {
+            censoEscolar = CensoEscolarEntity(
+              cidadeId: 0,
+              cidadeNome: 'Agregado',
+              grupos: const [],
+              valoresPorEtapa: budget.censoAgregado,
+            );
+          } else if (budget.citiesData.isNotEmpty) {
+            censoEscolar = _buildCensoFromCityData(budget.citiesData.first);
+          } else {
+            censoEscolar = null;
+          }
+
           isLoading = false;
 
-          // 🚀 EAGER LOAD: Buscar TODOS os produtos do orçamento
-          print('🔄 [BudgetConfigStore] Iniciando EAGER LOAD de produtos...');
-          await _loadAllProducts(budgetId);
-
-          // ✅ Produtos carregados
           isLoadingProducts = false;
         },
       );
     } catch (e) {
-      print('❌ [BudgetConfigStore] Erro inesperado: $e');
       error = 'Erro ao carregar orçamento: $e';
       isLoading = false;
       isLoadingProducts = false;
     }
   }
 
-  /// Carrega TODOS os produtos do orçamento de uma vez (EAGER LOAD)
-  /// Distribui produtos nas categorias corretas usando subcategoriaId
-  @action
-  Future<void> _loadAllProducts(int budgetId) async {
+  void _enrichCategoriesWithCityData() {
+    if (budgetDetail == null || budgetDetail!.citiesData.isEmpty) return;
+
     try {
-      print('🌐 [BudgetConfigStore] Buscando todos os produtos...');
+      final indicatorMap = <String, Map<String, dynamic>>{};
 
-      final result = await getAllBudgetProductsUseCase(budgetId: budgetId);
+      final cityData = budgetDetail!.citiesData.first;
+      final indicadoresCidade = cityData['indicadores'] as List<dynamic>? ?? [];
 
-      result.fold(
-        (failure) {
-          print(
-              '❌ [BudgetConfigStore] Erro ao carregar produtos: ${failure.message}');
-          // Não definir error aqui, manter estatísticas se falhar
-        },
-        (allProducts) {
-          print(
-              '✅ [BudgetConfigStore] ${allProducts.length} produtos carregados');
-
-          // Agrupar produtos por subcategoria_id
-          final productsBySubcategory = <int, List<ProductEntity>>{};
-
-          for (final product in allProducts) {
-            final subId = product.subcategoriaId;
-            productsBySubcategory.putIfAbsent(subId, () => []);
-            productsBySubcategory[subId]!.add(product);
+      for (final ind in indicadoresCidade) {
+        if (ind is Map<String, dynamic>) {
+          final nome = ind['nome'] as String?;
+          if (nome != null) {
+            indicatorMap[nome] = {
+              'grupo_id': ind['grupo_id'],
+              'grupo_nome': ind['grupo_nome'],
+            };
           }
+        }
+      }
 
-          print('📦 [BudgetConfigStore] Produtos agrupados por subcategoria:');
-          productsBySubcategory.forEach((subId, prods) {
-            print('   - Subcategoria $subId: ${prods.length} produtos');
-          });
+      if (indicatorMap.isEmpty) return;
 
-          // Distribuir produtos nas subcategorias corretas
-          final updatedCategories = categories.map((cat) {
-            // Atualizar subcategorias com produtos reais
-            final updatedSubcategories = cat.subcategorias.map((sub) {
-              final subProducts = productsBySubcategory[sub.id] ?? [];
+      final updatedCategories = categories.map((cat) {
+        final updatedSubcategories = cat.subcategorias.map((sub) {
+          final updatedProducts = sub.produtos.map((prod) {
+            if (prod.indicadoresEtapa.isEmpty) return prod;
 
-              if (subProducts.isEmpty) {
-                // Subcategoria sem produtos, manter como está (com estatísticas)
-                return sub;
+            final updatedIndicators = prod.indicadoresEtapa.map((ind) {
+              if (ind.grupoNome.isNotEmpty) return ind;
+
+              final info = indicatorMap[ind.nomeEtapa] ??
+                  indicatorMap[ind.indicadorNome];
+
+              if (info != null) {
+                return ind.copyWith(
+                  grupoId: info['grupo_id'] as int? ?? 0,
+                  grupoNome: info['grupo_nome'] as String? ?? '',
+                );
               }
-
-              // Substituir estatísticas por produtos reais
-              return sub.copyWith(
-                produtos: subProducts,
-                estatisticas:
-                    null, // Remove estatísticas (agora tem produtos reais)
-              );
+              return ind;
             }).toList();
 
-            return cat.copyWith(subcategorias: updatedSubcategories);
+            return prod.copyWith(indicadoresEtapa: updatedIndicators);
           }).toList();
 
-          // Atualizar lista de categorias
-          categories.clear();
-          categories.addAll(updatedCategories);
+          return sub.copyWith(produtos: updatedProducts);
+        }).toList();
 
-          print('✅ [BudgetConfigStore] Produtos distribuídos nas categorias');
-          print('💰 Total calculado: R\$ ${totalValue.toStringAsFixed(2)}');
-          print('📦 Produtos selecionados: $totalSelectedProducts');
-        },
-      );
-    } catch (e) {
-      print('❌ [BudgetConfigStore] Erro inesperado ao carregar produtos: $e');
-      // Manter estatísticas se falhar
-    }
+        return cat.copyWith(subcategorias: updatedSubcategories);
+      }).toList();
+
+      categories = ObservableList.of(updatedCategories);
+    } catch (e) {}
   }
 
   @action
@@ -288,24 +918,17 @@ abstract class _BudgetConfigStoreBase with Store {
     isLoadingCensus = true;
 
     try {
-      print('🔄 [BudgetConfigStore] Carregando censo da cidade: $cityId');
-
       final result = await getCensusDataUseCase(cityId);
 
       result.fold(
         (failure) {
-          print(
-              '❌ [BudgetConfigStore] Erro ao carregar censo: ${failure.message}');
-          // Não definir error aqui pois censo é opcional
           censusData = null;
         },
         (census) {
-          print('✅ [BudgetConfigStore] Censo carregado: ${census.summary}');
           censusData = census;
         },
       );
     } catch (e) {
-      print('❌ [BudgetConfigStore] Erro inesperado ao carregar censo: $e');
       censusData = null;
     } finally {
       isLoadingCensus = false;
@@ -314,24 +937,18 @@ abstract class _BudgetConfigStoreBase with Store {
 
   @action
   void toggleCategory(String categoryKey) {
-    print('🔄 [BudgetConfigStore] Alternando categoria: $categoryKey');
-
     final newValue = toggleCategoryUseCase(categoryKey, categoryStates);
     categoryStates[categoryKey] = newValue;
-
-    print('✅ [BudgetConfigStore] Categoria $categoryKey = $newValue');
   }
 
   @action
   void setValidityDate(DateTime? date) {
     validityDate = date;
-    print('📅 [BudgetConfigStore] Data de validade definida: $date');
   }
 
   @action
   void setBudgetName(String? name) {
     budgetName = name;
-    print('📝 [BudgetConfigStore] Nome do orçamento definido: $name');
   }
 
   @action
@@ -345,8 +962,6 @@ abstract class _BudgetConfigStoreBase with Store {
     error = null;
 
     try {
-      print('🔄 [BudgetConfigStore] Finalizando orçamento...');
-
       final result = await finalizeBudgetUseCase(
         budgetId: budgetDetail!.id,
         categoryStates: categoryStates,
@@ -356,47 +971,35 @@ abstract class _BudgetConfigStoreBase with Store {
 
       return result.fold(
         (failure) {
-          print('❌ [BudgetConfigStore] Erro ao finalizar: ${failure.message}');
           error = failure.message;
           isSaving = false;
           return Left(failure);
         },
         (updatedBudget) {
-          print('✅ [BudgetConfigStore] Orçamento finalizado com sucesso');
           budgetDetail = updatedBudget;
           isSaving = false;
           return Right(updatedBudget);
         },
       );
     } catch (e) {
-      print('❌ [BudgetConfigStore] Erro inesperado: $e');
       error = 'Erro ao finalizar orçamento: $e';
       isSaving = false;
       return Left(UnknownFailure(e.toString()));
     }
   }
 
-  // ========== NOVOS ACTIONS PARA CATEGORIAS E PRODUTOS ==========
-
   @action
   void selectCategory(CategoryEntity? category) {
     selectedCategory = category;
-    print('📂 [BudgetConfigStore] Categoria selecionada: ${category?.nome}');
   }
 
   @action
   void selectSubcategory(SubcategoryEntity? subcategory) {
     selectedSubcategory = subcategory;
-    print(
-        '📁 [BudgetConfigStore] Subcategoria selecionada: ${subcategory?.nome}');
   }
 
   @action
   void toggleProduct(int productId, bool selected) {
-    print(
-        '🔄 [BudgetConfigStore] Alternando produto: $productId para $selected');
-
-    // Encontrar o produto em todas as categorias/subcategorias
     for (var i = 0; i < categories.length; i++) {
       final category = categories[i];
 
@@ -409,359 +1012,381 @@ abstract class _BudgetConfigStoreBase with Store {
         if (productIndex != -1) {
           final product = subcategory.produtos[productIndex];
 
-          // ⚠️ Só permitir alteração se o produto estiver ativo
           if (!product.ativo) {
-            print(
-                '⚠️ [BudgetConfigStore] Produto $productId está inativo, ignorando toggle');
             return;
           }
 
-          // ✅ Alternar campo 'selecionado'
           final updatedProduct = product.copyWith(selecionado: selected);
 
-          // Criar nova lista de produtos com imutabilidade
-          final updatedProducts =
-              subcategory.produtos.asMap().entries.map((entry) {
-            return entry.key == productIndex ? updatedProduct : entry.value;
-          }).toList();
+          if (censoEscolar != null && selected) {
+            final quantidade = calculationService.calcularQuantidade(
+              updatedProduct,
+              censoEscolar!,
+            );
+            final valorTotal = calculationService.calcularValorProduto(
+              updatedProduct,
+              censoEscolar!,
+            );
 
-          // Criar nova subcategoria
-          final updatedSubcategory =
-              subcategory.copyWith(produtos: updatedProducts);
+            final productWithCalculation = updatedProduct.copyWith(
+              quantidade: quantidade.round(),
+              valor: valorTotal > 0
+                  ? valorTotal / quantidade
+                  : updatedProduct.valor,
+            );
 
-          // Criar nova lista de subcategorias com imutabilidade
-          final updatedSubcategories =
-              category.subcategorias.asMap().entries.map((entry) {
-            return entry.key == j ? updatedSubcategory : entry.value;
-          }).toList();
+            final updatedProducts =
+                subcategory.produtos.asMap().entries.map((entry) {
+              return entry.key == productIndex
+                  ? productWithCalculation
+                  : entry.value;
+            }).toList();
 
-          // Criar nova categoria
-          final updatedCategory =
-              category.copyWith(subcategorias: updatedSubcategories);
+            final updatedSubcategory =
+                subcategory.copyWith(produtos: updatedProducts);
+            final updatedSubcategories =
+                category.subcategorias.asMap().entries.map((entry) {
+              return entry.key == j ? updatedSubcategory : entry.value;
+            }).toList();
 
-          // ⚠️ CORREÇÃO: Substituir categoria na lista observável
-          // Criar NOVA lista para forçar notificação do MobX
-          categories = ObservableList.of(
-            categories.asMap().entries.map((entry) {
-              return entry.key == i ? updatedCategory : entry.value;
-            }).toList(),
-          );
+            categories[i] =
+                category.copyWith(subcategorias: updatedSubcategories);
+          } else {
+            final updatedProducts =
+                subcategory.produtos.asMap().entries.map((entry) {
+              return entry.key == productIndex ? updatedProduct : entry.value;
+            }).toList();
 
-          print('✅ [BudgetConfigStore] Produto $productId agora: $selected');
-          print('💰 Total recalculado: R\$ ${totalValue.toStringAsFixed(2)}');
-          print('📦 Produtos selecionados: $totalSelectedProducts');
-          return;
-        }
-      }
-    }
+            final updatedSubcategory =
+                subcategory.copyWith(produtos: updatedProducts);
+            final updatedSubcategories =
+                category.subcategorias.asMap().entries.map((entry) {
+              return entry.key == j ? updatedSubcategory : entry.value;
+            }).toList();
 
-    print('⚠️ [BudgetConfigStore] Produto $productId não encontrado');
-  }
-
-  @action
-  void updateProductQuantity(int productId, int quantity) {
-    print(
-        '🔄 [BudgetConfigStore] Atualizando quantidade do produto: $productId para $quantity');
-
-    if (quantity < 1) {
-      print('⚠️ [BudgetConfigStore] Quantidade inválida: $quantity');
-      return;
-    }
-
-    // Encontrar o produto
-    for (var i = 0; i < categories.length; i++) {
-      final category = categories[i];
-
-      for (var j = 0; j < category.subcategorias.length; j++) {
-        final subcategory = category.subcategorias[j];
-
-        final productIndex =
-            subcategory.produtos.indexWhere((p) => p.id == productId);
-
-        if (productIndex != -1) {
-          final product = subcategory.produtos[productIndex];
-
-          // ⚠️ Só permitir se estiver ativo
-          if (!product.ativo) {
-            print('⚠️ [BudgetConfigStore] Produto $productId está inativo');
-            return;
+            categories[i] =
+                category.copyWith(subcategorias: updatedSubcategories);
           }
 
-          // Atualizar quantidade
-          final updatedProduct = product.copyWith(quantidade: quantity);
-
-          // Criar nova lista de produtos
-          final updatedProducts =
-              List<ProductEntity>.from(subcategory.produtos);
-          updatedProducts[productIndex] = updatedProduct;
-
-          // Criar nova subcategoria
-          final updatedSubcategory =
-              subcategory.copyWith(produtos: updatedProducts);
-
-          // Criar nova lista de subcategorias
-          final updatedSubcategories =
-              List<SubcategoryEntity>.from(category.subcategorias);
-          updatedSubcategories[j] = updatedSubcategory;
-
-          // Criar nova categoria
-          final updatedCategory =
-              category.copyWith(subcategorias: updatedSubcategories);
-
-          // Atualizar a categoria na lista
-          categories[i] = updatedCategory;
-
-          print('✅ [BudgetConfigStore] Quantidade atualizada');
-          print('💰 Total recalculado: R\$ ${totalValue.toStringAsFixed(2)}');
           return;
         }
       }
     }
-
-    print('⚠️ [BudgetConfigStore] Produto $productId não encontrado');
   }
 
-  @action
-  void updateProductObservations(int productId, String? observations) {
-    print(
-        '🔄 [BudgetConfigStore] Atualizando observações do produto: $productId');
-
-    // Encontrar o produto
-    for (var i = 0; i < categories.length; i++) {
-      final category = categories[i];
-
-      for (var j = 0; j < category.subcategorias.length; j++) {
-        final subcategory = category.subcategorias[j];
-
-        final productIndex =
-            subcategory.produtos.indexWhere((p) => p.id == productId);
-
-        if (productIndex != -1) {
-          final product = subcategory.produtos[productIndex];
-
-          // Atualizar observações
-          final updatedProduct = product.copyWith(observacoes: observations);
-
-          // Criar nova lista de produtos
-          final updatedProducts =
-              List<ProductEntity>.from(subcategory.produtos);
-          updatedProducts[productIndex] = updatedProduct;
-
-          // Criar nova subcategoria
-          final updatedSubcategory =
-              subcategory.copyWith(produtos: updatedProducts);
-
-          // Criar nova lista de subcategorias
-          final updatedSubcategories =
-              List<SubcategoryEntity>.from(category.subcategorias);
-          updatedSubcategories[j] = updatedSubcategory;
-
-          // Criar nova categoria
-          final updatedCategory =
-              category.copyWith(subcategorias: updatedSubcategories);
-
-          // Atualizar a categoria na lista
-          categories[i] = updatedCategory;
-
-          print('✅ [BudgetConfigStore] Observações atualizadas');
-          return;
-        }
-      }
-    }
-
-    print('⚠️ [BudgetConfigStore] Produto $productId não encontrado');
-  }
-
-  @action
-  void updateProductIndicators(
-      int productId, Map<String, List<String>> selectedIndicators) {
-    print(
-        '🔄 [BudgetConfigStore] Atualizando indicadores do produto: $productId');
-    print('   📋 Indicadores selecionados: $selectedIndicators');
-
-    // Encontrar o produto
-    for (var i = 0; i < categories.length; i++) {
-      final category = categories[i];
-
-      for (var j = 0; j < category.subcategorias.length; j++) {
-        final subcategory = category.subcategorias[j];
-
-        final productIndex =
-            subcategory.produtos.indexWhere((p) => p.id == productId);
-
-        if (productIndex != -1) {
-          final product = subcategory.produtos[productIndex];
-
-          // ⚠️ Só permitir se estiver ativo
-          if (!product.ativo) {
-            print('⚠️ [BudgetConfigStore] Produto $productId está inativo');
-            return;
-          }
-
-          // Atualizar indicadores
-          // TODO: Adicionar campo para armazenar indicadores selecionados no ProductEntity
-          // Por enquanto, apenas loga a ação
-          print('✅ [BudgetConfigStore] Indicadores atualizados com sucesso');
-          print(
-              '   📊 Total de grupos selecionados: ${selectedIndicators.length}');
-
-          // Criar nova lista de produtos (por enquanto, sem alteração)
-          // No futuro, adicionar campo selectedIndicators ao ProductEntity
-          final updatedProducts =
-              List<ProductEntity>.from(subcategory.produtos);
-
-          // Criar nova subcategoria
-          final updatedSubcategory =
-              subcategory.copyWith(produtos: updatedProducts);
-
-          // Criar nova lista de subcategorias
-          final updatedSubcategories =
-              List<SubcategoryEntity>.from(category.subcategorias);
-          updatedSubcategories[j] = updatedSubcategory;
-
-          // Criar nova categoria
-          final updatedCategory =
-              category.copyWith(subcategorias: updatedSubcategories);
-
-          // Atualizar a categoria na lista
-          categories[i] = updatedCategory;
-
-          return;
-        }
-      }
-    }
-
-    print('⚠️ [BudgetConfigStore] Produto $productId não encontrado');
-  }
-
-  /// Toggle de categoria com marcação/desmarcação em cascata
-  /// SIMPLIFICADO: Produtos já estão carregados (EAGER LOAD)
-  /// Apenas marca/desmarca produtos que já estão na memória
-  @action
-  void toggleCategoryWithCascade(int categoryId, bool selected) {
-    print(
-        '🔄 [BudgetConfigStore] Toggle categoria $categoryId: ${selected ? "MARCAR" : "DESMARCAR"}');
-
-    // Encontrar a categoria
-    final categoryIndex = categories.indexWhere((c) => c.id == categoryId);
-    if (categoryIndex == -1) {
-      print('⚠️ [BudgetConfigStore] Categoria $categoryId não encontrada');
-      return;
-    }
-
-    final category = categories[categoryIndex];
-
-    print('   📦 Categoria: ${category.nome}');
-    print(
-        '   📊 Produtos ANTES: ${category.selectedProductsCount} selecionados');
-
-    // Atualizar todas as subcategorias da categoria
-    final updatedSubcategories = category.subcategorias.map((subcategory) {
-      // Marcar/desmarcar todos os produtos da subcategoria
-      final updatedProducts = subcategory.produtos.map((product) {
-        return product.copyWith(
-          selecionado: selected,
-          quantidade: 1, // Manter quantidade padrão
-        );
-      }).toList();
-
-      // Remover estatísticas (agora tem produtos reais)
-      return subcategory.copyWith(
-        produtos: updatedProducts,
-        estatisticas: null,
-      );
-    }).toList();
-
-    // Criar nova categoria com subcategorias atualizadas
-    final updatedCategory = category.copyWith(
-      subcategorias: updatedSubcategories,
-    );
-
-    // ⚠️ CORREÇÃO: Substituir categoria na lista observável
-    // Criar NOVA lista para forçar notificação do MobX
-    categories = ObservableList.of(
-      categories.asMap().entries.map((entry) {
-        return entry.key == categoryIndex ? updatedCategory : entry.value;
-      }).toList(),
-    );
-
-    print(
-        '   ✅ Categoria ${selected ? "marcada" : "desmarcada"}: ${updatedCategory.selectedProductsCount} produtos');
-    print('   💰 Total recalculado: R\$ ${totalValue.toStringAsFixed(2)}');
-    print('   📦 Produtos selecionados no orçamento: $totalSelectedProducts');
-  }
-
-  /// Marca/desmarca todos os produtos de uma SUBCATEGORIA específica
   @action
   void toggleSubcategoryWithCascade(
       int categoryId, int subcategoryId, bool selected) {
-    print(
-        '🔄 [BudgetConfigStore] Toggle subcategoria $subcategoryId da categoria $categoryId: ${selected ? "MARCAR" : "DESMARCAR"}');
-
-    // Encontrar a categoria
     final categoryIndex = categories.indexWhere((c) => c.id == categoryId);
-    if (categoryIndex == -1) {
-      print('⚠️ [BudgetConfigStore] Categoria $categoryId não encontrada');
-      return;
-    }
+    if (categoryIndex == -1) return;
 
     final category = categories[categoryIndex];
 
-    // Encontrar a subcategoria
     final subcategoryIndex =
         category.subcategorias.indexWhere((s) => s.id == subcategoryId);
-    if (subcategoryIndex == -1) {
-      print(
-          '⚠️ [BudgetConfigStore] Subcategoria $subcategoryId não encontrada');
-      return;
-    }
+    if (subcategoryIndex == -1) return;
 
     final subcategory = category.subcategorias[subcategoryIndex];
 
-    print('   📦 Subcategoria: ${subcategory.nome}');
-    print(
-        '   📊 Produtos ANTES: ${subcategory.selectedProductsCount} selecionados');
-
-    // Marcar/desmarcar todos os produtos da subcategoria
     final updatedProducts = subcategory.produtos.map((product) {
-      return product.copyWith(
-        selecionado: selected,
-        quantidade: 1, // Manter quantidade padrão
-      );
+      if (!product.ativo) return product;
+      return product.copyWith(selecionado: selected);
     }).toList();
 
-    // Criar nova subcategoria com produtos atualizados
-    final updatedSubcategory = subcategory.copyWith(
-      produtos: updatedProducts,
-      estatisticas: null,
-    );
-
-    // Atualizar lista de subcategorias na categoria
+    final updatedSubcategory = subcategory.copyWith(produtos: updatedProducts);
     final updatedSubcategories =
         category.subcategorias.asMap().entries.map((entry) {
       return entry.key == subcategoryIndex ? updatedSubcategory : entry.value;
     }).toList();
 
-    // Criar nova categoria com subcategorias atualizadas
-    final updatedCategory = category.copyWith(
-      subcategorias: updatedSubcategories,
-    );
-
-    // ⚠️ CORREÇÃO: Substituir categoria na lista observável
-    // Criar NOVA lista para forçar notificação do MobX
-    categories = ObservableList.of(
-      categories.asMap().entries.map((entry) {
-        return entry.key == categoryIndex ? updatedCategory : entry.value;
-      }).toList(),
-    );
-
-    print(
-        '   ✅ Subcategoria ${selected ? "marcada" : "desmarcada"}: ${updatedSubcategory.selectedProductsCount} produtos');
-    print('   💰 Total recalculado: R\$ ${totalValue.toStringAsFixed(2)}');
-    print('   📦 Produtos selecionados no orçamento: $totalSelectedProducts');
+    categories[categoryIndex] =
+        category.copyWith(subcategorias: updatedSubcategories);
   }
 
-  /// Atualiza categoria com produtos carregados e marca/desmarca todos
+  @action
+  void toggleCategoryWithCascade(int categoryId, bool selected) {
+    final categoryIndex = categories.indexWhere((c) => c.id == categoryId);
+    if (categoryIndex == -1) return;
+
+    final category = categories[categoryIndex];
+
+    final updatedSubcategories = category.subcategorias.map((subcategory) {
+      final updatedProducts = subcategory.produtos.map((product) {
+        if (!product.ativo) return product;
+        return product.copyWith(selecionado: selected);
+      }).toList();
+      return subcategory.copyWith(produtos: updatedProducts);
+    }).toList();
+
+    categories[categoryIndex] =
+        category.copyWith(subcategorias: updatedSubcategories);
+  }
+
+  @action
+  void updateProductFromModal(ProductEntity updatedProduct) {
+    for (var i = 0; i < categories.length; i++) {
+      final category = categories[i];
+
+      for (var j = 0; j < category.subcategorias.length; j++) {
+        final subcategory = category.subcategorias[j];
+
+        final productIndex =
+            subcategory.produtos.indexWhere((p) => p.id == updatedProduct.id);
+
+        if (productIndex != -1) {
+          final updatedProducts =
+              subcategory.produtos.asMap().entries.map((entry) {
+            return entry.key == productIndex ? updatedProduct : entry.value;
+          }).toList();
+
+          final updatedSubcategory =
+              subcategory.copyWith(produtos: updatedProducts);
+          final updatedSubcategories =
+              category.subcategorias.asMap().entries.map((entry) {
+            return entry.key == j ? updatedSubcategory : entry.value;
+          }).toList();
+
+          categories[i] =
+              category.copyWith(subcategorias: updatedSubcategories);
+
+          return;
+        }
+      }
+    }
+  }
+
+  @action
+  void updateProductQuantity(int productId, int quantity) {
+    if (quantity < 1) {
+      return;
+    }
+
+    for (var i = 0; i < categories.length; i++) {
+      final category = categories[i];
+
+      for (var j = 0; j < category.subcategorias.length; j++) {
+        final subcategory = category.subcategorias[j];
+
+        final productIndex =
+            subcategory.produtos.indexWhere((p) => p.id == productId);
+
+        if (productIndex != -1) {
+          final product = subcategory.produtos[productIndex];
+
+          if (!product.ativo) {
+            return;
+          }
+
+          final updatedProduct = product.copyWith(quantidade: quantity);
+
+          final updatedProducts =
+              List<ProductEntity>.from(subcategory.produtos);
+          updatedProducts[productIndex] = updatedProduct;
+
+          final updatedSubcategory =
+              subcategory.copyWith(produtos: updatedProducts);
+
+          final updatedSubcategories =
+              List<SubcategoryEntity>.from(category.subcategorias);
+          updatedSubcategories[j] = updatedSubcategory;
+
+          final updatedCategory =
+              category.copyWith(subcategorias: updatedSubcategories);
+
+          categories[i] = updatedCategory;
+
+          return;
+        }
+      }
+    }
+  }
+
+  @action
+  void updateProductValue(int productId, double value) {
+    for (var i = 0; i < categories.length; i++) {
+      final category = categories[i];
+
+      for (var j = 0; j < category.subcategorias.length; j++) {
+        final subcategory = category.subcategorias[j];
+
+        final productIndex =
+            subcategory.produtos.indexWhere((p) => p.id == productId);
+
+        if (productIndex != -1) {
+          final product = subcategory.produtos[productIndex];
+
+          if (!product.ativo) {
+            return;
+          }
+
+          final updatedProduct = product.copyWith(valor: value);
+
+          final updatedProducts =
+              List<ProductEntity>.from(subcategory.produtos);
+          updatedProducts[productIndex] = updatedProduct;
+
+          final updatedSubcategory =
+              subcategory.copyWith(produtos: updatedProducts);
+
+          final updatedSubcategories =
+              List<SubcategoryEntity>.from(category.subcategorias);
+          updatedSubcategories[j] = updatedSubcategory;
+
+          final updatedCategory =
+              category.copyWith(subcategorias: updatedSubcategories);
+
+          categories[i] = updatedCategory;
+
+          return;
+        }
+      }
+    }
+  }
+
+  @action
+  void updateProductObservations(int productId, String? observations) {
+    for (var i = 0; i < categories.length; i++) {
+      final category = categories[i];
+
+      for (var j = 0; j < category.subcategorias.length; j++) {
+        final subcategory = category.subcategorias[j];
+
+        final productIndex =
+            subcategory.produtos.indexWhere((p) => p.id == productId);
+
+        if (productIndex != -1) {
+          final product = subcategory.produtos[productIndex];
+
+          final updatedProduct = product.copyWith(observacoes: observations);
+
+          final updatedProducts =
+              List<ProductEntity>.from(subcategory.produtos);
+          updatedProducts[productIndex] = updatedProduct;
+
+          final updatedSubcategory =
+              subcategory.copyWith(produtos: updatedProducts);
+
+          final updatedSubcategories =
+              List<SubcategoryEntity>.from(category.subcategorias);
+          updatedSubcategories[j] = updatedSubcategory;
+
+          final updatedCategory =
+              category.copyWith(subcategorias: updatedSubcategories);
+
+          categories[i] = updatedCategory;
+
+          return;
+        }
+      }
+    }
+  }
+
+  @action
+  void toggleProductIndicator(int productId, int indicatorId) {
+    for (var i = 0; i < categories.length; i++) {
+      final category = categories[i];
+
+      for (var j = 0; j < category.subcategorias.length; j++) {
+        final subcategory = category.subcategorias[j];
+
+        final productIndex =
+            subcategory.produtos.indexWhere((p) => p.id == productId);
+
+        if (productIndex != -1) {
+          final product = subcategory.produtos[productIndex];
+
+          final indicatorIndex = product.indicadoresEtapa
+              .indexWhere((ind) => ind.produtoIndicadorId == indicatorId);
+
+          if (indicatorIndex != -1) {
+            final indicator = product.indicadoresEtapa[indicatorIndex];
+            final newSelectedState = !indicator.selecionado;
+
+            final updatedIndicator =
+                indicator.copyWith(selecionado: newSelectedState);
+
+            final updatedIndicators =
+                List<IndicadorEtapaEntity>.from(product.indicadoresEtapa);
+            updatedIndicators[indicatorIndex] = updatedIndicator;
+
+            var updatedProduct =
+                product.copyWith(indicadoresEtapa: updatedIndicators);
+
+            if (censoEscolar != null) {
+              final novaQuantidade = calculationService.calcularQuantidade(
+                updatedProduct,
+                censoEscolar!,
+              );
+
+              updatedProduct = updatedProduct.copyWith(
+                quantidade: novaQuantidade.round(),
+              );
+            }
+
+            final updatedProducts =
+                List<ProductEntity>.from(subcategory.produtos);
+            updatedProducts[productIndex] = updatedProduct;
+
+            final updatedSubcategory =
+                subcategory.copyWith(produtos: updatedProducts);
+
+            final updatedSubcategories =
+                List<SubcategoryEntity>.from(category.subcategorias);
+            updatedSubcategories[j] = updatedSubcategory;
+
+            final updatedCategory =
+                category.copyWith(subcategorias: updatedSubcategories);
+
+            categories[i] = updatedCategory;
+
+            return;
+          }
+        }
+      }
+    }
+  }
+
+  @action
+  void updateProductIndicators(
+      int productId, Map<String, List<String>> selectedIndicators) {
+    for (var i = 0; i < categories.length; i++) {
+      final category = categories[i];
+
+      for (var j = 0; j < category.subcategorias.length; j++) {
+        final subcategory = category.subcategorias[j];
+
+        final productIndex =
+            subcategory.produtos.indexWhere((p) => p.id == productId);
+
+        if (productIndex != -1) {
+          final product = subcategory.produtos[productIndex];
+
+          // Regra de negÃ³cio: SÃ³ permitir se estiver ativo
+          if (!product.ativo) {
+            return;
+          }
+
+          final updatedProducts =
+              List<ProductEntity>.from(subcategory.produtos);
+
+          final updatedSubcategory =
+              subcategory.copyWith(produtos: updatedProducts);
+
+          final updatedSubcategories =
+              List<SubcategoryEntity>.from(category.subcategorias);
+          updatedSubcategories[j] = updatedSubcategory;
+
+          final updatedCategory =
+              category.copyWith(subcategorias: updatedSubcategories);
+
+          categories[i] = updatedCategory;
+
+          return;
+        }
+      }
+    }
+  }
+
   void _updateCategoryWithProducts(
     int categoryId,
     List<ProductEntity> products, {
@@ -772,36 +1397,20 @@ abstract class _BudgetConfigStoreBase with Store {
 
     final category = categories[categoryIndex];
 
-    print(
-        '   📦 Distribuindo ${products.length} produtos nas subcategorias da categoria ${category.nome}');
-
-    // Backend retorna produtos com subcategoria_id
-    // Vamos agrupar produtos por subcategoriaId
-    print('   🔍 Agrupando produtos por subcategoriaId...');
     final productsBySubcategory = <int, List<ProductEntity>>{};
 
     for (final product in products) {
       final subId = product.subcategoriaId;
       productsBySubcategory.putIfAbsent(subId, () => []).add(product);
-      print('      - Produto ${product.codigo} → Subcategoria ID: $subId');
     }
 
-    print('   🔍 Subcategorias com produtos:');
-    productsBySubcategory.forEach((subId, prods) {
-      print('      - Subcategoria ID $subId: ${prods.length} produtos');
-    });
+    productsBySubcategory.forEach((subId, prods) {});
 
-    print('   🔍 Subcategorias existentes na categoria:');
-    for (final sub in category.subcategorias) {
-      print('      - ${sub.nome} (ID: ${sub.id})');
-    }
+    for (final sub in category.subcategorias) {}
 
-    // Atualizar cada subcategoria com seus produtos específicos
     final updatedSubcategories = category.subcategorias.map((sub) {
-      // Buscar produtos desta subcategoria
       final subcategoryProducts = productsBySubcategory[sub.id] ?? [];
 
-      // Marcar/desmarcar todos os produtos
       final updatedProducts = subcategoryProducts
           .map((p) => p.copyWith(
                 selecionado: selected,
@@ -809,29 +1418,20 @@ abstract class _BudgetConfigStoreBase with Store {
               ))
           .toList();
 
-      print(
-          '      ✓ Subcategoria ${sub.nome} (ID: ${sub.id}): ${updatedProducts.length} produtos');
-
-      // Remover estatísticas (agora tem produtos reais)
       return sub.copyWith(
         produtos: updatedProducts,
         estatisticas: null,
       );
     }).toList();
 
-    // Atualizar categoria
     final updatedCategory =
         category.copyWith(subcategorias: updatedSubcategories);
 
-    // Atualizar lista
     final newCategories = List<CategoryEntity>.from(categories);
     newCategories[categoryIndex] = updatedCategory;
     categories = ObservableList.of(newCategories);
-
-    print('   ✅ Categoria atualizada com produtos reais');
   }
 
-  /// Marca/desmarca todos os produtos de uma categoria (quando produtos já estão carregados)
   void _selectAllProductsInCategory(int categoryId, {required bool selected}) {
     final categoryIndex = categories.indexWhere((c) => c.id == categoryId);
     if (categoryIndex == -1) return;
@@ -857,27 +1457,32 @@ abstract class _BudgetConfigStoreBase with Store {
     categories = ObservableList.of(newCategories);
   }
 
-  /// 🔄 Recarrega produtos quando censo escolar é editado
-  /// Backend recalcula as quantidades baseado nos novos dados do censo
   @action
   Future<void> reloadProductsAfterCensusEdit() async {
     if (budgetDetail == null) return;
 
-    print(
-        '🔄 [BudgetConfigStore] Recarregando produtos após edição do censo...');
-
-    isLoadingProducts = true;
-    error = null;
-
     try {
-      await _loadAllProducts(budgetDetail!.id);
-      print(
-          '✅ [BudgetConfigStore] Produtos recarregados com novas quantidades');
+      final oldCenso = censoEscolar;
+      await loadBudgetDetail(budgetDetail!.id);
+      _recalculateProductQuantities();
+      if (oldCenso != null && censoEscolar != null) {
+        _checkForProductsToRemark(oldCenso, censoEscolar!);
+      }
     } catch (e) {
-      error = 'Erro ao recarregar produtos: $e';
-      print('❌ [BudgetConfigStore] Erro ao recarregar: $e');
-    } finally {
-      isLoadingProducts = false;
+      error = 'Erro ao recarregar orçamento: $e';
+    }
+  }
+
+  @action
+  void _recalculateProductQuantities() {
+    if (censoEscolar == null) return;
+
+    final updated = calculationService.recalcularQuantidadesProdutos(
+      categories.toList(),
+      censoEscolar!,
+    );
+    for (var i = 0; i < updated.length; i++) {
+      categories[i] = updated[i];
     }
   }
 
@@ -895,5 +1500,74 @@ abstract class _BudgetConfigStoreBase with Store {
     isLoading = false;
     isLoadingCensus = false;
     isSaving = false;
+  }
+
+  @action
+  Future<Either<BudgetFailure, BudgetDetailEntity>> saveBudget() async {
+    if (budgetDetail == null) {
+      error = 'Orçamento não carregado';
+      return const Left(ValidationFailure('Orçamento não carregado'));
+    }
+
+    if (validityDate == null) {
+      error = 'Data de validade não definida';
+      return const Left(ValidationFailure('Data de validade obrigatória'));
+    }
+
+    isSaving = true;
+    error = null;
+
+    try {
+      final produtosParaSalvar = <ProductSelectionUpdateDto>[];
+
+      for (final category in categories) {
+        for (final subcategory in category.subcategorias) {
+          for (final product in subcategory.produtos) {
+            produtosParaSalvar.add(
+              ProductSelectionUpdateDto.fromEntity(product),
+            );
+          }
+        }
+      }
+
+      final totalCalculado = totalValue;
+
+      final hoje = DateTime.now();
+      final hojeNormalizado = DateTime(hoje.year, hoje.month, hoje.day);
+      final validadeNormalizada =
+          DateTime(validityDate!.year, validityDate!.month, validityDate!.day);
+      final diasValidade =
+          validadeNormalizada.difference(hojeNormalizado).inDays;
+
+      final updateDto = BudgetUpdateDto(
+        nome: budgetName,
+        diasValidade: diasValidade > 0 ? diasValidade : 1,
+        status: 'pendente',
+        total: totalCalculado,
+        produtos: produtosParaSalvar,
+      );
+
+      final result = await saveBudgetUseCase(
+        budgetId: budgetDetail!.id,
+        updateData: updateDto,
+      );
+
+      return result.fold(
+        (failure) {
+          error = failure.message;
+          isSaving = false;
+          return Left(failure);
+        },
+        (updatedBudget) {
+          budgetDetail = updatedBudget;
+          isSaving = false;
+          return Right(updatedBudget);
+        },
+      );
+    } catch (e) {
+      error = 'Erro ao salvar orçamento: $e';
+      isSaving = false;
+      return Left(UnknownFailure(e.toString()));
+    }
   }
 }

@@ -3,13 +3,12 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import 'city_badge_widget.dart';
+import 'searchable_dropdown_widget.dart';
 
-/// A reusable modal for selecting multiple cities from Brazilian states
-/// Integrates with GeoStore for dynamic data from backend
 class CitySelectionModal {
   static Future<List<Map<String, dynamic>>?> show({
     required BuildContext context,
-    required dynamic geo, // GeoStore instance
+    required dynamic geo,
     required List<Map<String, dynamic>> initialSelectedCities,
   }) {
     return showModalBottomSheet<List<Map<String, dynamic>>>(
@@ -51,7 +50,6 @@ class _CitySelectionContentState extends State<_CitySelectionContent> {
   void _addCity() {
     if (_selectedCidade == null || _selectedEstado == null) return;
 
-    // Verificar se já está na lista
     final jaExiste =
         _tempSelectedCities.any((c) => c['id'] == _selectedCidade.id);
 
@@ -63,7 +61,6 @@ class _CitySelectionContentState extends State<_CitySelectionContent> {
           'uf': _selectedEstado.uf,
         });
 
-        // Resetar seleções para permitir adicionar mais cidades
         _selectedCidade = null;
         widget.geo.selecionarCidade(null);
       });
@@ -96,7 +93,6 @@ class _CitySelectionContentState extends State<_CitySelectionContent> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Handle bar
           Container(
             margin: EdgeInsets.only(top: 20.h),
             width: 100.w,
@@ -107,7 +103,6 @@ class _CitySelectionContentState extends State<_CitySelectionContent> {
             ),
           ),
 
-          // Title
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
             child: Center(
@@ -122,14 +117,12 @@ class _CitySelectionContentState extends State<_CitySelectionContent> {
             ),
           ),
 
-          // Content - Scrollable
           Expanded(
             child: SingleChildScrollView(
               padding: EdgeInsets.symmetric(horizontal: 16.w),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Estado label
                   Text(
                     'Estado',
                     style: TextStyle(
@@ -140,57 +133,40 @@ class _CitySelectionContentState extends State<_CitySelectionContent> {
                   ),
                   SizedBox(height: 8.h),
 
-                  // Estado selector
                   Observer(
-                    builder: (_) => Container(
-                      width: double.infinity,
-                      height: 35.h,
-                      padding: EdgeInsets.symmetric(horizontal: 16.w),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(color: const Color(0xFFE0E0E0)),
-                        borderRadius: BorderRadius.circular(6.r),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<dynamic>(
-                          value: _selectedEstado,
-                          hint: Text(
-                            'Selecione o estado',
-                            style: TextStyle(
-                              fontSize: 16.sp,
-                              color: Colors.grey[500],
-                            ),
-                          ),
-                          isExpanded: true,
-                          items: widget.geo.estados
-                              .map<DropdownMenuItem>((estado) {
-                            return DropdownMenuItem(
-                              value: estado,
-                              child: Text(
-                                estado.nome,
-                                style: TextStyle(
-                                  fontSize: 16.sp,
-                                  color: const Color(0xFF000000),
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (value) async {
+                    builder: (_) {
+                      final List<String> estadosNomes = widget.geo.estados
+                          .map((dynamic e) => e.nome as String)
+                          .cast<String>()
+                          .toList();
+
+                      return SearchableDropdownWidget(
+                        label: '',
+                        hint: 'Selecione o estado',
+                        searchHint: 'Pesquisar estado...',
+                        items: estadosNomes,
+                        value: _selectedEstado?.nome,
+                        onChanged: (value) async {
+                          if (value == null) return;
+
+                          final matches =
+                              widget.geo.estados.where((e) => e.nome == value);
+                          final estado =
+                              matches.isNotEmpty ? matches.first : null;
+
+                          if (estado != null) {
                             setState(() {
-                              _selectedEstado = value;
+                              _selectedEstado = estado;
                               _selectedCidade = null;
                             });
-                            if (value != null) {
-                              await widget.geo.selecionarEstado(value);
-                            }
-                          },
-                        ),
-                      ),
-                    ),
+                            await widget.geo.selecionarEstado(estado);
+                          }
+                        },
+                      );
+                    },
                   ),
                   SizedBox(height: 20.h),
 
-                  // Cidade label and selector (only if state is selected)
                   if (_selectedEstado != null) ...[
                     Text(
                       'Cidade',
@@ -202,7 +178,6 @@ class _CitySelectionContentState extends State<_CitySelectionContent> {
                     ),
                     SizedBox(height: 8.h),
 
-                    // Cidade selector
                     Observer(
                       builder: (_) {
                         if (widget.geo.isLoadingCidades) {
@@ -227,57 +202,38 @@ class _CitySelectionContentState extends State<_CitySelectionContent> {
                           );
                         }
 
-                        return Container(
-                          width: double.infinity,
-                          height: 35.h,
-                          padding: EdgeInsets.symmetric(horizontal: 16.w),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(color: const Color(0xFFE0E0E0)),
-                            borderRadius: BorderRadius.circular(6.r),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<dynamic>(
-                              value: _selectedCidade,
-                              hint: Text(
-                                'Selecione a cidade',
-                                style: TextStyle(
-                                  fontSize: 16.sp,
-                                  color: Colors.grey[500],
-                                ),
-                              ),
-                              isExpanded: true,
-                              items: widget.geo.cidades
-                                  .map<DropdownMenuItem>((cidade) {
-                                return DropdownMenuItem(
-                                  value: cidade,
-                                  child: Text(
-                                    cidade.nome,
-                                    style: TextStyle(
-                                      fontSize: 16.sp,
-                                      color: const Color(0xFF000000),
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                              onChanged: (value) {
-                                setState(() {
-                                  _selectedCidade = value;
-                                });
-                                // Adicionar cidade automaticamente quando selecionada
-                                if (value != null) {
-                                  _addCity();
-                                }
-                              },
-                            ),
-                          ),
+                        final List<String> cidadesNomes = widget.geo.cidades
+                            .map((dynamic c) => c.nome as String)
+                            .cast<String>()
+                            .toList();
+
+                        return SearchableDropdownWidget(
+                          label: '',
+                          hint: 'Selecione a cidade',
+                          searchHint: 'Pesquisar cidade...',
+                          items: cidadesNomes,
+                          value: _selectedCidade?.nome,
+                          onChanged: (value) {
+                            if (value == null) return;
+
+                            final matches = widget.geo.cidades
+                                .where((c) => c.nome == value);
+                            final cidade =
+                                matches.isNotEmpty ? matches.first : null;
+
+                            if (cidade != null) {
+                              setState(() {
+                                _selectedCidade = cidade;
+                              });
+                              _addCity();
+                            }
+                          },
                         );
                       },
                     ),
                     SizedBox(height: 20.h),
                   ],
 
-                  // Selected cities badges
                   if (_tempSelectedCities.isNotEmpty) ...[
                     Text(
                       'Cidades selecionadas',
@@ -297,7 +253,6 @@ class _CitySelectionContentState extends State<_CitySelectionContent> {
                           state: cityData['uf']!,
                           onRemove: () => _removeCity(cityData['id']),
                           showIcon: true,
-                          // Custom colors as per specification
                           backgroundColor: const Color(0xFF00364D),
                           textColor: const Color(0xFFEBF9FF),
                           iconBackgroundColor: const Color(0xFFEBF9FF),
@@ -312,7 +267,6 @@ class _CitySelectionContentState extends State<_CitySelectionContent> {
             ),
           ),
 
-          // Fixed bottom button
           Container(
             padding: EdgeInsets.all(16.w),
             decoration: BoxDecoration(

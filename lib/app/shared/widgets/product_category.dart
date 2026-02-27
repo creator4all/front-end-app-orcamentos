@@ -1,16 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../utils/string_utils.dart';
 import 'action_button.dart';
 import 'card_base.dart';
 
-/// ProductCategory widget based on [CardBase].
-///
-/// Layout:
-/// - Row with 3 columns (flex: 2, 7, 2) ~ 20%, 60-66%, 20%.
-/// - Col 1: Row with checkbox + category icon.
-/// - Col 2: Column with title and value.
-/// - Col 3: Column with selected count text + ActionButton.
 class ProductCategory extends StatelessWidget {
   final Widget categoryIcon;
   final String title;
@@ -19,11 +13,8 @@ class ProductCategory extends StatelessWidget {
   final int totalCount;
   final bool isSelected;
   final ValueChanged<bool?>? onCheckboxChanged;
-
-  /// Optional tap handler for the trailing action area.
+  final bool isReadOnly;
   final VoidCallback? onActionTap;
-
-  /// Optional tap handler for the entire card area (excluding checkbox).
   final VoidCallback? onCardTap;
 
   const ProductCategory({
@@ -35,6 +26,7 @@ class ProductCategory extends StatelessWidget {
     required this.totalCount,
     this.isSelected = false,
     this.onCheckboxChanged,
+    this.isReadOnly = false,
     this.onActionTap,
     this.onCardTap,
   });
@@ -44,9 +36,9 @@ class ProductCategory extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 300), // Smooth transition
+      duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
-      width: double.infinity, // full width
+      width: double.infinity,
       padding: EdgeInsets.only(left: 12.w, top: 12.h, right: 0, bottom: 0),
       constraints: BoxConstraints(
         maxHeight: 85.h,
@@ -57,7 +49,7 @@ class ProductCategory extends StatelessWidget {
         border: Border.all(
           color: isSelected
               ? const Color(0xFF117BBD)
-              : Colors.grey[300]!, // Animated border color
+              : Colors.grey[300]!,
           width: 1.0,
         ),
         boxShadow: isSelected
@@ -75,11 +67,10 @@ class ProductCategory extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SizedBox(
-            height: 70.h, // Increased height to prevent overflow
+            height: 70.h,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // First column: checkbox + icon (~20%)
                 Expanded(
                   flex: 2,
                   child: Padding(
@@ -87,28 +78,32 @@ class ProductCategory extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
-                        // Checkbox
                         SizedBox(
                           width: 20.w,
                           height: 20.h,
                           child: Checkbox(
                             value: isSelected,
-                            onChanged: onCheckboxChanged,
-                            activeColor: const Color(0xFF117BBD),
+                            onChanged: isReadOnly ? null : onCheckboxChanged,
+                            activeColor: isReadOnly
+                                ? Colors.grey[400]
+                                : const Color(0xFF117BBD),
                             checkColor: Colors.white,
                             fillColor: WidgetStateProperty.resolveWith<Color?>(
                               (Set<WidgetState> states) {
                                 if (states.contains(WidgetState.selected)) {
-                                  return const Color(0xFF117BBD);
+                                  return isReadOnly
+                                      ? Colors.grey[400]
+                                      : const Color(0xFF117BBD);
                                 }
-                                return Colors
-                                    .white; // White background when unselected
+                                return Colors.white;
                               },
                             ),
                             side: BorderSide(
-                              color: isSelected
-                                  ? const Color(0xFF117BBD)
-                                  : Colors.grey[300]!,
+                              color: isReadOnly
+                                  ? Colors.grey[400]!
+                                  : isSelected
+                                      ? const Color(0xFF117BBD)
+                                      : Colors.grey[300]!,
                               width: 2.0,
                             ),
                             materialTapTargetSize:
@@ -116,7 +111,6 @@ class ProductCategory extends StatelessWidget {
                           ),
                         ),
                         SizedBox(width: 8.w),
-                        // Category icon
                         Flexible(
                           child: categoryIcon,
                         ),
@@ -125,7 +119,6 @@ class ProductCategory extends StatelessWidget {
                   ),
                 ),
 
-                // Second column: title and value (~60-66%)
                 Expanded(
                   flex: 7,
                   child: GestureDetector(
@@ -139,10 +132,9 @@ class ProductCategory extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Title (required)
                             Flexible(
                               child: Text(
-                                title,
+                                capitalizeFirstLetter(title),
                                 style: textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -151,7 +143,6 @@ class ProductCategory extends StatelessWidget {
                               ),
                             ),
                             SizedBox(height: 1.h),
-                            // Value
                             Flexible(
                               child: Text(
                                 value,
@@ -165,7 +156,7 @@ class ProductCategory extends StatelessWidget {
                       ),
                     ),
                   ),
-                ), // Third column: selected count + action button (~20%)
+                ),
                 Expanded(
                   flex: 2,
                   child: GestureDetector(
@@ -178,7 +169,6 @@ class ProductCategory extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          // Selected count text
                           Padding(
                             padding: EdgeInsets.only(top: 8.h, right: 8.w),
                             child: Text(
@@ -189,7 +179,6 @@ class ProductCategory extends StatelessWidget {
                               ),
                             ),
                           ),
-                          // Action button
                           ActionButton(
                             onTap: onActionTap,
                           ),
@@ -203,6 +192,6 @@ class ProductCategory extends StatelessWidget {
           ),
         ],
       ),
-    ); // AnimatedContainer
+    );
   }
 }

@@ -1,68 +1,73 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:multimidiaapp/app/modules/features/budget/budget_config/presentation/widgets/product_item_card.dart';
 
+import '../../../../../../shared/utils/string_utils.dart';
 import '../../../../../../shared/widgets/custom_modal.dart';
+import '../../domain/entities/category_entity.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../domain/entities/subcategory_entity.dart';
 import '../stores/budget_config_store.dart';
 import 'product_info_modal.dart';
-import 'product_item_card.dart';
 
-/// Modal para exibir os produtos de uma subcategoria
-///
-/// Permite ao usuário:
-/// - Visualizar todos os produtos da subcategoria
-/// - Selecionar/desselecionar produtos
-/// - Ver detalhes de cada produto (ícone info)
 class SubcategoryProductsModal extends StatelessWidget {
-  /// ID da categoria
   final int categoryId;
-
-  /// ID da subcategoria
   final int subcategoryId;
+  final dynamic store;
+  final bool isReadOnly;
 
   const SubcategoryProductsModal({
     super.key,
     required this.categoryId,
     required this.subcategoryId,
+    this.store,
+    this.isReadOnly = false,
   });
 
-  /// Mostra a modal usando showModalBottomSheet
   static Future<void> show({
     required BuildContext context,
+    required CategoryEntity category,
     required SubcategoryEntity subcategory,
-    required int categoryId,
+    dynamic store,
+    bool isReadOnly = false,
   }) {
     return CustomModal.show(
       context: context,
-      title: subcategory.nome,
+      title:
+          '${capitalizeFirstLetter(category.nome)}: ${capitalizeFirstLetter(subcategory.nome)}',
       content: SubcategoryProductsModal(
-        categoryId: categoryId,
+        categoryId: category.id,
         subcategoryId: subcategory.id,
+        store: store,
+        isReadOnly: isReadOnly,
       ),
     );
   }
 
-  void _handleInfoTap(BuildContext context, ProductEntity product) {
-    // Abre modal de informações do produto
+  void _handleInfoTap(
+      BuildContext context,
+      ProductEntity product,
+      dynamic storeInstance,
+      CategoryEntity category,
+      SubcategoryEntity subcategory) {
     ProductInfoModal.show(
       context: context,
-      categoryId: categoryId,
-      subcategoryId: subcategoryId,
+      categoryId: category.id,
+      subcategoryId: subcategory.id,
       productId: product.id,
+      store: storeInstance,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final store = Modular.get<BudgetConfigStore>();
+    final storeInstance = store ?? Modular.get<BudgetConfigStore>();
 
     return Observer(
       builder: (_) {
-        // Busca a subcategoria atualizada da store
-        final category = store.categories.firstWhere(
+        final category = storeInstance.categories.firstWhere(
           (c) => c.id == categoryId,
           orElse: () => throw Exception('Categoria não encontrada'),
         );
@@ -72,18 +77,15 @@ class SubcategoryProductsModal extends StatelessWidget {
           orElse: () => throw Exception('Subcategoria não encontrada'),
         );
 
-        print(
-            '🔍 [SubcategoryProductsModal] Subcategoria: ${subcategory.nome}');
-        print('   📦 Total produtos: ${subcategory.produtos.length}');
-        print('   ✅ Produtos ativos: ${subcategory.activeProdutos.length}');
-        print(
-            '   📊 Produtos selecionados: ${subcategory.selectedProdutos.length}');
+        if (subcategory.produtos.isNotEmpty) {
+          for (var i = 0; i < 3 && i < subcategory.produtos.length; i++) {
+            final p = subcategory.produtos[i];
+          }
+        }
 
         final activeProducts = subcategory.activeProdutos;
 
-        // Se não houver produtos ativos
         if (activeProducts.isEmpty) {
-          print('   ⚠️ LISTA VAZIA - Nenhum produto ativo encontrado!');
           return Center(
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: 32.h),
@@ -99,11 +101,9 @@ class SubcategoryProductsModal extends StatelessWidget {
           );
         }
 
-        // Lista de produtos + botão salvar
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Lista de produtos
             ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -114,46 +114,46 @@ class SubcategoryProductsModal extends StatelessWidget {
 
                 return ProductItemCard(
                   product: product,
-                  onToggle: (isSelected) {
-                    store.toggleProduct(product.id, isSelected);
-                  },
-                  onInfoTap: () => _handleInfoTap(context, product),
+                  onToggle: isReadOnly
+                      ? null
+                      : (isSelected) {
+                          storeInstance.toggleProduct(product.id, isSelected);
+                        },
+                  onInfoTap: () => _handleInfoTap(
+                      context, product, storeInstance, category, subcategory),
                 );
               },
             ),
-
             SizedBox(height: 24.h),
-
-            // Botão Salvar
-            SizedBox(
-              width: double.infinity,
-              height: 48.h,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                icon: const Icon(
-                  Icons.save,
-                  color: Color(0xFFFFFFFF),
-                ),
-                label: Text(
-                  'Salvar',
-                  style: TextStyle(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFFFFFFFF),
+            if (!isReadOnly)
+              SizedBox(
+                width: double.infinity,
+                height: 48.h,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  icon: const Icon(
+                    Icons.save,
+                    color: Color(0xFFFFFFFF),
                   ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF56B34A),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10.r),
+                  label: Text(
+                    'Salvar',
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFFFFFFFF),
+                    ),
                   ),
-                  elevation: 0,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF56B34A),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.r),
+                    ),
+                    elevation: 0,
+                  ),
                 ),
               ),
-            ),
-
             SizedBox(height: 16.h),
           ],
         );

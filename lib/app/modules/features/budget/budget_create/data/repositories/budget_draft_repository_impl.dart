@@ -1,5 +1,7 @@
 import 'package:dartz/dartz.dart';
 
+import '../../../../../../shared/core/constants/http_constants.dart';
+import '../../../../../../shared/errors/http_exception.dart';
 import '../../../shared/errors/budget_failure.dart';
 import '../../domain/entities/budget_draft_entity.dart';
 import '../../domain/repositories/budget_draft_repository.dart';
@@ -37,50 +39,33 @@ class BudgetDraftRepositoryImpl implements BudgetDraftRepository {
     }
   }
 
-  @override
-  Future<Either<BudgetFailure, bool>> validateBudgetCreation(
-    CreateBudgetDraftParams params,
-  ) async {
-    try {
-      final isValid = await remoteDataSource.validateBudgetCreation(params);
-      return Right(isValid);
-    } on Exception catch (e) {
-      return Left(_mapExceptionToFailure(e));
-    }
-  }
-
   /// Mapeia exceções para Failures apropriados
-  BudgetFailure _mapExceptionToFailure(Exception exception) {
+  ///
+  /// Usa o statusCode do HttpException para mapeamento preciso
+  BudgetFailure _mapExceptionToFailure(Object exception) {
+    if (exception is HttpException) {
+      switch (exception.statusCode) {
+        case HttpStatusCodes.unauthorized:
+        case HttpStatusCodes.forbidden:
+          return UnauthorizedFailure(exception.message);
+        case HttpStatusCodes.notFound:
+          return NotFoundFailure(exception.message);
+        case HttpStatusCodes.unprocessableEntity:
+          return ValidationFailure(exception.message);
+        case >= HttpStatusCodes.internalServerError:
+          return ServerFailure(exception.message);
+        default:
+          return ServerFailure(
+              'Erro ${exception.statusCode}: ${exception.message}');
+      }
+    }
+
     final message = exception.toString();
 
-    if (message.contains('Sem conexão') ||
-        message.contains('connectionError') ||
-        message.contains('Timeout') ||
-        message.contains('Tempo de conexão excedido')) {
+    if (message.contains('SocketException') ||
+        message.contains('TimeoutException') ||
+        message.contains('connectionError')) {
       return ConnectionFailure(message);
-    }
-
-    if (message.contains('Não autorizado') ||
-        message.contains('401') ||
-        message.contains('Acesso negado') ||
-        message.contains('403')) {
-      return UnauthorizedFailure(message);
-    }
-
-    if (message.contains('não encontrado') ||
-        message.contains('404') ||
-        message.contains('Orçamento não encontrado')) {
-      return NotFoundFailure(message);
-    }
-
-    if (message.contains('Dados inválidos') ||
-        message.contains('422') ||
-        message.contains('validação')) {
-      return ValidationFailure(message);
-    }
-
-    if (message.contains('Erro no servidor') || message.contains('500')) {
-      return ServerFailure(message);
     }
 
     return UnknownFailure(message);

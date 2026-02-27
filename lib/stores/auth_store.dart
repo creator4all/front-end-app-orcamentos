@@ -2,13 +2,10 @@ import 'package:mobx/mobx.dart';
 
 import '../entities/user_entity.dart';
 
-// Include generated file
 part 'auth_store.g.dart';
 
-// This is the class used by rest of the codebase
 class AuthStore = _AuthStore with _$AuthStore;
 
-// The store class
 abstract class _AuthStore with Store {
   @observable
   UserEntity? user;
@@ -68,7 +65,6 @@ abstract class _AuthStore with Store {
 
   @action
   Future<void> logout() async {
-    // Clear user data
     clearUser();
   }
 
@@ -78,7 +74,6 @@ abstract class _AuthStore with Store {
     clearError();
 
     try {
-      // Verify confirmation text
       if (confirmation.toLowerCase() != 'confirmar') {
         setError(
             'Texto de confirmação incorreto. Digite "confirmar" para excluir sua conta.');
@@ -86,11 +81,8 @@ abstract class _AuthStore with Store {
         return false;
       }
 
-      // Simulate network delay
       await Future.delayed(const Duration(seconds: 1));
 
-      // In a real scenario, this would be an API call to delete the account
-      // For this simulation, just logout
       await logout();
 
       setLoading(false);

@@ -1,24 +1,38 @@
+import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:equatable/equatable.dart';
 
+import '../../../budget_config/domain/entities/category_entity.dart';
+import 'cidade_entity.dart';
 import 'location_entity.dart';
+import 'orcamento_produto_entity.dart';
 
-/// Entidade que representa um Orçamento em Rascunho
+part 'budget_draft_entity.g.dart';
+
+@CopyWith()
 class BudgetDraftEntity extends Equatable {
   final int id;
-  final int?
-      partnerId; // ✅ Nullable - só existe quando admin escolhe parceiro destino
+  final String? name;
+  final int? partnerId;
   final String partnerName;
   final LocationEntity location;
   final String? responsibleName;
   final String? responsibleEmail;
   final DateTime? validityDate;
-  final String status; // 'rascunho'
+  final String status;
   final DateTime createdAt;
   final int createdByUserId;
+  final int validityDays;
+  final double total;
+  final bool createdByAdmin;
+  final DateTime dataValidade;
+  final CidadeEntity? cidade;
+  final List<OrcamentoProdutoEntity> orcamentoProdutos;
+  final List<CategoryEntity> categories;
 
   const BudgetDraftEntity({
     required this.id,
-    this.partnerId, // ✅ Nullable
+    this.name,
+    this.partnerId,
     required this.partnerName,
     required this.location,
     this.responsibleName,
@@ -27,41 +41,39 @@ class BudgetDraftEntity extends Equatable {
     required this.status,
     required this.createdAt,
     required this.createdByUserId,
+    required this.validityDays,
+    required this.total,
+    required this.createdByAdmin,
+    required this.dataValidade,
+    this.cidade,
+    required this.orcamentoProdutos,
+    this.categories = const [],
   });
 
-  /// Verifica se o orçamento está em estado de rascunho
   bool get isDraft => status.toLowerCase() == 'rascunho';
 
-  /// Verifica se tem responsável definido
   bool get hasResponsible =>
       responsibleName != null && responsibleName!.isNotEmpty;
 
-  /// Verifica se tem email do responsável
   bool get hasResponsibleEmail =>
       responsibleEmail != null && responsibleEmail!.isNotEmpty;
 
-  /// Verifica se tem data de validade
   bool get hasValidityDate => validityDate != null;
-
-  /// Verifica se a validade está no futuro
   bool get isValidityInFuture =>
       validityDate != null && validityDate!.isAfter(DateTime.now());
 
-  /// Verifica se tem parceiro destino definido
   bool get hasPartnerDestino => partnerId != null && partnerId! > 0;
 
-  /// Retorna o nome formatado do responsável
   String get responsibleDisplay => responsibleName ?? 'Não informado';
 
-  /// Retorna o email formatado do responsável
   String get emailDisplay => responsibleEmail ?? 'Não informado';
 
-  /// Verifica se o orçamento pode ser configurado
   bool canBeConfigure() => isDraft;
 
   @override
   List<Object?> get props => [
         id,
+        name,
         partnerId,
         partnerName,
         location,
@@ -75,30 +87,4 @@ class BudgetDraftEntity extends Equatable {
 
   @override
   bool get stringify => true;
-
-  BudgetDraftEntity copyWith({
-    int? id,
-    int? partnerId,
-    String? partnerName,
-    LocationEntity? location,
-    String? responsibleName,
-    String? responsibleEmail,
-    DateTime? validityDate,
-    String? status,
-    DateTime? createdAt,
-    int? createdByUserId,
-  }) {
-    return BudgetDraftEntity(
-      id: id ?? this.id,
-      partnerId: partnerId ?? this.partnerId,
-      partnerName: partnerName ?? this.partnerName,
-      location: location ?? this.location,
-      responsibleName: responsibleName ?? this.responsibleName,
-      responsibleEmail: responsibleEmail ?? this.responsibleEmail,
-      validityDate: validityDate ?? this.validityDate,
-      status: status ?? this.status,
-      createdAt: createdAt ?? this.createdAt,
-      createdByUserId: createdByUserId ?? this.createdByUserId,
-    );
-  }
 }

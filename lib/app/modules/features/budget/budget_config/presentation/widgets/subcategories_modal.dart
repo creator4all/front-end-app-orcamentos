@@ -1,35 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../../../../shared/utils/string_utils.dart';
 import '../../../../../../shared/widgets/custom_modal.dart';
 import '../../domain/entities/category_entity.dart';
 import '../../domain/entities/subcategory_entity.dart';
 
-/// Modal para exibir as subcategorias de uma categoria
 class SubcategoriesModal extends StatelessWidget {
   final CategoryEntity category;
   final Function(SubcategoryEntity) onSubcategoryTap;
   final Function(int categoryId, int subcategoryId, bool selected)?
       onCheckboxChanged;
+  final bool isReadOnly;
 
   const SubcategoriesModal({
     super.key,
     required this.category,
     required this.onSubcategoryTap,
     this.onCheckboxChanged,
+    this.isReadOnly = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return CustomModal(
-      title: category.nome,
+      title: capitalizeFirstLetter(category.nome),
       content: ListView.separated(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        itemCount: category.subcategorias.length,
+        itemCount: category.orderedSubcategorias.length,
         separatorBuilder: (_, __) => SizedBox(height: 12.h),
         itemBuilder: (context, index) {
-          final subcategory = category.subcategorias[index];
+          final subcategory = category.orderedSubcategorias[index];
           return _buildSubcategoryItem(context, subcategory);
         },
       ),
@@ -57,29 +59,30 @@ class SubcategoriesModal extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Checkbox - clicável separadamente
             GestureDetector(
-              onTap: () {
-                if (onCheckboxChanged != null) {
-                  print(
-                      '✅ [SubcategoriesModal] Checkbox subcategoria ${subcategory.nome}: ${!hasSelectedProducts ? "MARCAR" : "DESMARCAR"}');
-                  onCheckboxChanged!(
-                    category.id,
-                    subcategory.id,
-                    !hasSelectedProducts,
-                  );
-                }
-              },
+              onTap: isReadOnly
+                  ? null
+                  : () {
+                      onCheckboxChanged?.call(
+                        category.id,
+                        subcategory.id,
+                        !hasSelectedProducts,
+                      );
+                    },
               child: Container(
                 width: 17.w,
                 height: 17.h,
                 decoration: BoxDecoration(
                   color: hasSelectedProducts
-                      ? const Color(0xFF2830F2)
+                      ? (isReadOnly
+                          ? Colors.grey[400]
+                          : const Color(0xFF2830F2))
                       : Colors.white,
                   border: Border.all(
                     color: hasSelectedProducts
-                        ? const Color(0xFF2830F2)
+                        ? (isReadOnly
+                            ? Colors.grey[400]!
+                            : const Color(0xFF2830F2))
                         : const Color(0xFFEAEAEA),
                     width: 2,
                   ),
@@ -94,18 +97,14 @@ class SubcategoriesModal extends StatelessWidget {
                     : null,
               ),
             ),
-
             SizedBox(width: 12.w),
-
-            // Informações da subcategoria
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Nome
                   Text(
-                    subcategory.nome,
+                    capitalizeFirstLetter(subcategory.nome),
                     style: TextStyle(
                       fontSize: 14.sp,
                       fontWeight: FontWeight.w500,
@@ -113,7 +112,6 @@ class SubcategoriesModal extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: 2.h),
-                  // Valor
                   Text(
                     subcategory.formattedTotalValue,
                     style: TextStyle(
@@ -125,8 +123,6 @@ class SubcategoriesModal extends StatelessWidget {
                 ],
               ),
             ),
-
-            // Contador e seta
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [

@@ -1,15 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-/// Book item component for modals.
-///
-/// Features:
-/// - Container with max width and height up to 70.h
-/// - Row layout with checkbox, book details, and quantity with arrow
 class BookItem extends StatelessWidget {
   final String title;
   final String value;
-  final String quantity; // Format: "1/1", "43/48", etc.
+  final String quantity;
   final bool isSelected;
   final ValueChanged<bool?>? onCheckboxChanged;
   final VoidCallback? onTap;
@@ -29,7 +24,7 @@ class BookItem extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: double.infinity, // Max width depending on where it is
+        width: double.infinity,
         constraints: BoxConstraints(
           maxHeight: 70.h,
         ),
@@ -47,7 +42,6 @@ class BookItem extends StatelessWidget {
           padding: EdgeInsets.all(12.w),
           child: Row(
             children: [
-              // First column: Checkbox (centralizado verticalmente)
               Align(
                 alignment: Alignment.center,
                 child: SizedBox(
@@ -63,7 +57,7 @@ class BookItem extends StatelessWidget {
                       if (states.contains(WidgetState.selected)) {
                         return const Color(0xFF2830F2);
                       }
-                      return Colors.white; // White background when unselected
+                      return Colors.white;
                     },
                   ),
                   side: BorderSide(
@@ -74,7 +68,7 @@ class BookItem extends StatelessWidget {
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius:
-                        BorderRadius.circular(5), // 5px rounded borders
+                        BorderRadius.circular(5),
                   ),
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
@@ -83,19 +77,17 @@ class BookItem extends StatelessWidget {
 
               SizedBox(width: 12.w),
 
-              // Second column: Title and value (ocupa espaço restante)
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Title
                     Text(
                       title,
                       style: TextStyle(
                         fontSize: 14.sp,
                         color: const Color(0xFF000000),
-                        fontWeight: FontWeight.bold, // Bold
+                        fontWeight: FontWeight.bold,
                       ),
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
@@ -103,13 +95,12 @@ class BookItem extends StatelessWidget {
 
                     SizedBox(height: 4.h),
 
-                    // Value (R$)
                     Text(
                       value,
                       style: TextStyle(
                         fontSize: 12.sp,
                         color: const Color(0xFF484848),
-                        fontWeight: FontWeight.w500, // Medium
+                        fontWeight: FontWeight.w500,
                       ),
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
@@ -118,25 +109,22 @@ class BookItem extends StatelessWidget {
                 ),
               ),
 
-              // Third column: Quantity and arrow (alinhado à direita com padding 10)
               Padding(
                 padding: EdgeInsets.only(left: 10.w, right: 10.w),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Quantity text
                     Text(
                       quantity,
                       style: TextStyle(
                         fontSize: 13.sp,
                         color: const Color(0xFF000000),
-                        fontWeight: FontWeight.w500, // Medium
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
 
                     SizedBox(width: 8.w),
 
-                    // Arrow icon
                     Icon(
                       Icons.arrow_forward_ios,
                       size: 16.sp,

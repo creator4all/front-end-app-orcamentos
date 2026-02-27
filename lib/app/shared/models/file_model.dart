@@ -6,8 +6,8 @@ class FileModel {
   final FileType type;
   final DateTime sharedDate;
   final String sharedBy;
-  final String? thumbnailUrl; // Para vídeos e imagens
-  final int? itemCount; // Para pastas - número de itens dentro
+  final String? thumbnailUrl;
+  final int? itemCount;
 
   const FileModel({
     required this.id,
@@ -49,5 +49,5 @@ class FileModel {
       type == FileType.jpg ||
       type == FileType.png;
   bool get canDownload =>
-      !isFolder; // Pastas não podem ser baixadas diretamente
+      !isFolder;
 }

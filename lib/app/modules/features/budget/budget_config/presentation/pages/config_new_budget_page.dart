@@ -3,26 +3,37 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
+import 'package:multimidiaapp/app/shared/widgets/custom_info_dialog.dart';
 
 import '../../../../../../shared/widgets/budget_summary_card.dart';
 import '../../../../../../shared/widgets/custom_top_bar.dart';
 import '../../../../../../shared/widgets/product_category.dart';
+import '../../../../auth/presentation/stores/auth_store.dart';
+import '../../../budget_create/domain/entities/budget_draft_entity.dart';
+import '../../../budget_list/presentation/stores/budget_list_store.dart';
 import '../../domain/entities/category_entity.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../domain/entities/subcategory_entity.dart';
 import '../stores/budget_config_store.dart';
 import '../widgets/budget_skeleton.dart';
-import '../widgets/product_detail_modal.dart';
+import '../widgets/product_edit_modal.dart';
 import '../widgets/school_census_card.dart';
 import '../widgets/subcategories_modal.dart';
 import '../widgets/subcategory_products_modal.dart';
 
 class ConfigNewBudgetPage extends StatefulWidget {
   final int budgetId;
+  final BudgetDraftEntity? initialDraft;
+  final String? cityName;
+  final String? stateName;
 
   const ConfigNewBudgetPage({
     super.key,
     required this.budgetId,
+    this.initialDraft,
+    this.cityName,
+    this.stateName,
   });
 
   @override
@@ -31,6 +42,7 @@ class ConfigNewBudgetPage extends StatefulWidget {
 
 class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
   late final BudgetConfigStore store;
+  late final AuthStore _authStore;
 
   final TextEditingController _dataOrcamentoController =
       TextEditingController();
@@ -41,65 +53,168 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
   void initState() {
     super.initState();
     store = Modular.get<BudgetConfigStore>();
+    _authStore = Modular.get<AuthStore>();
 
-    // Define a data atual para o campo "Data do orçamento" no formato brasileiro
     _dataOrcamentoController.text =
         DateFormat('dd/MM/yyyy').format(DateTime.now());
 
-    // Define o valor padrão para "Validade do orçamento"
     _validadeOrcamentoController.text = '60';
 
-    // Inicializa a store com o budgetId
+    _validadeOrcamentoController.addListener(_onValidityDaysChanged);
+
+    _updateValidityDate(60);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      store.initialize(widget.budgetId);
+      final args = Modular.args.data;
+
+      if (args is Map<String, dynamic> &&
+          args.containsKey('multiCityResponse')) {
+        final multiCityData = args['multiCityResponse'] as Map<String, dynamic>;
+        store.initializeWithMultiCityResponse(multiCityData);
+        return;
+      }
+
+      BudgetDraftEntity? initialDraft;
+
+      if (args is Map<String, dynamic> && args.containsKey('budget')) {
+        initialDraft = args['budget'] as BudgetDraftEntity?;
+      } else if (args is BudgetDraftEntity) {
+        initialDraft = args;
+      } else {
+        initialDraft = widget.initialDraft;
+      }
+
+      if (initialDraft != null) {
+        store.initializeWithDraft(initialDraft);
+      } else {
+        store.initialize(widget.budgetId);
+      }
     });
+  }
+
+  void _onValidityDaysChanged() {
+    final text = _validadeOrcamentoController.text;
+    if (text.isNotEmpty) {
+      final dias = int.tryParse(text);
+      if (dias != null && dias > 0) {
+        _updateValidityDate(dias);
+      }
+    }
+  }
+
+  void _updateValidityDate(int dias) {
+    final hoje = DateTime.now();
+    final hojeDate = DateTime(hoje.year, hoje.month, hoje.day);
+    final novaData = hojeDate.add(Duration(days: dias));
+    store.setValidityDate(novaData);
   }
 
   @override
   void dispose() {
+    _validadeOrcamentoController.removeListener(_onValidityDaysChanged);
     _dataOrcamentoController.dispose();
     _validadeOrcamentoController.dispose();
     super.dispose();
   }
 
+  String _getHeaderTitle() {
+    if (widget.cityName != null && widget.stateName != null) {
+      return '${widget.cityName} - ${widget.stateName}';
+    }
+    return 'Configurar Orçamento';
+  }
+
   Future<void> _handleSave() async {
-    final result = await store.finalizeBudget();
+    final result = await store.saveBudget();
 
     result.fold(
       (failure) {
-        // Erro já foi definido na store
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(failure.message),
-            backgroundColor: Colors.red,
-          ),
+        CustomInfoDialog.show(
+          context: context,
+          type: DialogType.error,
+          title: 'Erro ao salvar',
+          message: failure.message,
         );
       },
-      (budget) {
-        // Sucesso
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Orçamento salvo com sucesso!'),
-            backgroundColor: Colors.green,
-          ),
+      (budget) async {
+        await CustomInfoDialog.show(
+          context: context,
+          type: DialogType.success,
+          title: 'Sucesso',
+          message: 'Orçamento salvo com sucesso!',
         );
 
-        // Navegar de volta para a lista
+        final listStore = Modular.get<BudgetListStore>();
+        await listStore.refresh();
         Modular.to.navigate('/budget/');
       },
     );
   }
 
+  Future<void> _handleSaveWithValidation() async {
+    final diasText = _validadeOrcamentoController.text;
+    final dias = int.tryParse(diasText);
+    if (dias == null || dias < 1 || dias > 365) {
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.warning,
+        title: 'Atenção',
+        message: 'Validade do orçamento deve estar entre 1 e 365 dias',
+      );
+      return;
+    }
+
+    if (store.validityDate == null) {
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.warning,
+        title: 'Atenção',
+        message: 'Por favor, defina a data de validade do orçamento',
+      );
+      return;
+    }
+
+    if (store.totalSelectedProducts == 0) {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Orçamento sem produtos'),
+          content: const Text(
+            'Você não adicionou nenhum produto ao orçamento.\n\n'
+            'Deseja salvar mesmo assim?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF117BBD),
+              ),
+              child: const Text('Salvar mesmo assim'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirm != true) return;
+    }
+
+    await _handleSave();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomTopBar(
-        title: 'Configurar Orçamento',
+      appBar: CustomTopBar(
+        title: _getHeaderTitle(),
         showBackButton: true,
+        authStore: _authStore,
       ),
       body: Observer(
         builder: (_) {
-          // Mostrar skeleton enquanto carrega dados completos
           if (!store.isFullyLoaded) {
             return const BudgetSkeleton();
           }
@@ -142,60 +257,65 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
               padding: EdgeInsets.all(16.w),
               child: Column(
                 children: [
-                  // Resumo do orçamento
                   BudgetSummaryCard(
                     budgetValue: store.totalValue,
-                    selectedProductsCount: store.selectedCategoriesCount,
+                    selectedProductsCount: store.selectedItemsCount,
                   ),
-
                   SizedBox(height: 12.h),
-
-                  // ✅ Card do Censo Escolar
-                  if (store.budgetDetail?.cityIds.isNotEmpty ?? false)
+                  if ((store.budgetDetail?.cityIds.isNotEmpty ?? false) ||
+                      (store.budgetDetail?.citiesData.isNotEmpty ?? false))
                     Padding(
                       padding: EdgeInsets.only(bottom: 12.h),
                       child: SchoolCensusCard(
-                        numberOfCities: store.budgetDetail?.cityIds.length ?? 0,
+                        numberOfCities: store.budgetDetail?.citiesData.length ??
+                            store.budgetDetail?.cityIds.length ??
+                            0,
                         citiesData: _extractCitiesData(),
+                        censoAgregado: store.censoEscolar?.valoresPorEtapa,
                         onTap: () async {
-                          print('👆 [ConfigPage] Censo Escolar clicado');
-                          // TODO: Navegar para tela de edição do censo escolar
-                          // 1. Navegar: await Modular.to.pushNamed('/census-edit/${widget.budgetId}');
-                          // 2. Ao retornar da tela de edição (após salvar), chamar:
-                          //    await store.reloadProductsAfterCensusEdit();
-                          // 3. Isso irá recarregar os produtos com quantidades recalculadas pelo backend
+                          final isMultiCity =
+                              (store.budgetDetail?.cityIds.length ?? 0) > 1;
+                          final cityId =
+                              store.budgetDetail?.cityIds.firstOrNull ?? 0;
 
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                  'Navegação para Censo Escolar em desenvolvimento'),
-                              duration: Duration(seconds: 2),
-                            ),
+                          final censusUpdated = await Modular.to.pushNamed(
+                            '/budget/census/$cityId',
+                            arguments: {
+                              'censoEscolar': store.censoEscolar,
+                              'budgetId': widget.budgetId,
+                              'isMultiCityMode': isMultiCity,
+                              'onCensusUpdated': (updatedCenso) {
+                                store.updateCensoEscolar(updatedCenso);
+                              },
+                            },
                           );
+
+                          if (censusUpdated == true) {
+                            await store.reloadProductsAfterCensusEdit();
+                          }
                         },
                       ),
                     ),
-
                   SizedBox(height: 12.h),
-
-                  // ✅ Categorias Dinâmicas (Layout Customizado)
                   if (store.hasCategories) ...[
-                    // 1. LIVROS (sempre primeiro, se existir)
-                    if (_getLivrosCategory() != null)
-                      Padding(
-                        padding: EdgeInsets.only(bottom: 12.h),
-                        child: _buildCategoryFromEntity(_getLivrosCategory()!),
-                      ),
-
-                    // 2. TECNOLOGIAS (header + subcategorias expandidas)
-                    if (_getTecnologiasCategory() != null) ...[
-                      _buildTecnologiasHeader(_getTecnologiasCategory()!),
-                      ..._buildTecnologiasSubcategories(
-                          _getTecnologiasCategory()!),
-                    ],
+                    ...(store.categories.toList()
+                          ..sort((a, b) => a.ordem.compareTo(b.ordem)))
+                        .map((category) {
+                      if (category.expandido) {
+                        return [
+                          _buildExpandedCategoryHeader(category),
+                          ..._buildExpandedSubcategories(category),
+                        ];
+                      } else {
+                        return [
+                          Padding(
+                            padding: EdgeInsets.only(bottom: 12.h),
+                            child: _buildCategoryFromEntity(category),
+                          ),
+                        ];
+                      }
+                    }).expand((widgets) => widgets),
                   ],
-
-                  // Mensagem se não houver categorias
                   if (!store.hasCategories)
                     Padding(
                       padding: EdgeInsets.symmetric(vertical: 24.h),
@@ -207,7 +327,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                         ),
                       ),
                     ),
-
                   SizedBox(height: 24.h),
                   Row(
                     children: [
@@ -227,10 +346,19 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                                   ),
                                 ),
                                 SizedBox(width: 8.w),
-                                Icon(
-                                  Icons.info,
-                                  color: const Color(0xFF117BBD),
-                                  size: 16.sp,
+                                GestureDetector(
+                                  onTap: () => CustomInfoDialog.show(
+                                    context: context,
+                                    type: DialogType.info,
+                                    title: 'Data do orçamento',
+                                    message:
+                                        'A data do orçamento será atualizada sempre que você fizer e salvar modificações. O orçamento antigo será arquivado.',
+                                  ),
+                                  child: Icon(
+                                    Icons.info,
+                                    color: const Color(0xFF117BBD),
+                                    size: 16.sp,
+                                  ),
                                 ),
                               ],
                             ),
@@ -270,10 +398,19 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                                   ),
                                 ),
                                 SizedBox(width: 8.w),
-                                Icon(
-                                  Icons.info,
-                                  color: const Color(0xFF117BBD),
-                                  size: 16.sp,
+                                GestureDetector(
+                                  onTap: () => CustomInfoDialog.show(
+                                    context: context,
+                                    type: DialogType.info,
+                                    title: 'Validade do orçamento',
+                                    message:
+                                        'Validade definida em dias, caso queira, coloque outra quantidade de dias.',
+                                  ),
+                                  child: Icon(
+                                    Icons.info,
+                                    color: const Color(0xFF117BBD),
+                                    size: 16.sp,
+                                  ),
                                 ),
                               ],
                             ),
@@ -298,41 +435,13 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                       ),
                     ],
                   ),
-
                   SizedBox(height: 24.h),
-
-                  // Mensagem de erro
-                  if (store.error != null)
-                    Container(
-                      padding: EdgeInsets.all(12.w),
-                      margin: EdgeInsets.only(bottom: 16.h),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(8.r),
-                        border: Border.all(color: Colors.red),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.error, color: Colors.red),
-                          SizedBox(width: 8.w),
-                          Expanded(
-                            child: Text(
-                              store.error!,
-                              style: const TextStyle(color: Colors.red),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                  // Botão Salvar
                   SizedBox(
                     width: double.infinity,
                     height: 50.h,
                     child: ElevatedButton(
-                      onPressed: store.isSaving || !store.canFinalize
-                          ? null
-                          : _handleSave,
+                      onPressed:
+                          store.isSaving ? null : _handleSaveWithValidation,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF117BBD),
                         shape: RoundedRectangleBorder(
@@ -350,7 +459,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                             ),
                     ),
                   ),
-
                   SizedBox(height: 24.h),
                 ],
               ),
@@ -361,34 +469,7 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     );
   }
 
-  // ========== MÉTODOS AUXILIARES ==========
-
-  /// Busca a categoria "Livros" nas categorias disponíveis
-  CategoryEntity? _getLivrosCategory() {
-    if (!store.hasCategories) return null;
-    try {
-      return store.categories.firstWhere(
-        (cat) => cat.nome.toLowerCase() == 'livros',
-      );
-    } catch (_) {
-      return null;
-    }
-  }
-
-  /// Busca a categoria "Tecnologias" nas categorias disponíveis
-  CategoryEntity? _getTecnologiasCategory() {
-    if (!store.hasCategories) return null;
-    try {
-      return store.categories.firstWhere(
-        (cat) => cat.nome.toLowerCase() == 'tecnologias',
-      );
-    } catch (_) {
-      return null;
-    }
-  }
-
-  /// Constrói o header customizado para Tecnologias
-  Widget _buildTecnologiasHeader(CategoryEntity tecnologias) {
+  Widget _buildExpandedCategoryHeader(CategoryEntity category) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(0, 0, 0, 10),
       child: Row(
@@ -398,7 +479,7 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Tecnologias',
+                category.nome,
                 style: TextStyle(
                   fontSize: 16.sp,
                   fontWeight: FontWeight.w600,
@@ -407,11 +488,7 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
               ),
               SizedBox(height: 4.h),
               Text(
-                NumberFormat.currency(
-                  locale: 'pt_BR',
-                  symbol: 'R\$',
-                  decimalDigits: 2,
-                ).format(tecnologias.totalValue),
+                CurrencyUtils.formatBRL(category.totalValue),
                 style: TextStyle(
                   fontSize: 15.sp,
                   fontWeight: FontWeight.w400,
@@ -425,33 +502,27 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     );
   }
 
-  /// Constrói a lista de subcategorias expandidas para Tecnologias
-  /// Ordena por campo "ordem" do backend
-  List<Widget> _buildTecnologiasSubcategories(CategoryEntity tecnologias) {
-    // Ordenar subcategorias por ordem
-    final sortedSubcategories = tecnologias.subcategorias.toList()
+  List<Widget> _buildExpandedSubcategories(CategoryEntity category) {
+    final sortedSubcategories = category.subcategorias.toList()
       ..sort((a, b) => a.ordem.compareTo(b.ordem));
 
     return sortedSubcategories.map((subcategory) {
       return Padding(
         padding: EdgeInsets.only(bottom: 12.h),
-        child: _buildSubcategoryCard(subcategory, tecnologias),
+        child: _buildSubcategoryCard(subcategory, category),
       );
     }).toList();
   }
 
-  /// Constrói um card para subcategoria usando ProductCategory widget
   Widget _buildSubcategoryCard(
       SubcategoryEntity subcategory, CategoryEntity parentCategory) {
     return Observer(
       builder: (_) {
-        // ✅ Buscar categoria atualizada da store
         final currentCategory = store.categories.firstWhere(
           (c) => c.id == parentCategory.id,
           orElse: () => parentCategory,
         );
 
-        // ✅ Buscar subcategoria atualizada dentro da categoria
         final currentSubcategory = currentCategory.subcategorias.firstWhere(
           (s) => s.id == subcategory.id,
           orElse: () => subcategory,
@@ -469,8 +540,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
           isSelected: currentSubcategory.selectedProductsCount > 0,
           onCheckboxChanged: (selected) {
             if (selected == null) return;
-            print(
-                '✅ [ConfigPage] Checkbox subcategoria ${currentSubcategory.nome}: ${selected ? "MARCAR" : "DESMARCAR"}');
             store.toggleSubcategoryWithCascade(
               currentCategory.id,
               currentSubcategory.id,
@@ -478,13 +547,9 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
             );
           },
           onCardTap: () {
-            print(
-                '👆 [ConfigPage] Card subcategoria clicado: ${currentSubcategory.nome}');
             _showProductsModal(currentCategory, currentSubcategory);
           },
           onActionTap: () {
-            print(
-                '👆 [ConfigPage] Botão ação subcategoria: ${currentSubcategory.nome}');
             _showProductsModal(currentCategory, currentSubcategory);
           },
         );
@@ -492,22 +557,24 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     );
   }
 
-  /// Extrai dados das cidades para o card do Censo Escolar
-  /// Retorna lista de mapas com {id, nome, indicadores}
   List<Map<String, dynamic>> _extractCitiesData() {
     if (store.budgetDetail == null) {
       return [];
     }
 
-    // Usar dados das cidades já parseadas do DTO
     return store.budgetDetail!.citiesData;
   }
 
-  // ========== MÉTODOS PARA MODAIS ==========
-
   void _showSubcategoriesModal(CategoryEntity category) {
-    print('🔍 [ConfigPage] Abrindo modal de subcategorias: ${category.nome}');
-    print('   📦 Subcategorias: ${category.subcategorias.length}');
+    if (store.isLoadingProducts) {
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.info,
+        title: 'Aguarde',
+        message: 'Carregando produtos...',
+      );
+      return;
+    }
 
     showModalBottomSheet(
       context: context,
@@ -515,7 +582,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
       backgroundColor: Colors.transparent,
       builder: (_) => Observer(
         builder: (_) {
-          // ✅ Buscar categoria atualizada da store
           final currentCategory = store.categories.firstWhere(
             (c) => c.id == category.id,
             orElse: () => category,
@@ -524,14 +590,10 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
           return SubcategoriesModal(
             category: currentCategory,
             onSubcategoryTap: (subcategory) {
-              print(
-                  '🔍 [ConfigPage] Subcategoria selecionada: ${subcategory.nome}');
               Navigator.pop(context);
               _showProductsModal(currentCategory, subcategory);
             },
             onCheckboxChanged: (categoryId, subcategoryId, selected) {
-              print(
-                  '✅ [ConfigPage] Checkbox subcategoria (modal): categoryId=$categoryId, subcategoryId=$subcategoryId, selected=$selected');
               store.toggleSubcategoryWithCascade(
                 categoryId,
                 subcategoryId,
@@ -546,32 +608,34 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
 
   void _showProductsModal(
       CategoryEntity category, SubcategoryEntity subcategory) {
-    print('🔍 [ConfigPage] Abrindo modal de produtos: ${subcategory.nome}');
-    print('   📦 Produtos ativos: ${subcategory.activeProductsCount}');
+    if (store.isLoadingProducts) {
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.info,
+        title: 'Aguarde',
+        message: 'Carregando produtos...',
+      );
+      return;
+    }
 
-    // Usar o helper estático que encapsula CustomModal.show
-    // Agora recebe categoryId para buscar dados reativos da store
     SubcategoryProductsModal.show(
       context: context,
+      category: category,
       subcategory: subcategory,
-      categoryId: category.id,
     );
   }
 
   void _showProductDetailModal(ProductEntity product) {
     showDialog(
       context: context,
-      builder: (_) => ProductDetailModal(
+      builder: (_) => ProductEditModal(
         product: product,
-        onSave: (quantity, observations) {
-          store.updateProductQuantity(product.id, quantity);
-          store.updateProductObservations(product.id, observations);
+        onSave: (updatedProduct) {
+          store.updateProductFromModal(updatedProduct);
         },
       ),
     );
   }
-
-  // ========== HELPER PARA ÍCONES ==========
 
   IconData _getCategoryIcon(String categoryName) {
     switch (categoryName.toLowerCase()) {
@@ -584,17 +648,9 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     }
   }
 
-  // ========== BUILD CATEGORIA DINÂMICA ==========
-
   Widget _buildCategoryFromEntity(CategoryEntity category) {
-    print('🏗️ [ConfigPage] Construindo categoria: ${category.nome}');
-    print('   - Produtos ativos: ${category.totalActiveProducts}');
-    print('   - Produtos selecionados: ${category.selectedProductsCount}');
-    print('   - Valor total: ${category.formattedTotalValue}');
-
     return Observer(
       builder: (_) {
-        // ✅ Buscar categoria atualizada da store dentro do Observer
         final currentCategory = store.categories.firstWhere(
           (c) => c.id == category.id,
           orElse: () => category,
@@ -611,18 +667,12 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
           totalCount: currentCategory.totalActiveProducts,
           isSelected: currentCategory.hasSelectedProducts,
           onCheckboxChanged: (bool? value) {
-            print(
-                '☑️ [ConfigPage] Checkbox categoria: ${currentCategory.nome} = $value');
             store.toggleCategoryWithCascade(currentCategory.id, value ?? false);
           },
           onCardTap: () {
-            print(
-                '👆 [ConfigPage] Card categoria clicado: ${currentCategory.nome}');
             _showSubcategoriesModal(currentCategory);
           },
           onActionTap: () {
-            print(
-                '👆 [ConfigPage] Botão ação categoria: ${currentCategory.nome}');
             _showSubcategoriesModal(currentCategory);
           },
         );
@@ -630,14 +680,11 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     );
   }
 
-  // ========== BUILD CATEGORIA ANTIGA (MANTER PARA COMPATIBILIDADE) ==========
-
   Widget _buildCategory(String key, String title, IconData icon) {
     return Observer(
       builder: (_) {
         final isSelected = store.categoryStates[key] ?? false;
 
-        // Mock de dados - em produção viriam do budgetDetail
         const value = 'R\$ 0,00';
         const selectedCount = 0;
         const totalCount = 0;

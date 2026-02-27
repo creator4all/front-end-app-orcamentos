@@ -1,36 +1,50 @@
-import 'api_service.dart';
+import '../app/shared/core/http/app_http_client.dart';
+import '../app/shared/core/http/http_request_config.dart';
+import '../app/shared/core/utils/token_cache.dart';
 import '../config/api_config.dart';
-import '../entities/estado_entity.dart';
 import '../entities/cidade_entity.dart';
+import '../entities/estado_entity.dart';
 
 class GeoService {
-  final ApiService _api;
-  GeoService({ApiService? api}) : _api = api ?? ApiService();
+  final AppHttpClient _client;
+
+  GeoService({required AppHttpClient client}) : _client = client;
 
   Future<List<EstadoEntity>> listarEstados() async {
-    final res = await _api.get(ApiConfig.estadosEndpoint);
-    if (res['success'] == true) {
-      final data = (res['data']['dados'] as List);
+    final token = TokenCache.instance.getTokenOrEmpty();
+    final response = await _client.get(
+      ApiConfig.estadosEndpoint,
+      config: HttpRequestConfig(token: token),
+    );
+
+    if (response.isSuccess) {
+      final data = (response.body['dados'] as List);
       return data
           .map((e) => EstadoEntity.fromJson(e as Map<String, dynamic>))
           .toList();
     }
-    throw Exception(res['error'] ?? 'Falha ao carregar estados');
+    throw Exception(response.body['error'] ?? 'Falha ao carregar estados');
   }
 
   Future<List<CidadeEntity>> listarCidades({int? estadoId}) async {
+    final token = TokenCache.instance.getTokenOrEmpty();
     final endpoint = estadoId == null
         ? ApiConfig.cidadesEndpoint
         : '${ApiConfig.cidadesEndpoint}/estado/$estadoId';
-    final res = await _api.get(endpoint);
-    if (res['success'] == true) {
-      final data = (res['data']['dados'] as List);
+
+    final response = await _client.get(
+      endpoint,
+      config: HttpRequestConfig(token: token),
+    );
+
+    if (response.isSuccess) {
+      final data = (response.body['dados'] as List);
       final list = data
           .map((e) => CidadeEntity.fromJson(e as Map<String, dynamic>))
           .toList();
       if (estadoId == null) return list;
       return list.where((c) => c.estadoId == estadoId).toList();
     }
-    throw Exception(res['error'] ?? 'Falha ao carregar cidades');
+    throw Exception(response.body['error'] ?? 'Falha ao carregar cidades');
   }
 }

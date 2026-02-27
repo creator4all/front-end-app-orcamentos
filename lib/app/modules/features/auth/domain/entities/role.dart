@@ -1,7 +1,5 @@
 import 'package:equatable/equatable.dart';
 
-/// Entidade de domínio que representa uma Role (Papel/Permissão) do usuário
-/// Esta é uma entidade pura sem dependências externas
 class Role extends Equatable {
   final int id;
   final String name;

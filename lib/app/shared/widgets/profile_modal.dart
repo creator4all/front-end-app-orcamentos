@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import 'user_avatar_widget.dart';
+
 class ProfileModal extends StatefulWidget {
   final String userName;
   final String userEmail;
-  final String userDocument; // CPF ou CNPJ
+  final String userDocument;
   final String? userImageUrl;
+  final String? userRole;
+  final String? partnerName;
   final VoidCallback onClose;
   final VoidCallback? onEditProfile;
   final VoidCallback? onEditCompany;
@@ -16,6 +20,8 @@ class ProfileModal extends StatefulWidget {
   final VoidCallback? onDrive;
   final VoidCallback? onLogout;
   final VoidCallback? onDeleteAccount;
+  final bool isAdmin;
+  final bool isManager;
 
   const ProfileModal({
     super.key,
@@ -23,6 +29,8 @@ class ProfileModal extends StatefulWidget {
     required this.userEmail,
     required this.userDocument,
     this.userImageUrl,
+    this.userRole,
+    this.partnerName,
     required this.onClose,
     this.onEditProfile,
     this.onEditCompany,
@@ -33,6 +41,8 @@ class ProfileModal extends StatefulWidget {
     this.onDrive,
     this.onLogout,
     this.onDeleteAccount,
+    this.isAdmin = false,
+    this.isManager = false,
   });
 
   @override
@@ -108,7 +118,6 @@ class _ProfileModalState extends State<ProfileModal>
                       child: SingleChildScrollView(
                         child: Column(
                           children: [
-                            // Header com botão fechar
                             Container(
                               padding: EdgeInsets.only(
                                 top: 16.h,
@@ -127,33 +136,35 @@ class _ProfileModalState extends State<ProfileModal>
 
                             SizedBox(height: 40.h),
 
-                            // Foto do perfil
-                            Container(
-                              width: 120.w,
-                              height: 120.w,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: const Color(0xFF117BBD),
-                                image: widget.userImageUrl != null
-                                    ? DecorationImage(
-                                        image:
-                                            NetworkImage(widget.userImageUrl!),
-                                        fit: BoxFit.cover,
-                                      )
-                                    : null,
-                              ),
-                              child: widget.userImageUrl == null
-                                  ? Icon(
-                                      Icons.person,
-                                      color: Colors.white,
-                                      size: 60.sp,
-                                    )
-                                  : null,
+                            UserAvatarWidget(
+                              avatarBase64: widget.userImageUrl,
+                              userName: widget.userName,
+                              radius: 60,
+                            ),
+
+                            SizedBox(height: 16.h),
+
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (widget.userRole != null)
+                                  _buildBadge(
+                                    widget.userRole!,
+                                    const Color(0xFF117BBD),
+                                  ),
+                                if (widget.partnerName != null &&
+                                    widget.userRole != null)
+                                  SizedBox(height: 8.h),
+                                if (widget.partnerName != null)
+                                  _buildBadge(
+                                    widget.partnerName!,
+                                    const Color(0xFF56B34A),
+                                  ),
+                              ],
                             ),
 
                             SizedBox(height: 24.h),
 
-                            // Nome do usuário
                             Padding(
                               padding: EdgeInsets.symmetric(horizontal: 20.w),
                               child: Text(
@@ -171,7 +182,6 @@ class _ProfileModalState extends State<ProfileModal>
 
                             SizedBox(height: 8.h),
 
-                            // Email do usuário
                             Padding(
                               padding: EdgeInsets.symmetric(horizontal: 20.w),
                               child: Text(
@@ -188,7 +198,6 @@ class _ProfileModalState extends State<ProfileModal>
 
                             SizedBox(height: 8.h),
 
-                            // CPF/CNPJ
                             Padding(
                               padding: EdgeInsets.symmetric(horizontal: 20.w),
                               child: Text(
@@ -203,7 +212,6 @@ class _ProfileModalState extends State<ProfileModal>
 
                             SizedBox(height: 40.h),
 
-                            // Menu items
                             Padding(
                               padding: EdgeInsets.symmetric(horizontal: 20.w),
                               child: Column(
@@ -213,7 +221,8 @@ class _ProfileModalState extends State<ProfileModal>
                                     title: 'Editar perfil',
                                     onTap: widget.onEditProfile,
                                   ),
-                                  if (widget.onEditCompany != null) ...[
+                                  if ((widget.isAdmin || widget.isManager) &&
+                                      widget.onEditCompany != null) ...[
                                     SizedBox(height: 12.h),
                                     _ProfileMenuItem(
                                       icon: Icons.business,
@@ -221,24 +230,30 @@ class _ProfileModalState extends State<ProfileModal>
                                       onTap: widget.onEditCompany,
                                     ),
                                   ],
-                                  SizedBox(height: 12.h),
-                                  _ProfileMenuItem(
-                                    icon: Icons.inventory,
-                                    title: 'Configurar produtos',
-                                    onTap: widget.onConfigureProducts,
-                                  ),
-                                  SizedBox(height: 12.h),
-                                  _ProfileMenuItem(
-                                    icon: Icons.people,
-                                    title: 'Prospecção de parceiros',
-                                    onTap: widget.onPartnerProspecting,
-                                  ),
-                                  SizedBox(height: 12.h),
-                                  _ProfileMenuItem(
-                                    icon: Icons.admin_panel_settings,
-                                    title: 'Gestão administrativa',
-                                    onTap: widget.onAdministrativeManagement,
-                                  ),
+                                  if (widget.isAdmin) ...[
+                                    SizedBox(height: 12.h),
+                                    _ProfileMenuItem(
+                                      icon: Icons.inventory,
+                                      title: 'Configurar produtos',
+                                      onTap: widget.onConfigureProducts,
+                                    ),
+                                  ],
+                                  if (widget.isAdmin) ...[
+                                    SizedBox(height: 12.h),
+                                    _ProfileMenuItem(
+                                      icon: Icons.people,
+                                      title: 'Prospecção de parceiros',
+                                      onTap: widget.onPartnerProspecting,
+                                    ),
+                                  ],
+                                  if (widget.isAdmin || widget.isManager) ...[
+                                    SizedBox(height: 12.h),
+                                    _ProfileMenuItem(
+                                      icon: Icons.admin_panel_settings,
+                                      title: 'Gestão administrativa',
+                                      onTap: widget.onAdministrativeManagement,
+                                    ),
+                                  ],
                                   SizedBox(height: 12.h),
                                   _ProfileMenuItem(
                                     icon: Icons.menu_book,
@@ -257,12 +272,10 @@ class _ProfileModalState extends State<ProfileModal>
 
                             SizedBox(height: 40.h),
 
-                            // Botões de ação
                             Padding(
                               padding: EdgeInsets.symmetric(horizontal: 20.w),
                               child: Column(
                                 children: [
-                                  // Botão Sair
                                   SizedBox(
                                     width: double.infinity,
                                     child: ElevatedButton(
@@ -291,7 +304,6 @@ class _ProfileModalState extends State<ProfileModal>
 
                                   SizedBox(height: 12.h),
 
-                                  // Botão Deletar conta
                                   SizedBox(
                                     width: double.infinity,
                                     child: OutlinedButton(
@@ -336,6 +348,25 @@ class _ProfileModalState extends State<ProfileModal>
           ),
         );
       },
+    );
+  }
+
+  Widget _buildBadge(String value, Color color) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Text(
+        value,
+        style: TextStyle(
+          fontSize: 12.sp,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
+      ),
     );
   }
 }

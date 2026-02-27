@@ -1,5 +1,9 @@
 import 'package:flutter_modular/flutter_modular.dart';
 
+import '../registration/registration_module.dart';
+import 'presentation/pages/forgot_password_email_page.dart';
+import 'presentation/pages/forgot_password_new_password_page.dart';
+import 'presentation/pages/forgot_password_otp_page.dart';
 import 'presentation/pages/login_page.dart';
 
 /// Módulo de autenticação seguindo Clean Architecture
@@ -9,20 +13,27 @@ import 'presentation/pages/login_page.dart';
 /// Este módulo contém apenas as rotas específicas de autenticação.
 class AuthModule extends Module {
   @override
-  List<Bind> get binds => [
-        // Todos os binds foram movidos para o AppModule
-        // para serem compartilhados globalmente
-      ];
+  List<Bind> get binds => [];
 
   @override
   List<ModularRoute> get routes => [
-        // Rota de login
         ChildRoute(
           '/login',
           child: (context, args) => const LoginPage(),
         ),
-
-        // Rota padrão redireciona para login
+        ChildRoute(
+          '/forgot-password',
+          child: (context, args) => const ForgotPasswordEmailPage(),
+        ),
+        ChildRoute(
+          '/forgot-password/otp',
+          child: (context, args) => const ForgotPasswordOtpPage(),
+        ),
+        ChildRoute(
+          '/forgot-password/new-password',
+          child: (context, args) => const ForgotPasswordNewPasswordPage(),
+        ),
+        ModuleRoute('/register', module: RegistrationModule()),
         RedirectRoute('/', to: '/login'),
       ];
 }
