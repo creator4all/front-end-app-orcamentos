@@ -46,6 +46,8 @@ analyzer:
     - "**/*.g.dart"
     - "**/*.freezed.dart"
     - "**/*.mocks.dart"
+  errors:
+    avoid_print: true
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options

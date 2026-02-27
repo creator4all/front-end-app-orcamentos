@@ -1,0 +1,86 @@
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+
+class UserAvatarWidget extends StatelessWidget {
+  final String? avatarBase64;
+  final String userName;
+  final double radius;
+
+  const UserAvatarWidget({
+    super.key,
+    this.avatarBase64,
+    required this.userName,
+    this.radius = 30,
+  });
+
+  String _getInitials(String name) {
+    if (name.isEmpty) return '?';
+
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.length == 1) {
+      return parts[0][0].toUpperCase();
+    }
+
+    final first = parts.first[0].toUpperCase();
+    final last = parts.last[0].toUpperCase();
+    return '$first$last';
+  }
+
+  Color _getColorForName(String name) {
+    const colors = [
+      Color(0xFF1976D2),
+      Color(0xFF388E3C),
+      Color(0xFFD32F2F),
+      Color(0xFF7B1FA2),
+      Color(0xFFF57C00),
+      Color(0xFF0097A7),
+      Color(0xFF5D4037),
+      Color(0xFF455A64),
+      Color(0xFFC2185B),
+      Color(0xFF512DA8),
+      Color(0xFF00796B),
+      Color(0xFF689F38),
+    ];
+
+    final hash = name.hashCode.abs();
+    return colors[hash % colors.length];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ImageProvider? imageProvider;
+    if (avatarBase64 != null && avatarBase64!.isNotEmpty) {
+      try {
+        final base64Data = avatarBase64!.split(',').last;
+        imageProvider = MemoryImage(base64Decode(base64Data));
+      } catch (e) {}
+    }
+
+    if (imageProvider != null) {
+      return CircleAvatar(
+        radius: radius.r,
+        backgroundColor: const Color(0xFFE0E0E0),
+        backgroundImage: imageProvider,
+      );
+    }
+
+    // Fallback: iniciais com cor
+    final initials = _getInitials(userName);
+    final backgroundColor = _getColorForName(userName);
+
+    return CircleAvatar(
+      radius: radius.r,
+      backgroundColor: backgroundColor,
+      child: Text(
+        initials,
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: (radius * 0.8).sp,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+}

@@ -1,15 +1,17 @@
 import 'dart:convert';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+import '../app/shared/utils/email_validator.dart';
 import '../entities/user_entity.dart';
 import '../services/auth_service.dart';
 
 class LoginLogic {
   final AuthService _authService;
   final storage = const FlutterSecureStorage();
-  
+
   LoginLogic(this._authService);
-  
-  // Validate login input
+
   Map<String, dynamic> validateLoginInput(String email, String password) {
     if (email.isEmpty) {
       return {
@@ -18,7 +20,7 @@ class LoginLogic {
       };
     }
 
-    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email)) {
+    if (!EmailValidator.isValid(email)) {
       return {
         'isValid': false,
         'error': 'Email inválido',
@@ -36,11 +38,9 @@ class LoginLogic {
       'isValid': true,
     };
   }
-  
-  // Process login
+
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
-      // Validate input
       final validation = validateLoginInput(email, password);
       if (!validation['isValid']) {
         return {
@@ -48,23 +48,19 @@ class LoginLogic {
           'error': validation['error'],
         };
       }
-      
-      // Call auth service
+
       final result = await _authService.signIn(email, password);
-      
+
       if (result['success']) {
-        // Parse user data
         final responseData = result['data'];
         final user = UserEntity.fromJson(responseData);
-        
-        // Create user data with normalized role
+
         final userData = user.toJson();
-        userData['role'] = user.normalizedRole; // Use normalized role
-        
-        // Save user data and token
+        userData['role'] = user.normalizedRole;
+
         await storage.write(key: 'auth_token', value: user.token);
         await storage.write(key: 'user_data', value: jsonEncode(userData));
-        
+
         return {
           'success': true,
           'user': user,
@@ -82,17 +78,16 @@ class LoginLogic {
       };
     }
   }
-  
-  // Try auto login from stored credentials
+
   Future<Map<String, dynamic>> tryAutoLogin() async {
     try {
       final token = await storage.read(key: 'auth_token');
       final userData = await storage.read(key: 'user_data');
-      
+
       if (token != null && userData != null) {
         try {
           final user = UserEntity.fromJson(jsonDecode(userData));
-          
+
           return {
             'success': true,
             'user': user,
@@ -115,10 +110,10 @@ class LoginLogic {
       };
     }
   }
-  
-  // Logout user
+
   Future<void> logout() async {
     await storage.delete(key: 'auth_token');
     await storage.delete(key: 'user_data');
   }
 }
+
