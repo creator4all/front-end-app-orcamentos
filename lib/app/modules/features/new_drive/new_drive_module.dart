@@ -3,8 +3,10 @@ import 'package:flutter_modular/flutter_modular.dart';
 import '../../../shared/core/http/app_http_client.dart';
 import 'data/datasources/drive_remote_datasource.dart';
 import 'data/repositories/drive_repository_impl.dart';
+import 'data/repositories/file_saver_impl.dart';
 import 'domain/entities/drive_item.dart';
 import 'domain/repositories/drive_repository.dart';
+import 'domain/repositories/file_saver.dart';
 import 'domain/usecases/download_file_usecase.dart';
 import 'domain/usecases/download_and_open_file_usecase.dart';
 import 'domain/usecases/get_folder_contents_usecase.dart';
@@ -43,8 +45,14 @@ class NewDriveModule extends Module {
         Bind.singleton<DownloadAndOpenFileUsecase>(
           (i) => DownloadAndOpenFileUsecase(i.get<DriveRepository>()),
         ),
+        Bind.singleton<FileSaver>(
+          (i) => FileSaverImpl(),
+        ),
         Bind.singleton<DownloadFileUsecase>(
-          (i) => DownloadFileUsecase(i.get<DriveRepository>()),
+          (i) => DownloadFileUsecase(
+            i.get<DriveRepository>(),
+            i.get<FileSaver>(),
+          ),
         ),
         Bind.singleton<NewDriveStore>(
           (i) => NewDriveStore(
