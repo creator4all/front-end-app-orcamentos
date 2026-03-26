@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 
@@ -7,7 +7,7 @@ import 'indicadores_etapa_section.dart';
 
 class ProductDetailModal extends StatefulWidget {
   final ProductEntity product;
-  final Function(int quantity, String? observations)? onSave;
+  final Function(double quantity, String? observations)? onSave;
 
   const ProductDetailModal({
     super.key,
@@ -20,7 +20,7 @@ class ProductDetailModal extends StatefulWidget {
 }
 
 class _ProductDetailModalState extends State<ProductDetailModal> {
-  late int _quantity;
+  late double _quantity;
   late TextEditingController _observationsController;
 
   @override
@@ -197,7 +197,7 @@ class _ProductDetailModalState extends State<ProductDetailModal> {
                 borderRadius: BorderRadius.circular(8.r),
               ),
               child: Text(
-                '$_quantity',
+                '${_quantity.toInt()}',
                 style: TextStyle(
                   fontSize: 18.sp,
                   fontWeight: FontWeight.bold,

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../domain/entities/product_entity.dart';
@@ -8,7 +8,7 @@ class ProductsModal extends StatefulWidget {
   final SubcategoryEntity subcategory;
   final Function(ProductEntity) onProductTap;
   final Function(int productId, bool selected) onProductToggle;
-  final Function(int productId, int quantity) onQuantityChanged;
+  final Function(int productId, double quantity) onQuantityChanged;
 
   const ProductsModal({
     super.key,
@@ -24,7 +24,7 @@ class ProductsModal extends StatefulWidget {
 
 class _ProductsModalState extends State<ProductsModal> {
   final Map<int, bool> _localSelection = {};
-  final Map<int, int> _localQuantities = {};
+  final Map<int, double> _localQuantities = {};
 
   @override
   void initState() {
@@ -207,9 +207,9 @@ class _ProductsModalState extends State<ProductsModal> {
 class _ProductCard extends StatelessWidget {
   final ProductEntity product;
   final bool isChecked;
-  final int quantity;
+  final double quantity;
   final ValueChanged<bool?> onChanged;
-  final ValueChanged<int> onQuantityChanged;
+  final ValueChanged<double> onQuantityChanged;
   final VoidCallback onTap;
 
   const _ProductCard({
@@ -348,8 +348,8 @@ class _ProductCard extends StatelessWidget {
 
 /// Seletor de quantidade
 class _QuantitySelector extends StatelessWidget {
-  final int quantity;
-  final ValueChanged<int> onChanged;
+  final double quantity;
+  final ValueChanged<double> onChanged;
   final bool enabled;
 
   const _QuantitySelector({
@@ -384,7 +384,7 @@ class _QuantitySelector extends StatelessWidget {
             borderRadius: BorderRadius.circular(4.r),
           ),
           child: Text(
-            '$quantity',
+            '${quantity.toInt()}',
             style: TextStyle(
               fontSize: 14.sp,
               fontWeight: FontWeight.w600,

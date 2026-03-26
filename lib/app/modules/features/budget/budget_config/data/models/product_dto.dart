@@ -14,7 +14,7 @@ class ProductDTO {
   final int ordem;
   final int subcategoriaId;
   final bool selecionado;
-  final int quantidade;
+  final double quantidade;
   final bool temOverride;
   final String? observacoes;
   final double valorOriginal;
@@ -62,10 +62,10 @@ class ProductDTO {
       final orcProduto = json['orcamento_produto'] as Map<String, dynamic>?;
       final bool selecionado =
           (orcProduto?['selecionado'] ?? json['selecionado']) as bool? ?? true;
-      final int quantidade =
+      final double quantidade =
           ((orcProduto?['quantidade'] ?? json['quantidade']) as num?)
-                  ?.toInt() ??
-              0;
+                  ?.toDouble() ??
+              0.0;
 
       final bool temOverride = (json['tem_override'] as bool?) ?? false;
       final String? observacoes = json['observacoes'] as String?;

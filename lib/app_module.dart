@@ -156,7 +156,7 @@ class AppModule extends Module {
         // Wiki Module - Página de Ajuda
         ModuleRoute('/wiki', module: WikiModule()),
 
-        RedirectRoute('/', to: '/auth/login'),
+        RedirectRoute('/', to: '/auth/splash'),
       ];
 
   bool _isDebugMode() {

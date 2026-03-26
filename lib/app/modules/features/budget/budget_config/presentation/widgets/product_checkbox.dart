@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../../../shared/utils/string_utils.dart';
@@ -86,7 +86,7 @@ class ProductCheckbox extends StatelessWidget {
                         const Spacer(),
                         if (product.selecionado && product.quantidade > 0) ...[
                           Text(
-                            'Qtd: ${product.quantidade}',
+                            'Qtd: ${product.quantidade.toInt()}',
                             style: TextStyle(
                               fontSize: 10.sp,
                               color: Colors.grey[700],

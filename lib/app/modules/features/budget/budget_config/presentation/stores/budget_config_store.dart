@@ -365,7 +365,7 @@ abstract class _BudgetConfigStoreBase with Store {
               prodJson['orcamento_produto'] as Map<String, dynamic>? ?? {};
           final valor = (prodJson['valor'] as num?)?.toDouble() ?? 0.0;
 
-          final quantidade = (orcProdJson['quantidade'] as num?)?.toInt() ?? 0;
+          final quantidade = (orcProdJson['quantidade'] as num?)?.toDouble() ?? 0.0;
           final selecionadoJson = orcProdJson['selecionado'] as bool? ?? false;
           final selecionado = quantidade > 0 ? selecionadoJson : false;
 
@@ -695,7 +695,7 @@ abstract class _BudgetConfigStoreBase with Store {
 
           if (oldQuantity == 0 && newQuantity > 0 && !product.selecionado) {
             final updatedProduct =
-                product.copyWith(quantidade: newQuantity.round());
+                product.copyWith(quantidade: newQuantity);
             productsToRemark.add(updatedProduct);
           }
         }
@@ -1029,7 +1029,7 @@ abstract class _BudgetConfigStoreBase with Store {
             );
 
             final productWithCalculation = updatedProduct.copyWith(
-              quantidade: quantidade.round(),
+              quantidade: quantidade,
               valor: valorTotal > 0
                   ? valorTotal / quantidade
                   : updatedProduct.valor,
@@ -1156,8 +1156,8 @@ abstract class _BudgetConfigStoreBase with Store {
   }
 
   @action
-  void updateProductQuantity(int productId, int quantity) {
-    if (quantity < 1) {
+  void updateProductQuantity(int productId, double quantity) {
+    if (quantity < 1.0) {
       return;
     }
 
@@ -1319,7 +1319,7 @@ abstract class _BudgetConfigStoreBase with Store {
               );
 
               updatedProduct = updatedProduct.copyWith(
-                quantidade: novaQuantidade.round(),
+                quantidade: novaQuantidade,
               );
             }
 

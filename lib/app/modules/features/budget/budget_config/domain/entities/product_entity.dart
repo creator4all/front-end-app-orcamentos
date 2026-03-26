@@ -26,7 +26,7 @@ class ProductEntity extends Equatable {
   /// Estado do checkbox (true = marcado)
   final bool selecionado;
 
-  final int quantidade;
+  final double quantidade;
   final bool temOverride;
   final String? observacoes;
   final double valorOriginal;

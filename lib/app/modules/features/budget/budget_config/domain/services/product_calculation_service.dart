@@ -93,6 +93,15 @@ class ProductCalculationService {
     return 'Produto';
   }
 
+  /// Regra de negócio: in4ano e in5ano arredondam para cima quando fracionário
+  double _aplicarCeilSeNecessario(String nomeEtapa, double valor) {
+    final nome = nomeEtapa.toLowerCase();
+    if ((nome == 'in4ano' || nome == 'in5ano') && valor % 1 != 0) {
+      return valor.ceilToDouble();
+    }
+    return valor;
+  }
+
   double _calcularQuantidadeLivro(
     List<dynamic> indicadores,
     CensoEscolarEntity censo,
@@ -110,10 +119,10 @@ class ProductCalculationService {
 
       if (temProfessores) {
         final valorP = censo.getValorEtapa('${nomeEtapa}P') ?? 0.0;
-        total += valorP;
+        total += _aplicarCeilSeNecessario(nomeEtapa, valorP);
       } else {
         final valor = censo.getValorEtapa(nomeEtapa) ?? 0.0;
-        total += valor;
+        total += _aplicarCeilSeNecessario(nomeEtapa, valor);
       }
     }
 
@@ -136,11 +145,11 @@ class ProductCalculationService {
       if (nomeEtapa.toLowerCase() == 'professores') continue;
 
       final valorNormal = censo.getValorEtapa(nomeEtapa) ?? 0.0;
-      total += valorNormal;
+      total += _aplicarCeilSeNecessario(nomeEtapa, valorNormal);
 
       if (temProfessores) {
         final valorP = censo.getValorEtapa('${nomeEtapa}P') ?? 0.0;
-        total += valorP;
+        total += _aplicarCeilSeNecessario(nomeEtapa, valorP);
       }
     }
 
@@ -167,8 +176,8 @@ class ProductCalculationService {
           if (!product.selecionado) continue;
 
           final novaQtd = calcularQuantidade(product, censo);
-          if (novaQtd.round() != product.quantidade) {
-            updatedProds[k] = product.copyWith(quantidade: novaQtd.round());
+          if (novaQtd != product.quantidade) {
+            updatedProds[k] = product.copyWith(quantidade: novaQtd);
             subChanged = true;
           }
         }

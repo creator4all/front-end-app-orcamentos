@@ -493,7 +493,7 @@ abstract class _BudgetEditStoreBase with Store {
               censoEscolar,
             );
             updatedProduct = updatedProduct.copyWith(
-              quantidade: novaQuantidade.round(),
+              quantidade: novaQuantidade,
             );
           }
 
@@ -530,7 +530,7 @@ abstract class _BudgetEditStoreBase with Store {
   }
 
   @action
-  void updateProductQuantity(int productId, int quantity) {
+  void updateProductQuantity(int productId, double quantity) {
     for (var i = 0; i < categories.length; i++) {
       final category = categories[i];
 
@@ -652,7 +652,7 @@ abstract class _BudgetEditStoreBase with Store {
               );
 
               updatedProduct = updatedProduct.copyWith(
-                quantidade: novaQuantidade.round(),
+                quantidade: novaQuantidade,
               );
             }
 
@@ -900,7 +900,7 @@ abstract class _BudgetEditStoreBase with Store {
 
           if (oldQuantity == 0 && newQuantity > 0 && !product.selecionado) {
             final updatedProduct = product.copyWith(
-              quantidade: newQuantity.round(),
+              quantidade: newQuantity,
             );
             productsToRemark.add(updatedProduct);
           }

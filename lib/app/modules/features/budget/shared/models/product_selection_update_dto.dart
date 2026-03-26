@@ -6,7 +6,7 @@ import 'indicador_produto_update_dto.dart';
 class ProductSelectionUpdateDto extends Equatable {
   final int productId;
   final bool selecionado;
-  final int quantidade;
+  final double quantidade;
   final String tipoProduto;
   final List<IndicadorProdutoUpdateDto>? indicadores;
   final double? valor;

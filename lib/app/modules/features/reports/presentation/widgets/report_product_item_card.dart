@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:multimidiaapp/app/modules/features/reports/presentation/widgets/readonly_checkbox.dart';
 import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
@@ -58,7 +58,7 @@ class ReportProductItemCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Qtde: ${product.quantidade}',
+                      'Qtde: ${product.quantidade.toInt()}',
                       style: TextStyle(
                         fontSize: 12.sp,
                         fontWeight: FontWeight.w400,

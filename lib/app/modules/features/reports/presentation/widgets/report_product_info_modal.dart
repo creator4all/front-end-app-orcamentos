@@ -164,7 +164,7 @@ class ReportProductInfoModal extends StatelessWidget {
                 ),
               ),
               TextSpan(
-                text: '${product.quantidade} hora(s)',
+                text: '${product.quantidade.toInt()} hora(s)',
                 style: TextStyle(
                   fontSize: 14.sp,
                   fontWeight: FontWeight.w400,
@@ -185,7 +185,7 @@ class ReportProductInfoModal extends StatelessWidget {
             borderRadius: BorderRadius.circular(8.r),
           ),
           child: Text(
-            '${product.quantidade}',
+            '${product.quantidade.toInt()}',
             style: TextStyle(
               fontSize: 14.sp,
               color: const Color(0xFF484848),
