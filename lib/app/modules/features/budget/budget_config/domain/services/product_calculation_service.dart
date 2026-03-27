@@ -93,15 +93,6 @@ class ProductCalculationService {
     return 'Produto';
   }
 
-  /// Regra de negócio: in4ano e in5ano arredondam para cima quando fracionário
-  double _aplicarCeilSeNecessario(String nomeEtapa, double valor) {
-    final nome = nomeEtapa.toLowerCase();
-    if ((nome == 'in4ano' || nome == 'in5ano') && valor % 1 != 0) {
-      return valor.ceilToDouble();
-    }
-    return valor;
-  }
-
   double _calcularQuantidadeLivro(
     List<dynamic> indicadores,
     CensoEscolarEntity censo,
@@ -111,19 +102,38 @@ class ProductCalculationService {
     );
 
     double total = 0.0;
+    double acumuladorIn4In5 = 0.0;
 
     for (final ind in indicadores) {
       final nomeEtapa = ind.nomeEtapa as String;
 
       if (nomeEtapa.toLowerCase() == 'professores') continue;
 
+      final nome = nomeEtapa.toLowerCase();
+      final isIn4ou5 = nome == 'in4ano' || nome == 'in5ano';
+
       if (temProfessores) {
         final valorP = censo.getValorEtapa('${nomeEtapa}P') ?? 0.0;
-        total += _aplicarCeilSeNecessario(nomeEtapa, valorP);
+        if (isIn4ou5) {
+          acumuladorIn4In5 += valorP;
+        } else {
+          total += valorP;
+        }
       } else {
         final valor = censo.getValorEtapa(nomeEtapa) ?? 0.0;
-        total += _aplicarCeilSeNecessario(nomeEtapa, valor);
+        if (isIn4ou5) {
+          acumuladorIn4In5 += valor;
+        } else {
+          total += valor;
+        }
       }
+    }
+
+    // Regra: ceil na soma de in4ano+in5ano quando fracionário
+    if (acumuladorIn4In5 > 0 && acumuladorIn4In5 % 1 != 0) {
+      total += acumuladorIn4In5.ceilToDouble();
+    } else {
+      total += acumuladorIn4In5;
     }
 
     return total;
@@ -138,19 +148,38 @@ class ProductCalculationService {
     );
 
     double total = 0.0;
+    double acumuladorIn4In5 = 0.0;
 
     for (final ind in indicadores) {
       final nomeEtapa = ind.nomeEtapa as String;
 
       if (nomeEtapa.toLowerCase() == 'professores') continue;
 
+      final nome = nomeEtapa.toLowerCase();
+      final isIn4ou5 = nome == 'in4ano' || nome == 'in5ano';
+
       final valorNormal = censo.getValorEtapa(nomeEtapa) ?? 0.0;
-      total += _aplicarCeilSeNecessario(nomeEtapa, valorNormal);
+      if (isIn4ou5) {
+        acumuladorIn4In5 += valorNormal;
+      } else {
+        total += valorNormal;
+      }
 
       if (temProfessores) {
         final valorP = censo.getValorEtapa('${nomeEtapa}P') ?? 0.0;
-        total += _aplicarCeilSeNecessario(nomeEtapa, valorP);
+        if (isIn4ou5) {
+          acumuladorIn4In5 += valorP;
+        } else {
+          total += valorP;
+        }
       }
+    }
+
+    // Regra: ceil na soma de in4ano+in5ano quando fracionário
+    if (acumuladorIn4In5 > 0 && acumuladorIn4In5 % 1 != 0) {
+      total += acumuladorIn4In5.ceilToDouble();
+    } else {
+      total += acumuladorIn4In5;
     }
 
     return total;

@@ -211,6 +211,16 @@ abstract class _BudgetConfigStoreBase with Store {
           await loadCensusData(cityId);
         }
       }
+
+      if (censoEscolar != null) {
+        final updated = calculationService.recalcularQuantidadesProdutos(
+          categories.toList(),
+          censoEscolar!,
+        );
+        for (var i = 0; i < updated.length; i++) {
+          categories[i] = updated[i];
+        }
+      }
     } catch (e) {
       error = 'Erro ao inicializar orçamento: $e';
       isLoading = false;
@@ -327,6 +337,16 @@ abstract class _BudgetConfigStoreBase with Store {
 
       isLoading = false;
       isLoadingProducts = false;
+
+      if (censoEscolar != null) {
+        final updated = calculationService.recalcularQuantidadesProdutos(
+          categories.toList(),
+          censoEscolar!,
+        );
+        for (var i = 0; i < updated.length; i++) {
+          categories[i] = updated[i];
+        }
+      }
     } catch (e) {
       error = 'Erro ao inicializar orçamento: $e';
       isLoading = false;
@@ -845,6 +865,17 @@ abstract class _BudgetConfigStoreBase with Store {
             censoEscolar = null;
           }
 
+          // Regra de negócio: recalcula quantidades (ceil in4ano/in5ano)
+          if (censoEscolar != null) {
+            final updated = calculationService.recalcularQuantidadesProdutos(
+              categories.toList(),
+              censoEscolar!,
+            );
+            for (var i = 0; i < updated.length; i++) {
+              categories[i] = updated[i];
+            }
+          }
+
           isLoading = false;
 
           isLoadingProducts = false;
@@ -1023,16 +1054,9 @@ abstract class _BudgetConfigStoreBase with Store {
               updatedProduct,
               censoEscolar!,
             );
-            final valorTotal = calculationService.calcularValorProduto(
-              updatedProduct,
-              censoEscolar!,
-            );
 
             final productWithCalculation = updatedProduct.copyWith(
               quantidade: quantidade,
-              valor: valorTotal > 0
-                  ? valorTotal / quantidade
-                  : updatedProduct.valor,
             );
 
             final updatedProducts =

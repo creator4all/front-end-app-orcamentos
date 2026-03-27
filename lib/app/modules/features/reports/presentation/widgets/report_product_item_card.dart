@@ -58,7 +58,7 @@ class ReportProductItemCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Qtde: ${product.quantidade.toInt()}',
+                      'Qtde: ${product.formattedQuantidade}',
                       style: TextStyle(
                         fontSize: 12.sp,
                         fontWeight: FontWeight.w400,

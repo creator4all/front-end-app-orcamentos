@@ -185,6 +185,7 @@ abstract class _BudgetEditStoreBase with Store {
           );
 
           _parseCensoEscolarFromCitiesData();
+          _recalculateProductQuantities();
 
           isLoading = false;
           isLoadingProducts = false;

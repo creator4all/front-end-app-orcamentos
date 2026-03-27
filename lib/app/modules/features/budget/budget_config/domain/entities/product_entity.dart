@@ -73,6 +73,8 @@ class ProductEntity extends Equatable {
 
   String get formattedTotalValue => CurrencyUtils.formatBRL(totalValue);
 
+  String get formattedQuantidade => quantidade.toInt().toString();
+
   @override
   List<Object?> get props => [
         id,

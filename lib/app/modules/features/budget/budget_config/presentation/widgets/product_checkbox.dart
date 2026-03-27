@@ -86,7 +86,7 @@ class ProductCheckbox extends StatelessWidget {
                         const Spacer(),
                         if (product.selecionado && product.quantidade > 0) ...[
                           Text(
-                            'Qtd: ${product.quantidade.toInt()}',
+                            'Qtd: ${product.formattedQuantidade}',
                             style: TextStyle(
                               fontSize: 10.sp,
                               color: Colors.grey[700],

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 
@@ -25,31 +25,36 @@ class BudgetSummaryCard extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                CurrencyUtils.formatBRL(budgetValue),
-                style: TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF183127),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  CurrencyUtils.formatBRL(budgetValue),
+                  style: TextStyle(
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF183127),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              Text(
-                'Custo total',
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.normal,
-                  color: const Color(0xFF183127),
+                Text(
+                  'Custo total',
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.normal,
+                    color: const Color(0xFF183127),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
+          SizedBox(width: 8.w),
           Container(
-            width: 48.w,
             height: 37.h,
+            padding: EdgeInsets.symmetric(horizontal: 8.w),
             decoration: BoxDecoration(
               color: const Color(0xFF5B9A82),
               borderRadius: BorderRadius.circular(10.r),

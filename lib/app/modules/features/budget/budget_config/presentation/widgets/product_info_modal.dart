@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -267,7 +267,7 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
 
   Widget _buildHorasField(ProductEntity product, dynamic storeInstance) {
     if (_horasController.text.isEmpty && product.quantidade > 0) {
-      _horasController.text = product.quantidade.toString();
+      _horasController.text = product.formattedQuantidade;
     }
 
     return Column(
@@ -286,7 +286,7 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
                 ),
               ),
               TextSpan(
-                text: '${product.quantidade} hora(s)',
+                text: '${product.formattedQuantidade} hora(s)',
                 style: TextStyle(
                   fontSize: 14.sp,
                   fontWeight: FontWeight.w400,
