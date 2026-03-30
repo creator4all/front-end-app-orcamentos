@@ -1,4 +1,4 @@
-﻿import 'package:flutter_modular/flutter_modular.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mobx/mobx.dart';
 
@@ -88,7 +88,7 @@ abstract class _AuthStoreBase with Store {
         isLoading = false;
       },
       (user) async {
-        await loadCurrentUser();
+        await loadCurrentUser(forceRefresh: true);
 
         if (isLoggedIn && currentUser != null) {
           Modular.to.pushReplacementNamed('/budget/');
@@ -127,18 +127,27 @@ abstract class _AuthStoreBase with Store {
   }
 
   @action
-  Future<void> loadCurrentUser() async {
+  Future<void> loadCurrentUser({bool forceRefresh = false}) async {
     isLoading = true;
     errorMessage = null;
 
     try {
       final token = await secureStorage.read(key: 'auth_token');
-      if (token != null && token.isNotEmpty) {
-        TokenCache.instance.setToken(token);
+      if (token == null || token.isEmpty) {
+        isLoggedIn = false;
+        currentUser = null;
+        isLoading = false;
+        return;
       }
-    } catch (_) {}
+      TokenCache.instance.setToken(token);
+    } catch (_) {
+      isLoggedIn = false;
+      currentUser = null;
+      isLoading = false;
+      return;
+    }
 
-    final result = await authRepository.getCurrentUser();
+    final result = await authRepository.getCurrentUser(forceRefresh: forceRefresh);
 
     result.fold(
       (failure) {

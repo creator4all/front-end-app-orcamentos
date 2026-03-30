@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class AppTheme {
   static const Color primaryColor = Color(0xFF1E88E5);
@@ -15,6 +16,18 @@ class AppTheme {
         secondary: accentColor,
       ),
       scaffoldBackgroundColor: backgroundColor,
+      appBarTheme: const AppBarTheme(
+        backgroundColor: backgroundColor,
+        foregroundColor: textColor,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.dark,
+          statusBarBrightness: Brightness.light,
+        ),
+      ),
       textTheme: const TextTheme(
         titleLarge: TextStyle(
           fontSize: 24,

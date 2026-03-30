@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -215,8 +215,9 @@ class _ReportBudgetListPageState extends State<ReportBudgetListPage> {
                       int daysRemaining = 0;
                       if (b.dataValidade != null) {
                         final now = DateTime.now();
-                        final difference =
-                            b.dataValidade!.difference(now).inDays;
+                        final today = DateTime(now.year, now.month, now.day);
+                        final target = DateTime(b.dataValidade!.year, b.dataValidade!.month, b.dataValidade!.day);
+                        final difference = target.difference(today).inDays;
                         daysRemaining = difference > 0 ? difference : 0;
                       }
 

@@ -1,4 +1,4 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 
 import '../http_response.dart';
 import 'http_interceptor.dart';
@@ -26,6 +26,8 @@ class DioInterceptorAdapter extends Interceptor {
     try {
       final requestInfo = _convertToRequestInfo(options);
       _interceptor.onRequest(requestInfo);
+      // Propaga headers modificados pelo interceptor ao RequestOptions original
+      options.headers.addAll(requestInfo.headers);
       super.onRequest(options, handler);
     } catch (e) {
       handler.reject(

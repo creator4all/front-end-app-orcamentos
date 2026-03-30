@@ -153,17 +153,21 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        title: Text(
-          widget.item.name,
-          style: TextStyle(fontSize: 16.sp),
-        ),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
         backgroundColor: Colors.black,
-        iconTheme: const IconThemeData(color: Colors.white),
+        appBar: AppBar(
+          title: Text(
+            widget.item.name,
+            style: TextStyle(fontSize: 16.sp),
+          ),
+          backgroundColor: Colors.black,
+          iconTheme: const IconThemeData(color: Colors.white),
+          systemOverlayStyle: SystemUiOverlayStyle.light,
+        ),
+        body: _buildBody(),
       ),
-      body: _buildBody(),
     );
   }
 

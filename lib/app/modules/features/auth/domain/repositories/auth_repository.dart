@@ -11,7 +11,7 @@ abstract class AuthRepository {
 
   Future<Either<Failure, void>> logout();
 
-  Future<Either<Failure, User>> getCurrentUser();
+  Future<Either<Failure, User>> getCurrentUser({bool forceRefresh = false});
 
   Future<Either<Failure, String?>> getStoredToken();
 

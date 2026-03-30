@@ -33,8 +33,6 @@ class StoreProvider extends InheritedWidget {
     final geoStore = GeoStore(Modular.get<GeoService>());
     final censoStore = CensoStore(Modular.get<CensoService>());
 
-    _tentarAutoLogin(loginStore);
-
     return StoreProvider._(
       key: key,
       authStore: authStore,
@@ -43,15 +41,6 @@ class StoreProvider extends InheritedWidget {
       censoStore: censoStore,
       child: child,
     );
-  }
-
-  static void _tentarAutoLogin(LoginStore loginStore) {
-    Future.delayed(Duration.zero, () async {
-      try {
-        await loginStore.tryAutoLogin();
-      } catch (_) {
-      }
-    });
   }
 
   static StoreProvider of(BuildContext context) {

@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -111,7 +111,7 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
           if (!mounted) return;
 
           if (success) {
-            await _authStore.loadCurrentUser();
+            await _authStore.loadCurrentUser(forceRefresh: true);
 
             if (!mounted) return;
 
@@ -171,7 +171,7 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
     if (!mounted) return;
 
     if (success) {
-      await _authStore.loadCurrentUser();
+      await _authStore.loadCurrentUser(forceRefresh: true);
 
       if (!mounted) return;
 

@@ -48,7 +48,9 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     if (store.validityDate != null) {
       final hoje = DateTime.now();
       final hojeDate = DateTime(hoje.year, hoje.month, hoje.day);
-      final dias = store.validityDate!.difference(hojeDate).inDays;
+      final validade = store.validityDate!;
+      final validadeDate = DateTime(validade.year, validade.month, validade.day);
+      final dias = validadeDate.difference(hojeDate).inDays;
       _validadeOrcamentoController.text = dias.toString();
     } else {
       _validadeOrcamentoController.text = '60';

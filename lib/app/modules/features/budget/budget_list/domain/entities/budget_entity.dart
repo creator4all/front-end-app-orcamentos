@@ -44,7 +44,10 @@ class BudgetEntity extends Equatable {
   /// Calcula dias restantes até expiração
   int get daysRemaining {
     if (dataValidade == null) return 0;
-    final difference = dataValidade!.difference(DateTime.now()).inDays;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final target = DateTime(dataValidade!.year, dataValidade!.month, dataValidade!.day);
+    final difference = target.difference(today).inDays;
     return difference > 0 ? difference : 0;
   }
 

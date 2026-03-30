@@ -79,6 +79,12 @@ abstract class _BudgetConfigStoreBase with Store {
   @observable
   DateTime? validityDate;
 
+  /// Valor original de dias_validade recebido do backend
+  int? _originalValidityDays;
+
+  /// Indica se o usuário alterou a data de validade nesta sessão
+  bool _validityDateChanged = false;
+
   @observable
   String? budgetName;
 
@@ -195,6 +201,8 @@ abstract class _BudgetConfigStoreBase with Store {
       validityDate =
           draft.validityDate ?? DateTime.now().add(const Duration(days: 60));
       budgetName = draft.name ?? '';
+      _originalValidityDays = draft.validityDays;
+      _validityDateChanged = false;
 
       final oldCensoEscolar = censoEscolar;
       censoEscolar = _convertCidadeToCensoEscolar(draft.cidade);
@@ -334,6 +342,8 @@ abstract class _BudgetConfigStoreBase with Store {
 
       validityDate = dataValidade;
       budgetName = nome;
+      _originalValidityDays = diasValidade is int ? diasValidade : 60;
+      _validityDateChanged = false;
 
       isLoading = false;
       isLoadingProducts = false;
@@ -851,6 +861,8 @@ abstract class _BudgetConfigStoreBase with Store {
               DateTime.now().add(const Duration(days: 60));
 
           budgetName = budget.name;
+          _originalValidityDays = budget.validityDays;
+          _validityDateChanged = false;
 
           if (budget.censoAgregado.isNotEmpty) {
             censoEscolar = CensoEscolarEntity(
@@ -975,6 +987,7 @@ abstract class _BudgetConfigStoreBase with Store {
   @action
   void setValidityDate(DateTime? date) {
     validityDate = date;
+    _validityDateChanged = true;
   }
 
   @action
@@ -1524,6 +1537,8 @@ abstract class _BudgetConfigStoreBase with Store {
     isLoading = false;
     isLoadingCensus = false;
     isSaving = false;
+    _originalValidityDays = null;
+    _validityDateChanged = false;
   }
 
   @action
@@ -1556,12 +1571,16 @@ abstract class _BudgetConfigStoreBase with Store {
 
       final totalCalculado = totalValue;
 
-      final hoje = DateTime.now();
-      final hojeNormalizado = DateTime(hoje.year, hoje.month, hoje.day);
-      final validadeNormalizada =
-          DateTime(validityDate!.year, validityDate!.month, validityDate!.day);
-      final diasValidade =
-          validadeNormalizada.difference(hojeNormalizado).inDays;
+      int diasValidade;
+      if (_validityDateChanged) {
+        final hoje = DateTime.now();
+        final hojeNormalizado = DateTime(hoje.year, hoje.month, hoje.day);
+        final validadeNormalizada =
+            DateTime(validityDate!.year, validityDate!.month, validityDate!.day);
+        diasValidade = validadeNormalizada.difference(hojeNormalizado).inDays;
+      } else {
+        diasValidade = _originalValidityDays ?? budgetDetail!.validityDays;
+      }
 
       final updateDto = BudgetUpdateDto(
         nome: budgetName,

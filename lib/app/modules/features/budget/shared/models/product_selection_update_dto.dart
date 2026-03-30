@@ -59,6 +59,7 @@ class ProductSelectionUpdateDto extends Equatable {
         if (isServico) 'quantidade': quantidade,
         if (!isServico && indicadores != null && indicadores!.isNotEmpty)
           'indicadores_etapa': indicadores!.map((i) => i.toJson()).toList(),
+        if (valor != null) 'valor': valor,
       };
 
   @override

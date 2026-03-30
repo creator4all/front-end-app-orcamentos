@@ -57,9 +57,9 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, User>> getCurrentUser() async {
+  Future<Either<Failure, User>> getCurrentUser({bool forceRefresh = false}) async {
     try {
-      final userModel = await datasource.getCurrentUser(forceRefresh: true);
+      final userModel = await datasource.getCurrentUser(forceRefresh: forceRefresh);
 
       final user = userModel.toEntity();
 

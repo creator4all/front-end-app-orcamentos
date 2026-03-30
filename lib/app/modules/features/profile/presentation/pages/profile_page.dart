@@ -114,7 +114,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
           final success = await _store.uploadAvatar();
           if (success && mounted) {
-            await _authStore.loadCurrentUser();
+            await _authStore.loadCurrentUser(forceRefresh: true);
 
             if (!mounted) return;
 
@@ -169,7 +169,7 @@ class _ProfilePageState extends State<ProfilePage> {
     if (confirm == true) {
       final success = await _store.removeAvatar();
       if (success) {
-        await _authStore.loadCurrentUser();
+        await _authStore.loadCurrentUser(forceRefresh: true);
         if (mounted) {
           CustomInfoDialog.show(
             context: context,
@@ -244,7 +244,7 @@ class _ProfilePageState extends State<ProfilePage> {
     if (!mounted) return;
 
     if (success) {
-      await _authStore.loadCurrentUser();
+      await _authStore.loadCurrentUser(forceRefresh: true);
 
       if (!mounted) return;
 

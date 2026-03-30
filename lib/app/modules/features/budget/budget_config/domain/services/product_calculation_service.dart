@@ -102,7 +102,6 @@ class ProductCalculationService {
     );
 
     double total = 0.0;
-    double acumuladorIn4In5 = 0.0;
 
     for (final ind in indicadores) {
       final nomeEtapa = ind.nomeEtapa as String;
@@ -114,26 +113,12 @@ class ProductCalculationService {
 
       if (temProfessores) {
         final valorP = censo.getValorEtapa('${nomeEtapa}P') ?? 0.0;
-        if (isIn4ou5) {
-          acumuladorIn4In5 += valorP;
-        } else {
-          total += valorP;
-        }
+        // Censo exibe in4ano/in5ano já arredondados — ceil individual
+        total += isIn4ou5 ? valorP.ceilToDouble() : valorP;
       } else {
         final valor = censo.getValorEtapa(nomeEtapa) ?? 0.0;
-        if (isIn4ou5) {
-          acumuladorIn4In5 += valor;
-        } else {
-          total += valor;
-        }
+        total += isIn4ou5 ? valor.ceilToDouble() : valor;
       }
-    }
-
-    // Regra: ceil na soma de in4ano+in5ano quando fracionário
-    if (acumuladorIn4In5 > 0 && acumuladorIn4In5 % 1 != 0) {
-      total += acumuladorIn4In5.ceilToDouble();
-    } else {
-      total += acumuladorIn4In5;
     }
 
     return total;
@@ -148,7 +133,6 @@ class ProductCalculationService {
     );
 
     double total = 0.0;
-    double acumuladorIn4In5 = 0.0;
 
     for (final ind in indicadores) {
       final nomeEtapa = ind.nomeEtapa as String;
@@ -159,27 +143,12 @@ class ProductCalculationService {
       final isIn4ou5 = nome == 'in4ano' || nome == 'in5ano';
 
       final valorNormal = censo.getValorEtapa(nomeEtapa) ?? 0.0;
-      if (isIn4ou5) {
-        acumuladorIn4In5 += valorNormal;
-      } else {
-        total += valorNormal;
-      }
+      total += isIn4ou5 ? valorNormal.ceilToDouble() : valorNormal;
 
       if (temProfessores) {
         final valorP = censo.getValorEtapa('${nomeEtapa}P') ?? 0.0;
-        if (isIn4ou5) {
-          acumuladorIn4In5 += valorP;
-        } else {
-          total += valorP;
-        }
+        total += isIn4ou5 ? valorP.ceilToDouble() : valorP;
       }
-    }
-
-    // Regra: ceil na soma de in4ano+in5ano quando fracionário
-    if (acumuladorIn4In5 > 0 && acumuladorIn4In5 % 1 != 0) {
-      total += acumuladorIn4In5.ceilToDouble();
-    } else {
-      total += acumuladorIn4In5;
     }
 
     return total;
