@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -376,23 +377,54 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
     try {
       final XFile? pickedFile = await _picker.pickImage(
         source: ImageSource.gallery,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 85,
+        maxWidth: 2048,
+        maxHeight: 2048,
       );
 
       if (pickedFile != null) {
-        setState(() {
-          _logoImage = File(pickedFile.path);
-        });
+        final CroppedFile? croppedFile = await ImageCropper().cropImage(
+          sourcePath: pickedFile.path,
+          compressFormat: ImageCompressFormat.jpg,
+          compressQuality: 85,
+          uiSettings: [
+            AndroidUiSettings(
+              toolbarTitle: 'Recortar Logo',
+              toolbarColor: const Color(0xFF117BBD),
+              toolbarWidgetColor: Colors.white,
+              initAspectRatio: CropAspectRatioPreset.square,
+              lockAspectRatio: false,
+              aspectRatioPresets: [
+                CropAspectRatioPreset.square,
+                CropAspectRatioPreset.ratio3x2,
+                CropAspectRatioPreset.ratio16x9,
+              ],
+            ),
+            IOSUiSettings(
+              title: 'Recortar Logo',
+              aspectRatioLockEnabled: false,
+              resetAspectRatioEnabled: false,
+              aspectRatioPresets: [
+                CropAspectRatioPreset.square,
+                CropAspectRatioPreset.ratio3x2,
+                CropAspectRatioPreset.ratio16x9,
+              ],
+            ),
+          ],
+        );
 
-        if (mounted) {
-          CustomInfoDialog.show(
-            context: context,
-            type: DialogType.success,
-            title: 'Sucesso',
-            message: 'Logo selecionada com sucesso!',
-          );
+        if (croppedFile != null) {
+          setState(() {
+            _logoImage = File(croppedFile.path);
+          });
+
+          if (mounted) {
+            CustomInfoDialog.show(
+              context: context,
+              type: DialogType.success,
+              title: 'Sucesso',
+              message: 'Logo selecionada com sucesso!',
+            );
+          }
         }
       }
     } catch (e) {

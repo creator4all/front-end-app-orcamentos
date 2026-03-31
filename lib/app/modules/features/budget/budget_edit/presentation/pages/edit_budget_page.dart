@@ -187,10 +187,15 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: CustomTopBar(
-        title: 'Editar Orçamento',
-        showBackButton: true,
-        authStore: _authStore,
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(70.h),
+        child: Observer(
+          builder: (_) => CustomTopBar(
+            title: store.budgetName ?? 'Editar Orçamento',
+            showBackButton: true,
+            authStore: _authStore,
+          ),
+        ),
       ),
       body: Observer(
         builder: (_) {

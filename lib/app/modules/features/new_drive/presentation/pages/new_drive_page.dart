@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -285,11 +286,14 @@ class _NewDrivePageState extends State<NewDrivePage> {
     if (savedPath != null) {
       final fileName = savedPath.split('/').last;
       final folderPath = savedPath.substring(0, savedPath.lastIndexOf('/'));
+      final messageStr = Platform.isIOS
+          ? 'O arquivo "$fileName" foi disponibilizado nos seus Arquivos'
+          : 'O arquivo "$fileName" foi salvo em:\n$folderPath';
       CustomInfoDialog.show(
         context: context,
         type: DialogType.success,
         title: 'Download concluído',
-        message: 'O arquivo "$fileName" foi salvo em:\n$folderPath',
+        message: messageStr,
       );
       return;
     }
