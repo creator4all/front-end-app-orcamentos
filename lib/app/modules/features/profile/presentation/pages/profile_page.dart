@@ -341,7 +341,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           padding: EdgeInsets.symmetric(
                               horizontal: 16.w, vertical: 8.h),
                         ),
-                        icon: const Icon(Icons.camera_alt, size: 18),
+                        icon: const Icon(Icons.camera_alt, size: 18, color: Colors.white),
                         label: Text(
                           _store.profile!.avatar == null ||
                                   _store.profile!.avatar!.isEmpty
@@ -362,7 +362,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             padding: EdgeInsets.symmetric(
                                 horizontal: 16.w, vertical: 8.h),
                           ),
-                          icon: const Icon(Icons.delete, size: 18),
+                          icon: const Icon(Icons.delete, size: 18, color: Colors.red),
                           label: Text('Remover',
                               style: TextStyle(fontSize: 13.sp)),
                         ),
@@ -440,7 +440,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                     AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
                             )
-                          : const Icon(Icons.save),
+                          : const Icon(Icons.save, color: Colors.white),
                       label: Text(
                         _store.isSaving ? 'Salvando...' : 'Salvar Alterações',
                         style: TextStyle(fontSize: 16.sp),

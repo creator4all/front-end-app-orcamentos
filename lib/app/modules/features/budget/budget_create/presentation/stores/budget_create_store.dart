@@ -1,4 +1,4 @@
-﻿import 'package:mobx/mobx.dart';
+import 'package:mobx/mobx.dart';
 
 import '../../domain/entities/budget_draft_entity.dart';
 import '../../domain/entities/partner_entity.dart';
@@ -57,6 +57,9 @@ abstract class _BudgetCreateStoreBase with Store {
 
   @observable
   String? selectedStateName;
+
+  @observable
+  String? selectedStateUf;
 
   @observable
   String? selectedCityCode;
@@ -160,9 +163,10 @@ abstract class _BudgetCreateStoreBase with Store {
   }
 
   @action
-  void setSelectedState(String code, String name) {
+  void setSelectedState(String code, String name, String uf) {
     selectedStateCode = code;
     selectedStateName = name;
+    selectedStateUf = uf;
     selectedCityCode = null;
     selectedCityName = null;
   }
@@ -178,6 +182,7 @@ abstract class _BudgetCreateStoreBase with Store {
   void clearLocation() {
     selectedStateCode = null;
     selectedStateName = null;
+    selectedStateUf = null;
     selectedCityCode = null;
     selectedCityName = null;
   }
@@ -252,6 +257,7 @@ abstract class _BudgetCreateStoreBase with Store {
         cityCode: selectedCityCode!,
         cityId: selectedCityId ?? int.parse(selectedCityCode!),
         cityName: selectedCityName!,
+        stateUf: selectedStateUf ?? '',
         responsibleName: responsibleName,
         responsibleEmail: responsibleEmail,
         validityDate: validityDate,
@@ -283,6 +289,7 @@ abstract class _BudgetCreateStoreBase with Store {
     selectedPartner = null;
     selectedStateCode = null;
     selectedStateName = null;
+    selectedStateUf = null;
     selectedCityCode = null;
     selectedCityName = null;
     selectedCityId = null;

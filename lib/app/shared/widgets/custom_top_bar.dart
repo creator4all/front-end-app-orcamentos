@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -32,8 +32,10 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final topPadding = MediaQuery.of(context).padding.top;
+    
     return Container(
-      height: 70.h,
+      height: 70.h + topPadding,
       margin: EdgeInsets.only(bottom: 16.h),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -51,6 +53,7 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
         ],
       ),
       child: SafeArea(
+        bottom: false,
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.w),
           child: Row(
@@ -82,7 +85,6 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
                   ),
                 ],
               ),
-
               if (actionButton != null) ...[
                 actionButton!,
               ] else if (!showBackButton) ...[

@@ -10,6 +10,7 @@ class CreateBudgetDraftParams {
   final String cityCode;
   final int cityId;
   final String cityName;
+  final String stateUf;
   final String? responsibleName;
   final String? responsibleEmail;
   final DateTime? validityDate;
@@ -22,6 +23,7 @@ class CreateBudgetDraftParams {
     required this.cityCode,
     required this.cityId,
     required this.cityName,
+    required this.stateUf,
     this.responsibleName,
     this.responsibleEmail,
     this.validityDate,
@@ -50,7 +52,7 @@ class CreateBudgetDraftParams {
       'orc_status': 'rascunho',
       'orc_total': total,
       'orc_dias_validade': diasValidade.clamp(1, 365),
-      'orc_nome': cityName,
+      'orc_nome': stateUf.trim().isNotEmpty ? '$cityName - ${stateUf.trim()}' : cityName,
     };
 
     if (responsibleName != null && responsibleName!.isNotEmpty) {
