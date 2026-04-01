@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:media_store_plus/media_store_plus.dart';
@@ -9,9 +8,9 @@ import 'package:permission_handler/permission_handler.dart';
 import '../../domain/repositories/file_saver.dart';
 
 /// Concrete implementation of [FileSaver] that uses the MediaStore API
-/// on Android 10+ and direct file I/O on older Android versions / other platforms.
+/// on Android 10+ and direct file I/O on older Android versions.
+/// No iOS, salva em Documents/Downloads/ para visibilidade no app Arquivos.
 class FileSaverImpl implements FileSaver {
-  final MediaStore _mediaStore = MediaStore();
 
   @override
   Future<String> saveToDownloads(List<int> bytes, String fileName) async {
@@ -21,7 +20,11 @@ class FileSaverImpl implements FileSaver {
       return _saveOnAndroid(bytes, sanitizedName);
     }
 
-    return _saveOnOtherPlatforms(bytes, sanitizedName);
+    if (Platform.isIOS) {
+      return _saveOnIOS(bytes, sanitizedName);
+    }
+
+    return _saveOnDesktop(bytes, sanitizedName);
   }
 
   /// Android 10+ (API 29+): uses MediaStore.Downloads — no special permission.
@@ -39,10 +42,10 @@ class FileSaverImpl implements FileSaver {
   /// Saves using Android's MediaStore.Downloads content provider.
   /// Available on API 29+ and requires NO storage permissions.
   Future<String> _saveViaMediaStore(List<int> bytes, String fileName) async {
-    // Ensure MediaStore is initialized and appFolder is set
+    final mediaStore = MediaStore();
     await MediaStore.ensureInitialized();
     if (MediaStore.appFolder.isEmpty) {
-      MediaStore.appFolder = 'MultimidiaParceiro';
+      MediaStore.appFolder = 'Multimidia B2B';
     }
 
     // Write bytes to a temp file first (media_store_plus works with file paths)
@@ -52,7 +55,7 @@ class FileSaverImpl implements FileSaver {
     await tempFile.writeAsBytes(bytes, flush: true);
 
     try {
-      final result = await _mediaStore.saveFile(
+      final result = await mediaStore.saveFile(
         tempFilePath: tempFile.path,
         dirType: DirType.download,
         dirName: DirName.download,
@@ -104,8 +107,25 @@ class FileSaverImpl implements FileSaver {
     return file.path;
   }
 
-  /// Fallback for iOS, macOS, Windows, Linux.
-  Future<String> _saveOnOtherPlatforms(List<int> bytes, String fileName) async {
+  /// iOS: salva em Documents/Downloads/ para visibilidade no app Arquivos.
+  /// Requer UIFileSharingEnabled e LSSupportsOpeningDocumentsInPlace no Info.plist.
+  Future<String> _saveOnIOS(List<int> bytes, String fileName) async {
+    final documentsDir = await getApplicationDocumentsDirectory();
+    final downloadsSubDir = Directory('${documentsDir.path}/Downloads');
+
+    if (!await downloadsSubDir.exists()) {
+      await downloadsSubDir.create(recursive: true);
+    }
+
+    final uniquePath =
+        await _buildUniqueFilePath(downloadsSubDir.path, fileName);
+    final file = File(uniquePath);
+    await file.writeAsBytes(bytes, flush: true);
+    return file.path;
+  }
+
+  /// Fallback para desktop (macOS, Windows, Linux).
+  Future<String> _saveOnDesktop(List<int> bytes, String fileName) async {
     final downloadsDir = await getDownloadsDirectory();
     final directory = downloadsDir ?? await getApplicationDocumentsDirectory();
 

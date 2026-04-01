@@ -24,10 +24,6 @@ class DownloadFileFailure extends NewDriveFailure {
   const DownloadFileFailure(super.message);
 }
 
-class UnsupportedFileTypeFailure extends NewDriveFailure {
-  const UnsupportedFileTypeFailure(super.message);
-}
-
 class NoAppToOpenFailure extends NewDriveFailure {
   const NoAppToOpenFailure(super.message);
 }

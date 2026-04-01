@@ -10,7 +10,7 @@ import '../../../auth/presentation/stores/auth_store.dart';
 import '../../domain/entities/drive_item.dart';
 import '../stores/file_opener_store.dart';
 import '../stores/new_drive_store.dart';
-import '../widgets/drive_item_list_view.dart';
+import '../widgets/item_card_doc.dart';
 import '../widgets/file_details_modal.dart';
 
 class FolderContentsPage extends StatefulWidget {
@@ -33,16 +33,62 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
   final AuthStore _authStore = Modular.get<AuthStore>();
   final TextEditingController searchController = TextEditingController();
 
+  DriveItem? _localFolder;
+  bool _isLoading = true;
+  String? _errorMessage;
+
   @override
   void initState() {
     super.initState();
-    store.loadFolderContents(widget.folderId);
+    store.setSearchQuery('');
+    _loadFolder();
   }
 
   @override
   void dispose() {
     searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadFolder({bool forceRefresh = false}) async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    // Tentar restaurar do cache para evitar chamada desnecessária à API
+    if (!forceRefresh) {
+      final cached = store.getFolderFromCache(widget.folderId);
+      if (cached != null) {
+        setState(() {
+          _localFolder = cached;
+          _isLoading = false;
+        });
+        return;
+      }
+    }
+
+    await store.loadFolderContents(widget.folderId);
+
+    if (!mounted) return;
+
+    final loaded = store.getFolderFromCache(widget.folderId);
+    setState(() {
+      _localFolder = loaded;
+      _isLoading = false;
+      _errorMessage = loaded == null ? store.errorMessage : null;
+    });
+  }
+
+  /// Filtra children da pasta local usando o searchQuery do store.
+  List<DriveItem> get _filteredChildren {
+    final children = _localFolder?.children ?? [];
+    if (store.searchQuery.isEmpty) return children;
+
+    final query = store.searchQuery.toLowerCase();
+    return children
+        .where((item) => item.name.toLowerCase().contains(query))
+        .toList();
   }
 
   @override
@@ -58,25 +104,32 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
         },
         authStore: _authStore,
       ),
-      body: Observer(
+      body: _buildBody(),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final folder = _localFolder;
+
+    if (folder == null) {
+      return _buildErrorState();
+    }
+
+    return RefreshIndicator(
+      onRefresh: () => _loadFolder(forceRefresh: true),
+      child: Observer(
         builder: (_) {
-          if (store.isLoadingFolder) {
-            return const Center(child: CircularProgressIndicator());
-          }
+          // Observer necessário para reagir a mudanças no searchQuery
+          final items = _filteredChildren;
 
-          final folder = store.currentFolder;
-
-          if (folder == null) {
-            return _buildErrorState();
-          }
-
-          final items = folder.children ?? [];
-
-          if (items.isEmpty) {
-            return _buildEmptyState();
-          }
-
-          return Column(
+          return ListView(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
             children: [
               _buildBreadcrumb(folder),
               Padding(
@@ -104,12 +157,21 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
                   ),
                 ),
               ),
-              Expanded(
-                child: DriveItemListView(
-                  items: items,
-                  onItemTap: _handleItemTap,
-                ),
-              ),
+              if (items.isEmpty && (folder.children?.isEmpty ?? true))
+                _buildEmptyState()
+              else
+                ...items.map((item) => Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 10.w),
+                  child: Column(
+                    children: [
+                      ItemCardDoc(
+                        item: item,
+                        onTap: () => _handleItemTap(item),
+                      ),
+                      SizedBox(height: 12.h),
+                    ],
+                  ),
+                )),
             ],
           );
         },
@@ -202,6 +264,7 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
       ),
       child: TextField(
         controller: searchController,
+        onChanged: (value) => store.setSearchQuery(value),
         decoration: InputDecoration(
           hintText: 'Buscar arquivo',
           hintStyle: TextStyle(
@@ -278,12 +341,12 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
               color: const Color(0xFF171A1F),
             ),
           ),
-          if (store.errorMessage != null && store.errorMessage!.isNotEmpty) ...[
+          if (_errorMessage != null && _errorMessage!.isNotEmpty) ...[
             SizedBox(height: 8.h),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 24.w),
               child: Text(
-                store.errorMessage!,
+                _errorMessage!,
                 style: TextStyle(
                   fontSize: 12.sp,
                   color: const Color(0xFF565E6C),

@@ -59,31 +59,37 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  if (showBackButton) ...[
-                    GestureDetector(
-                      onTap: onBackPressed ?? () => Navigator.of(context).pop(),
-                      child: Container(
-                        padding: EdgeInsets.all(8.w),
-                        child: Icon(
-                          Icons.arrow_back,
-                          size: 24.sp,
-                          color: const Color(0xFF484848),
+              Expanded(
+                child: Row(
+                  children: [
+                    if (showBackButton) ...[
+                      GestureDetector(
+                        onTap: onBackPressed ?? () => Navigator.of(context).pop(),
+                        child: Container(
+                          padding: EdgeInsets.all(8.w),
+                          child: Icon(
+                            Icons.arrow_back,
+                            size: 24.sp,
+                            color: const Color(0xFF484848),
+                          ),
                         ),
                       ),
+                      SizedBox(width: 8.w),
+                    ],
+                    Flexible(
+                      child: Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 18.sp,
+                          fontWeight: FontWeight.w400,
+                          color: const Color(0xFF484848),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
                     ),
-                    SizedBox(width: 8.w),
                   ],
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.w400,
-                      color: const Color(0xFF484848),
-                    ),
-                  ),
-                ],
+                ),
               ),
               if (actionButton != null) ...[
                 actionButton!,
