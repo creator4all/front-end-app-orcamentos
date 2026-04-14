@@ -127,9 +127,7 @@ abstract class _FileOpenerStoreBase with Store {
   }
 
   void _handleFailure(NewDriveFailure failure) {
-    if (failure is UnsupportedFileTypeFailure) {
-      errorMessage = 'Este tipo de arquivo não é suportado';
-    } else if (failure is NoAppToOpenFailure) {
+    if (failure is NoAppToOpenFailure) {
       errorMessage = 'Nenhum aplicativo disponível para abrir este arquivo.\n'
           'Por favor, instale um aplicativo compatível.';
     } else if (failure is PermissionDeniedFailure) {

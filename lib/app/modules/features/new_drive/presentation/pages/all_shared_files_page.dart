@@ -10,7 +10,7 @@ import '../../../auth/presentation/stores/auth_store.dart';
 import '../../domain/entities/drive_item.dart';
 import '../stores/file_opener_store.dart';
 import '../stores/new_drive_store.dart';
-import '../widgets/drive_item_list_view.dart';
+import '../widgets/item_card_doc.dart';
 import '../widgets/file_details_modal.dart';
 
 class AllSharedFilesPage extends StatefulWidget {
@@ -44,53 +44,65 @@ class _AllSharedFilesPageState extends State<AllSharedFilesPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF3F4F6),
       appBar: CustomTopBar(
-        title: 'Todos os Arquivos Compartilhados',
+        title: 'Compartilhados comigo',
         showBackButton: true,
         authStore: _authStore,
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: 10.w,
-              vertical: 16.h,
-            ),
-            child: _buildSearchField(),
-          ),
-          Padding(
-            padding: EdgeInsets.only(
-              left: 10.w,
-              right: 10.w,
-              bottom: 12.h,
-            ),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Arquivos compartilhados com você',
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w500,
-                  color: const Color(0xFF565E6C),
-                ),
+      body: RefreshIndicator(
+        onRefresh: () => store.loadRecentItems(),
+        child: Observer(
+          builder: (_) {
+            final items = store.filteredViewItems;
+            return ListView(
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
               ),
-            ),
-          ),
-          Expanded(
-            child: Observer(
-              builder: (_) {
-                final items = store.filteredViewItems;
-                if (items.isEmpty) {
-                  return _buildEmptyState();
-                }
-                return DriveItemListView(
-                  items: items,
-                  onItemTap: _showFileDetails,
-                  showMenu: false,
-                );
-              },
-            ),
-          ),
-        ],
+              children: [
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 10.w,
+                    vertical: 16.h,
+                  ),
+                  child: _buildSearchField(),
+                ),
+                Padding(
+                  padding: EdgeInsets.only(
+                    left: 10.w,
+                    right: 10.w,
+                    bottom: 12.h,
+                  ),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Arquivos compartilhados com você',
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF565E6C),
+                      ),
+                    ),
+                  ),
+                ),
+                if (items.isEmpty)
+                  _buildEmptyState()
+                else
+                  ...items.map((item) => Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 10.w),
+                    child: Column(
+                      children: [
+                        ItemCardDoc(
+                          item: item,
+                          showMenu: false,
+                          onTap: () => _showFileDetails(item),
+                        ),
+                        SizedBox(height: 12.h),
+                      ],
+                    ),
+                  )),
+              ],
+            );
+          },
+        ),
       ),
     );
   }

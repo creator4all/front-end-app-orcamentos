@@ -96,7 +96,7 @@ class DriveRemoteDataSourceImpl implements DriveRemoteDataSource {
   Future<List<int>> downloadFileBytes(String fileId) async {
     try {
       final bytes = await _client.getBytes(
-        '${ApiConfig.baseUrl}/api/files/$fileId/view',
+        '${ApiConfig.baseUrl}/api/files/$fileId/download',
         config: HttpRequestConfig(
           token: TokenCache.instance.getTokenOrEmpty(),
           timeout: const Duration(minutes: 5),

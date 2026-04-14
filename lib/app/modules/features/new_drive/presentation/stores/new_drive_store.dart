@@ -68,11 +68,46 @@ abstract class _NewDriveStoreBase with Store {
   ObservableList<FolderBreadcrumb> folderStack =
       ObservableList<FolderBreadcrumb>();
 
+  /// Cache de pastas já carregadas, indexado por folderId.
+  /// Evita recarregar via API ao navegar de volta.
+  @observable
+  ObservableMap<String, DriveItem> folderCache =
+      ObservableMap<String, DriveItem>();
+
+  @observable
+  String? activeFolderId;
+
   @computed
   List<DriveItem> get recentItems {
     final sorted = allItems.where((item) => item.parentId == null).toList()
       ..sort((a, b) => b.lastViewed.compareTo(a.lastViewed));
     return sorted.take(4).toList();
+  }
+
+  @computed
+  List<DriveItem> get filteredRecentItems {
+    if (searchQuery.isEmpty) {
+      return recentItems;
+    }
+
+    final query = searchQuery.toLowerCase();
+    return recentItems
+        .where((item) => item.name.toLowerCase().contains(query))
+        .toList();
+  }
+
+  @computed
+  List<DriveItem> get filteredFolderChildren {
+    final children = currentFolder?.children ?? [];
+
+    if (searchQuery.isEmpty) {
+      return children;
+    }
+
+    final query = searchQuery.toLowerCase();
+    return children
+        .where((item) => item.name.toLowerCase().contains(query))
+        .toList();
   }
 
   @computed
@@ -176,19 +211,28 @@ abstract class _NewDriveStoreBase with Store {
   Future<void> loadFolderContents(String folderId) async {
     isLoadingFolder = true;
     errorMessage = null;
+    activeFolderId = folderId;
 
     try {
       final result = await getFolderContentsUseCase(folderId);
 
       result.fold(
         (failure) => errorMessage = failure.message,
-        (folderItem) => currentFolder = folderItem,
+        (folderItem) {
+          folderCache[folderId] = folderItem;
+          currentFolder = folderItem;
+        },
       );
     } catch (e) {
       errorMessage = 'Erro ao carregar conteúdo da pasta';
     } finally {
       isLoadingFolder = false;
     }
+  }
+
+  /// Busca pasta do cache local sem chamada à API.
+  DriveItem? getFolderFromCache(String folderId) {
+    return folderCache[folderId];
   }
 
   @action
@@ -337,9 +381,19 @@ abstract class _NewDriveStoreBase with Store {
       folderStack.removeLast();
 
       if (folderStack.isNotEmpty) {
-        loadFolderContents(folderStack.last.id);
+        final previousFolderId = folderStack.last.id;
+        activeFolderId = previousFolderId;
+
+        // Restaurar do cache para evitar condição de corrida com chamada async
+        final cachedFolder = folderCache[previousFolderId];
+        if (cachedFolder != null) {
+          currentFolder = cachedFolder;
+        } else {
+          loadFolderContents(previousFolderId);
+        }
       } else {
         currentFolder = null;
+        activeFolderId = null;
       }
     }
   }
@@ -351,10 +405,27 @@ abstract class _NewDriveStoreBase with Store {
       for (var i = 0; i < itemsToRemove; i++) {
         folderStack.removeLast();
       }
-      loadFolderContents(folderStack.last.id);
+
+      final targetFolderId = folderStack.last.id;
+      activeFolderId = targetFolderId;
+
+      final cachedFolder = folderCache[targetFolderId];
+      if (cachedFolder != null) {
+        currentFolder = cachedFolder;
+      } else {
+        loadFolderContents(targetFolderId);
+      }
     } else if (index == -1) {
-      folderStack.clear();
-      currentFolder = null;
+      clearFolderNavigation();
     }
+  }
+
+  /// Limpa todo o estado de navegação de pastas (stack, cache, currentFolder).
+  @action
+  void clearFolderNavigation() {
+    folderStack.clear();
+    folderCache.clear();
+    currentFolder = null;
+    activeFolderId = null;
   }
 }
