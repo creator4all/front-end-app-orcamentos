@@ -6,11 +6,13 @@ import '../../domain/entities/censo_title_entity.dart';
 class CidadeCensoDto {
   final int id;
   final String nome;
+  final int? censoAno;
   final List<IndiceCensoDto> indices;
 
   const CidadeCensoDto({
     required this.id,
     required this.nome,
+    this.censoAno,
     required this.indices,
   });
 
@@ -19,6 +21,8 @@ class CidadeCensoDto {
     return CidadeCensoDto(
       id: json['id'] as int? ?? 0,
       nome: json['nome'] as String? ?? '',
+      censoAno: (json['censo_ano'] as num?)?.toInt() ??
+          int.tryParse('${json['censo_ano']}'),
       indices: indicesJson
           .map((e) => IndiceCensoDto.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -29,6 +33,7 @@ class CidadeCensoDto {
     return CidadeCensoDto(
       id: entity.cidadeId,
       nome: entity.cidadeNome,
+      censoAno: entity.censoAno,
       indices: entity.grupos
           .expand((g) => g.titulos.map((t) => IndiceCensoDto.fromEntity(t, g)))
           .toList(),
@@ -70,6 +75,7 @@ class CidadeCensoDto {
     return CensoEscolarEntity(
       cidadeId: id,
       cidadeNome: nome,
+      censoAno: censoAno,
       grupos: grupos,
       valoresPorEtapa: valoresPorEtapa,
     );

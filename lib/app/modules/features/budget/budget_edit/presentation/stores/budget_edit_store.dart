@@ -546,6 +546,51 @@ abstract class _BudgetEditStoreBase with Store {
   }
 
   @action
+  void updateProductValue(int productId, double value) {
+    for (var i = 0; i < categories.length; i++) {
+      final category = categories[i];
+
+      for (var j = 0; j < category.subcategorias.length; j++) {
+        final subcategory = category.subcategorias[j];
+        final prodIndex = subcategory.produtos.indexWhere(
+          (p) => p.id == productId,
+        );
+
+        if (prodIndex != -1) {
+          final product = subcategory.produtos[prodIndex];
+
+          if (!product.ativo) {
+            return;
+          }
+
+          final updatedProduct = product.copyWith(valor: value);
+
+          final updatedProducts = List<ProductEntity>.from(
+            subcategory.produtos,
+          );
+          updatedProducts[prodIndex] = updatedProduct;
+
+          final updatedSubcategory = subcategory.copyWith(
+            produtos: updatedProducts,
+          );
+
+          final updatedSubcategories = List<SubcategoryEntity>.from(
+            category.subcategorias,
+          );
+          updatedSubcategories[j] = updatedSubcategory;
+
+          final updatedCategory = category.copyWith(
+            subcategorias: updatedSubcategories,
+          );
+
+          categories[i] = updatedCategory;
+          return;
+        }
+      }
+    }
+  }
+
+  @action
   void updateProductQuantity(int productId, double quantity) {
     for (var i = 0; i < categories.length; i++) {
       final category = categories[i];

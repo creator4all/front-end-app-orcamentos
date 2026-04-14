@@ -1,53 +1,50 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 
 import '../../../../../../shared/utils/string_utils.dart';
 import '../../../../../../shared/widgets/custom_modal.dart';
-import '../../domain/entities/indicador_etapa_entity.dart';
 import '../../domain/entities/product_entity.dart';
-import '../stores/budget_config_store.dart';
 import 'indicadores_etapa_section.dart';
 
 class ProductInfoModal extends StatefulWidget {
-  final int? categoryId;
-  final int? subcategoryId;
-  final int? productId;
-  final dynamic store;
-  final ProductEntity? product;
-  final VoidCallback? onSave;
+  final ProductEntity Function() getProduct;
+  final String Function() getCategoryName;
+  final String Function() getSubcategoryName;
+  final ValueChanged<double>? onValueChanged;
+  final ValueChanged<double>? onQuantityChanged;
+  final ValueChanged<int>? onIndicatorToggled;
 
   const ProductInfoModal({
     super.key,
-    this.categoryId,
-    this.subcategoryId,
-    this.productId,
-    this.store,
-    this.product,
-    this.onSave,
+    required this.getProduct,
+    required this.getCategoryName,
+    required this.getSubcategoryName,
+    this.onValueChanged,
+    this.onQuantityChanged,
+    this.onIndicatorToggled,
   });
 
   static Future<void> show({
     required BuildContext context,
-    int? categoryId,
-    int? subcategoryId,
-    int? productId,
-    dynamic store,
-    ProductEntity? product,
-    VoidCallback? onSave,
+    required ProductEntity Function() getProduct,
+    required String Function() getCategoryName,
+    required String Function() getSubcategoryName,
+    ValueChanged<double>? onValueChanged,
+    ValueChanged<double>? onQuantityChanged,
+    ValueChanged<int>? onIndicatorToggled,
   }) {
     return CustomModal.show(
       context: context,
       title: 'Informações',
       content: ProductInfoModal(
-        categoryId: categoryId,
-        subcategoryId: subcategoryId,
-        productId: productId,
-        store: store,
-        product: product,
-        onSave: onSave,
+        getProduct: getProduct,
+        getCategoryName: getCategoryName,
+        getSubcategoryName: getSubcategoryName,
+        onValueChanged: onValueChanged,
+        onQuantityChanged: onQuantityChanged,
+        onIndicatorToggled: onIndicatorToggled,
       ),
     );
   }
@@ -57,27 +54,26 @@ class ProductInfoModal extends StatefulWidget {
 }
 
 class _ProductInfoModalState extends State<ProductInfoModal> {
-  late TextEditingController _valueController;
-  late TextEditingController _horasController;
-
-  bool get _isStoreMode =>
-      widget.categoryId != null &&
-      widget.subcategoryId != null &&
-      widget.productId != null;
+  late final TextEditingController _valueController;
+  late final TextEditingController _horasController;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initializeValueController();
-    });
+    final product = widget.getProduct();
+    _valueController = TextEditingController(
+      text: CurrencyUtils.formatBRLNoSymbol(product.valor),
+    );
+    _horasController = TextEditingController(
+      text: product.quantidade > 0 ? product.formattedQuantidade : '',
+    );
   }
 
-  void _initializeValueController() {
-    setState(() {
-      _valueController = TextEditingController();
-      _horasController = TextEditingController();
-    });
+  @override
+  void dispose() {
+    _valueController.dispose();
+    _horasController.dispose();
+    super.dispose();
   }
 
   bool _isServico(ProductEntity product) {
@@ -85,21 +81,23 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
     return tipo == 'servico' || tipo == 'serviço';
   }
 
+  double? _parseValueInput() {
+    var cleanValue = _valueController.text.replaceAll(RegExp(r'[^\d.,-]'), '');
+    if (cleanValue.isEmpty) {
+      return null;
+    }
+
+    if (cleanValue.contains(',')) {
+      cleanValue = cleanValue.replaceAll('.', '').replaceAll(',', '.');
+    }
+
+    return double.tryParse(cleanValue);
+  }
+
   void _handleSave() {
-    if (_isStoreMode) {
-      final storeInstance = widget.store ?? Modular.get<BudgetConfigStore>();
-
-      String cleanValue =
-          _valueController.text.replaceAll(RegExp(r'[^\d.,]'), '');
-      cleanValue = cleanValue.replaceAll(',', '.');
-
-      final newValue = double.tryParse(cleanValue);
-
-      if (newValue != null) {
-        storeInstance.updateProductValue(widget.productId!, newValue);
-      }
-    } else {
-      widget.onSave?.call();
+    final newValue = _parseValueInput();
+    if (newValue != null) {
+      widget.onValueChanged?.call(newValue);
     }
 
     Navigator.pop(context);
@@ -161,7 +159,9 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
           _buildInfoRow('Tipo', product.tipo),
           SizedBox(height: 8.h),
           _buildInfoRow(
-              'Valor total', CurrencyUtils.formatBRL(product.totalValue)),
+            'Valor total',
+            CurrencyUtils.formatBRL(product.totalValue),
+          ),
         ],
       ),
     );
@@ -169,88 +169,26 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_isStoreMode && widget.product == null) {
-      return const Center(child: Text('Erro: Produto não fornecido'));
-    }
-
-    if (_isStoreMode) {
-      return _buildStoreContent();
-    } else {
-      return _buildStandaloneContent();
-    }
-  }
-
-  Widget _buildStandaloneContent() {
-    final product = widget.product!;
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildProductInfo(product, 'N/A', 'N/A'),
-        SizedBox(height: 24.h),
-        if (product.indicadoresEtapa.isNotEmpty) ...[
-          IndicadoresEtapaSection(
-            indicadores: product.indicadoresEtapa,
-            onToggle: (indicadorId, valor) {
-              setState(() {
-                final index = product.indicadoresEtapa
-                    .indexWhere((i) => i.produtoIndicadorId == indicadorId);
-                if (index != -1) {
-                  final oldInd = product.indicadoresEtapa[index];
-                  final newInd = oldInd.copyWith(selecionado: valor);
-
-                  final newList =
-                      List<IndicadorEtapaEntity>.from(product.indicadoresEtapa);
-                  newList[index] = newInd;
-                }
-              });
-            },
-          ),
-          SizedBox(height: 24.h),
-        ],
-        _buildValueField(product),
-        SizedBox(height: 24.h),
-        _buildSaveButton(),
-        SizedBox(height: 16.h),
-      ],
-    );
-  }
-
-  Widget _buildStoreContent() {
-    final storeInstance = widget.store ?? Modular.get<BudgetConfigStore>();
-
     return Observer(
       builder: (_) {
-        final category = storeInstance.categories.firstWhere(
-          (c) => c.id == widget.categoryId,
-          orElse: () => throw Exception('Categoria não encontrada'),
-        );
-
-        final subcategory = category.subcategorias.firstWhere(
-          (s) => s.id == widget.subcategoryId,
-          orElse: () => throw Exception('Subcategoria não encontrada'),
-        );
-
-        final product = subcategory.produtos.firstWhere(
-          (p) => p.id == widget.productId,
-          orElse: () => throw Exception('Produto não encontrado'),
-        );
+        final product = widget.getProduct();
+        final categoryName = widget.getCategoryName();
+        final subcategoryName = widget.getSubcategoryName();
 
         return Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildProductInfo(product, category.nome, subcategory.nome),
+            _buildProductInfo(product, categoryName, subcategoryName),
             SizedBox(height: 24.h),
             if (_isServico(product)) ...[
-              _buildHorasField(product, storeInstance),
+              _buildHorasField(product),
               SizedBox(height: 24.h),
             ] else if (product.indicadoresEtapa.isNotEmpty) ...[
               IndicadoresEtapaSection(
                 indicadores: product.indicadoresEtapa,
                 onToggle: (indicadorId, valor) {
-                  storeInstance.toggleProductIndicator(product.id, indicadorId);
+                  widget.onIndicatorToggled?.call(indicadorId);
                 },
               ),
               SizedBox(height: 24.h),
@@ -265,7 +203,7 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
     );
   }
 
-  Widget _buildHorasField(ProductEntity product, dynamic storeInstance) {
+  Widget _buildHorasField(ProductEntity product) {
     if (_horasController.text.isEmpty && product.quantidade > 0) {
       _horasController.text = product.formattedQuantidade;
     }
@@ -304,7 +242,7 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
           onChanged: (value) {
             final horas = int.tryParse(value) ?? 0;
             if (horas > 0) {
-              storeInstance.updateProductQuantity(product.id, horas);
+              widget.onQuantityChanged?.call(horas.toDouble());
             }
           },
           decoration: InputDecoration(

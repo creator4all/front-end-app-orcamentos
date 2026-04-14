@@ -82,6 +82,7 @@ class CidadeData {
   final int id;
   final String nome;
   final int estadoId;
+  final int? censoAno;
   final List<CidadeIndice> indicesEtapa;
   final Map<String, dynamic>? estado;
 
@@ -89,6 +90,7 @@ class CidadeData {
     required this.id,
     required this.nome,
     required this.estadoId,
+    this.censoAno,
     required this.indicesEtapa,
     this.estado,
   });
@@ -103,6 +105,9 @@ class CidadeData {
       estadoId: json['estado_id'] is int
           ? json['estado_id'] as int
           : int.tryParse('${json['estado_id']}') ?? 0,
+      censoAno: json['censo_ano'] is int
+          ? json['censo_ano'] as int
+          : int.tryParse('${json['censo_ano']}'),
       indicesEtapa: indices
           .map((e) => CidadeIndice.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -134,7 +139,8 @@ class CensoData {
 
     return CensoData(
       totalStudents: total is int ? total : int.tryParse('$total') ?? 0,
-      censusYear: (json['censusYear'] ?? json['ano'] ?? '').toString(),
+      censusYear: (json['censusYear'] ?? json['ano'] ?? json['censo_ano'] ?? '')
+          .toString(),
       groups: groups
           .map((e) => CensoGroup.fromJson(e as Map<String, dynamic>))
           .toList(),

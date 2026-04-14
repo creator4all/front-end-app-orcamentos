@@ -639,7 +639,26 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
       context: context,
       category: category,
       subcategory: subcategory,
-      store: store,
+      resolveCategory: (categoryId) {
+        return store.categories.firstWhere(
+          (item) => item.id == categoryId,
+          orElse: () => category,
+        );
+      },
+      resolveSubcategory: (categoryId, subcategoryId) {
+        final resolvedCategory = store.categories.firstWhere(
+          (item) => item.id == categoryId,
+          orElse: () => category,
+        );
+        return resolvedCategory.subcategorias.firstWhere(
+          (item) => item.id == subcategoryId,
+          orElse: () => subcategory,
+        );
+      },
+      onToggleProduct: store.toggleProduct,
+      onUpdateProductValue: store.updateProductValue,
+      onUpdateProductQuantity: store.updateProductQuantity,
+      onToggleProductIndicator: store.toggleProductIndicator,
     );
   }
 

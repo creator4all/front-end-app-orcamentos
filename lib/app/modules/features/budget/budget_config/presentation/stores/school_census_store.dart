@@ -283,6 +283,7 @@ abstract class _SchoolCensusStoreBase with Store {
     censoEscolar = CensoEscolarEntity(
       cidadeId: 0,
       cidadeNome: 'Todas as cidades',
+      censoAno: null,
       grupos: updatedGroups,
       valoresPorEtapa: Map<String, double>.from(censoAgregado),
     );

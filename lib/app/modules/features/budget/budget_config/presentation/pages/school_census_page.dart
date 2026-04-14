@@ -333,7 +333,7 @@ class _SchoolCensusPageState
         ),
         SizedBox(height: 4.h),
         Text(
-          store.censoEscolar?.censoAno?.toString() ?? '-',
+          'Ano do censo: ${store.censoEscolar?.censoAno?.toString() ?? '-'}',
           style: TextStyle(
             fontSize: 14.sp,
             fontWeight: FontWeight.w400,
