@@ -31,6 +31,7 @@ class CustomModal extends StatelessWidget {
     return showModalBottomSheet<T>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (context) => CustomModal(
         title: title,
@@ -48,8 +49,7 @@ class CustomModal extends StatelessWidget {
       ),
       child: Container(
         constraints: BoxConstraints(
-          maxHeight:
-              MediaQuery.of(context).size.height * 0.8,
+          maxHeight: MediaQuery.of(context).size.height * 0.8,
         ),
         decoration: const BoxDecoration(
           color: Colors.white,
@@ -70,7 +70,6 @@ class CustomModal extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
               child: Center(
@@ -84,14 +83,12 @@ class CustomModal extends StatelessWidget {
                 ),
               ),
             ),
-
             Flexible(
               child: SingleChildScrollView(
                 padding: EdgeInsets.symmetric(horizontal: 16.w),
                 child: content,
               ),
             ),
-
             SizedBox(height: 16.h),
           ],
         ),

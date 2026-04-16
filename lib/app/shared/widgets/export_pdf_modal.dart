@@ -14,6 +14,7 @@ import '../../modules/features/auth/presentation/stores/auth_store.dart';
 import '../../modules/features/budget/budget_edit/domain/repositories/budget_pdf_repository.dart';
 import '../../modules/features/budget/budget_edit/domain/usecases/generate_pdf_usecase.dart';
 import '../../modules/features/partner/data/services/partner_service.dart';
+import '../utils/logo_aspect_ratio_validator.dart';
 import 'custom_info_dialog.dart';
 import 'custom_modal.dart';
 
@@ -132,7 +133,6 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
           height: 44.h,
         ),
         SizedBox(height: 16.h),
-
         CustomTextField(
           controller: _cargoController,
           label: 'Cargo',
@@ -141,7 +141,6 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
           height: 44.h,
         ),
         SizedBox(height: 16.h),
-
         CustomTextField(
           controller: _telefoneController,
           label: 'Telefone',
@@ -151,7 +150,6 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
           height: 44.h,
         ),
         SizedBox(height: 16.h),
-
         CustomTextField(
           controller: _urlController,
           label: 'URL',
@@ -160,13 +158,10 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
           height: 44.h,
         ),
         SizedBox(height: 24.h),
-
         _buildLogoSection(),
         SizedBox(height: 24.h),
-
         _buildCheckboxSection(),
         SizedBox(height: 32.h),
-
         _buildShareButton(),
         SizedBox(height: 16.h),
       ],
@@ -192,7 +187,6 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
           controlAffinity: ListTileControlAffinity.leading,
           contentPadding: EdgeInsets.zero,
         ),
-
         CheckboxListTile(
           title: Text(
             'Incluir dados do censo escolar',
@@ -226,7 +220,6 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
           ),
         ),
         SizedBox(height: 12.h),
-
         Container(
           width: double.infinity,
           height: 120.h,
@@ -265,7 +258,6 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
                         ),
         ),
         SizedBox(height: 12.h),
-
         SizedBox(
           width: double.infinity,
           height: 40.h,
@@ -390,22 +382,23 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
             AndroidUiSettings(
               toolbarTitle: 'Recortar Logo',
               toolbarColor: const Color(0xFF117BBD),
+              statusBarLight: false,
               toolbarWidgetColor: Colors.white,
               initAspectRatio: CropAspectRatioPreset.square,
-              lockAspectRatio: false,
+              lockAspectRatio: true,
               aspectRatioPresets: [
                 CropAspectRatioPreset.square,
-                CropAspectRatioPreset.ratio3x2,
                 CropAspectRatioPreset.ratio16x9,
               ],
             ),
             IOSUiSettings(
               title: 'Recortar Logo',
-              aspectRatioLockEnabled: false,
-              resetAspectRatioEnabled: false,
+              aspectRatioLockEnabled: true,
+              aspectRatioLockDimensionSwapEnabled: true,
+              aspectRatioPickerButtonHidden: false,
+              resetAspectRatioEnabled: true,
               aspectRatioPresets: [
                 CropAspectRatioPreset.square,
-                CropAspectRatioPreset.ratio3x2,
                 CropAspectRatioPreset.ratio16x9,
               ],
             ),
@@ -413,8 +406,19 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
         );
 
         if (croppedFile != null) {
+          final selectedLogo = File(croppedFile.path);
+          final isValidLogo =
+              await LogoAspectRatioValidator.isValidFile(selectedLogo);
+
+          if (!isValidLogo) {
+            if (mounted) {
+              _showInvalidLogoWarning();
+            }
+            return;
+          }
+
           setState(() {
-            _logoImage = File(croppedFile.path);
+            _logoImage = selectedLogo;
           });
 
           if (mounted) {
@@ -454,6 +458,15 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
     }
   }
 
+  void _showInvalidLogoWarning() {
+    CustomInfoDialog.show(
+      context: context,
+      type: DialogType.warning,
+      title: 'Formato de logo inválido',
+      message: LogoAspectRatioValidator.invalidAspectRatioMessage,
+    );
+  }
+
   String _extractBase64Data(String dataUri) {
     if (dataUri.contains(',')) {
       return dataUri.split(',').last;
@@ -462,6 +475,8 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
   }
 
   Future<void> _handleSharePdf() async {
+    final sharePositionOrigin = _getSharePositionOrigin(context);
+
     if (_nomeVendedorController.text.trim().isEmpty) {
       _showErrorMessage('Nome do vendedor é obrigatório');
       return;
@@ -527,23 +542,23 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
         throw Exception('Arquivo não foi salvo corretamente');
       }
 
-      final shareResult = await Share.shareXFiles(
+      await Share.shareXFiles(
         [XFile(file.path)],
         text: 'Orçamento - ${_nomeVendedorController.text.trim()}',
         subject: 'Orçamento - ${_nomeVendedorController.text.trim()}',
-        sharePositionOrigin: _getSharePositionOrigin(context),
+        sharePositionOrigin: sharePositionOrigin,
       );
 
-      if (mounted) {
-        Navigator.of(context).pop();
-        CustomInfoDialog.show(
-          context: context,
-          type: DialogType.success,
-          title: 'Sucesso!',
-          message: 'PDF gerado e compartilhado com sucesso!',
-        );
-      }
-    } catch (e, stackTrace) {
+      if (!mounted) return;
+
+      Navigator.of(context).pop();
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.success,
+        title: 'Sucesso!',
+        message: 'PDF gerado e compartilhado com sucesso!',
+      );
+    } catch (e) {
       setState(() {
         _isLoading = false;
       });

@@ -211,6 +211,7 @@ class _BudgetListPageState extends State<BudgetListPage> {
                     sliver: SliverList(
                       delegate: SliverChildBuilderDelegate((context, index) {
                         final b = _store.items[index];
+                        final budgetTitle = b.nome ?? 'Orçamento #${b.id}';
 
                         final showAdminIcon = b.criadoPorAdmin &&
                             b.partnerDestinoId != null &&
@@ -236,7 +237,8 @@ class _BudgetListPageState extends State<BudgetListPage> {
                         if (b.dataValidade != null) {
                           final now = DateTime.now();
                           final today = DateTime(now.year, now.month, now.day);
-                          final target = DateTime(b.dataValidade!.year, b.dataValidade!.month, b.dataValidade!.day);
+                          final target = DateTime(b.dataValidade!.year,
+                              b.dataValidade!.month, b.dataValidade!.day);
                           final difference = target.difference(today).inDays;
                           daysRemaining = difference > 0 ? difference : 0;
                         }
@@ -279,6 +281,7 @@ class _BudgetListPageState extends State<BudgetListPage> {
                             onTap: () async {
                               final result = await Modular.to.pushNamed(
                                 '/budget/edit/${b.id}',
+                                arguments: {'initialTitle': budgetTitle},
                               );
                               if (result == true) {
                                 _store.refresh();

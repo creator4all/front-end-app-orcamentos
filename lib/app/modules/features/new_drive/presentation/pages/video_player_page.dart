@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:multimidiaapp/app/shared/utils/chewie_options_translation.dart';
 import 'package:video_player/video_player.dart';
 
 import '../../../../../../config/api_config.dart';
@@ -69,16 +70,14 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 
       _chewieController = ChewieController(
         videoPlayerController: _videoController!,
-
         autoPlay: true,
         looping: false,
-
         autoInitialize: true,
         allowFullScreen: true,
         allowMuting: true,
         showControlsOnInitialize: true,
         hideControlsTimer: const Duration(seconds: 3),
-
+        optionsTranslation: buildChewieOptionsTranslationPtBr(),
         placeholder: Container(
           color: Colors.black,
           child: Center(
@@ -109,16 +108,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
             ),
           ),
         ),
-
-        
         materialProgressColors: ChewieProgressColors(
           playedColor: const Color(0xFF2196F3),
           handleColor: const Color(0xFF1976D2),
           backgroundColor: Colors.grey.shade800,
           bufferedColor: Colors.grey.shade600,
         ),
-
-        
         deviceOrientationsAfterFullScreen: [
           DeviceOrientation.portraitUp,
         ],

@@ -278,7 +278,7 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                           final cityId =
                               store.budgetDetail?.cityIds.firstOrNull ?? 0;
 
-                          final censusUpdated = await Modular.to.pushNamed(
+                          await Modular.to.pushNamed(
                             '/budget/census/$cityId',
                             arguments: {
                               'censoEscolar': store.censoEscolar,
@@ -287,12 +287,10 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                               'onCensusUpdated': (updatedCenso) {
                                 store.updateCensoEscolar(updatedCenso);
                               },
+                              'onCensusSaved':
+                                  () => store.reloadProductsAfterCensusEdit(),
                             },
                           );
-
-                          if (censusUpdated == true) {
-                            await store.reloadProductsAfterCensusEdit();
-                          }
                         },
                       ),
                     ),

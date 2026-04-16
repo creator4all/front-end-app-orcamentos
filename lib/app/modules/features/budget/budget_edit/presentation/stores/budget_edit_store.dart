@@ -72,6 +72,8 @@ abstract class _BudgetEditStoreBase with Store {
   /// Indica se o usuário alterou a data de validade nesta sessão de edição
   bool _validityDateChanged = false;
 
+  int _loadRequestVersion = 0;
+
   @observable
   String? budgetName;
 
@@ -160,12 +162,18 @@ abstract class _BudgetEditStoreBase with Store {
 
   @action
   Future<void> loadBudgetForEdit(int budgetId) async {
+    final requestVersion = ++_loadRequestVersion;
+
+    _clearBudgetStateForLoading();
     isLoading = true;
     isLoadingProducts = true;
-    error = null;
 
     try {
       final result = await getBudgetForEditUseCase(budgetId);
+
+      if (requestVersion != _loadRequestVersion) {
+        return;
+      }
 
       result.fold(
         (failure) {
@@ -200,6 +208,9 @@ abstract class _BudgetEditStoreBase with Store {
         },
       );
     } catch (e) {
+      if (requestVersion != _loadRequestVersion) {
+        return;
+      }
       error = 'Erro ao carregar orçamento: $e';
       isLoading = false;
       isLoadingProducts = false;
@@ -349,7 +360,8 @@ abstract class _BudgetEditStoreBase with Store {
         final hoje = DateTime.now();
         final hojeDate = DateTime(hoje.year, hoje.month, hoje.day);
         final validade = validityDate!;
-        final validadeDate = DateTime(validade.year, validade.month, validade.day);
+        final validadeDate =
+            DateTime(validade.year, validade.month, validade.day);
         validityDays = validadeDate.difference(hojeDate).inDays;
       } else {
         validityDays = _originalValidityDays;
@@ -390,21 +402,28 @@ abstract class _BudgetEditStoreBase with Store {
 
   @action
   void reset() {
+    _loadRequestVersion++;
+    _clearBudgetStateForLoading();
+    isLoading = false;
+    isSaving = false;
+    isLoadingProducts = false;
+    isLoadingCensus = false;
+  }
+
+  void _clearBudgetStateForLoading() {
     budgetData = null;
     selectedProductIds.clear();
     categories.clear();
     selectedCategory = null;
     selectedSubcategory = null;
     censusData = null;
+    censoEscolar = null;
+    productsNeedingRemark.clear();
     selectedStatus = 'pendente';
     isArchived = false;
     validityDate = null;
     budgetName = null;
     error = null;
-    isLoading = false;
-    isSaving = false;
-    isLoadingProducts = false;
-    isLoadingCensus = false;
     _originalValidityDays = null;
     _validityDateChanged = false;
   }
@@ -778,8 +797,8 @@ abstract class _BudgetEditStoreBase with Store {
       if (_validityDateChanged) {
         final hoje = DateTime.now();
         final hojeNormalizado = DateTime(hoje.year, hoje.month, hoje.day);
-        final validadeNormalizada =
-            DateTime(validityDate!.year, validityDate!.month, validityDate!.day);
+        final validadeNormalizada = DateTime(
+            validityDate!.year, validityDate!.month, validityDate!.day);
         diasValidade = validadeNormalizada.difference(hojeNormalizado).inDays;
       } else {
         diasValidade = _originalValidityDays ?? budgetData!.validityDays;

@@ -25,10 +25,12 @@ import '../stores/budget_edit_store.dart';
 
 class EditBudgetPage extends StatefulWidget {
   final int budgetId;
+  final String? initialTitle;
 
   const EditBudgetPage({
     super.key,
     required this.budgetId,
+    this.initialTitle,
   });
 
   @override
@@ -49,7 +51,8 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
       final hoje = DateTime.now();
       final hojeDate = DateTime(hoje.year, hoje.month, hoje.day);
       final validade = store.validityDate!;
-      final validadeDate = DateTime(validade.year, validade.month, validade.day);
+      final validadeDate =
+          DateTime(validade.year, validade.month, validade.day);
       final dias = validadeDate.difference(hojeDate).inDays;
       _validadeOrcamentoController.text = dias.toString();
     } else {
@@ -75,11 +78,26 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     store.setValidityDate(novaData);
   }
 
+  String _buildHeaderTitle() {
+    final loadedTitle = store.budgetName?.trim();
+    if (loadedTitle != null && loadedTitle.isNotEmpty) {
+      return loadedTitle;
+    }
+
+    final initialTitle = widget.initialTitle?.trim();
+    if (initialTitle != null && initialTitle.isNotEmpty) {
+      return initialTitle;
+    }
+
+    return 'Editar Orçamento';
+  }
+
   @override
   void initState() {
     super.initState();
     store = Modular.get<BudgetEditStore>();
     _authStore = Modular.get<AuthStore>();
+    store.reset();
 
     _dataOrcamentoController.text =
         DateFormat('dd/MM/yyyy').format(DateTime.now());
@@ -87,7 +105,11 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     _validadeOrcamentoController.addListener(_onValidityDaysChanged);
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+
       await store.initialize(widget.budgetId);
+
+      if (!mounted) return;
 
       _syncValidityFieldWithStore();
     });
@@ -98,6 +120,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     _validadeOrcamentoController.removeListener(_onValidityDaysChanged);
     _dataOrcamentoController.dispose();
     _validadeOrcamentoController.dispose();
+    store.reset();
     super.dispose();
   }
 
@@ -191,7 +214,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
         preferredSize: Size.fromHeight(70.h),
         child: Observer(
           builder: (_) => CustomTopBar(
-            title: store.budgetName ?? 'Editar Orçamento',
+            title: _buildHeaderTitle(),
             showBackButton: true,
             authStore: _authStore,
           ),
@@ -260,7 +283,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                           final cityId =
                               store.budgetData?.cityIds.firstOrNull ?? 0;
 
-                          final censusUpdated = await Modular.to.pushNamed(
+                          await Modular.to.pushNamed(
                             '/budget/census/$cityId',
                             arguments: {
                               'censoEscolar': store.censoEscolar,
@@ -269,12 +292,10 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                               'onCensusUpdated': (updatedCenso) {
                                 store.updateCensoEscolar(updatedCenso);
                               },
+                              'onCensusSaved': () =>
+                                  store.reloadProductsAfterCensusEdit(),
                             },
                           );
-
-                          if (censusUpdated == true) {
-                            await store.reloadProductsAfterCensusEdit();
-                          }
                         },
                       ),
                     ),

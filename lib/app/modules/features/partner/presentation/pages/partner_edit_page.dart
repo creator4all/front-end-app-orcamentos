@@ -9,6 +9,7 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobx/mobx.dart';
 
+import '../../../../../shared/utils/logo_aspect_ratio_validator.dart';
 import '../../../../../shared/widgets/custom_info_dialog.dart';
 import '../../../../../shared/widgets/custom_top_bar.dart';
 import '../../../auth/presentation/stores/auth_store.dart';
@@ -81,22 +82,23 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
             AndroidUiSettings(
               toolbarTitle: 'Recortar Logo',
               toolbarColor: const Color(0xFF117BBD),
+              statusBarLight: false,
               toolbarWidgetColor: Colors.white,
               initAspectRatio: CropAspectRatioPreset.square,
-              lockAspectRatio: false,
+              lockAspectRatio: true,
               aspectRatioPresets: [
                 CropAspectRatioPreset.square,
-                CropAspectRatioPreset.ratio3x2,
                 CropAspectRatioPreset.ratio16x9,
               ],
             ),
             IOSUiSettings(
               title: 'Recortar Logo',
-              aspectRatioLockEnabled: false,
-              resetAspectRatioEnabled: false,
+              aspectRatioLockEnabled: true,
+              aspectRatioLockDimensionSwapEnabled: true,
+              aspectRatioPickerButtonHidden: false,
+              resetAspectRatioEnabled: true,
               aspectRatioPresets: [
                 CropAspectRatioPreset.square,
-                CropAspectRatioPreset.ratio3x2,
                 CropAspectRatioPreset.ratio16x9,
               ],
             ),
@@ -104,7 +106,17 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
         );
 
         if (croppedFile != null) {
-          _store.setSelectedLogo(File(croppedFile.path));
+          final selectedLogo = File(croppedFile.path);
+          final isValidLogo =
+              await LogoAspectRatioValidator.isValidFile(selectedLogo);
+
+          if (!isValidLogo) {
+            if (!mounted) return;
+            _showInvalidLogoWarning();
+            return;
+          }
+
+          _store.setSelectedLogo(selectedLogo);
 
           final success = await _store.uploadLogo();
 
@@ -156,9 +168,19 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
         context: context,
         type: DialogType.error,
         title: 'Erro ao selecionar imagem',
-        message: 'Não foi possível abrir a imagem selecionada. Tente novamente.',
+        message:
+            'Não foi possível abrir a imagem selecionada. Tente novamente.',
       );
     }
+  }
+
+  void _showInvalidLogoWarning() {
+    CustomInfoDialog.show(
+      context: context,
+      type: DialogType.warning,
+      title: 'Formato de logo inválido',
+      message: LogoAspectRatioValidator.invalidAspectRatioMessage,
+    );
   }
 
   Future<void> _save() async {
