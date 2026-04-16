@@ -10,6 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:mobx/mobx.dart';
 
 import '../../../../../shared/utils/logo_aspect_ratio_validator.dart';
+import '../../../../../shared/utils/logo_crop_source_preparer.dart';
 import '../../../../../shared/widgets/custom_info_dialog.dart';
 import '../../../../../shared/widgets/custom_top_bar.dart';
 import '../../../auth/presentation/stores/auth_store.dart';
@@ -74,8 +75,11 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
       );
 
       if (image != null) {
+        final preparedSource = Platform.isAndroid
+            ? await LogoCropSourcePreparer.prepareForCrop(File(image.path))
+            : PreparedLogoCropSource.original(File(image.path));
         final CroppedFile? croppedFile = await ImageCropper().cropImage(
-          sourcePath: image.path,
+          sourcePath: preparedSource.file.path,
           compressFormat: ImageCompressFormat.jpg,
           compressQuality: 85,
           uiSettings: [
@@ -84,8 +88,8 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
               toolbarColor: const Color(0xFF117BBD),
               statusBarLight: false,
               toolbarWidgetColor: Colors.white,
-              initAspectRatio: CropAspectRatioPreset.square,
-              lockAspectRatio: true,
+              initAspectRatio: CropAspectRatioPreset.ratio16x9,
+              lockAspectRatio: false,
               aspectRatioPresets: [
                 CropAspectRatioPreset.square,
                 CropAspectRatioPreset.ratio16x9,
@@ -104,6 +108,7 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
             ),
           ],
         );
+        await preparedSource.dispose();
 
         if (croppedFile != null) {
           final selectedLogo = File(croppedFile.path);

@@ -53,6 +53,48 @@ class _BudgetListPageState extends State<BudgetListPage> {
     _store.resetFilters();
   }
 
+  DateTime? _parseDateTime(dynamic value) {
+    if (value is DateTime) return value;
+    if (value is String && value.isNotEmpty) {
+      return DateTime.tryParse(value);
+    }
+    return null;
+  }
+
+  Future<void> _handleEditBudgetResult(dynamic result) async {
+    if (result is Map) {
+      final resultMap = Map<String, dynamic>.from(result);
+      final patchRaw = resultMap['budgetPatch'];
+
+      if (patchRaw is Map) {
+        final patch = Map<String, dynamic>.from(patchRaw);
+        final budgetId = patch['id'];
+
+        if (budgetId is int) {
+          _store.applyBudgetPatch(
+            budgetId: budgetId,
+            nome: patch['nome'] as String?,
+            diasValidade: patch['diasValidade'] as int?,
+            dataValidade: _parseDateTime(patch['dataValidade']),
+            status: patch['status'] as String?,
+            isArchived: patch['isArchived'] as bool?,
+            total: (patch['total'] as num?)?.toDouble(),
+          );
+        }
+      }
+
+      if (resultMap['shouldRefresh'] == true) {
+        await _store.refresh();
+      }
+
+      return;
+    }
+
+    if (result == true) {
+      await _store.refresh();
+    }
+  }
+
   Future<void> _handleRenameBudget(int budgetId, String currentName) async {
     try {
       await RenameBudgetModal.show(
@@ -283,9 +325,7 @@ class _BudgetListPageState extends State<BudgetListPage> {
                                 '/budget/edit/${b.id}',
                                 arguments: {'initialTitle': budgetTitle},
                               );
-                              if (result == true) {
-                                _store.refresh();
-                              }
+                              await _handleEditBudgetResult(result);
                             },
                           ),
                         );

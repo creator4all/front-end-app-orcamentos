@@ -3,7 +3,6 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
-import 'package:multimidiaapp/app/modules/features/budget/budget_list/presentation/stores/budget_list_store.dart';
 import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_info_dialog.dart';
 
@@ -40,6 +39,9 @@ class EditBudgetPage extends StatefulWidget {
 class _EditBudgetPageState extends State<EditBudgetPage> {
   late final BudgetEditStore store;
   late final AuthStore _authStore;
+  bool _shouldRefreshBudgetList = false;
+  String? _lastShownLoadErrorMessage;
+  Map<String, dynamic>? _budgetListPatch;
 
   final TextEditingController _dataOrcamentoController =
       TextEditingController();
@@ -90,6 +92,160 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     }
 
     return 'Editar Orçamento';
+  }
+
+  void _closePage({Map<String, dynamic>? budgetListPatch}) {
+    if (budgetListPatch != null) {
+      _budgetListPatch = budgetListPatch;
+    }
+
+    if (!_shouldRefreshBudgetList) {
+      Navigator.of(context).pop(false);
+      return;
+    }
+
+    final result = <String, dynamic>{
+      'shouldRefresh': true,
+    };
+
+    if (_budgetListPatch != null) {
+      result['budgetPatch'] = Map<String, dynamic>.from(_budgetListPatch!);
+    }
+
+    Navigator.of(context).pop(result);
+  }
+
+  Map<String, dynamic> _createBudgetListPatch({
+    required int budgetId,
+    String? name,
+    required int validityDays,
+    DateTime? validityDate,
+    required String status,
+    required bool isArchived,
+    required double total,
+  }) {
+    return {
+      'id': budgetId,
+      'nome': name,
+      'diasValidade': validityDays,
+      'dataValidade': validityDate,
+      'status': status,
+      'isArchived': isArchived,
+      'total': total,
+    };
+  }
+
+  void _capturePersistedBudgetListPatchFromStore() {
+    final budget = store.budgetData;
+    if (budget == null) return;
+
+    _budgetListPatch = _createBudgetListPatch(
+      budgetId: budget.id,
+      name: budget.name,
+      validityDays: budget.validityDays,
+      validityDate: budget.validityDate,
+      status: budget.status,
+      isArchived: budget.isArchived,
+      total: store.totalValue,
+    );
+  }
+
+  Future<void> _retryLoadBudget() async {
+    _lastShownLoadErrorMessage = null;
+    await store.initialize(widget.budgetId);
+  }
+
+  String _buildUserFriendlyLoadErrorMessage(String? error) {
+    final normalizedError = error?.toLowerCase() ?? '';
+
+    if (normalizedError.contains('401') ||
+        normalizedError.contains('403') ||
+        normalizedError.contains('não autorizado') ||
+        normalizedError.contains('nao autorizado') ||
+        normalizedError.contains('sem permissão') ||
+        normalizedError.contains('sem permissao')) {
+      return 'Você não tem permissão para acessar este orçamento.';
+    }
+
+    if (normalizedError.contains('404') ||
+        normalizedError.contains('não encontrado') ||
+        normalizedError.contains('nao encontrado')) {
+      return 'Este orçamento não foi encontrado ou não está mais disponível.';
+    }
+
+    if (normalizedError.contains('sem conexão') ||
+        normalizedError.contains('sem conexao') ||
+        normalizedError.contains('connection') ||
+        normalizedError.contains('timeout') ||
+        normalizedError.contains('network')) {
+      return 'Não foi possível carregar o orçamento por causa da conexão. Verifique sua internet e tente novamente.';
+    }
+
+    return 'Não foi possível carregar o orçamento agora. Tente novamente em instantes.';
+  }
+
+  void _showLoadErrorDialogIfNeeded(String message) {
+    if (_lastShownLoadErrorMessage == message) {
+      return;
+    }
+
+    _lastShownLoadErrorMessage = message;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.error,
+        title: 'Erro ao carregar orçamento',
+        message: message,
+      );
+    });
+  }
+
+  Widget _buildLoadErrorState() {
+    final message = _buildUserFriendlyLoadErrorMessage(store.error);
+
+    _showLoadErrorDialogIfNeeded(message);
+
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(16.w),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64.sp,
+              color: Colors.red,
+            ),
+            SizedBox(height: 16.h),
+            Text(
+              'Não foi possível abrir este orçamento.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              'Tente novamente para continuar a edição.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: Colors.grey[600],
+              ),
+            ),
+            SizedBox(height: 24.h),
+            ElevatedButton(
+              onPressed: _retryLoadBudget,
+              child: const Text('Tentar novamente'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -200,274 +356,278 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
           message: 'Orçamento atualizado com sucesso!',
         );
 
-        final listStore = Modular.get<BudgetListStore>();
-        await listStore.refresh();
-        Modular.to.navigate('/budget/');
+        _shouldRefreshBudgetList = true;
+        _closePage(
+          budgetListPatch: _createBudgetListPatch(
+            budgetId: budget.id,
+            name: budget.name,
+            validityDays: budget.validityDays,
+            validityDate: budget.validityDate,
+            status: budget.status,
+            isArchived: budget.isArchived,
+            total: budget.total,
+          ),
+        );
       },
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(70.h),
-        child: Observer(
-          builder: (_) => CustomTopBar(
-            title: _buildHeaderTitle(),
-            showBackButton: true,
-            authStore: _authStore,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          _closePage();
+        }
+      },
+      child: Scaffold(
+        appBar: PreferredSize(
+          preferredSize: Size.fromHeight(70.h),
+          child: Observer(
+            builder: (_) => CustomTopBar(
+              title: _buildHeaderTitle(),
+              showBackButton: true,
+              onBackPressed: _closePage,
+              authStore: _authStore,
+            ),
           ),
         ),
-      ),
-      body: Observer(
-        builder: (_) {
-          if (!store.isFullyLoaded) {
-            return const BudgetSkeleton();
-          }
+        body: Observer(
+          builder: (_) {
+            if (store.error == null || store.hasData) {
+              _lastShownLoadErrorMessage = null;
+            }
 
-          if (store.error != null && !store.hasData) {
-            return Center(
-              child: Padding(
+            if (!store.isFullyLoaded) {
+              return const BudgetSkeleton();
+            }
+
+            if (store.error != null && !store.hasData) {
+              return _buildLoadErrorState();
+            }
+
+            if (!store.hasData) {
+              return const Center(child: Text('Nenhum dado disponível'));
+            }
+
+            return SafeArea(
+              child: SingleChildScrollView(
                 padding: EdgeInsets.all(16.w),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.error_outline,
-                      size: 64.sp,
-                      color: Colors.red,
+                    _buildStatusHeader(),
+                    BudgetSummaryCard(
+                      budgetValue: store.totalValue,
+                      selectedProductsCount: store.selectedItemsCount,
                     ),
-                    SizedBox(height: 16.h),
-                    Text(
-                      store.error!,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 16.sp),
+                    SizedBox(height: 12.h),
+                    if (store.budgetData?.cityIds.isNotEmpty ?? false)
+                      Padding(
+                        padding: EdgeInsets.only(bottom: 12.h),
+                        child: SchoolCensusCard(
+                          numberOfCities: store.budgetData?.cityIds.length ?? 0,
+                          citiesData: _extractCitiesData(),
+                          censoAgregado: store.censoEscolar?.valoresPorEtapa,
+                          onTap: () async {
+                            final isMultiCity =
+                                (store.budgetData?.cityIds.length ?? 0) > 1;
+                            final cityId =
+                                store.budgetData?.cityIds.firstOrNull ?? 0;
+
+                            final censusSaved =
+                                await Modular.to.pushNamed<bool>(
+                              '/budget/census/$cityId',
+                              arguments: {
+                                'censoEscolar': store.censoEscolar,
+                                'budgetId': widget.budgetId,
+                                'isMultiCityMode': isMultiCity,
+                                'onCensusUpdated': (updatedCenso) {
+                                  store.updateCensoEscolar(updatedCenso);
+                                },
+                                'onCensusSaved': () =>
+                                    store.reloadProductsAfterCensusEdit(),
+                              },
+                            );
+
+                            if (censusSaved == true) {
+                              _shouldRefreshBudgetList = true;
+                              _capturePersistedBudgetListPatchFromStore();
+                            }
+                          },
+                        ),
+                      ),
+                    SizedBox(height: 12.h),
+                    if (store.hasCategories) ...[
+                      ...(store.categories.toList()
+                            ..sort((a, b) => a.ordem.compareTo(b.ordem)))
+                          .map((category) {
+                        if (category.expandido) {
+                          return [
+                            _buildExpandedCategoryHeader(category),
+                            ..._buildExpandedSubcategories(category),
+                          ];
+                        } else {
+                          return [
+                            Padding(
+                              padding: EdgeInsets.only(bottom: 12.h),
+                              child: _buildCategoryFromEntity(category),
+                            ),
+                          ];
+                        }
+                      }).expand((widgets) => widgets),
+                    ],
+                    if (!store.hasCategories)
+                      Padding(
+                        padding: EdgeInsets.symmetric(vertical: 24.h),
+                        child: Text(
+                          'Nenhuma categoria disponível',
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ),
+                    SizedBox(height: 24.h),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      'Data do orçamento',
+                                      style: TextStyle(
+                                        fontSize: 14.sp,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(width: 8.w),
+                                  GestureDetector(
+                                    onTap: () => CustomInfoDialog.show(
+                                      context: context,
+                                      type: DialogType.info,
+                                      title: 'Data do orçamento',
+                                      message:
+                                          'A data do orçamento será atualizada sempre que você fizer e salvar modificações. O orçamento antigo será arquivado.',
+                                    ),
+                                    child: Icon(
+                                      Icons.info,
+                                      color: const Color(0xFF117BBD),
+                                      size: 16.sp,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              TextField(
+                                controller: _dataOrcamentoController,
+                                readOnly: true,
+                                minLines: 1,
+                                maxLines: 1,
+                                decoration: InputDecoration(
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10.r),
+                                  ),
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 12.w,
+                                    vertical: 12.h,
+                                  ),
+                                ),
+                                style: TextStyle(fontSize: 14.sp),
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(width: 8.w),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      'Validade do orç. *',
+                                      style: TextStyle(
+                                        fontSize: 14.sp,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(width: 8.w),
+                                  GestureDetector(
+                                    onTap: () => CustomInfoDialog.show(
+                                      context: context,
+                                      type: DialogType.info,
+                                      title: 'Validade do orçamento',
+                                      message:
+                                          'Validade definida em dias, caso queira, coloque outra quantidade de dias.',
+                                    ),
+                                    child: Icon(
+                                      Icons.info,
+                                      color: const Color(0xFF117BBD),
+                                      size: 16.sp,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              TextField(
+                                controller: _validadeOrcamentoController,
+                                keyboardType: TextInputType.number,
+                                minLines: 1,
+                                maxLines: 1,
+                                decoration: InputDecoration(
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10.r),
+                                  ),
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 12.w,
+                                    vertical: 12.h,
+                                  ),
+                                ),
+                                style: TextStyle(fontSize: 14.sp),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    _buildStatusControls(),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50.h,
+                      child: ElevatedButton(
+                        onPressed:
+                            store.isSaving ? null : _handleSaveWithValidation,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF117BBD),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8.r),
+                          ),
+                        ),
+                        child: store.isSaving
+                            ? const CircularProgressIndicator(
+                                color: Colors.white)
+                            : Text(
+                                'Salvar Alterações',
+                                style: TextStyle(
+                                  fontSize: 16.sp,
+                                  color: Colors.white,
+                                ),
+                              ),
+                      ),
                     ),
                     SizedBox(height: 24.h),
-                    ElevatedButton(
-                      onPressed: () => store.initialize(widget.budgetId),
-                      child: const Text('Tentar novamente'),
-                    ),
                   ],
                 ),
               ),
             );
-          }
-
-          if (!store.hasData) {
-            return const Center(child: Text('Nenhum dado disponível'));
-          }
-
-          return SafeArea(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.all(16.w),
-              child: Column(
-                children: [
-                  _buildStatusHeader(),
-                  BudgetSummaryCard(
-                    budgetValue: store.totalValue,
-                    selectedProductsCount: store.selectedItemsCount,
-                  ),
-                  SizedBox(height: 12.h),
-                  if (store.budgetData?.cityIds.isNotEmpty ?? false)
-                    Padding(
-                      padding: EdgeInsets.only(bottom: 12.h),
-                      child: SchoolCensusCard(
-                        numberOfCities: store.budgetData?.cityIds.length ?? 0,
-                        citiesData: _extractCitiesData(),
-                        censoAgregado: store.censoEscolar?.valoresPorEtapa,
-                        onTap: () async {
-                          final isMultiCity =
-                              (store.budgetData?.cityIds.length ?? 0) > 1;
-                          final cityId =
-                              store.budgetData?.cityIds.firstOrNull ?? 0;
-
-                          await Modular.to.pushNamed(
-                            '/budget/census/$cityId',
-                            arguments: {
-                              'censoEscolar': store.censoEscolar,
-                              'budgetId': widget.budgetId,
-                              'isMultiCityMode': isMultiCity,
-                              'onCensusUpdated': (updatedCenso) {
-                                store.updateCensoEscolar(updatedCenso);
-                              },
-                              'onCensusSaved': () =>
-                                  store.reloadProductsAfterCensusEdit(),
-                            },
-                          );
-                        },
-                      ),
-                    ),
-                  SizedBox(height: 12.h),
-                  if (store.hasCategories) ...[
-                    ...(store.categories.toList()
-                          ..sort((a, b) => a.ordem.compareTo(b.ordem)))
-                        .map((category) {
-                      if (category.expandido) {
-                        return [
-                          _buildExpandedCategoryHeader(category),
-                          ..._buildExpandedSubcategories(category),
-                        ];
-                      } else {
-                        return [
-                          Padding(
-                            padding: EdgeInsets.only(bottom: 12.h),
-                            child: _buildCategoryFromEntity(category),
-                          ),
-                        ];
-                      }
-                    }).expand((widgets) => widgets),
-                  ],
-                  if (!store.hasCategories)
-                    Padding(
-                      padding: EdgeInsets.symmetric(vertical: 24.h),
-                      child: Text(
-                        'Nenhuma categoria disponível',
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ),
-                  SizedBox(height: 24.h),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    'Data do orçamento',
-                                    style: TextStyle(
-                                      fontSize: 14.sp,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(width: 8.w),
-                                GestureDetector(
-                                  onTap: () => CustomInfoDialog.show(
-                                    context: context,
-                                    type: DialogType.info,
-                                    title: 'Data do orçamento',
-                                    message:
-                                        'A data do orçamento será atualizada sempre que você fizer e salvar modificações. O orçamento antigo será arquivado.',
-                                  ),
-                                  child: Icon(
-                                    Icons.info,
-                                    color: const Color(0xFF117BBD),
-                                    size: 16.sp,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            TextField(
-                              controller: _dataOrcamentoController,
-                              readOnly: true,
-                              minLines: 1,
-                              maxLines: 1,
-                              decoration: InputDecoration(
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10.r),
-                                ),
-                                contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 12.w,
-                                  vertical: 12.h,
-                                ),
-                              ),
-                              style: TextStyle(fontSize: 14.sp),
-                            ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(width: 8.w),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    'Validade do orç. *',
-                                    style: TextStyle(
-                                      fontSize: 14.sp,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(width: 8.w),
-                                GestureDetector(
-                                  onTap: () => CustomInfoDialog.show(
-                                    context: context,
-                                    type: DialogType.info,
-                                    title: 'Validade do orçamento',
-                                    message:
-                                        'Validade definida em dias, caso queira, coloque outra quantidade de dias.',
-                                  ),
-                                  child: Icon(
-                                    Icons.info,
-                                    color: const Color(0xFF117BBD),
-                                    size: 16.sp,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            TextField(
-                              controller: _validadeOrcamentoController,
-                              keyboardType: TextInputType.number,
-                              minLines: 1,
-                              maxLines: 1,
-                              decoration: InputDecoration(
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10.r),
-                                ),
-                                contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 12.w,
-                                  vertical: 12.h,
-                                ),
-                              ),
-                              style: TextStyle(fontSize: 14.sp),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  _buildStatusControls(),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50.h,
-                    child: ElevatedButton(
-                      onPressed:
-                          store.isSaving ? null : _handleSaveWithValidation,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF117BBD),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.r),
-                        ),
-                      ),
-                      child: store.isSaving
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : Text(
-                              'Salvar Alterações',
-                              style: TextStyle(
-                                fontSize: 16.sp,
-                                color: Colors.white,
-                              ),
-                            ),
-                    ),
-                  ),
-                  SizedBox(height: 24.h),
-                ],
-              ),
-            ),
-          );
-        },
+          },
+        ),
       ),
     );
   }

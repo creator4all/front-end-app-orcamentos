@@ -15,6 +15,7 @@ import '../../modules/features/budget/budget_edit/domain/repositories/budget_pdf
 import '../../modules/features/budget/budget_edit/domain/usecases/generate_pdf_usecase.dart';
 import '../../modules/features/partner/data/services/partner_service.dart';
 import '../utils/logo_aspect_ratio_validator.dart';
+import '../utils/logo_crop_source_preparer.dart';
 import 'custom_info_dialog.dart';
 import 'custom_modal.dart';
 
@@ -374,8 +375,11 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
       );
 
       if (pickedFile != null) {
+        final preparedSource = Platform.isAndroid
+            ? await LogoCropSourcePreparer.prepareForCrop(File(pickedFile.path))
+            : PreparedLogoCropSource.original(File(pickedFile.path));
         final CroppedFile? croppedFile = await ImageCropper().cropImage(
-          sourcePath: pickedFile.path,
+          sourcePath: preparedSource.file.path,
           compressFormat: ImageCompressFormat.jpg,
           compressQuality: 85,
           uiSettings: [
@@ -384,8 +388,8 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
               toolbarColor: const Color(0xFF117BBD),
               statusBarLight: false,
               toolbarWidgetColor: Colors.white,
-              initAspectRatio: CropAspectRatioPreset.square,
-              lockAspectRatio: true,
+              initAspectRatio: CropAspectRatioPreset.ratio16x9,
+              lockAspectRatio: false,
               aspectRatioPresets: [
                 CropAspectRatioPreset.square,
                 CropAspectRatioPreset.ratio16x9,
@@ -404,6 +408,7 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
             ),
           ],
         );
+        await preparedSource.dispose();
 
         if (croppedFile != null) {
           final selectedLogo = File(croppedFile.path);

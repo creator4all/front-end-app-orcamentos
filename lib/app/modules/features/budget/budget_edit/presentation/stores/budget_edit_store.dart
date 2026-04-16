@@ -938,6 +938,7 @@ abstract class _BudgetEditStoreBase with Store {
       await loadBudgetForEdit(budgetData!.id);
 
       _recalculateProductQuantities();
+      budgetData = budgetData?.copyWith(total: totalValue);
 
       if (oldCenso != null && censoEscolar != null) {
         _checkForProductsToRemark(oldCenso, censoEscolar!);
