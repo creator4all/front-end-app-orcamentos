@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -73,7 +73,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
       context: context,
       type: DialogType.warning,
       title: 'Ação não permitida',
-      message: 'Você não pode alterar usuários com cargo superior ao seu.',
+      message: 'Você não pode alterar usuários com cargo superior ou igual ao seu.',
     );
   }
 

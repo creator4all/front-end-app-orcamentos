@@ -67,13 +67,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final args = Modular.args.data;
 
-      if (args is Map<String, dynamic> &&
-          args.containsKey('multiCityResponse')) {
-        final multiCityData = args['multiCityResponse'] as Map<String, dynamic>;
-        store.initializeWithMultiCityResponse(multiCityData);
-        return;
-      }
-
       BudgetDraftEntity? initialDraft;
 
       if (args is Map<String, dynamic> && args.containsKey('budget')) {
@@ -287,8 +280,8 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                               'onCensusUpdated': (updatedCenso) {
                                 store.updateCensoEscolar(updatedCenso);
                               },
-                              'onCensusSaved':
-                                  () => store.reloadProductsAfterCensusEdit(),
+                              'onCensusSaved': () =>
+                                  store.reloadProductsAfterCensusEdit(),
                             },
                           );
                         },

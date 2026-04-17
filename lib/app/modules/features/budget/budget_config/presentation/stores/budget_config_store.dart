@@ -275,168 +275,6 @@ abstract class _BudgetConfigStoreBase with Store {
     ];
   }
 
-  @action
-  Future<void> initializeWithMultiCityResponse(
-      Map<String, dynamic> response) async {
-    isLoading = true;
-    isLoadingProducts = false;
-    error = null;
-
-    try {
-      final id = response['orc_orcamentoId'] ?? response['id'];
-      final nome = response['orc_nome'] ?? '';
-      final status = response['orc_status'] ?? 'rascunho';
-      final diasValidade = response['orc_dias_validade'] ?? 60;
-      final dataValidade = response['orc_data_validade'] != null
-          ? DateTime.parse(response['orc_data_validade'].toString())
-          : DateTime.now().add(const Duration(days: 60));
-
-      final cidadesJson = response['cidades'] as List<dynamic>? ?? [];
-      final cityIds = cidadesJson.map((c) => c['id'] as int? ?? 0).toList();
-      final citiesData = cidadesJson
-          .map((c) => <String, dynamic>{
-                'id': c['id'],
-                'nome': c['nome'],
-                'indices': c['indices'],
-              })
-          .toList();
-
-      final categoriasJson = response['categorias'] as List<dynamic>? ?? [];
-      final categoriasParsed =
-          _parseCategoriasFromMultiCityResponse(categoriasJson);
-
-      final censoAgregado =
-          response['censo_agregado'] as Map<String, dynamic>? ?? {};
-      final valoresPorEtapa = <String, double>{};
-      censoAgregado.forEach((key, value) {
-        valoresPorEtapa[key] = (value as num).toDouble();
-      });
-
-      budgetDetail = BudgetDetailEntity(
-        id: id is int ? id : int.tryParse(id.toString()) ?? 0,
-        name: nome,
-        status: status,
-        validityDays: diasValidade,
-        validityDate: dataValidade,
-        creationDate: DateTime.now(),
-        total: 0.0,
-        userId: response['orc_usuario_id'] as int? ?? 0,
-        partnerId: response['orc_partner_destino_id'] as int?,
-        cityIds: cityIds,
-        products: const [],
-        categoryStates: const {},
-        categories: categoriasParsed,
-        citiesData: citiesData,
-        censoAgregado: valoresPorEtapa,
-      );
-
-      categories.clear();
-      categories.addAll(categoriasParsed);
-
-      censoEscolar = CensoEscolarEntity(
-        cidadeId: 0,
-        cidadeNome: 'Agregado',
-        grupos: const [],
-        valoresPorEtapa: valoresPorEtapa,
-      );
-
-      validityDate = dataValidade;
-      budgetName = nome;
-      _originalValidityDays = diasValidade is int ? diasValidade : 60;
-      _validityDateChanged = false;
-
-      isLoading = false;
-      isLoadingProducts = false;
-
-      if (censoEscolar != null) {
-        final updated = calculationService.recalcularQuantidadesProdutos(
-          categories.toList(),
-          censoEscolar!,
-        );
-        for (var i = 0; i < updated.length; i++) {
-          categories[i] = updated[i];
-        }
-      }
-    } catch (e) {
-      error = 'Erro ao inicializar orçamento: $e';
-      isLoading = false;
-    }
-  }
-
-  List<CategoryEntity> _parseCategoriasFromMultiCityResponse(
-      List<dynamic> categoriasJson) {
-    return categoriasJson.map((catJson) {
-      final subcategoriasJson =
-          catJson['subcategorias'] as List<dynamic>? ?? [];
-
-      final subcategorias = subcategoriasJson.map((subJson) {
-        final produtosJson = subJson['produtos'] as List<dynamic>? ?? [];
-
-        final produtos = produtosJson.map((prodJson) {
-          final indicadoresJson =
-              prodJson['indicadores'] as List<dynamic>? ?? [];
-          final indicadores = indicadoresJson.map((indJson) {
-            final etapaJson =
-                indJson['indicador_etapa'] as Map<String, dynamic>? ?? {};
-            final grupoJson = etapaJson['grupo'] as Map<String, dynamic>? ?? {};
-
-            return IndicadorEtapaEntity(
-              produtoIndicadorId: indJson['id'] as int? ?? 0,
-              indicadorId: etapaJson['id'] as int? ?? 0,
-              indicadorNome: etapaJson['titulo'] as String? ?? '',
-              nomeEtapa: etapaJson['nome'] as String? ?? '',
-              grupoId: grupoJson['id'] as int? ?? 0,
-              grupoNome: grupoJson['nome'] as String? ?? '',
-              selecionado: indJson['selecionado'] as bool? ?? false,
-            );
-          }).toList();
-
-          final orcProdJson =
-              prodJson['orcamento_produto'] as Map<String, dynamic>? ?? {};
-          final valor = (prodJson['valor'] as num?)?.toDouble() ?? 0.0;
-
-          final quantidade = (orcProdJson['quantidade'] as num?)?.toDouble() ?? 0.0;
-          final selecionadoJson = orcProdJson['selecionado'] as bool? ?? false;
-          final selecionado = quantidade > 0 ? selecionadoJson : false;
-
-          return ProductEntity(
-            id: prodJson['id'] as int? ?? 0,
-            codigo: prodJson['codigo'] as String? ?? '',
-            solucao: prodJson['solucao'] as String? ?? '',
-            tipo: prodJson['tipo'] as String? ?? '',
-            ativo: prodJson['status'] as bool? ?? true,
-            valor: valor,
-            indicacao: prodJson['indicacao'] as String? ?? '',
-            tipoProduto: prodJson['tipo_produto'] as String? ?? '',
-            ordem: prodJson['ordem'] as int? ?? 0,
-            subcategoriaId: subJson['id'] as int? ?? 0,
-            selecionado: selecionado,
-            quantidade: quantidade,
-            temOverride: false,
-            valorOriginal: valor,
-            ativoOriginal: prodJson['status'] as bool? ?? true,
-            indicadoresEtapa: indicadores,
-          );
-        }).toList();
-
-        return SubcategoryEntity(
-          id: subJson['id'] as int? ?? 0,
-          nome: subJson['nome'] as String? ?? '',
-          ordem: subJson['ordem'] as int? ?? 0,
-          produtos: produtos,
-        );
-      }).toList();
-
-      return CategoryEntity(
-        id: catJson['id'] as int? ?? 0,
-        nome: catJson['nome'] as String? ?? '',
-        ordem: catJson['ordem'] as int? ?? 0,
-        expandido: catJson['expandido'] as bool? ?? false,
-        subcategorias: subcategorias,
-      );
-    }).toList();
-  }
-
   ProductEntity _synchronizeProductSelection(ProductEntity product) {
     final shouldBeSelected = product.quantidade > 0;
 
@@ -724,8 +562,7 @@ abstract class _BudgetConfigStoreBase with Store {
           );
 
           if (oldQuantity == 0 && newQuantity > 0 && !product.selecionado) {
-            final updatedProduct =
-                product.copyWith(quantidade: newQuantity);
+            final updatedProduct = product.copyWith(quantidade: newQuantity);
             productsToRemark.add(updatedProduct);
           }
         }
@@ -1575,8 +1412,8 @@ abstract class _BudgetConfigStoreBase with Store {
       if (_validityDateChanged) {
         final hoje = DateTime.now();
         final hojeNormalizado = DateTime(hoje.year, hoje.month, hoje.day);
-        final validadeNormalizada =
-            DateTime(validityDate!.year, validityDate!.month, validityDate!.day);
+        final validadeNormalizada = DateTime(
+            validityDate!.year, validityDate!.month, validityDate!.day);
         diasValidade = validadeNormalizada.difference(hojeNormalizado).inDays;
       } else {
         diasValidade = _originalValidityDays ?? budgetDetail!.validityDays;
