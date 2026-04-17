@@ -84,6 +84,13 @@ abstract class _BudgetListStoreBase with Store {
   }
 
   @action
+  Future<void> refreshWithLoadingState() async {
+    items.clear();
+    allItems.clear();
+    await fetch();
+  }
+
+  @action
   void reset() {
     allItems.clear();
     items.clear();

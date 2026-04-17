@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:mobx/mobx.dart';
 
 import '../../../../../../widgets/custom_text_field.dart';
+import '../../../../../shared/utils/crop_aspect_ratio_presets.dart';
 import '../../../../../shared/widgets/widgets.dart';
 import '../../../auth/presentation/stores/auth_store.dart';
 import '../stores/profile_store.dart';
@@ -97,14 +98,21 @@ class _ProfilePageState extends State<ProfilePage> {
             AndroidUiSettings(
               toolbarTitle: 'Recortar Foto',
               toolbarColor: const Color(0xFF117BBD),
+              statusBarLight: false,
+              navBarLight: false,
               toolbarWidgetColor: Colors.white,
-              initAspectRatio: CropAspectRatioPreset.square,
+              initAspectRatio: const CropPresetQuadrado(),
               lockAspectRatio: true,
             ),
             IOSUiSettings(
               title: 'Recortar Foto',
+              doneButtonTitle: 'Recortar',
+              cancelButtonTitle: 'Cancelar',
               aspectRatioLockEnabled: true,
+              aspectRatioLockDimensionSwapEnabled: false,
+              aspectRatioPickerButtonHidden: true,
               resetAspectRatioEnabled: false,
+              hidesNavigationBar: false,
             ),
           ],
         );

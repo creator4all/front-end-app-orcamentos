@@ -964,16 +964,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                     ),
                     items: const [
                       DropdownMenuItem(
-                        value: 'rascunho',
-                        child: Text(
-                          'Rascunho',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                      DropdownMenuItem(
                         value: 'pendente',
                         child: Text(
                           'Pendente',

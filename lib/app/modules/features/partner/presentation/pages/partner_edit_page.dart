@@ -9,6 +9,7 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobx/mobx.dart';
 
+import '../../../../../shared/utils/crop_aspect_ratio_presets.dart';
 import '../../../../../shared/utils/logo_aspect_ratio_validator.dart';
 import '../../../../../shared/utils/logo_crop_source_preparer.dart';
 import '../../../../../shared/widgets/custom_info_dialog.dart';
@@ -87,23 +88,28 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
               toolbarTitle: 'Recortar Logo',
               toolbarColor: const Color(0xFF117BBD),
               statusBarLight: false,
+              navBarLight: false,
               toolbarWidgetColor: Colors.white,
-              initAspectRatio: CropAspectRatioPreset.ratio16x9,
-              lockAspectRatio: false,
+              initAspectRatio: const CropPreset16x9(),
+              lockAspectRatio: true,
               aspectRatioPresets: [
-                CropAspectRatioPreset.square,
-                CropAspectRatioPreset.ratio16x9,
+                const CropPresetQuadrado(),
+                const CropPreset16x9()
               ],
             ),
             IOSUiSettings(
               title: 'Recortar Logo',
-              aspectRatioLockEnabled: true,
-              aspectRatioLockDimensionSwapEnabled: true,
+              doneButtonTitle: 'Recortar',
+              cancelButtonTitle: 'Cancelar',
+              // Permite trocar entre presets mas bloqueia inversão de dimensão
+              aspectRatioLockEnabled: false,
+              aspectRatioLockDimensionSwapEnabled: false,
               aspectRatioPickerButtonHidden: false,
-              resetAspectRatioEnabled: true,
+              resetAspectRatioEnabled: false,
+              hidesNavigationBar: false,
               aspectRatioPresets: [
-                CropAspectRatioPreset.square,
-                CropAspectRatioPreset.ratio16x9,
+                const CropPresetQuadrado(),
+                const CropPreset16x9()
               ],
             ),
           ],

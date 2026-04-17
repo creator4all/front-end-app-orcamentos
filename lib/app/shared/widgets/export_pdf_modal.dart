@@ -14,6 +14,7 @@ import '../../modules/features/auth/presentation/stores/auth_store.dart';
 import '../../modules/features/budget/budget_edit/domain/repositories/budget_pdf_repository.dart';
 import '../../modules/features/budget/budget_edit/domain/usecases/generate_pdf_usecase.dart';
 import '../../modules/features/partner/data/services/partner_service.dart';
+import '../utils/crop_aspect_ratio_presets.dart';
 import '../utils/logo_aspect_ratio_validator.dart';
 import '../utils/logo_crop_source_preparer.dart';
 import 'custom_info_dialog.dart';
@@ -387,23 +388,27 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
               toolbarTitle: 'Recortar Logo',
               toolbarColor: const Color(0xFF117BBD),
               statusBarLight: false,
+              navBarLight: false,
               toolbarWidgetColor: Colors.white,
-              initAspectRatio: CropAspectRatioPreset.ratio16x9,
-              lockAspectRatio: false,
+              initAspectRatio: const CropPreset16x9(),
+              lockAspectRatio: true,
               aspectRatioPresets: [
-                CropAspectRatioPreset.square,
-                CropAspectRatioPreset.ratio16x9,
+                const CropPresetQuadrado(),
+                const CropPreset16x9()
               ],
             ),
             IOSUiSettings(
               title: 'Recortar Logo',
-              aspectRatioLockEnabled: true,
-              aspectRatioLockDimensionSwapEnabled: true,
+              doneButtonTitle: 'Recortar',
+              cancelButtonTitle: 'Cancelar',
+              aspectRatioLockEnabled: false,
+              aspectRatioLockDimensionSwapEnabled: false,
               aspectRatioPickerButtonHidden: false,
-              resetAspectRatioEnabled: true,
+              resetAspectRatioEnabled: false,
+              hidesNavigationBar: false,
               aspectRatioPresets: [
-                CropAspectRatioPreset.square,
-                CropAspectRatioPreset.ratio16x9,
+                const CropPresetQuadrado(),
+                const CropPreset16x9()
               ],
             ),
           ],
