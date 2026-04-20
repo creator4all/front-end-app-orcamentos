@@ -2,6 +2,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mobx/mobx.dart';
 
+import '../../../../../shared/utils/document_validators.dart';
 import '../../../../../shared/core/utils/token_cache.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
@@ -55,7 +56,7 @@ abstract class _AuthStoreBase with Store {
   String get partnerInfo {
     if (currentUser?.partner == null) return 'Sem parceiro';
     final partner = currentUser!.partner!;
-    return '${partner.tradeName} (${partner.cnpj})';
+    return '${partner.tradeName} (${DocumentValidators.formatDocument(partner.cnpj)})';
   }
 
   @computed
@@ -65,8 +66,9 @@ abstract class _AuthStoreBase with Store {
   String get userDisplayEmail => currentUser?.email ?? 'Sem email';
 
   @computed
-  String get userDisplayDocument =>
-      currentUser?.partner?.cnpj ?? 'Sem documento';
+  String get userDisplayDocument => currentUser?.partner?.cnpj != null
+      ? DocumentValidators.formatDocument(currentUser!.partner!.cnpj)
+      : 'Sem documento';
   @computed
   String? get userDisplayAvatar => currentUser?.avatarBase64;
 
@@ -147,7 +149,8 @@ abstract class _AuthStoreBase with Store {
       return;
     }
 
-    final result = await authRepository.getCurrentUser(forceRefresh: forceRefresh);
+    final result =
+        await authRepository.getCurrentUser(forceRefresh: forceRefresh);
 
     result.fold(
       (failure) {

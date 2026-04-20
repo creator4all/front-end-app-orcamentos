@@ -1,5 +1,6 @@
 import 'package:mobx/mobx.dart';
 
+import '../../../../../shared/utils/document_validators.dart';
 import '../../domain/entities/partner.dart';
 import '../../domain/repositories/partner_management_repository.dart';
 
@@ -46,10 +47,16 @@ abstract class _PartnerManagementStoreBase with Store {
       return partners.toList();
     }
     final query = searchQuery.toLowerCase();
+    final normalizedQuery = DocumentValidators.normalizeDocument(searchQuery);
     return partners.where((partner) {
       return partner.tradeName.toLowerCase().contains(query) ||
           partner.legalName.toLowerCase().contains(query) ||
-          partner.cnpj.contains(query);
+          partner.cnpj.contains(query) ||
+          DocumentValidators.formatDocument(partner.cnpj)
+              .toLowerCase()
+              .contains(query) ||
+          DocumentValidators.normalizeDocument(partner.cnpj)
+              .contains(normalizedQuery);
     }).toList();
   }
 

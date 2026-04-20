@@ -10,6 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:mobx/mobx.dart';
 
 import '../../../../../shared/utils/crop_aspect_ratio_presets.dart';
+import '../../../../../shared/utils/document_validators.dart';
 import '../../../../../shared/utils/logo_aspect_ratio_validator.dart';
 import '../../../../../shared/utils/logo_crop_source_preparer.dart';
 import '../../../../../shared/widgets/custom_info_dialog.dart';
@@ -49,7 +50,8 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
           _emailController.text = partner.email ?? '';
           _phoneController.text = partner.phone;
           _legalNameController.text = partner.legalName;
-          _cnpjController.text = _formatCnpj(partner.cnpj);
+          _cnpjController.text =
+              DocumentValidators.formatDocument(partner.cnpj);
         }
       },
     );
@@ -532,11 +534,6 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
         ),
       ],
     );
-  }
-
-  String _formatCnpj(String cnpj) {
-    if (cnpj.length != 14) return cnpj;
-    return '${cnpj.substring(0, 2)}.${cnpj.substring(2, 5)}.${cnpj.substring(5, 8)}/${cnpj.substring(8, 12)}-${cnpj.substring(12)}';
   }
 }
 

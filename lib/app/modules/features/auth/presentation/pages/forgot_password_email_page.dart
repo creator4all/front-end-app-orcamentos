@@ -6,9 +6,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../../../shared/utils/email_validator.dart';
 import '../../../../../shared/widgets/custom_info_dialog.dart';
 import '../../../../../shared/widgets/custom_top_bar.dart';
+import '../../auth_messages.dart';
 import '../stores/forgot_password_store.dart';
 
-/// Página para inserir o email de recuperação de senha
 class ForgotPasswordEmailPage extends StatefulWidget {
   const ForgotPasswordEmailPage({super.key});
 
@@ -80,7 +80,7 @@ class _ForgotPasswordEmailPageState extends State<ForgotPasswordEmailPage> {
                 ),
                 SizedBox(height: 12.h),
                 Text(
-                  'Enviaremos um código de 6 dígitos para o seu e-mail cadastrado.',
+                  AuthMessages.recoveryEmailHint,
                   style: TextStyle(
                     fontSize: 14.sp,
                     color: Colors.grey[600],

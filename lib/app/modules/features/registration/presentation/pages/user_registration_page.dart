@@ -4,6 +4,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../../../widgets/index.dart';
+import '../../../../../shared/utils/document_validators.dart';
 import '../../../../../shared/utils/email_validator.dart';
 import '../../../../../shared/widgets/custom_top_bar.dart';
 import '../../domain/entities/user_registration.dart';
@@ -124,7 +125,6 @@ class _UserRegistrationPageState extends State<UserRegistrationPage> {
                 ),
               ),
               SizedBox(height: 20.h),
-
               Text(
                 'Cadastro realizado!',
                 style: TextStyle(
@@ -135,7 +135,6 @@ class _UserRegistrationPageState extends State<UserRegistrationPage> {
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 12.h),
-
               Text(
                 'Seu cadastro foi realizado com sucesso. Aguarde a ativação pelo gestor da empresa para acessar o sistema.',
                 style: TextStyle(
@@ -145,7 +144,6 @@ class _UserRegistrationPageState extends State<UserRegistrationPage> {
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 24.h),
-
               SizedBox(
                 width: double.infinity,
                 height: 48.h,
@@ -208,13 +206,13 @@ class _UserRegistrationPageState extends State<UserRegistrationPage> {
                     SizedBox(height: 8.h),
                     _buildReadOnlyField('Nome fantasia', company.tradeName),
                     SizedBox(height: 8.h),
-                    _buildReadOnlyField('CNPJ', company.cnpj),
+                    _buildReadOnlyField('CNPJ',
+                        DocumentValidators.formatDocument(company.cnpj)),
                     SizedBox(height: 8.h),
                     _buildReadOnlyField('Email', company.email),
                     SizedBox(height: 8.h),
                     _buildReadOnlyField('Telefone', company.phone),
                     SizedBox(height: 24.h),
-
                     Text(
                       'Informações do usuário',
                       style: TextStyle(
@@ -224,7 +222,6 @@ class _UserRegistrationPageState extends State<UserRegistrationPage> {
                       ),
                     ),
                     SizedBox(height: 16.h),
-
                     CustomTextField(
                       controller: _emailController,
                       label: 'E-mail:',
@@ -233,7 +230,6 @@ class _UserRegistrationPageState extends State<UserRegistrationPage> {
                       validator: EmailValidator.getError,
                     ),
                     SizedBox(height: 16.h),
-
                     CustomTextField(
                       controller: _confirmEmailController,
                       label: 'Confirmar e-mail:',
@@ -250,7 +246,6 @@ class _UserRegistrationPageState extends State<UserRegistrationPage> {
                       },
                     ),
                     SizedBox(height: 16.h),
-
                     CustomTextField(
                       controller: _nameController,
                       label: 'Nome:',
@@ -263,7 +258,6 @@ class _UserRegistrationPageState extends State<UserRegistrationPage> {
                       },
                     ),
                     SizedBox(height: 16.h),
-
                     CustomTextField(
                       controller: _phoneController,
                       label: 'Telefone:',
@@ -291,7 +285,6 @@ class _UserRegistrationPageState extends State<UserRegistrationPage> {
                       },
                     ),
                     SizedBox(height: 16.h),
-
                     CustomTextField(
                       controller: _passwordController,
                       label: 'Senha:',
@@ -308,7 +301,6 @@ class _UserRegistrationPageState extends State<UserRegistrationPage> {
                       },
                     ),
                     SizedBox(height: 16.h),
-
                     CustomTextField(
                       controller: _confirmPasswordController,
                       label: 'Confirmar senha:',
@@ -325,7 +317,6 @@ class _UserRegistrationPageState extends State<UserRegistrationPage> {
                       },
                     ),
                     SizedBox(height: 32.h),
-
                     Observer(
                       builder: (_) => PrimaryButton(
                         text: 'Cadastrar',

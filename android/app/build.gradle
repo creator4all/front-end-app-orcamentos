@@ -33,7 +33,7 @@ if (flutterVersionName == null) {
 
 android {
     namespace = "com.multimidiaapp.multimidiaapp"
-    compileSdk = 35
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

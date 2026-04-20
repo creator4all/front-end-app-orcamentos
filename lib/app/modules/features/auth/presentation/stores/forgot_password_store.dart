@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:mobx/mobx.dart';
 
+import '../../auth_messages.dart';
 import '../../domain/usecases/request_password_reset_usecase.dart';
 import '../../domain/usecases/resend_otp_code_usecase.dart';
 import '../../domain/usecases/reset_password_usecase.dart';
@@ -167,7 +168,7 @@ abstract class _ForgotPasswordStoreBase with Store {
         if (isValid) {
           return true;
         } else {
-          errorMessage = 'Código inválido';
+          errorMessage = AuthMessages.otpInvalidOrExpired;
           return false;
         }
       },
@@ -199,7 +200,6 @@ abstract class _ForgotPasswordStoreBase with Store {
     );
   }
 
-  // Regra de negócio: intervalo de 60s entre reenvios de OTP
   @action
   void startResendTimer() {
     _resendTimer?.cancel();

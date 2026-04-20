@@ -8,6 +8,7 @@ import '../../../../../shared/core/errors/http_exceptions.dart';
 import '../../../../../shared/core/http/app_http_client.dart';
 import '../../../../../shared/core/http/http_request_config.dart';
 import '../../../../../shared/core/utils/token_cache.dart';
+import '../../auth_messages.dart';
 import '../models/user_model.dart';
 import 'auth_datasource.dart';
 
@@ -229,14 +230,14 @@ class AuthApiDatasource implements AuthDatasource {
         data: {'usr_email': email},
         config: _defaultConfig,
       );
-    } on NotFoundException {
-      throw Exception('Usuário não encontrado');
     } on TooManyRequestsException {
-      throw Exception('Aguarde antes de solicitar um novo código');
+      rethrow;
     } on InternalServerException {
-      throw Exception('Erro no servidor. Tente novamente mais tarde.');
+      rethrow;
     } on ConnectionException {
-      throw Exception('Falha na conexão. Verifique sua internet.');
+      rethrow;
+    } on HttpException {
+      rethrow;
     } catch (e) {
       throw Exception('Erro ao reenviar código: $e');
     }
@@ -258,15 +259,17 @@ class AuthApiDatasource implements AuthDatasource {
       final dados = data['dados'] as Map<String, dynamic>?;
       return dados?['valido'] == true;
     } on UnauthorizedException {
-      throw Exception('Código OTP inválido');
+      rethrow;
     } on BadRequestException {
-      throw Exception('Código OTP inválido ou expirado');
+      rethrow;
     } on NotFoundException {
-      throw Exception('Solicitação de recuperação não encontrada');
+      throw const NotFoundException(message: AuthMessages.otpInvalidOrExpired);
     } on InternalServerException {
-      throw Exception('Erro no servidor. Tente novamente mais tarde.');
+      rethrow;
     } on ConnectionException {
-      throw Exception('Falha na conexão. Verifique sua internet.');
+      rethrow;
+    } on HttpException {
+      rethrow;
     } catch (e) {
       throw Exception('Erro ao verificar código: $e');
     }
@@ -291,15 +294,17 @@ class AuthApiDatasource implements AuthDatasource {
         config: _defaultConfig,
       );
     } on UnauthorizedException {
-      throw Exception('Código OTP inválido ou expirado');
+      rethrow;
     } on BadRequestException catch (e) {
-      throw Exception('Erro ao redefinir senha: ${e.message}');
+      throw BadRequestException(message: e.message);
     } on NotFoundException {
-      throw Exception('Solicitação de recuperação não encontrada');
+      throw const NotFoundException(message: AuthMessages.otpInvalidOrExpired);
     } on InternalServerException {
-      throw Exception('Erro no servidor. Tente novamente mais tarde.');
+      rethrow;
     } on ConnectionException {
-      throw Exception('Falha na conexão. Verifique sua internet.');
+      rethrow;
+    } on HttpException {
+      rethrow;
     } catch (e) {
       throw Exception('Erro ao redefinir senha: $e');
     }
