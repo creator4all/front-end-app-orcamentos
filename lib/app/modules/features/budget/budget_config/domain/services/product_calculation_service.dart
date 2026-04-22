@@ -2,6 +2,7 @@ import '../entities/category_entity.dart';
 import '../entities/censo_escolar_entity.dart';
 import '../entities/product_entity.dart';
 import '../entities/subcategory_entity.dart';
+import 'census_value_normalizer.dart';
 
 class ProductCalculationService {
   const ProductCalculationService();
@@ -108,16 +109,14 @@ class ProductCalculationService {
 
       if (nomeEtapa.toLowerCase() == 'professores') continue;
 
-      final nome = nomeEtapa.toLowerCase();
-      final isIn4ou5 = nome == 'in4ano' || nome == 'in5ano';
-
       if (temProfessores) {
-        final valorP = censo.getValorEtapa('${nomeEtapa}P') ?? 0.0;
+        final nomeComP = '${nomeEtapa}P';
+        final valorP = censo.getValorEtapa(nomeComP) ?? 0.0;
         // Censo exibe in4ano/in5ano já arredondados — ceil individual
-        total += isIn4ou5 ? valorP.ceilToDouble() : valorP;
+        total += CensusValueNormalizer.consolidateStageValue(nomeComP, valorP);
       } else {
         final valor = censo.getValorEtapa(nomeEtapa) ?? 0.0;
-        total += isIn4ou5 ? valor.ceilToDouble() : valor;
+        total += CensusValueNormalizer.consolidateStageValue(nomeEtapa, valor);
       }
     }
 
@@ -139,15 +138,19 @@ class ProductCalculationService {
 
       if (nomeEtapa.toLowerCase() == 'professores') continue;
 
-      final nome = nomeEtapa.toLowerCase();
-      final isIn4ou5 = nome == 'in4ano' || nome == 'in5ano';
-
       final valorNormal = censo.getValorEtapa(nomeEtapa) ?? 0.0;
-      total += isIn4ou5 ? valorNormal.ceilToDouble() : valorNormal;
+      total += CensusValueNormalizer.consolidateStageValue(
+        nomeEtapa,
+        valorNormal,
+      );
 
       if (temProfessores) {
-        final valorP = censo.getValorEtapa('${nomeEtapa}P') ?? 0.0;
-        total += isIn4ou5 ? valorP.ceilToDouble() : valorP;
+        final nomeComP = '${nomeEtapa}P';
+        final valorP = censo.getValorEtapa(nomeComP) ?? 0.0;
+        total += CensusValueNormalizer.consolidateStageValue(
+          nomeComP,
+          valorP,
+        );
       }
     }
 

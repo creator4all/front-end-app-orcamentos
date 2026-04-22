@@ -1,7 +1,8 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../../../shared/widgets/card_layout.dart';
+import '../../domain/services/census_value_normalizer.dart';
 
 class SchoolCensusCard extends StatelessWidget {
   final int numberOfCities;
@@ -53,7 +54,12 @@ class SchoolCensusCard extends StatelessWidget {
     if (censoAgregado != null && censoAgregado!.isNotEmpty) {
       return censoAgregado!.entries
           .where((e) => !e.key.endsWith('P'))
-          .fold(0.0, (sum, e) => sum + e.value)
+          .fold(
+            0.0,
+            (sum, e) =>
+                sum +
+                CensusValueNormalizer.consolidateStageValue(e.key, e.value),
+          )
           .round();
     }
 
@@ -62,9 +68,13 @@ class SchoolCensusCard extends StatelessWidget {
       final indicadores = _extractIndicadores(city);
       for (final indicador in indicadores) {
         if (indicador is Map<String, dynamic>) {
-          final nome = indicador['nome_etapa'] ?? indicador['nome'] ?? '';
-          if (nome.toString().endsWith('P')) continue;
-          totalStudents += _parseValorIndicador(indicador).toInt();
+          final nome =
+              (indicador['nome_etapa'] ?? indicador['nome'] ?? '').toString();
+          if (nome.endsWith('P')) continue;
+          totalStudents += CensusValueNormalizer.consolidateStageValue(
+            nome,
+            _parseValorIndicador(indicador),
+          ).toInt();
         }
       }
     }

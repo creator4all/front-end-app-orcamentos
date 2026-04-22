@@ -5,6 +5,7 @@ import '../../domain/entities/censo_escolar_entity.dart';
 import '../../domain/entities/censo_group_entity.dart';
 import '../../domain/entities/censo_title_entity.dart';
 import '../../domain/repositories/census_repository.dart';
+import '../../domain/services/census_value_normalizer.dart';
 import '../../domain/usecases/get_budget_census_usecase.dart';
 
 part 'school_census_store.g.dart';
@@ -304,7 +305,11 @@ abstract class _SchoolCensusStoreBase with Store {
     for (final cidade in cidades) {
       for (final indice in cidade.indices) {
         final key = indice.nomeEtapa;
-        censoAgregado[key] = (censoAgregado[key] ?? 0) + indice.valor;
+        censoAgregado[key] = (censoAgregado[key] ?? 0) +
+            CensusValueNormalizer.consolidateStageValue(
+              key,
+              indice.valor,
+            );
       }
     }
   }

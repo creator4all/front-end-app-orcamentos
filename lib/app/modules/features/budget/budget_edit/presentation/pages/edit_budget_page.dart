@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
+import 'package:multimidiaapp/app/shared/utils/date_utils.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_info_dialog.dart';
 
 import '../../../../../../shared/widgets/budget_summary_card.dart';
@@ -49,17 +51,18 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
       TextEditingController();
 
   void _syncValidityFieldWithStore() {
-    if (store.validityDate != null) {
-      final hoje = DateTime.now();
-      final hojeDate = DateTime(hoje.year, hoje.month, hoje.day);
-      final validade = store.validityDate!;
-      final validadeDate =
-          DateTime(validade.year, validade.month, validade.day);
-      final dias = validadeDate.difference(hojeDate).inDays;
-      _validadeOrcamentoController.text = dias.toString();
-    } else {
-      _validadeOrcamentoController.text = '60';
-      _updateValidityDate(60);
+    _validadeOrcamentoController.removeListener(_onValidityDaysChanged);
+
+    try {
+      if (store.validityDate != null) {
+        final dias = nonNegativeDaysUntil(store.validityDate!);
+        _validadeOrcamentoController.text = dias.toString();
+      } else {
+        _validadeOrcamentoController.text = '60';
+        _updateValidityDate(60);
+      }
+    } finally {
+      _validadeOrcamentoController.addListener(_onValidityDaysChanged);
     }
   }
 
@@ -578,6 +581,9 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                               TextField(
                                 controller: _validadeOrcamentoController,
                                 keyboardType: TextInputType.number,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                ],
                                 minLines: 1,
                                 maxLines: 1,
                                 decoration: InputDecoration(

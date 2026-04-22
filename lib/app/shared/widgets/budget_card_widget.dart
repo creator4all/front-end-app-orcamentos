@@ -181,6 +181,8 @@ class BudgetCardWidget extends StatelessWidget {
               children: [
                 DaysRemainingWidget(
                   daysRemaining: daysRemaining,
+                  isOverdue:
+                      status == BudgetStatus.expired || daysRemaining == 0,
                 ),
 
                 Row(
