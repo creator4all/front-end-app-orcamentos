@@ -231,6 +231,9 @@ abstract class _UserManagementStoreBase with Store {
     error = null;
 
     final updates = pendingChanges.values.toList();
+    final submittedUpdates = {
+      for (final update in updates) update.userId: update,
+    };
     final result = await updateUsersUsecase(updates);
 
     UpdateUsersResult? updateResult;
@@ -241,12 +244,35 @@ abstract class _UserManagementStoreBase with Store {
       },
       (success) {
         updateResult = success;
-        pendingChanges.clear();
+        _commitSuccessfulUpdates(success.updated, submittedUpdates);
+        if (success.errors.isNotEmpty) {
+          error = success.errors.join('\n');
+        }
       },
     );
 
     isSaving = false;
     return updateResult;
+  }
+
+  void _commitSuccessfulUpdates(
+    List<int> updatedUserIds,
+    Map<int, UserUpdate> submittedUpdates,
+  ) {
+    for (final userId in updatedUserIds) {
+      final userIndex = users.indexWhere((u) => u.id == userId);
+      if (userIndex == -1) continue;
+
+      final user = users[userIndex];
+      _originalStates[userId] = _OriginalUserState(
+        status: user.status,
+        roleId: user.roleId,
+      );
+
+      if (pendingChanges[userId] == submittedUpdates[userId]) {
+        pendingChanges.remove(userId);
+      }
+    }
   }
 
   @action
