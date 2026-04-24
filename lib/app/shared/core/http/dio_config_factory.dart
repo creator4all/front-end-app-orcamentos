@@ -1,4 +1,4 @@
-﻿import '../constants/http_constants.dart';
+import '../constants/http_constants.dart';
 import 'http_client_config.dart';
 import 'interceptors/auth_interceptor.dart';
 import 'interceptors/http_interceptor.dart';
@@ -8,6 +8,7 @@ class DioConfigFactory {
   static HttpClientConfig createDefault({
     required String baseUrl,
     String Function()? getToken,
+    Future<void> Function()? onUnauthorized,
     bool enableLogger = false,
     Duration? timeout,
     List<HttpInterceptor>? additionalInterceptors,
@@ -19,7 +20,6 @@ class DioConfigFactory {
           getToken: getToken,
           excludedPaths: ['/login', '/register', '/refresh-token'],
         ),
-
       ...?additionalInterceptors,
     ];
 
@@ -30,6 +30,7 @@ class DioConfigFactory {
       receiveTimeout: timeout ?? HttpTimeouts.defaultTimeout,
       enableLogger: enableLogger,
       getToken: getToken,
+      onUnauthorized: onUnauthorized,
       interceptors: interceptors,
       defaultHeaders: defaultHeaders,
       validateSsl: true,
@@ -41,12 +42,14 @@ class DioConfigFactory {
   static HttpClientConfig createForDevelopment({
     required String baseUrl,
     String Function()? getToken,
+    Future<void> Function()? onUnauthorized,
     bool validateSsl = false,
     List<HttpInterceptor>? additionalInterceptors,
   }) {
     return createDefault(
       baseUrl: baseUrl,
       getToken: getToken,
+      onUnauthorized: onUnauthorized,
       enableLogger: true,
       timeout: HttpTimeouts.longTimeout,
       additionalInterceptors: additionalInterceptors,
@@ -60,6 +63,7 @@ class DioConfigFactory {
     required String baseUrl,
     required String appVersion,
     String Function()? getToken,
+    Future<void> Function()? onUnauthorized,
     Function(dynamic)? onUpdateRequired,
     List<HttpInterceptor>? additionalInterceptors,
   }) {
@@ -74,6 +78,7 @@ class DioConfigFactory {
     return createDefault(
       baseUrl: baseUrl,
       getToken: getToken,
+      onUnauthorized: onUnauthorized,
       enableLogger: false,
       timeout: HttpTimeouts.defaultTimeout,
       additionalInterceptors: interceptors,
@@ -87,6 +92,7 @@ class DioConfigFactory {
   static HttpClientConfig createForTesting({
     required String baseUrl,
     String Function()? getToken,
+    Future<void> Function()? onUnauthorized,
     List<HttpInterceptor>? interceptors,
   }) {
     return HttpClientConfig(
@@ -96,6 +102,7 @@ class DioConfigFactory {
       receiveTimeout: HttpTimeouts.shortTimeout,
       enableLogger: false,
       getToken: getToken,
+      onUnauthorized: onUnauthorized,
       interceptors: interceptors,
       validateSsl: false,
     );
@@ -108,6 +115,7 @@ class DioConfigFactory {
     Duration? receiveTimeout,
     bool enableLogger = false,
     String Function()? getToken,
+    Future<void> Function()? onUnauthorized,
     List<HttpInterceptor>? interceptors,
     Map<String, String>? defaultHeaders,
     bool validateSsl = true,
@@ -121,6 +129,7 @@ class DioConfigFactory {
       receiveTimeout: receiveTimeout,
       enableLogger: enableLogger,
       getToken: getToken,
+      onUnauthorized: onUnauthorized,
       interceptors: interceptors,
       defaultHeaders: defaultHeaders,
       validateSsl: validateSsl,

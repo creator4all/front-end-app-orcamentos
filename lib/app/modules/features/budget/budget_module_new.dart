@@ -1,6 +1,7 @@
 import 'package:flutter_modular/flutter_modular.dart';
 
 import '../../../../config/api_config.dart';
+import '../../../shared/core/auth/session_expiration_handler.dart';
 import '../../../shared/core/http/app_http_client.dart';
 import '../../../shared/core/http/dio_config_factory.dart';
 import '../../../shared/core/http/dio_http_client_impl.dart';
@@ -84,6 +85,7 @@ class BudgetModuleNew extends Module {
             DioConfigFactory.createDefault(
               baseUrl: ApiConfig.baseUrl,
               getToken: () => TokenCache.instance.getTokenOrEmpty(),
+              onUnauthorized: SessionExpirationHandler.handleUnauthorized,
               enableLogger: true,
             ),
           ),

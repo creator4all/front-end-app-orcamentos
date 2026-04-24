@@ -12,12 +12,24 @@ class PartnerManagementApiDatasource implements PartnerManagementDatasource {
   Future<PaginatedPartnersDto> listPartners({
     required int page,
     required int perPage,
+    String? searchQuery,
+    String sort = 'tradeName_asc',
   }) async {
     try {
+      final queryParameters = {
+        'page': page,
+        'per_page': perPage,
+        'sort': sort,
+      };
+      final trimmedSearchQuery = searchQuery?.trim();
+      if (trimmedSearchQuery != null && trimmedSearchQuery.isNotEmpty) {
+        queryParameters['q'] = trimmedSearchQuery;
+      }
+
       final response = await httpClient.get(
         '/api/partners',
         config: HttpRequestConfig(
-          queryParameters: {'page': page, 'per_page': perPage},
+          queryParameters: queryParameters,
         ),
       );
 

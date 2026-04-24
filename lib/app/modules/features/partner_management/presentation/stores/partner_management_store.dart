@@ -1,15 +1,17 @@
 import 'package:mobx/mobx.dart';
 
-import '../../../../../shared/utils/document_validators.dart';
 import '../../domain/entities/partner.dart';
 import '../../domain/repositories/partner_management_repository.dart';
 
 part 'partner_management_store.g.dart';
 
+// ignore: library_private_types_in_public_api
 class PartnerManagementStore = _PartnerManagementStoreBase
     with _$PartnerManagementStore;
 
 abstract class _PartnerManagementStoreBase with Store {
+  static const _defaultSort = 'tradeName_asc';
+
   final PartnerManagementRepository partnerManagementRepository;
 
   _PartnerManagementStoreBase({required this.partnerManagementRepository});
@@ -43,21 +45,7 @@ abstract class _PartnerManagementStoreBase with Store {
 
   @computed
   List<Partner> get filteredPartners {
-    if (searchQuery.isEmpty) {
-      return partners.toList();
-    }
-    final query = searchQuery.toLowerCase();
-    final normalizedQuery = DocumentValidators.normalizeDocument(searchQuery);
-    return partners.where((partner) {
-      return partner.tradeName.toLowerCase().contains(query) ||
-          partner.legalName.toLowerCase().contains(query) ||
-          partner.cnpj.contains(query) ||
-          DocumentValidators.formatDocument(partner.cnpj)
-              .toLowerCase()
-              .contains(query) ||
-          DocumentValidators.normalizeDocument(partner.cnpj)
-              .contains(normalizedQuery);
-    }).toList();
+    return partners.toList();
   }
 
   @action
@@ -72,7 +60,11 @@ abstract class _PartnerManagementStoreBase with Store {
     currentPage = 1;
     partners.clear();
 
-    final result = await partnerManagementRepository.listPartners(page: 1);
+    final result = await partnerManagementRepository.listPartners(
+      page: 1,
+      searchQuery: _effectiveSearchQuery,
+      sort: _defaultSort,
+    );
     _processResult(result, updateTotal: true);
 
     isLoading = false;
@@ -87,10 +79,17 @@ abstract class _PartnerManagementStoreBase with Store {
 
     final result = await partnerManagementRepository.listPartners(
       page: nextPage,
+      searchQuery: _effectiveSearchQuery,
+      sort: _defaultSort,
     );
     _processResult(result);
 
     isLoadingMore = false;
+  }
+
+  String? get _effectiveSearchQuery {
+    final query = searchQuery.trim();
+    return query.isEmpty ? null : query;
   }
 
   void _processResult(dynamic result, {bool updateTotal = false}) {

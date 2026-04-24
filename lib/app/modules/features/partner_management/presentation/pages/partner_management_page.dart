@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -21,6 +23,7 @@ class _PartnerManagementPageState extends State<PartnerManagementPage> {
   late final AuthStore _authStore;
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
+  Timer? _searchDebounce;
 
   @override
   void initState() {
@@ -37,6 +40,7 @@ class _PartnerManagementPageState extends State<PartnerManagementPage> {
   void dispose() {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -60,6 +64,14 @@ class _PartnerManagementPageState extends State<PartnerManagementPage> {
     );
   }
 
+  void _onSearchChanged(String query) {
+    _store.setSearchQuery(query);
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 350), () {
+      _store.loadPartners();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -76,7 +88,7 @@ class _PartnerManagementPageState extends State<PartnerManagementPage> {
             padding: EdgeInsets.all(16.w),
             child: TextField(
               controller: _searchController,
-              onChanged: _store.setSearchQuery,
+              onChanged: _onSearchChanged,
               decoration: InputDecoration(
                 hintText: 'Buscar empresas...',
                 hintStyle: TextStyle(

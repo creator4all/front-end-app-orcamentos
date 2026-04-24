@@ -14,11 +14,15 @@ class PartnerManagementRepositoryImpl implements PartnerManagementRepository {
   Future<Either<Failure, PaginatedPartners>> listPartners({
     required int page,
     int perPage = 15,
+    String? searchQuery,
+    String sort = 'tradeName_asc',
   }) async {
     try {
       final result = await datasource.listPartners(
         page: page,
         perPage: perPage,
+        searchQuery: searchQuery,
+        sort: sort,
       );
       return Right(result.toEntity());
     } catch (e) {

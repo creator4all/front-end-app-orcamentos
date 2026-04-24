@@ -106,7 +106,7 @@ class DioHttpClientImpl implements AppHttpClient {
         onReceiveProgress: config?.receiveProgress,
       );
 
-      _validateResponse(response);
+      await _validateResponse(response);
 
       return response.toHttpResponse();
     } on DioException catch (e) {
@@ -152,6 +152,20 @@ class DioHttpClientImpl implements AppHttpClient {
         options: options,
         queryParameters: config?.queryParameters,
       );
+
+      final statusCode = response.statusCode;
+      if (statusCode != null && (statusCode < 200 || statusCode >= 300)) {
+        if (statusCode == 401) {
+          await _notifyUnauthorized();
+        }
+
+        throw HttpExceptionFactory.fromStatusCode(
+          statusCode: statusCode,
+          message: response.statusMessage ?? 'Erro ao fazer download',
+          endpoint: response.requestOptions.path,
+          data: response.data,
+        );
+      }
 
       return response.toDownloadHttpResponse(filePath: savePath);
     } on DioException catch (e) {
@@ -201,6 +215,10 @@ class DioHttpClientImpl implements AppHttpClient {
           response.statusCode! >= 200 &&
           response.statusCode! < 300) {
         return response.data ?? [];
+      }
+
+      if (response.statusCode == 401) {
+        await _notifyUnauthorized();
       }
 
       throw HttpException(
@@ -302,10 +320,14 @@ class DioHttpClientImpl implements AppHttpClient {
     }
   }
 
-  void _validateResponse(Response response) {
+  Future<void> _validateResponse(Response response) async {
     final statusCode = response.statusCode;
 
     if (statusCode != null && (statusCode < 200 || statusCode >= 300)) {
+      if (statusCode == 401) {
+        await _notifyUnauthorized();
+      }
+
       throw HttpExceptionFactory.fromStatusCode(
         statusCode: statusCode,
         message: _extractErrorMessage(response),
@@ -328,6 +350,12 @@ class DioHttpClientImpl implements AppHttpClient {
         );
       }
     }
+  }
+
+  Future<void> _notifyUnauthorized() async {
+    try {
+      await config.onUnauthorized?.call();
+    } catch (_) {}
   }
 
   String _extractErrorMessage(Response response) {
@@ -398,7 +426,6 @@ class DioHttpClientImpl implements AppHttpClient {
         );
 
       case DioExceptionType.unknown:
-      default:
         if (error.error is SocketException) {
           return ConnectionException(
             message: 'Sem conexão com a internet',
