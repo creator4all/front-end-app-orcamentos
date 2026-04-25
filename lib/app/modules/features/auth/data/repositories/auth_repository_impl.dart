@@ -57,9 +57,9 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, User>> getCurrentUser() async {
+  Future<Either<Failure, User>> getCurrentUser({bool forceRefresh = false}) async {
     try {
-      final userModel = await datasource.getCurrentUser(forceRefresh: true);
+      final userModel = await datasource.getCurrentUser(forceRefresh: forceRefresh);
 
       final user = userModel.toEntity();
 
@@ -143,9 +143,8 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       await datasource.resendOtpCode(email);
       return const Right(null);
-    } on TooManyRequestsException {
-      return const Left(
-          ValidationFailure('Aguarde antes de solicitar um novo código'));
+    } on TooManyRequestsException catch (e) {
+      return Left(ValidationFailure(e.message));
     } on ConnectionException {
       return const Left(NetworkFailure('Falha na conexão com o servidor'));
     } on TimeoutException {
@@ -165,12 +164,12 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       final isValid = await datasource.verifyOtpCode(email, otpCode);
       return Right(isValid);
-    } on UnauthorizedException {
-      return const Left(AuthFailure('Código OTP inválido ou expirado'));
-    } on BadRequestException {
-      return const Left(AuthFailure('Código OTP inválido ou expirado'));
-    } on NotFoundException {
-      return const Left(AuthFailure('Código OTP inválido ou expirado'));
+    } on UnauthorizedException catch (e) {
+      return Left(AuthFailure(e.message));
+    } on BadRequestException catch (e) {
+      return Left(AuthFailure(e.message));
+    } on NotFoundException catch (e) {
+      return Left(AuthFailure(e.message));
     } on ConnectionException {
       return const Left(NetworkFailure('Falha na conexão com o servidor'));
     } on TimeoutException {
@@ -178,7 +177,7 @@ class AuthRepositoryImpl implements AuthRepository {
     } on HttpException catch (e) {
       return Left(ServerFailure('Erro ${e.statusCode}: ${e.message}'));
     } catch (e) {
-      return const Left(AuthFailure('Código OTP inválido ou expirado'));
+      return const Left(ServerFailure('Erro ao verificar código. Tente novamente.'));
     }
   }
 
@@ -193,12 +192,12 @@ class AuthRepositoryImpl implements AuthRepository {
       await datasource.resetPassword(
           email, otpCode, newPassword, confirmPassword);
       return const Right(null);
-    } on UnauthorizedException {
-      return const Left(AuthFailure('Código OTP inválido ou expirado'));
-    } on BadRequestException {
-      return const Left(AuthFailure('Código OTP inválido ou expirado'));
-    } on NotFoundException {
-      return const Left(AuthFailure('Código OTP inválido ou expirado'));
+    } on UnauthorizedException catch (e) {
+      return Left(AuthFailure(e.message));
+    } on BadRequestException catch (e) {
+      return Left(AuthFailure(e.message));
+    } on NotFoundException catch (e) {
+      return Left(AuthFailure(e.message));
     } on ConnectionException {
       return const Left(NetworkFailure('Falha na conexão com o servidor'));
     } on TimeoutException {
@@ -209,7 +208,7 @@ class AuthRepositoryImpl implements AuthRepository {
     } on HttpException catch (e) {
       return Left(ServerFailure('Erro ${e.statusCode}: ${e.message}'));
     } catch (e) {
-      return const Left(AuthFailure('Código OTP inválido ou expirado'));
+      return const Left(ServerFailure('Erro ao redefinir senha. Tente novamente.'));
     }
   }
 

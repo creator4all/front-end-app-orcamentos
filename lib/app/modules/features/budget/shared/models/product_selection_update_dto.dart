@@ -6,7 +6,7 @@ import 'indicador_produto_update_dto.dart';
 class ProductSelectionUpdateDto extends Equatable {
   final int productId;
   final bool selecionado;
-  final int quantidade;
+  final double quantidade;
   final String tipoProduto;
   final List<IndicadorProdutoUpdateDto>? indicadores;
   final double? valor;
@@ -59,6 +59,7 @@ class ProductSelectionUpdateDto extends Equatable {
         if (isServico) 'quantidade': quantidade,
         if (!isServico && indicadores != null && indicadores!.isNotEmpty)
           'indicadores_etapa': indicadores!.map((i) => i.toJson()).toList(),
+        if (valor != null) 'valor': valor,
       };
 
   @override

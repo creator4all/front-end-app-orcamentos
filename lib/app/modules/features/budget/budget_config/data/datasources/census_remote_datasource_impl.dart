@@ -22,6 +22,17 @@ class CensusRemoteDataSourceImpl implements CensusRemoteDataSource {
         token: TokenCache.instance.getTokenOrEmpty(),
       );
 
+  int _toInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  int? _toNullableInt(dynamic value) {
+    final parsed = _toInt(value);
+    return parsed == 0 ? null : parsed;
+  }
+
   @override
   Future<CensusDataDto> getCensusData(int cityId) async {
     final response = await _client.get(
@@ -100,8 +111,8 @@ class CensusRemoteDataSourceImpl implements CensusRemoteDataSource {
   }
 
   CensoEscolarEntity _mapToCensoEscolarEntity(Map<String, dynamic> json) {
-    final int cidadeId = json['id'] as int? ?? 0;
-    final String cidadeNome = (json['nome'] ?? '') as String;
+    final int cidadeId = _toInt(json['id']);
+    final String cidadeNome = (json['nome'] ?? '').toString();
 
     final List<dynamic> indicesList = json['indices_etapa'] ?? [];
 
@@ -146,6 +157,7 @@ class CensusRemoteDataSourceImpl implements CensusRemoteDataSource {
     return CensoEscolarEntity(
       cidadeId: cidadeId,
       cidadeNome: cidadeNome,
+      censoAno: _toNullableInt(json['censo_ano']),
       grupos: groupsMap.values.toList(),
       valoresPorEtapa: valoresPorEtapa,
     );

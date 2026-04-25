@@ -23,7 +23,9 @@ class DriveItemListView extends StatelessWidget {
     return ListView.builder(
       padding: EdgeInsets.symmetric(horizontal: 10.w),
       itemCount: items.length,
-      physics: const BouncingScrollPhysics(),
+      physics: const AlwaysScrollableScrollPhysics(
+        parent: BouncingScrollPhysics(),
+      ),
       itemBuilder: (context, index) {
         final item = items[index];
         return Column(

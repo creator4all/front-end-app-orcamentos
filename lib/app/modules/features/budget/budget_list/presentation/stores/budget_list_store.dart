@@ -84,6 +84,13 @@ abstract class _BudgetListStoreBase with Store {
   }
 
   @action
+  Future<void> refreshWithLoadingState() async {
+    items.clear();
+    allItems.clear();
+    await fetch();
+  }
+
+  @action
   void reset() {
     allItems.clear();
     items.clear();
@@ -137,6 +144,40 @@ abstract class _BudgetListStoreBase with Store {
     } catch (e) {
       error = 'Erro ao excluir orçamento: $e';
     }
+  }
+
+  @action
+  void applyBudgetPatch({
+    required int budgetId,
+    String? nome,
+    int? diasValidade,
+    DateTime? dataValidade,
+    String? status,
+    bool? isArchived,
+    double? total,
+  }) {
+    final index = allItems.indexWhere((b) => b.id == budgetId);
+    if (index == -1) return;
+
+    final current = allItems[index];
+
+    allItems[index] = BudgetEntity(
+      id: current.id,
+      nome: nome ?? current.nome,
+      diasValidade: diasValidade ?? current.diasValidade,
+      dataValidade: dataValidade ?? current.dataValidade,
+      status: status ?? current.status,
+      isArchived: isArchived ?? current.isArchived,
+      total: total ?? current.total,
+      cidadesCount: current.cidadesCount,
+      criadoPorAdmin: current.criadoPorAdmin,
+      partnerDestinoId: current.partnerDestinoId,
+      usuarioId: current.usuarioId,
+      usuarioNome: current.usuarioNome,
+      empresaRazaoSocial: current.empresaRazaoSocial,
+    );
+
+    applyFilters();
   }
 
   @action

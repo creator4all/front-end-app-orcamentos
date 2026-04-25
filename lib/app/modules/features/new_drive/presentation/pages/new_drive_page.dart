@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -30,8 +31,7 @@ class _NewDrivePageState extends State<NewDrivePage> {
   @override
   void initState() {
     super.initState();
-    store.folderStack.clear();
-    store.currentFolder = null;
+    store.clearFolderNavigation();
 
     store.initialize();
     reaction(
@@ -71,90 +71,94 @@ class _NewDrivePageState extends State<NewDrivePage> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              return SingleChildScrollView(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: constraints.maxHeight,
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 10.w),
-                            child: Column(
-                              children: [
-                                SizedBox(height: 16.h),
-                                _buildSearchField(),
-                              ],
-                            ),
-                          ),
-                          Observer(
-                            builder: (_) {
-                              if (store.recentItems.isNotEmpty) {
-                                return Padding(
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: 10.w, vertical: 24.h),
-                                  child: _buildRecentSection(),
-                                );
-                              }
-                              return Padding(
-                                padding: EdgeInsets.symmetric(vertical: 48.h),
-                                child: Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.folder_open_outlined,
-                                        size: 48.sp,
-                                        color: const Color(0xFF9095A0),
-                                      ),
-                                      SizedBox(height: 12.h),
-                                      Text(
-                                        authStore.isAdmin
-                                            ? 'Nenhum item compartilhado com você\nou enviado por você'
-                                            : 'Nenhum item compartilhado com você ainda',
-                                        style: TextStyle(
-                                          fontSize: 13.sp,
-                                          color: const Color(0xFF565E6C),
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                      Column(
-                        children: [
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 10.w),
-                            child: Column(
-                              children: [
-                                if (authStore.isAdmin) ...[
-                                  _buildMyFilesButton(),
-                                  SizedBox(height: 12.h),
+          return RefreshIndicator(
+            onRefresh: () => store.initialize(),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 10.w),
+                              child: Column(
+                                children: [
+                                  SizedBox(height: 16.h),
+                                  _buildSearchField(),
                                 ],
-                                _buildSharedFilesButton(),
-                                SizedBox(height: 16.h),
-                              ],
+                              ),
                             ),
-                          ),
-                          _buildCategoriesSection(),
-                        ],
-                      ),
-                    ],
+                            Observer(
+                              builder: (_) {
+                                if (store.recentItems.isNotEmpty) {
+                                  return Padding(
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 10.w, vertical: 24.h),
+                                    child: _buildRecentSection(),
+                                  );
+                                }
+                                return Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 48.h),
+                                  child: Center(
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.folder_open_outlined,
+                                          size: 48.sp,
+                                          color: const Color(0xFF9095A0),
+                                        ),
+                                        SizedBox(height: 12.h),
+                                        Text(
+                                          authStore.isAdmin
+                                              ? 'Nenhum item compartilhado com você\nou enviado por você'
+                                              : 'Nenhum item compartilhado com você ainda',
+                                          style: TextStyle(
+                                            fontSize: 13.sp,
+                                            color: const Color(0xFF565E6C),
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                        Column(
+                          children: [
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 10.w),
+                              child: Column(
+                                children: [
+                                  if (authStore.isAdmin) ...[
+                                    _buildMyFilesButton(),
+                                    SizedBox(height: 12.h),
+                                  ],
+                                  _buildSharedFilesButton(),
+                                  SizedBox(height: 16.h),
+                                ],
+                              ),
+                            ),
+                            _buildCategoriesSection(),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           );
         },
       ),
@@ -211,7 +215,7 @@ class _NewDrivePageState extends State<NewDrivePage> {
         SizedBox(height: 12.h),
         Observer(
           builder: (_) {
-            final items = store.recentItems.take(4).toList();
+            final items = store.filteredRecentItems;
 
             if (items.isEmpty) {
               return _buildEmptyState('Nenhum arquivo recente');
@@ -285,11 +289,14 @@ class _NewDrivePageState extends State<NewDrivePage> {
     if (savedPath != null) {
       final fileName = savedPath.split('/').last;
       final folderPath = savedPath.substring(0, savedPath.lastIndexOf('/'));
+      final messageStr = Platform.isIOS
+          ? 'O arquivo "$fileName" foi disponibilizado nos seus Arquivos'
+          : 'O arquivo "$fileName" foi salvo em:\n$folderPath';
       CustomInfoDialog.show(
         context: context,
         type: DialogType.success,
         title: 'Download concluído',
-        message: 'O arquivo "$fileName" foi salvo em:\n$folderPath',
+        message: messageStr,
       );
       return;
     }
@@ -362,7 +369,7 @@ class _NewDrivePageState extends State<NewDrivePage> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Todos os arquivos compartilhados',
+              'Compartilhados comigo',
               style: TextStyle(
                 fontSize: 14.sp,
                 color: const Color(0xFF171A1F),

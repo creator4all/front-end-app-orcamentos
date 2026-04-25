@@ -125,12 +125,26 @@ class _MultiCityCensusPageState
     final budgetData = await store.createBudget();
 
     if (budgetData != null) {
-      final budgetId = budgetData['id'];
+      final rawBudgetId = budgetData['id'];
+      final budgetId = switch (rawBudgetId) {
+        int value => value,
+        String value => int.tryParse(value),
+        _ => int.tryParse(rawBudgetId?.toString() ?? ''),
+      };
 
-      Modular.to.pushReplacementNamed(
-        '/budget/config/$budgetId',
-        arguments: {'multiCityResponse': budgetData},
-      );
+      if (budgetId == null || budgetId <= 0) {
+        if (mounted) {
+          CustomInfoDialog.show(
+            context: context,
+            type: DialogType.error,
+            title: 'Erro ao criar orçamento',
+            message: 'ID do orçamento não retornado pela API.',
+          );
+        }
+        return;
+      }
+
+      Modular.to.pushReplacementNamed('/budget/config/$budgetId');
     } else if (store.error != null && mounted) {
       CustomInfoDialog.show(
         context: context,
@@ -184,7 +198,6 @@ class _MultiCityCensusPageState
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildCityBadges(),
-
                         if (store.quantidadeCidades > 1) ...[
                           SizedBox(height: 16.h),
                           CitySelectorDropdown(
@@ -193,9 +206,7 @@ class _MultiCityCensusPageState
                             onCitySelected: store.selectCity,
                           ),
                         ],
-
                         SizedBox(height: 16.h),
-
                         Padding(
                           padding: EdgeInsets.symmetric(horizontal: 16.w),
                           child: Text(
@@ -208,13 +219,11 @@ class _MultiCityCensusPageState
                           ),
                         ),
                         SizedBox(height: 8.h),
-
                         _buildCensusSections(),
                       ],
                     ),
                   ),
                 ),
-
                 _buildNextButton(),
               ],
             );
@@ -305,8 +314,7 @@ class _MultiCityCensusPageState
                 _syncControllersWithStore();
                 return CensusDataSectionWidget.withNomeEtapa(
                   group: group,
-                  isEditMode: !store
-                      .isAggregateMode,
+                  isEditMode: !store.isAggregateMode,
                   controllers: _controllers,
                   onItemChanged: (entry) {
                     final cityId = store.selectedCityId ??

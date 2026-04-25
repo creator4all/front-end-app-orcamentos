@@ -4,6 +4,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:multimidiaapp/app/shared/utils/chewie_options_translation.dart';
 import 'package:multimidiaapp/app/shared/utils/document_validators.dart';
 import 'package:multimidiaapp/app/shared/utils/email_validator.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_info_dialog.dart';
@@ -62,6 +63,7 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
           looping: false,
           allowFullScreen: true,
           showControlsOnInitialize: true,
+          optionsTranslation: buildChewieOptionsTranslationPtBr(),
           materialProgressColors: ChewieProgressColors(
             playedColor: const Color(0xFF117BBD),
             handleColor: const Color(0xFF0C498E),

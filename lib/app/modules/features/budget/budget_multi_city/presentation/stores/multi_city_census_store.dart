@@ -1,6 +1,7 @@
 import 'package:mobx/mobx.dart';
 import 'package:multimidiaapp/app/modules/features/auth/presentation/stores/auth_store.dart';
 import 'package:multimidiaapp/app/modules/features/budget/budget_config/domain/entities/censo_escolar_entity.dart';
+import 'package:multimidiaapp/app/modules/features/budget/budget_config/domain/services/census_value_normalizer.dart';
 
 import '../../domain/usecases/create_multi_city_budget_usecase.dart';
 import '../../domain/usecases/get_multi_city_census_usecase.dart';
@@ -20,7 +21,6 @@ abstract class _MultiCityCensusStoreBase with Store {
     this._createBudgetUseCase,
     this._authStore,
   );
-
 
   @observable
   String budgetName = '';
@@ -55,7 +55,6 @@ abstract class _MultiCityCensusStoreBase with Store {
   @observable
   String? error;
 
-
   @computed
   CensoEscolarEntity? get currentCensus {
     if (selectedCityId != null) {
@@ -86,7 +85,21 @@ abstract class _MultiCityCensusStoreBase with Store {
 
   @computed
   double get valorTotalAgregado {
-    return censusPerCity.values.fold(0.0, (sum, c) => sum + c.valorTotal);
+    if (editedValuesPerCity.isNotEmpty) {
+      return aggregatedValues.values.fold(0.0, (sum, value) => sum + value);
+    }
+
+    return censusPerCity.values.fold(0.0, (sum, censo) {
+      final totalCidade =
+          censo.valoresPorEtapa.entries.fold(0.0, (citySum, entry) {
+        return citySum +
+            CensusValueNormalizer.consolidateStageValue(
+              entry.key,
+              entry.value,
+            );
+      });
+      return sum + totalCidade;
+    });
   }
 
   @computed
@@ -97,7 +110,8 @@ abstract class _MultiCityCensusStoreBase with Store {
     final result = <int, double>{};
     for (final values in editedValuesPerCity.values) {
       for (final entry in values.entries) {
-        result[entry.key] = (result[entry.key] ?? 0) + entry.value;
+        result[entry.key] = (result[entry.key] ?? 0) +
+            _consolidateValue(entry.key, entry.value);
       }
     }
     return result;
@@ -116,12 +130,23 @@ abstract class _MultiCityCensusStoreBase with Store {
     for (final entry in sourceValues.entries) {
       final nomeEtapa = _idToNomeEtapa[entry.key];
       if (nomeEtapa != null) {
-        result[nomeEtapa] = entry.value;
+        result[nomeEtapa] = CensusValueNormalizer.consolidateStageValue(
+          nomeEtapa,
+          entry.value,
+        );
       }
     }
     return result;
   }
 
+  double _consolidateValue(int indiceEtapaId, double value) {
+    final nomeEtapa = _idToNomeEtapa[indiceEtapaId];
+    if (nomeEtapa == null) {
+      return value;
+    }
+
+    return CensusValueNormalizer.consolidateStageValue(nomeEtapa, value);
+  }
 
   @action
   void setBudgetName(String name) {
@@ -133,6 +158,7 @@ abstract class _MultiCityCensusStoreBase with Store {
     selectedCities.clear();
     selectedCities.addAll(cities);
   }
+
   @action
   void addCity(Map<String, dynamic> city) {
     if (!selectedCities.any((c) => c['id'] == city['id'])) {

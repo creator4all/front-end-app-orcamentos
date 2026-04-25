@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -32,8 +32,10 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final topPadding = MediaQuery.of(context).padding.top;
+    
     return Container(
-      height: 70.h,
+      height: 70.h + topPadding,
       margin: EdgeInsets.only(bottom: 16.h),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -51,38 +53,44 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
         ],
       ),
       child: SafeArea(
+        bottom: false,
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.w),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  if (showBackButton) ...[
-                    GestureDetector(
-                      onTap: onBackPressed ?? () => Navigator.of(context).pop(),
-                      child: Container(
-                        padding: EdgeInsets.all(8.w),
-                        child: Icon(
-                          Icons.arrow_back,
-                          size: 24.sp,
-                          color: const Color(0xFF484848),
+              Expanded(
+                child: Row(
+                  children: [
+                    if (showBackButton) ...[
+                      GestureDetector(
+                        onTap: onBackPressed ?? () => Navigator.of(context).pop(),
+                        child: Container(
+                          padding: EdgeInsets.all(8.w),
+                          child: Icon(
+                            Icons.arrow_back,
+                            size: 24.sp,
+                            color: const Color(0xFF484848),
+                          ),
                         ),
                       ),
+                      SizedBox(width: 8.w),
+                    ],
+                    Flexible(
+                      child: Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 18.sp,
+                          fontWeight: FontWeight.w400,
+                          color: const Color(0xFF484848),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
                     ),
-                    SizedBox(width: 8.w),
                   ],
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.w400,
-                      color: const Color(0xFF484848),
-                    ),
-                  ),
-                ],
+                ),
               ),
-
               if (actionButton != null) ...[
                 actionButton!,
               ] else if (!showBackButton) ...[

@@ -18,12 +18,6 @@ class DownloadAndOpenFileUsecase {
     Function(double)? onProgress,
   }) async {
     try {
-      if (!_isFileTypeSupported(item.name)) {
-        return left(
-          const UnsupportedFileTypeFailure('Tipo de arquivo não suportado'),
-        );
-      }
-
       final bytesResult = await repository.downloadFileBytes(item.id);
 
       return bytesResult.fold(
@@ -74,37 +68,6 @@ class DownloadAndOpenFileUsecase {
         DownloadFileFailure('Erro ao processar solicitação: $e'),
       );
     }
-  }
-
-  bool _isFileTypeSupported(String fileName) {
-    final extension = fileName.split('.').last.toLowerCase();
-    const supportedExtensions = [
-      'pdf',
-      'doc',
-      'docx',
-      'xls',
-      'xlsx',
-      'ppt',
-      'pptx',
-      'txt',
-      'jpg',
-      'jpeg',
-      'png',
-      'gif',
-      'bmp',
-      'webp',
-      'mp4',
-      'avi',
-      'mov',
-      'mkv',
-      'webm',
-      '3gp',
-      'mp3',
-      'wav',
-      'aac',
-      'm4a',
-    ];
-    return supportedExtensions.contains(extension);
   }
 
   String _sanitizeFileName(String fileName) {

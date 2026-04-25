@@ -1,6 +1,5 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
-import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:multimidiaapp/app/modules/features/budget/budget_config/presentation/widgets/product_item_card.dart';
 
@@ -9,20 +8,39 @@ import '../../../../../../shared/widgets/custom_modal.dart';
 import '../../domain/entities/category_entity.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../domain/entities/subcategory_entity.dart';
-import '../stores/budget_config_store.dart';
 import 'product_info_modal.dart';
+
+typedef CategoryResolver = CategoryEntity Function(int categoryId);
+typedef SubcategoryResolver = SubcategoryEntity Function(
+  int categoryId,
+  int subcategoryId,
+);
+typedef ProductSelectionChanged = void Function(int productId, bool selected);
+typedef ProductValueChanged = void Function(int productId, double value);
+typedef ProductQuantityChanged = void Function(int productId, double quantity);
+typedef ProductIndicatorToggled = void Function(int productId, int indicatorId);
 
 class SubcategoryProductsModal extends StatelessWidget {
   final int categoryId;
   final int subcategoryId;
-  final dynamic store;
+  final CategoryResolver resolveCategory;
+  final SubcategoryResolver resolveSubcategory;
+  final ProductSelectionChanged? onToggleProduct;
+  final ProductValueChanged? onUpdateProductValue;
+  final ProductQuantityChanged? onUpdateProductQuantity;
+  final ProductIndicatorToggled? onToggleProductIndicator;
   final bool isReadOnly;
 
   const SubcategoryProductsModal({
     super.key,
     required this.categoryId,
     required this.subcategoryId,
-    this.store,
+    required this.resolveCategory,
+    required this.resolveSubcategory,
+    this.onToggleProduct,
+    this.onUpdateProductValue,
+    this.onUpdateProductQuantity,
+    this.onToggleProductIndicator,
     this.isReadOnly = false,
   });
 
@@ -30,7 +48,12 @@ class SubcategoryProductsModal extends StatelessWidget {
     required BuildContext context,
     required CategoryEntity category,
     required SubcategoryEntity subcategory,
-    dynamic store,
+    required CategoryResolver resolveCategory,
+    required SubcategoryResolver resolveSubcategory,
+    ProductSelectionChanged? onToggleProduct,
+    ProductValueChanged? onUpdateProductValue,
+    ProductQuantityChanged? onUpdateProductQuantity,
+    ProductIndicatorToggled? onToggleProductIndicator,
     bool isReadOnly = false,
   }) {
     return CustomModal.show(
@@ -40,49 +63,47 @@ class SubcategoryProductsModal extends StatelessWidget {
       content: SubcategoryProductsModal(
         categoryId: category.id,
         subcategoryId: subcategory.id,
-        store: store,
+        resolveCategory: resolveCategory,
+        resolveSubcategory: resolveSubcategory,
+        onToggleProduct: onToggleProduct,
+        onUpdateProductValue: onUpdateProductValue,
+        onUpdateProductQuantity: onUpdateProductQuantity,
+        onToggleProductIndicator: onToggleProductIndicator,
         isReadOnly: isReadOnly,
       ),
     );
   }
 
-  void _handleInfoTap(
-      BuildContext context,
-      ProductEntity product,
-      dynamic storeInstance,
-      CategoryEntity category,
-      SubcategoryEntity subcategory) {
+  void _handleInfoTap(BuildContext context, ProductEntity product) {
     ProductInfoModal.show(
       context: context,
-      categoryId: category.id,
-      subcategoryId: subcategory.id,
-      productId: product.id,
-      store: storeInstance,
+      getProduct: () {
+        final currentSubcategory = resolveSubcategory(categoryId, subcategoryId);
+        return currentSubcategory.produtos.firstWhere(
+          (item) => item.id == product.id,
+          orElse: () => product,
+        );
+      },
+      getCategoryName: () => resolveCategory(categoryId).nome,
+      getSubcategoryName: () => resolveSubcategory(categoryId, subcategoryId).nome,
+      onValueChanged: isReadOnly
+          ? null
+          : (value) => onUpdateProductValue?.call(product.id, value),
+      onQuantityChanged: isReadOnly
+          ? null
+          : (quantity) => onUpdateProductQuantity?.call(product.id, quantity),
+      onIndicatorToggled: isReadOnly
+          ? null
+          : (indicatorId) =>
+              onToggleProductIndicator?.call(product.id, indicatorId),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final storeInstance = store ?? Modular.get<BudgetConfigStore>();
-
     return Observer(
       builder: (_) {
-        final category = storeInstance.categories.firstWhere(
-          (c) => c.id == categoryId,
-          orElse: () => throw Exception('Categoria não encontrada'),
-        );
-
-        final subcategory = category.subcategorias.firstWhere(
-          (s) => s.id == subcategoryId,
-          orElse: () => throw Exception('Subcategoria não encontrada'),
-        );
-
-        if (subcategory.produtos.isNotEmpty) {
-          for (var i = 0; i < 3 && i < subcategory.produtos.length; i++) {
-            final p = subcategory.produtos[i];
-          }
-        }
-
+        final subcategory = resolveSubcategory(categoryId, subcategoryId);
         final activeProducts = subcategory.activeProdutos;
 
         if (activeProducts.isEmpty) {
@@ -117,10 +138,9 @@ class SubcategoryProductsModal extends StatelessWidget {
                   onToggle: isReadOnly
                       ? null
                       : (isSelected) {
-                          storeInstance.toggleProduct(product.id, isSelected);
+                          onToggleProduct?.call(product.id, isSelected);
                         },
-                  onInfoTap: () => _handleInfoTap(
-                      context, product, storeInstance, category, subcategory),
+                  onInfoTap: () => _handleInfoTap(context, product),
                 );
               },
             ),

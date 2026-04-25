@@ -26,6 +26,9 @@ class HttpClientConfig {
   /// ```
   final String Function()? getToken;
 
+  /// Callback chamado quando a API retorna 401.
+  final Future<void> Function()? onUnauthorized;
+
   /// Lista de interceptadores customizados
   ///
   /// Interceptadores são executados em ordem antes/depois das requisições
@@ -50,6 +53,7 @@ class HttpClientConfig {
     this.receiveTimeout,
     this.enableLogger = false,
     this.getToken,
+    this.onUnauthorized,
     this.interceptors,
     this.defaultHeaders,
     this.validateSsl = true,
@@ -65,6 +69,7 @@ class HttpClientConfig {
     Duration? receiveTimeout,
     bool? enableLogger,
     String Function()? getToken,
+    Future<void> Function()? onUnauthorized,
     List<dynamic>? interceptors,
     Map<String, String>? defaultHeaders,
     bool? validateSsl,
@@ -78,6 +83,7 @@ class HttpClientConfig {
       receiveTimeout: receiveTimeout ?? this.receiveTimeout,
       enableLogger: enableLogger ?? this.enableLogger,
       getToken: getToken ?? this.getToken,
+      onUnauthorized: onUnauthorized ?? this.onUnauthorized,
       interceptors: interceptors ?? this.interceptors,
       defaultHeaders: defaultHeaders ?? this.defaultHeaders,
       validateSsl: validateSsl ?? this.validateSsl,

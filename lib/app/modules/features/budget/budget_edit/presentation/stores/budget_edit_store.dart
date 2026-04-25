@@ -66,6 +66,14 @@ abstract class _BudgetEditStoreBase with Store {
   @observable
   DateTime? validityDate;
 
+  /// Valor original de dias_validade recebido do backend
+  int? _originalValidityDays;
+
+  /// Indica se o usuário alterou a data de validade nesta sessão de edição
+  bool _validityDateChanged = false;
+
+  int _loadRequestVersion = 0;
+
   @observable
   String? budgetName;
 
@@ -154,12 +162,18 @@ abstract class _BudgetEditStoreBase with Store {
 
   @action
   Future<void> loadBudgetForEdit(int budgetId) async {
+    final requestVersion = ++_loadRequestVersion;
+
+    _clearBudgetStateForLoading();
     isLoading = true;
     isLoadingProducts = true;
-    error = null;
 
     try {
       final result = await getBudgetForEditUseCase(budgetId);
+
+      if (requestVersion != _loadRequestVersion) {
+        return;
+      }
 
       result.fold(
         (failure) {
@@ -178,6 +192,8 @@ abstract class _BudgetEditStoreBase with Store {
           isArchived = budget.isArchived;
           validityDate = budget.validityDate;
           budgetName = budget.name;
+          _originalValidityDays = budget.validityDays;
+          _validityDateChanged = false;
 
           selectedProductIds.clear();
           selectedProductIds.addAll(
@@ -185,12 +201,16 @@ abstract class _BudgetEditStoreBase with Store {
           );
 
           _parseCensoEscolarFromCitiesData();
+          _recalculateProductQuantities();
 
           isLoading = false;
           isLoadingProducts = false;
         },
       );
     } catch (e) {
+      if (requestVersion != _loadRequestVersion) {
+        return;
+      }
       error = 'Erro ao carregar orçamento: $e';
       isLoading = false;
       isLoadingProducts = false;
@@ -321,6 +341,7 @@ abstract class _BudgetEditStoreBase with Store {
   @action
   void setValidityDate(DateTime? date) {
     validityDate = date;
+    _validityDateChanged = true;
   }
 
   @action
@@ -335,10 +356,15 @@ abstract class _BudgetEditStoreBase with Store {
 
     try {
       int? validityDays;
-      if (validityDate != null) {
+      if (_validityDateChanged && validityDate != null) {
         final hoje = DateTime.now();
         final hojeDate = DateTime(hoje.year, hoje.month, hoje.day);
-        validityDays = validityDate!.difference(hojeDate).inDays;
+        final validade = validityDate!;
+        final validadeDate =
+            DateTime(validade.year, validade.month, validade.day);
+        validityDays = validadeDate.difference(hojeDate).inDays;
+      } else {
+        validityDays = _originalValidityDays;
       }
 
       final result = await updateBudgetUseCase(
@@ -376,21 +402,30 @@ abstract class _BudgetEditStoreBase with Store {
 
   @action
   void reset() {
+    _loadRequestVersion++;
+    _clearBudgetStateForLoading();
+    isLoading = false;
+    isSaving = false;
+    isLoadingProducts = false;
+    isLoadingCensus = false;
+  }
+
+  void _clearBudgetStateForLoading() {
     budgetData = null;
     selectedProductIds.clear();
     categories.clear();
     selectedCategory = null;
     selectedSubcategory = null;
     censusData = null;
+    censoEscolar = null;
+    productsNeedingRemark.clear();
     selectedStatus = 'pendente';
     isArchived = false;
     validityDate = null;
     budgetName = null;
     error = null;
-    isLoading = false;
-    isSaving = false;
-    isLoadingProducts = false;
-    isLoadingCensus = false;
+    _originalValidityDays = null;
+    _validityDateChanged = false;
   }
 
   @action
@@ -493,7 +528,7 @@ abstract class _BudgetEditStoreBase with Store {
               censoEscolar,
             );
             updatedProduct = updatedProduct.copyWith(
-              quantidade: novaQuantidade.round(),
+              quantidade: novaQuantidade,
             );
           }
 
@@ -530,7 +565,52 @@ abstract class _BudgetEditStoreBase with Store {
   }
 
   @action
-  void updateProductQuantity(int productId, int quantity) {
+  void updateProductValue(int productId, double value) {
+    for (var i = 0; i < categories.length; i++) {
+      final category = categories[i];
+
+      for (var j = 0; j < category.subcategorias.length; j++) {
+        final subcategory = category.subcategorias[j];
+        final prodIndex = subcategory.produtos.indexWhere(
+          (p) => p.id == productId,
+        );
+
+        if (prodIndex != -1) {
+          final product = subcategory.produtos[prodIndex];
+
+          if (!product.ativo) {
+            return;
+          }
+
+          final updatedProduct = product.copyWith(valor: value);
+
+          final updatedProducts = List<ProductEntity>.from(
+            subcategory.produtos,
+          );
+          updatedProducts[prodIndex] = updatedProduct;
+
+          final updatedSubcategory = subcategory.copyWith(
+            produtos: updatedProducts,
+          );
+
+          final updatedSubcategories = List<SubcategoryEntity>.from(
+            category.subcategorias,
+          );
+          updatedSubcategories[j] = updatedSubcategory;
+
+          final updatedCategory = category.copyWith(
+            subcategorias: updatedSubcategories,
+          );
+
+          categories[i] = updatedCategory;
+          return;
+        }
+      }
+    }
+  }
+
+  @action
+  void updateProductQuantity(int productId, double quantity) {
     for (var i = 0; i < categories.length; i++) {
       final category = categories[i];
 
@@ -652,7 +732,7 @@ abstract class _BudgetEditStoreBase with Store {
               );
 
               updatedProduct = updatedProduct.copyWith(
-                quantidade: novaQuantidade.round(),
+                quantidade: novaQuantidade,
               );
             }
 
@@ -713,12 +793,16 @@ abstract class _BudgetEditStoreBase with Store {
 
       final totalCalculado = totalValue;
 
-      final hoje = DateTime.now();
-      final hojeNormalizado = DateTime(hoje.year, hoje.month, hoje.day);
-      final validadeNormalizada =
-          DateTime(validityDate!.year, validityDate!.month, validityDate!.day);
-      final diasValidade =
-          validadeNormalizada.difference(hojeNormalizado).inDays;
+      int diasValidade;
+      if (_validityDateChanged) {
+        final hoje = DateTime.now();
+        final hojeNormalizado = DateTime(hoje.year, hoje.month, hoje.day);
+        final validadeNormalizada = DateTime(
+            validityDate!.year, validityDate!.month, validityDate!.day);
+        diasValidade = validadeNormalizada.difference(hojeNormalizado).inDays;
+      } else {
+        diasValidade = _originalValidityDays ?? budgetData!.validityDays;
+      }
 
       final isMultiCity = budgetData!.isMultiCity;
 
@@ -854,6 +938,7 @@ abstract class _BudgetEditStoreBase with Store {
       await loadBudgetForEdit(budgetData!.id);
 
       _recalculateProductQuantities();
+      budgetData = budgetData?.copyWith(total: totalValue);
 
       if (oldCenso != null && censoEscolar != null) {
         _checkForProductsToRemark(oldCenso, censoEscolar!);
@@ -900,7 +985,7 @@ abstract class _BudgetEditStoreBase with Store {
 
           if (oldQuantity == 0 && newQuantity > 0 && !product.selecionado) {
             final updatedProduct = product.copyWith(
-              quantidade: newQuantity.round(),
+              quantidade: newQuantity,
             );
             productsToRemark.add(updatedProduct);
           }

@@ -26,7 +26,7 @@ class ProductEntity extends Equatable {
   /// Estado do checkbox (true = marcado)
   final bool selecionado;
 
-  final int quantidade;
+  final double quantidade;
   final bool temOverride;
   final String? observacoes;
   final double valorOriginal;
@@ -72,6 +72,8 @@ class ProductEntity extends Equatable {
   String get formattedValue => CurrencyUtils.formatBRL(valor);
 
   String get formattedTotalValue => CurrencyUtils.formatBRL(totalValue);
+
+  String get formattedQuantidade => quantidade.toInt().toString();
 
   @override
   List<Object?> get props => [

@@ -13,6 +13,17 @@ class MultiCityBudgetRemoteDataSourceImpl
 
   MultiCityBudgetRemoteDataSourceImpl(this._client);
 
+  int _toInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  int? _toNullableInt(dynamic value) {
+    final parsed = _toInt(value);
+    return parsed == 0 ? null : parsed;
+  }
+
   /// Constrói payload de cidades com overrides para envio à API
   List<Map<String, dynamic>> _buildCidadesPayload(
     List<int> cidadeIds,
@@ -101,8 +112,7 @@ class MultiCityBudgetRemoteDataSourceImpl
 
   /// Mapeia resposta JSON para CensoEscolarEntity
   CensoEscolarEntity _mapToCensoEscolarEntity(Map<String, dynamic> json) {
-    final int cidadeId =
-        json['id'] is int ? json['id'] : int.tryParse('${json['id']}') ?? 0;
+    final int cidadeId = _toInt(json['id']);
     final String cidadeNome = (json['nome'] ?? '').toString();
 
     final List<dynamic> indicesList = json['indices_etapa'] ?? [];
@@ -163,6 +173,7 @@ class MultiCityBudgetRemoteDataSourceImpl
     return CensoEscolarEntity(
       cidadeId: cidadeId,
       cidadeNome: cidadeNome,
+      censoAno: _toNullableInt(json['censo_ano']),
       grupos: grupos,
       valoresPorEtapa: valoresPorEtapa,
     );

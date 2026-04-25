@@ -3,10 +3,12 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class DaysRemainingWidget extends StatelessWidget {
   final int daysRemaining;
+  final bool isOverdue;
 
   const DaysRemainingWidget({
     super.key,
     required this.daysRemaining,
+    this.isOverdue = false,
   });
 
   @override
@@ -27,7 +29,7 @@ class DaysRemainingWidget extends StatelessWidget {
           ),
           SizedBox(width: 4.w),
           Text(
-            '$daysRemaining dias rest.',
+            isOverdue ? 'vencido' : '$daysRemaining dias rest.',
             style: TextStyle(
               fontSize: 9.sp,
               fontWeight: FontWeight.w500,

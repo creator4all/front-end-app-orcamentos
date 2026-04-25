@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -51,6 +51,10 @@ class _BudgetListPageState extends State<BudgetListPage> {
 
   void _handleReset() {
     _store.resetFilters();
+  }
+
+  Future<void> _handleEditBudgetReturn() async {
+    await _store.refreshWithLoadingState();
   }
 
   Future<void> _handleRenameBudget(int budgetId, String currentName) async {
@@ -211,6 +215,7 @@ class _BudgetListPageState extends State<BudgetListPage> {
                     sliver: SliverList(
                       delegate: SliverChildBuilderDelegate((context, index) {
                         final b = _store.items[index];
+                        final budgetTitle = b.nome ?? 'Orçamento #${b.id}';
 
                         final showAdminIcon = b.criadoPorAdmin &&
                             b.partnerDestinoId != null &&
@@ -235,8 +240,10 @@ class _BudgetListPageState extends State<BudgetListPage> {
                         int daysRemaining = 0;
                         if (b.dataValidade != null) {
                           final now = DateTime.now();
-                          final difference =
-                              b.dataValidade!.difference(now).inDays;
+                          final today = DateTime(now.year, now.month, now.day);
+                          final target = DateTime(b.dataValidade!.year,
+                              b.dataValidade!.month, b.dataValidade!.day);
+                          final difference = target.difference(today).inDays;
                           daysRemaining = difference > 0 ? difference : 0;
                         }
 
@@ -276,12 +283,11 @@ class _BudgetListPageState extends State<BudgetListPage> {
                                     )
                                 : null,
                             onTap: () async {
-                              final result = await Modular.to.pushNamed(
+                              await Modular.to.pushNamed(
                                 '/budget/edit/${b.id}',
+                                arguments: {'initialTitle': budgetTitle},
                               );
-                              if (result == true) {
-                                _store.refresh();
-                              }
+                              await _handleEditBudgetReturn();
                             },
                           ),
                         );

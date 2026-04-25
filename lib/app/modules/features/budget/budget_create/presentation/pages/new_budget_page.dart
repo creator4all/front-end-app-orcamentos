@@ -157,6 +157,7 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
       _store.setSelectedState(
         estadoCodigo,
         _geo.estadoSelecionado!.nome,
+        _geo.estadoSelecionado!.uf,
       );
       _store.setSelectedCity(
         _geo.cidadeSelecionada!.id.toString(),
@@ -232,7 +233,7 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
 
         final locationData = {
           'cityName': _geo.cidadeSelecionada?.nome ?? '',
-          'stateName': _geo.estadoSelecionado?.nome ?? '',
+          'stateName': _geo.estadoSelecionado?.uf ?? '',
         };
 
         await Modular.to.pushNamed(
@@ -393,6 +394,7 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                               _store.setSelectedState(
                                 estado.id?.toString() ?? '',
                                 estado.nome,
+                                estado.uf,
                               );
 
                               if (mounted) setState(() {});

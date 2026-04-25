@@ -125,22 +125,21 @@ Após fazer as alterações desejadas, clique em "Salvar" para confirmar.''',
       title: 'Gerando um novo orçamento',
       content: '''Para gerar um novo orçamento:
 
-1. Na página inicial, clique no botão "+" ou "Novo Orçamento";
-2. Selecione a cidade desejada;
-3. Informe os dados do censo escolar (se aplicável);
-4. Selecione as categorias e produtos desejados;
-5. Revise o orçamento e clique em "Salvar".''',
+1. Na página inicial, clique no botão "Novo Orç.";
+2. Preencha as Informações Iniciais (Cidade, Responsável, E-mail e Telefone) e clique em "Próximo";
+3. Configure os dados do censo escolar da cidade (se aplicável);
+4. Selecione as categorias e os produtos desejados;
+5. Revise as informações do orçamento e clique em "Salvar Alterações".''',
     ),
     WikiItem(
       id: 'edit_budget',
-      title: 'Editando um novo orçamento',
+      title: 'Editando um orçamento existente',
       content: '''Para editar um orçamento existente:
 
-1. Na página inicial, localize o orçamento desejado;
-2. Clique no card do orçamento para abrir os detalhes;
-3. Clique no botão "Editar";
-4. Faça as alterações necessárias;
-5. Clique em "Salvar" para confirmar as mudanças.''',
+1. Na página inicial, localize o orçamento desejado na lista;
+2. Toque no card do orçamento para abrir a tela de edição;
+3. Faça as alterações necessárias (produtos selecionados, censo, controle de status ou data de validade);
+4. Role até o final da tela e clique em "Salvar Alterações" para gravar as mudanças.''',
     ),
     WikiItem(
       id: 'export_budget',

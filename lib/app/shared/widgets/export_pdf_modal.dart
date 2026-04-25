@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -13,6 +14,9 @@ import '../../modules/features/auth/presentation/stores/auth_store.dart';
 import '../../modules/features/budget/budget_edit/domain/repositories/budget_pdf_repository.dart';
 import '../../modules/features/budget/budget_edit/domain/usecases/generate_pdf_usecase.dart';
 import '../../modules/features/partner/data/services/partner_service.dart';
+import '../utils/crop_aspect_ratio_presets.dart';
+import '../utils/logo_aspect_ratio_validator.dart';
+import '../utils/logo_crop_source_preparer.dart';
 import 'custom_info_dialog.dart';
 import 'custom_modal.dart';
 
@@ -131,7 +135,6 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
           height: 44.h,
         ),
         SizedBox(height: 16.h),
-
         CustomTextField(
           controller: _cargoController,
           label: 'Cargo',
@@ -140,7 +143,6 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
           height: 44.h,
         ),
         SizedBox(height: 16.h),
-
         CustomTextField(
           controller: _telefoneController,
           label: 'Telefone',
@@ -150,7 +152,6 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
           height: 44.h,
         ),
         SizedBox(height: 16.h),
-
         CustomTextField(
           controller: _urlController,
           label: 'URL',
@@ -159,13 +160,10 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
           height: 44.h,
         ),
         SizedBox(height: 24.h),
-
         _buildLogoSection(),
         SizedBox(height: 24.h),
-
         _buildCheckboxSection(),
         SizedBox(height: 32.h),
-
         _buildShareButton(),
         SizedBox(height: 16.h),
       ],
@@ -191,7 +189,6 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
           controlAffinity: ListTileControlAffinity.leading,
           contentPadding: EdgeInsets.zero,
         ),
-
         CheckboxListTile(
           title: Text(
             'Incluir dados do censo escolar',
@@ -225,7 +222,6 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
           ),
         ),
         SizedBox(height: 12.h),
-
         Container(
           width: double.infinity,
           height: 120.h,
@@ -264,7 +260,6 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
                         ),
         ),
         SizedBox(height: 12.h),
-
         SizedBox(
           width: double.infinity,
           height: 40.h,
@@ -376,23 +371,74 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
     try {
       final XFile? pickedFile = await _picker.pickImage(
         source: ImageSource.gallery,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 85,
+        maxWidth: 2048,
+        maxHeight: 2048,
       );
 
       if (pickedFile != null) {
-        setState(() {
-          _logoImage = File(pickedFile.path);
-        });
+        final preparedSource = Platform.isAndroid
+            ? await LogoCropSourcePreparer.prepareForCrop(File(pickedFile.path))
+            : PreparedLogoCropSource.original(File(pickedFile.path));
+        final CroppedFile? croppedFile = await ImageCropper().cropImage(
+          sourcePath: preparedSource.file.path,
+          compressFormat: ImageCompressFormat.jpg,
+          compressQuality: 85,
+          uiSettings: [
+            AndroidUiSettings(
+              toolbarTitle: 'Recortar Logo',
+              toolbarColor: const Color(0xFF117BBD),
+              statusBarLight: false,
+              navBarLight: false,
+              toolbarWidgetColor: Colors.white,
+              initAspectRatio: const CropPreset16x9(),
+              lockAspectRatio: true,
+              aspectRatioPresets: [
+                const CropPresetQuadrado(),
+                const CropPreset16x9()
+              ],
+            ),
+            IOSUiSettings(
+              title: 'Recortar Logo',
+              doneButtonTitle: 'Recortar',
+              cancelButtonTitle: 'Cancelar',
+              aspectRatioLockEnabled: false,
+              aspectRatioLockDimensionSwapEnabled: false,
+              aspectRatioPickerButtonHidden: false,
+              resetAspectRatioEnabled: false,
+              hidesNavigationBar: false,
+              aspectRatioPresets: [
+                const CropPresetQuadrado(),
+                const CropPreset16x9()
+              ],
+            ),
+          ],
+        );
+        await preparedSource.dispose();
 
-        if (mounted) {
-          CustomInfoDialog.show(
-            context: context,
-            type: DialogType.success,
-            title: 'Sucesso',
-            message: 'Logo selecionada com sucesso!',
-          );
+        if (croppedFile != null) {
+          final selectedLogo = File(croppedFile.path);
+          final isValidLogo =
+              await LogoAspectRatioValidator.isValidFile(selectedLogo);
+
+          if (!isValidLogo) {
+            if (mounted) {
+              _showInvalidLogoWarning();
+            }
+            return;
+          }
+
+          setState(() {
+            _logoImage = selectedLogo;
+          });
+
+          if (mounted) {
+            CustomInfoDialog.show(
+              context: context,
+              type: DialogType.success,
+              title: 'Sucesso',
+              message: 'Logo selecionada com sucesso!',
+            );
+          }
         }
       }
     } catch (e) {
@@ -422,6 +468,15 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
     }
   }
 
+  void _showInvalidLogoWarning() {
+    CustomInfoDialog.show(
+      context: context,
+      type: DialogType.warning,
+      title: 'Formato de logo inválido',
+      message: LogoAspectRatioValidator.invalidAspectRatioMessage,
+    );
+  }
+
   String _extractBase64Data(String dataUri) {
     if (dataUri.contains(',')) {
       return dataUri.split(',').last;
@@ -430,6 +485,8 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
   }
 
   Future<void> _handleSharePdf() async {
+    final sharePositionOrigin = _getSharePositionOrigin(context);
+
     if (_nomeVendedorController.text.trim().isEmpty) {
       _showErrorMessage('Nome do vendedor é obrigatório');
       return;
@@ -495,23 +552,23 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
         throw Exception('Arquivo não foi salvo corretamente');
       }
 
-      final shareResult = await Share.shareXFiles(
+      await Share.shareXFiles(
         [XFile(file.path)],
         text: 'Orçamento - ${_nomeVendedorController.text.trim()}',
         subject: 'Orçamento - ${_nomeVendedorController.text.trim()}',
-        sharePositionOrigin: _getSharePositionOrigin(context),
+        sharePositionOrigin: sharePositionOrigin,
       );
 
-      if (mounted) {
-        Navigator.of(context).pop();
-        CustomInfoDialog.show(
-          context: context,
-          type: DialogType.success,
-          title: 'Sucesso!',
-          message: 'PDF gerado e compartilhado com sucesso!',
-        );
-      }
-    } catch (e, stackTrace) {
+      if (!mounted) return;
+
+      Navigator.of(context).pop();
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.success,
+        title: 'Sucesso!',
+        message: 'PDF gerado e compartilhado com sucesso!',
+      );
+    } catch (e) {
       setState(() {
         _isLoading = false;
       });

@@ -17,3 +17,13 @@ DateTime? parseDate(dynamic value) {
   }
   return null;
 }
+
+/// Calcula dias restantes ate uma data sem retornar valor negativo.
+int nonNegativeDaysUntil(DateTime target, {DateTime? now}) {
+  final current = now ?? DateTime.now();
+  final today = DateTime(current.year, current.month, current.day);
+  final targetDate = DateTime(target.year, target.month, target.day);
+  final difference = targetDate.difference(today).inDays;
+
+  return difference < 0 ? 0 : difference;
+}

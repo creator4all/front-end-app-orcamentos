@@ -43,6 +43,12 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>UIStatusBarStyle</key>
+	<string>UIStatusBarStyleDarkContent</string>
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
 	<!-- Local Network permissions for connectivity_plus -->
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Este app precisa acessar a rede local para verificar a conectividade.</string>

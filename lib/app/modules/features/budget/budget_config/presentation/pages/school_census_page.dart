@@ -21,6 +21,7 @@ class SchoolCensusPage extends StatefulWidget {
   final int? budgetId;
   final CensoEscolarEntity? censoInicial;
   final Function(CensoEscolarEntity)? onCensusUpdated;
+  final Future<void> Function()? onCensusSaved;
 
   final bool isMultiCityMode;
 
@@ -30,6 +31,7 @@ class SchoolCensusPage extends StatefulWidget {
     this.budgetId,
     this.censoInicial,
     this.onCensusUpdated,
+    this.onCensusSaved,
     this.isMultiCityMode = false,
   });
 
@@ -333,7 +335,7 @@ class _SchoolCensusPageState
         ),
         SizedBox(height: 4.h),
         Text(
-          store.censoEscolar?.censoAno?.toString() ?? '-',
+          'Ano do censo: ${store.censoEscolar?.censoAno?.toString() ?? '-'}',
           style: TextStyle(
             fontSize: 14.sp,
             fontWeight: FontWeight.w400,
@@ -451,6 +453,8 @@ class _SchoolCensusPageState
       if (store.censoEscolar != null) {
         widget.onCensusUpdated?.call(store.censoEscolar!);
       }
+
+      await widget.onCensusSaved?.call();
 
       if (mounted) {
         await CustomInfoDialog.show(

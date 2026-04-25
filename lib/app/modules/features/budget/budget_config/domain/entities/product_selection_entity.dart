@@ -1,4 +1,4 @@
-﻿import 'package:copy_with_extension/copy_with_extension.dart';
+import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:equatable/equatable.dart';
 
 part 'product_selection_entity.g.dart';
@@ -15,7 +15,7 @@ class ProductSelectionEntity extends Equatable {
 
   final bool isSelected;
 
-  final int? quantity;
+  final double? quantity;
 
   const ProductSelectionEntity({
     required this.productId,

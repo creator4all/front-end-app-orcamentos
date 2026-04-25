@@ -1,4 +1,4 @@
-﻿import 'package:mobx/mobx.dart';
+import 'package:mobx/mobx.dart';
 
 import '../../domain/entities/managed_user.dart';
 import '../../domain/usecases/list_users_usecase.dart';
@@ -6,6 +6,7 @@ import '../../domain/usecases/update_users_usecase.dart';
 
 part 'user_management_store.g.dart';
 
+// ignore: library_private_types_in_public_api
 class UserManagementStore = _UserManagementStoreBase with _$UserManagementStore;
 
 abstract class _UserManagementStoreBase with Store {
@@ -231,22 +232,75 @@ abstract class _UserManagementStoreBase with Store {
     error = null;
 
     final updates = pendingChanges.values.toList();
-    final result = await updateUsersUsecase(updates);
-
+    final submittedUpdates = {
+      for (final update in updates) update.userId: update,
+    };
     UpdateUsersResult? updateResult;
 
-    result.fold(
-      (failure) {
-        error = failure.message;
-      },
-      (success) {
-        updateResult = success;
-        pendingChanges.clear();
-      },
-    );
+    try {
+      final result = await updateUsersUsecase(updates);
 
-    isSaving = false;
+      result.fold(
+        (failure) {
+          error = failure.message;
+        },
+        (success) {
+          updateResult = success;
+          _commitSuccessfulUpdates(success.updated, submittedUpdates);
+          if (success.errors.isNotEmpty) {
+            error = success.errors.join('\n');
+          }
+        },
+      );
+    } catch (e) {
+      error = e.toString();
+    } finally {
+      isSaving = false;
+    }
+
     return updateResult;
+  }
+
+  void _commitSuccessfulUpdates(
+    List<int> updatedUserIds,
+    Map<int, UserUpdate> submittedUpdates,
+  ) {
+    for (final userId in updatedUserIds) {
+      final submittedUpdate = submittedUpdates[userId];
+      if (submittedUpdate == null) continue;
+
+      final userIndex = users.indexWhere((u) => u.id == userId);
+      if (userIndex == -1) continue;
+
+      final user = users[userIndex];
+      final previousOriginal = _originalStates[userId];
+      final committedStatus =
+          submittedUpdate.status ?? previousOriginal?.status ?? user.status;
+      final committedRoleId =
+          submittedUpdate.roleId ?? previousOriginal?.roleId ?? user.roleId;
+
+      _originalStates[userId] = _OriginalUserState(
+        status: committedStatus,
+        roleId: committedRoleId,
+      );
+
+      final pendingUpdate = pendingChanges[userId];
+      if (pendingUpdate == null || pendingUpdate == submittedUpdate) {
+        users[userIndex] = user.copyWith(
+          status: committedStatus,
+          roleId: committedRoleId,
+        );
+        pendingChanges.remove(userId);
+        continue;
+      }
+
+      final pendingStatus = pendingUpdate.status ?? users[userIndex].status;
+      final pendingRoleId = pendingUpdate.roleId ?? users[userIndex].roleId;
+      if (pendingStatus == committedStatus &&
+          pendingRoleId == committedRoleId) {
+        pendingChanges.remove(userId);
+      }
+    }
   }
 
   @action

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:multimidiaapp/app/modules/features/new_drive/presentation/widgets/drive_item_list_view.dart';
+import 'package:multimidiaapp/app/modules/features/new_drive/presentation/widgets/item_card_doc.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_top_bar.dart';
 
 import '../../../auth/presentation/stores/auth_store.dart';
@@ -50,49 +50,63 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
         showBackButton: true,
         authStore: _authStore,
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: 10.w,
-              vertical: 16.h,
-            ),
-            child: _buildSearchField(),
-          ),
-          Padding(
-            padding: EdgeInsets.only(
-              left: 10.w,
-              right: 10.w,
-              bottom: 12.h,
-            ),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Arquivos compartilhados com você',
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w500,
-                  color: const Color(0xFF565E6C),
-                ),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await store.loadRecentItems();
+          await store.loadCategories();
+        },
+        child: Observer(
+          builder: (_) {
+            final items = store.filteredCategoryItems;
+            return ListView(
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
               ),
-            ),
-          ),
-          Expanded(
-            child: Observer(
-              builder: (_) {
-                final items = store.filteredCategoryItems;
-                if (items.isEmpty) {
-                  return _buildEmptyState();
-                }
-                return DriveItemListView(
-                  items: items,
-                  onItemTap: _handleFileOpen,
-                  onMenuTap: (item) {},
-                );
-              },
-            ),
-          ),
-        ],
+              children: [
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 10.w,
+                    vertical: 16.h,
+                  ),
+                  child: _buildSearchField(),
+                ),
+                Padding(
+                  padding: EdgeInsets.only(
+                    left: 10.w,
+                    right: 10.w,
+                    bottom: 12.h,
+                  ),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Arquivos compartilhados com você',
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF565E6C),
+                      ),
+                    ),
+                  ),
+                ),
+                if (items.isEmpty)
+                  _buildEmptyState()
+                else
+                  ...items.map((item) => Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 10.w),
+                    child: Column(
+                      children: [
+                        ItemCardDoc(
+                          item: item,
+                          onTap: () => _handleFileOpen(item),
+                        ),
+                        SizedBox(height: 12.h),
+                      ],
+                    ),
+                  )),
+              ],
+            );
+          },
+        ),
       ),
     );
   }

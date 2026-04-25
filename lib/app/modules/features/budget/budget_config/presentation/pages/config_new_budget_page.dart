@@ -67,13 +67,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final args = Modular.args.data;
 
-      if (args is Map<String, dynamic> &&
-          args.containsKey('multiCityResponse')) {
-        final multiCityData = args['multiCityResponse'] as Map<String, dynamic>;
-        store.initializeWithMultiCityResponse(multiCityData);
-        return;
-      }
-
       BudgetDraftEntity? initialDraft;
 
       if (args is Map<String, dynamic> && args.containsKey('budget')) {
@@ -278,7 +271,7 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                           final cityId =
                               store.budgetDetail?.cityIds.firstOrNull ?? 0;
 
-                          final censusUpdated = await Modular.to.pushNamed(
+                          await Modular.to.pushNamed(
                             '/budget/census/$cityId',
                             arguments: {
                               'censoEscolar': store.censoEscolar,
@@ -287,12 +280,10 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                               'onCensusUpdated': (updatedCenso) {
                                 store.updateCensoEscolar(updatedCenso);
                               },
+                              'onCensusSaved': () =>
+                                  store.reloadProductsAfterCensusEdit(),
                             },
                           );
-
-                          if (censusUpdated == true) {
-                            await store.reloadProductsAfterCensusEdit();
-                          }
                         },
                       ),
                     ),
@@ -622,6 +613,26 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
       context: context,
       category: category,
       subcategory: subcategory,
+      resolveCategory: (categoryId) {
+        return store.categories.firstWhere(
+          (item) => item.id == categoryId,
+          orElse: () => category,
+        );
+      },
+      resolveSubcategory: (categoryId, subcategoryId) {
+        final resolvedCategory = store.categories.firstWhere(
+          (item) => item.id == categoryId,
+          orElse: () => category,
+        );
+        return resolvedCategory.subcategorias.firstWhere(
+          (item) => item.id == subcategoryId,
+          orElse: () => subcategory,
+        );
+      },
+      onToggleProduct: store.toggleProduct,
+      onUpdateProductValue: store.updateProductValue,
+      onUpdateProductQuantity: store.updateProductQuantity,
+      onToggleProductIndicator: store.toggleProductIndicator,
     );
   }
 

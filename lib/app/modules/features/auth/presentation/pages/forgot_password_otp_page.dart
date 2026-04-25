@@ -6,9 +6,9 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../../shared/widgets/custom_info_dialog.dart';
 import '../../../../../shared/widgets/custom_top_bar.dart';
+import '../../auth_messages.dart';
 import '../stores/forgot_password_store.dart';
 
-/// Página para inserir o código OTP de 6 dígitos
 class ForgotPasswordOtpPage extends StatefulWidget {
   const ForgotPasswordOtpPage({super.key});
 
@@ -88,7 +88,7 @@ class _ForgotPasswordOtpPageState extends State<ForgotPasswordOtpPage> {
               SizedBox(height: 12.h),
               Observer(
                 builder: (_) => Text(
-                  'Enviamos um código de 6 dígitos para\n${store.email}',
+                  AuthMessages.otpScreenHint(store.email),
                   style: TextStyle(
                     fontSize: 14.sp,
                     color: Colors.grey[600],
@@ -228,7 +228,7 @@ class _ForgotPasswordOtpPageState extends State<ForgotPasswordOtpPage> {
         context: context,
         type: DialogType.warning,
         title: 'Código Incompleto',
-        message: 'Por favor, digite o código de 6 dígitos.',
+        message: AuthMessages.otpIncomplete,
       );
       return;
     }
@@ -243,7 +243,7 @@ class _ForgotPasswordOtpPageState extends State<ForgotPasswordOtpPage> {
         context: context,
         type: DialogType.error,
         title: 'Código Inválido',
-        message: store.errorMessage ?? 'O código informado está incorreto.',
+        message: store.errorMessage ?? AuthMessages.otpInvalidOrExpired,
       );
       for (final controller in _controllers) {
         controller.clear();
@@ -260,7 +260,7 @@ class _ForgotPasswordOtpPageState extends State<ForgotPasswordOtpPage> {
         context: context,
         type: DialogType.success,
         title: 'Código Reenviado',
-        message: 'Um novo código foi enviado para seu e-mail.',
+        message: AuthMessages.otpResentSuccess,
       );
     } else if (!success && mounted) {
       CustomInfoDialog.show(

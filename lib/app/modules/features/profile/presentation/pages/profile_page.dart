@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:mobx/mobx.dart';
 
 import '../../../../../../widgets/custom_text_field.dart';
+import '../../../../../shared/utils/crop_aspect_ratio_presets.dart';
 import '../../../../../shared/widgets/widgets.dart';
 import '../../../auth/presentation/stores/auth_store.dart';
 import '../stores/profile_store.dart';
@@ -97,14 +98,21 @@ class _ProfilePageState extends State<ProfilePage> {
             AndroidUiSettings(
               toolbarTitle: 'Recortar Foto',
               toolbarColor: const Color(0xFF117BBD),
+              statusBarLight: false,
+              navBarLight: false,
               toolbarWidgetColor: Colors.white,
-              initAspectRatio: CropAspectRatioPreset.square,
+              initAspectRatio: const CropPresetQuadrado(),
               lockAspectRatio: true,
             ),
             IOSUiSettings(
               title: 'Recortar Foto',
+              doneButtonTitle: 'Recortar',
+              cancelButtonTitle: 'Cancelar',
               aspectRatioLockEnabled: true,
+              aspectRatioLockDimensionSwapEnabled: false,
+              aspectRatioPickerButtonHidden: true,
               resetAspectRatioEnabled: false,
+              hidesNavigationBar: false,
             ),
           ],
         );
@@ -114,7 +122,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
           final success = await _store.uploadAvatar();
           if (success && mounted) {
-            await _authStore.loadCurrentUser();
+            await _authStore.loadCurrentUser(forceRefresh: true);
 
             if (!mounted) return;
 
@@ -169,7 +177,7 @@ class _ProfilePageState extends State<ProfilePage> {
     if (confirm == true) {
       final success = await _store.removeAvatar();
       if (success) {
-        await _authStore.loadCurrentUser();
+        await _authStore.loadCurrentUser(forceRefresh: true);
         if (mounted) {
           CustomInfoDialog.show(
             context: context,
@@ -244,7 +252,7 @@ class _ProfilePageState extends State<ProfilePage> {
     if (!mounted) return;
 
     if (success) {
-      await _authStore.loadCurrentUser();
+      await _authStore.loadCurrentUser(forceRefresh: true);
 
       if (!mounted) return;
 
@@ -341,7 +349,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           padding: EdgeInsets.symmetric(
                               horizontal: 16.w, vertical: 8.h),
                         ),
-                        icon: const Icon(Icons.camera_alt, size: 18),
+                        icon: const Icon(Icons.camera_alt, size: 18, color: Colors.white),
                         label: Text(
                           _store.profile!.avatar == null ||
                                   _store.profile!.avatar!.isEmpty
@@ -362,7 +370,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             padding: EdgeInsets.symmetric(
                                 horizontal: 16.w, vertical: 8.h),
                           ),
-                          icon: const Icon(Icons.delete, size: 18),
+                          icon: const Icon(Icons.delete, size: 18, color: Colors.red),
                           label: Text('Remover',
                               style: TextStyle(fontSize: 13.sp)),
                         ),
@@ -440,7 +448,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                     AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
                             )
-                          : const Icon(Icons.save),
+                          : const Icon(Icons.save, color: Colors.white),
                       label: Text(
                         _store.isSaving ? 'Salvando...' : 'Salvar Alterações',
                         style: TextStyle(fontSize: 16.sp),

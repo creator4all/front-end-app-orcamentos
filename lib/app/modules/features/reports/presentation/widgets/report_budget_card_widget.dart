@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../../shared/utils/currency_utils.dart';
@@ -105,7 +105,7 @@ class ReportBudgetCardWidget extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Expanded(
-                  flex: 3,
+                  flex: 1,
                   child: Row(
                     children: [
                       Text(
@@ -137,16 +137,19 @@ class ReportBudgetCardWidget extends StatelessWidget {
                 ),
 
                 Expanded(
-                  flex: 2,
-                  child: Text(
-                    CurrencyUtils.formatBRL(totalValue),
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF000000),
+                  flex: 1,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      CurrencyUtils.formatBRL(totalValue),
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF000000),
+                      ),
+                      textAlign: TextAlign.right,
                     ),
-                    textAlign: TextAlign.right,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],

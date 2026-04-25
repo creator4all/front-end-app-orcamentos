@@ -58,7 +58,7 @@ dependencies:
   wakelock_plus: ^1.4.0
   
   # Image Cropping & Upload
-  image_cropper: 9.0.0
+  image_cropper: ^12.2.1
   http_parser: ^4.0.2
 
 
@@ -88,11 +88,11 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/app_icon.png"
+  image_path: "assets/images/app_icon3.png"
   
   # Configuração para Android - Ícone Adaptativo
   adaptive_icon_background: "#FFFFFF"  # Fundo branco
-  adaptive_icon_foreground: "assets/images/app_icon.png"
+  adaptive_icon_foreground: "assets/images/app_icon3.png"
   
   # Configurações para manter o ícone centralizado (contain)
   # O ícone será redimensionado para caber sem cortar, mantendo proporções

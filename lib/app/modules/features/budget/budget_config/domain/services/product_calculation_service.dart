@@ -2,6 +2,7 @@ import '../entities/category_entity.dart';
 import '../entities/censo_escolar_entity.dart';
 import '../entities/product_entity.dart';
 import '../entities/subcategory_entity.dart';
+import 'census_value_normalizer.dart';
 
 class ProductCalculationService {
   const ProductCalculationService();
@@ -109,11 +110,13 @@ class ProductCalculationService {
       if (nomeEtapa.toLowerCase() == 'professores') continue;
 
       if (temProfessores) {
-        final valorP = censo.getValorEtapa('${nomeEtapa}P') ?? 0.0;
-        total += valorP;
+        final nomeComP = '${nomeEtapa}P';
+        final valorP = censo.getValorEtapa(nomeComP) ?? 0.0;
+        // Censo exibe in4ano/in5ano já arredondados — ceil individual
+        total += CensusValueNormalizer.consolidateStageValue(nomeComP, valorP);
       } else {
         final valor = censo.getValorEtapa(nomeEtapa) ?? 0.0;
-        total += valor;
+        total += CensusValueNormalizer.consolidateStageValue(nomeEtapa, valor);
       }
     }
 
@@ -136,11 +139,18 @@ class ProductCalculationService {
       if (nomeEtapa.toLowerCase() == 'professores') continue;
 
       final valorNormal = censo.getValorEtapa(nomeEtapa) ?? 0.0;
-      total += valorNormal;
+      total += CensusValueNormalizer.consolidateStageValue(
+        nomeEtapa,
+        valorNormal,
+      );
 
       if (temProfessores) {
-        final valorP = censo.getValorEtapa('${nomeEtapa}P') ?? 0.0;
-        total += valorP;
+        final nomeComP = '${nomeEtapa}P';
+        final valorP = censo.getValorEtapa(nomeComP) ?? 0.0;
+        total += CensusValueNormalizer.consolidateStageValue(
+          nomeComP,
+          valorP,
+        );
       }
     }
 
@@ -167,8 +177,8 @@ class ProductCalculationService {
           if (!product.selecionado) continue;
 
           final novaQtd = calcularQuantidade(product, censo);
-          if (novaQtd.round() != product.quantidade) {
-            updatedProds[k] = product.copyWith(quantidade: novaQtd.round());
+          if (novaQtd != product.quantidade) {
+            updatedProds[k] = product.copyWith(quantidade: novaQtd);
             subChanged = true;
           }
         }

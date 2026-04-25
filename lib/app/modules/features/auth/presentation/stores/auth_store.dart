@@ -1,7 +1,8 @@
-﻿import 'package:flutter_modular/flutter_modular.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mobx/mobx.dart';
 
+import '../../../../../shared/utils/document_validators.dart';
 import '../../../../../shared/core/utils/token_cache.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
@@ -55,7 +56,7 @@ abstract class _AuthStoreBase with Store {
   String get partnerInfo {
     if (currentUser?.partner == null) return 'Sem parceiro';
     final partner = currentUser!.partner!;
-    return '${partner.tradeName} (${partner.cnpj})';
+    return '${partner.tradeName} (${DocumentValidators.formatDocument(partner.cnpj)})';
   }
 
   @computed
@@ -65,8 +66,9 @@ abstract class _AuthStoreBase with Store {
   String get userDisplayEmail => currentUser?.email ?? 'Sem email';
 
   @computed
-  String get userDisplayDocument =>
-      currentUser?.partner?.cnpj ?? 'Sem documento';
+  String get userDisplayDocument => currentUser?.partner?.cnpj != null
+      ? DocumentValidators.formatDocument(currentUser!.partner!.cnpj)
+      : 'Sem documento';
   @computed
   String? get userDisplayAvatar => currentUser?.avatarBase64;
 
@@ -88,7 +90,7 @@ abstract class _AuthStoreBase with Store {
         isLoading = false;
       },
       (user) async {
-        await loadCurrentUser();
+        await loadCurrentUser(forceRefresh: true);
 
         if (isLoggedIn && currentUser != null) {
           Modular.to.pushReplacementNamed('/budget/');
@@ -127,18 +129,28 @@ abstract class _AuthStoreBase with Store {
   }
 
   @action
-  Future<void> loadCurrentUser() async {
+  Future<void> loadCurrentUser({bool forceRefresh = false}) async {
     isLoading = true;
     errorMessage = null;
 
     try {
       final token = await secureStorage.read(key: 'auth_token');
-      if (token != null && token.isNotEmpty) {
-        TokenCache.instance.setToken(token);
+      if (token == null || token.isEmpty) {
+        isLoggedIn = false;
+        currentUser = null;
+        isLoading = false;
+        return;
       }
-    } catch (_) {}
+      TokenCache.instance.setToken(token);
+    } catch (_) {
+      isLoggedIn = false;
+      currentUser = null;
+      isLoading = false;
+      return;
+    }
 
-    final result = await authRepository.getCurrentUser();
+    final result =
+        await authRepository.getCurrentUser(forceRefresh: forceRefresh);
 
     result.fold(
       (failure) {

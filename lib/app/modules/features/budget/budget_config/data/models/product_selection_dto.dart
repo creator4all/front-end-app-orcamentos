@@ -8,7 +8,7 @@ class ProductSelectionDto {
   final String category;
   final double price;
   final bool isSelected;
-  final int? quantity;
+  final double? quantity;
   final String? observacoes;
   final List<ProductIndicatorDto> indicadoresEtapa;
 
@@ -38,7 +38,7 @@ class ProductSelectionDto {
       category: (json['categoria'] ?? '') as String,
       price: (json['preco'] as num? ?? 0.0).toDouble(),
       isSelected: json['selecionado'] as bool? ?? false,
-      quantity: json['quantidade'] as int?,
+      quantity: (json['quantidade'] as num?)?.toDouble(),
       observacoes: (json['observacoes'] ?? '') as String,
       indicadoresEtapa: indicadores,
     );

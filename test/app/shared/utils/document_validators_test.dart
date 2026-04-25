@@ -111,5 +111,28 @@ void main() {
         expect(error, contains('não é válido'));
       });
     });
+
+    group('formatDocument', () {
+      test('should format CPF correctly', () {
+        expect(
+          DocumentValidators.formatDocument('12345678909'),
+          equals('123.456.789-09'),
+        );
+      });
+
+      test('should format CNPJ correctly', () {
+        expect(
+          DocumentValidators.formatDocument('11222333000181'),
+          equals('11.222.333/0001-81'),
+        );
+      });
+
+      test('should keep unexpected lengths as normalized digits', () {
+        expect(
+          DocumentValidators.formatDocument('123.456'),
+          equals('123456'),
+        );
+      });
+    });
   });
 }

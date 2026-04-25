@@ -5,6 +5,7 @@ import 'presentation/pages/forgot_password_email_page.dart';
 import 'presentation/pages/forgot_password_new_password_page.dart';
 import 'presentation/pages/forgot_password_otp_page.dart';
 import 'presentation/pages/login_page.dart';
+import 'presentation/pages/splash_page.dart';
 
 /// Módulo de autenticação seguindo Clean Architecture
 ///
@@ -17,6 +18,10 @@ class AuthModule extends Module {
 
   @override
   List<ModularRoute> get routes => [
+        ChildRoute(
+          '/splash',
+          child: (context, args) => const SplashPage(),
+        ),
         ChildRoute(
           '/login',
           child: (context, args) => const LoginPage(),

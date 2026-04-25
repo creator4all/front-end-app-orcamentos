@@ -7,5 +7,7 @@ abstract class PartnerManagementRepository {
   Future<Either<Failure, PaginatedPartners>> listPartners({
     required int page,
     int perPage = 15,
+    String? searchQuery,
+    String sort = 'tradeName_asc',
   });
 }

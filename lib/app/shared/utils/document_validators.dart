@@ -1,8 +1,12 @@
 library;
 
 class DocumentValidators {
-    static bool isValidCPF(String cpf) {
-    cpf = cpf.replaceAll(RegExp(r'[^0-9]'), '');
+  static String normalizeDocument(String document) {
+    return document.replaceAll(RegExp(r'[^0-9]'), '');
+  }
+
+  static bool isValidCPF(String cpf) {
+    cpf = normalizeDocument(cpf);
 
     if (cpf.length != 11) return false;
 
@@ -26,8 +30,9 @@ class DocumentValidators {
 
     return int.parse(cpf[10]) == secondDigit;
   }
+
   static bool isValidCNPJ(String cnpj) {
-    cnpj = cnpj.replaceAll(RegExp(r'[^0-9]'), '');
+    cnpj = normalizeDocument(cnpj);
 
     if (cnpj.length != 14) return false;
 
@@ -55,7 +60,7 @@ class DocumentValidators {
   }
 
   static bool isValidDocument(String document) {
-    final cleanDoc = document.replaceAll(RegExp(r'[^0-9]'), '');
+    final cleanDoc = normalizeDocument(document);
 
     if (cleanDoc.length == 11) {
       return isValidCPF(cleanDoc);
@@ -67,7 +72,7 @@ class DocumentValidators {
   }
 
   static String? getDocumentError(String document) {
-    final cleanDoc = document.replaceAll(RegExp(r'[^0-9]'), '');
+    final cleanDoc = normalizeDocument(document);
 
     if (cleanDoc.isEmpty) {
       return 'Por favor, informe o CPF ou CNPJ.';
@@ -90,5 +95,19 @@ class DocumentValidators {
     }
 
     return null;
+  }
+
+  static String formatDocument(String document) {
+    final cleanDoc = normalizeDocument(document);
+
+    if (cleanDoc.length == 11) {
+      return '${cleanDoc.substring(0, 3)}.${cleanDoc.substring(3, 6)}.${cleanDoc.substring(6, 9)}-${cleanDoc.substring(9)}';
+    }
+
+    if (cleanDoc.length == 14) {
+      return '${cleanDoc.substring(0, 2)}.${cleanDoc.substring(2, 5)}.${cleanDoc.substring(5, 8)}/${cleanDoc.substring(8, 12)}-${cleanDoc.substring(12)}';
+    }
+
+    return cleanDoc;
   }
 }

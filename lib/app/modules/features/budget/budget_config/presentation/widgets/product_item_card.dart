@@ -60,7 +60,7 @@ class ProductItemCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Qtde: ${product.quantidade}',
+                      'Qtde: ${product.formattedQuantidade}',
                       style: TextStyle(
                         fontSize: 12.sp,
                         fontWeight: FontWeight.w400,
