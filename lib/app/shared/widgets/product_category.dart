@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:multimidiaapp/app/shared/widgets/custom_checkbox.dart';
 
 import 'action_button.dart';
 
@@ -75,38 +76,14 @@ class ProductCategory extends StatelessWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.start,
                         children: [
-                          SizedBox(
-                            width: 20.w,
-                            height: 20.h,
-                            child: Checkbox(
-                              value: isSelected,
-                              onChanged: isReadOnly ? null : onCheckboxChanged,
-                              activeColor: isReadOnly
-                                  ? Colors.grey[400]
-                                  : const Color(0xFF117BBD),
-                              checkColor: Colors.white,
-                              fillColor:
-                                  WidgetStateProperty.resolveWith<Color?>(
-                                (Set<WidgetState> states) {
-                                  if (states.contains(WidgetState.selected)) {
-                                    return isReadOnly
-                                        ? Colors.grey[400]
-                                        : const Color(0xFF117BBD);
-                                  }
-                                  return Colors.white;
-                                },
-                              ),
-                              side: BorderSide(
-                                color: isReadOnly
-                                    ? Colors.grey[400]!
-                                    : isSelected
-                                        ? const Color(0xFF117BBD)
-                                        : Colors.grey[300]!,
-                                width: 2.0,
-                              ),
-                              materialTapTargetSize:
-                                  MaterialTapTargetSize.shrinkWrap,
-                            ),
+                          CustomCheckbox(
+                            value: isSelected,
+                            checkedColor: const Color(0xFF117BBD),
+                            uncheckedBorderColor: Colors.grey[300]!,
+                            disabledColor: Colors.grey[400]!,
+                            onChanged: isReadOnly || onCheckboxChanged == null
+                                ? null
+                                : (value) => onCheckboxChanged!(value),
                           ),
                           SizedBox(width: 8.w),
                           Flexible(

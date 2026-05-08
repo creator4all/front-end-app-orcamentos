@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 
-import '../../../../../../shared/utils/string_utils.dart';
 import '../../../../../../shared/widgets/custom_checkbox.dart';
 import '../../domain/entities/product_entity.dart';
 
@@ -93,7 +92,7 @@ class ProductItemCard extends StatelessWidget {
             onTap: onInfoTap,
             child: Icon(
               Icons.info_outline,
-              size: 22.sp,
+              size: 28.sp,
               color: const Color(0xFF2830F2),
             ),
           ),

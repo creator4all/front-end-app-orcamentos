@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:multimidiaapp/app/shared/widgets/custom_checkbox.dart';
 
 import '../../domain/entities/indicador_etapa_entity.dart';
 
@@ -48,10 +49,8 @@ class IndicadoresEtapaSection extends StatelessWidget {
                   ),
                 ),
               ),
-
             ...listaIndicadores
                 .map((indicador) => _buildCheckboxItem(indicador)),
-
             SizedBox(height: 8.h),
           ],
         );
@@ -64,27 +63,13 @@ class IndicadoresEtapaSection extends StatelessWidget {
       padding: EdgeInsets.only(bottom: 12.h),
       child: Row(
         children: [
-          SizedBox(
-            width: 20.w,
-            height: 20.h,
-            child: Checkbox(
-              value: indicador.selecionado,
-              onChanged: (value) {
-                if (onToggle != null && value != null) {
-                  onToggle!(indicador.produtoIndicadorId, value);
-                }
-              },
-              activeColor: const Color(0xFF2830F2),
-              checkColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(4.r),
-              ),
-              side: const BorderSide(
-                color:
-                    Color(0xFF8C8C8C),
-                width: 1.5,
-              ),
-            ),
+          CustomCheckbox(
+            value: indicador.selecionado,
+            onChanged: onToggle == null
+                ? null
+                : (value) {
+                    onToggle!(indicador.produtoIndicadorId, value);
+                  },
           ),
           SizedBox(width: 12.w),
           Expanded(

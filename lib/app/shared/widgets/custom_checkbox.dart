@@ -1,15 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-/// Checkbox customizado reutilizável seguindo design system do projeto
-///
-/// Features:
-/// - Tamanho: 17x17
-/// - Cor checked: #2830F2 (azul)
-/// - Cor unchecked: #D9D9D9 (cinza)
-/// - Fundo branco
-/// - Ícone check branco quando marcado
-/// - Bordas arredondadas (5.r)
 class CustomCheckbox extends StatelessWidget {
   /// Se o checkbox está marcado
   final bool value;
@@ -17,29 +8,58 @@ class CustomCheckbox extends StatelessWidget {
   /// Callback quando o estado muda
   final ValueChanged<bool>? onChanged;
 
-  /// Tamanho do checkbox (padrão: 17)
-  final double? size;
+  final double size;
+
+  final Color? checkedColor;
+
+  final Color? uncheckedBorderColor;
+
+  final Color? disabledColor;
 
   const CustomCheckbox({
     super.key,
     required this.value,
     this.onChanged,
-    this.size,
+    this.size = 24,
+    this.checkedColor,
+    this.disabledColor,
+    this.uncheckedBorderColor,
   });
+
+  static const _defaultCheckedColor = Color(0xFF2830F2);
+  static const _defaultDisabledColor = Color(0xFFBDBDBD);
+  static const _defaultUncheckedBorderColor = Color(0xFFD9D9D9);
 
   @override
   Widget build(BuildContext context) {
-    final effectiveSize = size ?? 17.0;
+    final enabled = onChanged != null;
+
+    final effectiveCheckedColor = checkedColor ?? _defaultCheckedColor;
+    final effectiveDisabledColor = disabledColor ?? _defaultDisabledColor;
+    final effectiveUncheckedBorderColor =
+        uncheckedBorderColor ?? _defaultUncheckedBorderColor;
+
+    final fillColor = value
+        ? enabled
+            ? effectiveCheckedColor
+            : effectiveDisabledColor
+        : Colors.white;
+
+    final borderColor = enabled
+        ? value
+            ? effectiveCheckedColor
+            : effectiveUncheckedBorderColor
+        : effectiveDisabledColor;
 
     return GestureDetector(
-      onTap: onChanged != null ? () => onChanged!(!value) : null,
+      onTap: enabled ? () => onChanged!(!value) : null,
       child: Container(
-        width: effectiveSize.w,
-        height: effectiveSize.h,
+        width: size.w,
+        height: size.h,
         decoration: BoxDecoration(
-          color: value ? const Color(0xFF2830F2) : Colors.white,
+          color: fillColor,
           border: Border.all(
-            color: value ? const Color(0xFF2830F2) : const Color(0xFFD9D9D9),
+            color: borderColor,
             width: 2,
           ),
           borderRadius: BorderRadius.circular(5.r),
@@ -48,7 +68,7 @@ class CustomCheckbox extends StatelessWidget {
             ? Icon(
                 Icons.check,
                 color: Colors.white,
-                size: (effectiveSize * 0.8).sp,
+                size: (size * 0.75).sp,
               )
             : null,
       ),
