@@ -3,7 +3,6 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 
-import '../../../../../../shared/utils/string_utils.dart';
 import '../../../../../../shared/widgets/custom_modal.dart';
 import '../../domain/entities/product_entity.dart';
 import 'indicadores_etapa_section.dart';
@@ -148,11 +147,11 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildInfoRow('Grupo', capitalizeFirstLetter(categoryName)),
+          _buildInfoRow('Grupo', categoryName),
           SizedBox(height: 8.h),
-          _buildInfoRow('Sub-grupo', capitalizeFirstLetter(subcategoryName)),
+          _buildInfoRow('Sub-grupo', subcategoryName),
           SizedBox(height: 8.h),
-          _buildInfoRow('Solução', capitalizeFirstLetter(product.solucao)),
+          _buildInfoRow('Solução', product.solucao),
           SizedBox(height: 8.h),
           _buildInfoRow('Indicação', product.indicacao),
           SizedBox(height: 8.h),

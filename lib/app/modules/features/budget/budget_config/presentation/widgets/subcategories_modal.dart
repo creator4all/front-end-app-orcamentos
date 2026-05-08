@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
-import '../../../../../../shared/utils/string_utils.dart';
 import '../../../../../../shared/widgets/custom_modal.dart';
 import '../../domain/entities/category_entity.dart';
 import '../../domain/entities/subcategory_entity.dart';
@@ -24,7 +23,7 @@ class SubcategoriesModal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CustomModal(
-      title: capitalizeFirstLetter(category.nome),
+      title: category.nome,
       content: ListView.separated(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
@@ -104,7 +103,7 @@ class SubcategoriesModal extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    capitalizeFirstLetter(subcategory.nome),
+                    subcategory.nome,
                     style: TextStyle(
                       fontSize: 14.sp,
                       fontWeight: FontWeight.w500,

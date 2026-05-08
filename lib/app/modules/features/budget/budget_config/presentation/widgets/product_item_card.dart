@@ -48,7 +48,7 @@ class ProductItemCard extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  capitalizeFirstLetter(product.solucao),
+                  product.solucao,
                   style: TextStyle(
                     fontSize: 12.sp,
                     fontWeight: FontWeight.w400,
