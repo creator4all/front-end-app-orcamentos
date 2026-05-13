@@ -6,6 +6,8 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:multimidiaapp/app/shared/widgets/custom_checkbox.dart';
+import 'package:multimidiaapp/app/shared/widgets/saving_budget_dialog.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -173,37 +175,44 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
   Widget _buildCheckboxSection() {
     return Column(
       children: [
-        CheckboxListTile(
-          title: Text(
-            'Incluir logo no PDF',
-            style: TextStyle(
-              fontSize: 14.sp,
-              color: Colors.black87,
+        Row(
+          children: [
+            CustomCheckbox(
+              value: _incluirLogoNoPdf,
+              onChanged: (value) {
+                setState(() => _incluirLogoNoPdf = value);
+              },
+              checkedColor: const Color(0xFF117BBD),
             ),
-          ),
-          value: _incluirLogoNoPdf,
-          onChanged: (value) {
-            setState(() => _incluirLogoNoPdf = value ?? true);
-          },
-          activeColor: const Color(0xFF117BBD),
-          controlAffinity: ListTileControlAffinity.leading,
-          contentPadding: EdgeInsets.zero,
+            SizedBox(width: 10.w),
+            Text(
+              'Incluir logo no PDF',
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: Colors.black87,
+              ),
+            ),
+          ],
         ),
-        CheckboxListTile(
-          title: Text(
-            'Incluir dados do censo escolar',
-            style: TextStyle(
-              fontSize: 14.sp,
-              color: Colors.black87,
+        SizedBox(height: 16.h),
+        Row(
+          children: [
+            CustomCheckbox(
+              value: _incluirCensoNoPdf,
+              onChanged: (value) {
+                setState(() => _incluirCensoNoPdf = value);
+              },
+              checkedColor: const Color(0xFF117BBD),
             ),
-          ),
-          value: _incluirCensoNoPdf,
-          onChanged: (value) {
-            setState(() => _incluirCensoNoPdf = value ?? false);
-          },
-          activeColor: const Color(0xFF117BBD),
-          controlAffinity: ListTileControlAffinity.leading,
-          contentPadding: EdgeInsets.zero,
+            SizedBox(width: 10.w),
+            Text(
+              'Incluir dados do censo escolar',
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: Colors.black87,
+              ),
+            ),
+          ],
         ),
       ],
     );

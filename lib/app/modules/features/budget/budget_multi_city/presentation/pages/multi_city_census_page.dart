@@ -9,6 +9,7 @@ import 'package:multimidiaapp/app/shared/widgets/custom_top_bar.dart';
 import 'package:multimidiaapp/stores/store_provider.dart';
 
 import '../../../budget_config/domain/entities/censo_group_entity.dart';
+import '../../../budget_config/domain/services/census_stage_rules.dart';
 import '../../../budget_config/presentation/widgets/census_data_section_widget.dart';
 import '../stores/multi_city_census_store.dart';
 import '../widgets/city_selector_dropdown.dart';
@@ -297,7 +298,8 @@ class _MultiCityCensusPageState
         final studentGroups = census.grupos
             .map((group) {
               final studentTitles = group.titulos
-                  .where((title) => !title.nomeEtapa.endsWith('P'))
+                  .where((title) =>
+                      CensusStageRules.isStudentStage(title.nomeEtapa))
                   .toList();
               if (studentTitles.isEmpty) return null;
               return group.copyWith(titulos: studentTitles);

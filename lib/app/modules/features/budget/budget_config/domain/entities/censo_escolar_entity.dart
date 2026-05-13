@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:multimidiaapp/app/modules/features/budget/budget_config/domain/services/census_stage_rules.dart';
 
 import 'censo_group_entity.dart';
 
@@ -29,7 +30,28 @@ class CensoEscolarEntity extends Equatable {
     return grupos.fold(0.0, (sum, grupo) {
       return sum +
           grupo.titulos
-              .where((titulo) => !titulo.isProfessores)
+              .where(
+                  (titulo) => CensusStageRules.isStudentStage(titulo.nomeEtapa))
+              .fold(0.0, (s, titulo) => s + titulo.valor);
+    });
+  }
+
+  double get valorTotalProfessores {
+    return grupos.fold(0.0, (sum, grupo) {
+      return sum +
+          grupo.titulos
+              .where((titulo) =>
+                  CensusStageRules.isProfessorStage(titulo.nomeEtapa))
+              .fold(0.0, (s, titulo) => s + titulo.valor);
+    });
+  }
+
+  double get valorTotalCursistas {
+    return grupos.fold(0.0, (sum, grupo) {
+      return sum +
+          grupo.titulos
+              .where((titulo) =>
+                  CensusStageRules.isCursistaStage(titulo.nomeEtapa))
               .fold(0.0, (s, titulo) => s + titulo.valor);
     });
   }

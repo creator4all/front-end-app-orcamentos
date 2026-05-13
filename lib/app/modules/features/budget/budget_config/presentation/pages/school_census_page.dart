@@ -13,6 +13,7 @@ import '../../../../../../shared/widgets/searchable_dropdown_widget.dart';
 import '../../domain/entities/censo_escolar_entity.dart';
 import '../../domain/entities/censo_group_entity.dart';
 import '../../domain/repositories/census_repository.dart';
+import '../../domain/services/census_stage_rules.dart';
 import '../stores/school_census_store.dart';
 import '../widgets/census_data_section_widget.dart';
 
@@ -55,7 +56,9 @@ class _SchoolCensusPageState
 
     if (widget.budgetId != null) {
       store.loadBudgetCensus(widget.budgetId!).then((_) {
-        if (widget.isMultiCityMode && store.isMultiCity && store.isAggregatedView) {
+        if (widget.isMultiCityMode &&
+            store.isMultiCity &&
+            store.isAggregatedView) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             _showInfoDialog();
           });
@@ -99,10 +102,10 @@ class _SchoolCensusPageState
 
     return censo.grupos
         .map((group) {
-          final studentTitles =
-              group.titulos
-                  .where((title) => !title.nomeEtapa.endsWith('P'))
-                  .toList();
+          final studentTitles = group.titulos
+              .where(
+                  (title) => CensusStageRules.isStudentStage(title.nomeEtapa))
+              .toList();
           return CensoGroupEntity(
             id: group.id,
             nome: group.nome,
@@ -119,14 +122,34 @@ class _SchoolCensusPageState
 
     return censo.grupos
         .map((group) {
-          final professorTitles =
-              group.titulos
-                  .where((title) => title.nomeEtapa.endsWith('P'))
-                  .toList();
+          final professorTitles = group.titulos
+              .where(
+                  (title) => CensusStageRules.isProfessorStage(title.nomeEtapa))
+              .toList();
           return CensoGroupEntity(
             id: group.id,
             nome: group.nome,
             titulos: professorTitles,
+          );
+        })
+        .where((group) => group.titulos.isNotEmpty)
+        .toList();
+  }
+
+  List<CensoGroupEntity> _getCursistaGroups() {
+    final censo = store.censoEscolar;
+    if (censo == null) return [];
+
+    return censo.grupos
+        .map((group) {
+          final cursistaTitles = group.titulos
+              .where(
+                  (title) => CensusStageRules.isCursistaStage(title.nomeEtapa))
+              .toList();
+          return CensoGroupEntity(
+            id: group.id,
+            nome: group.nome,
+            titulos: cursistaTitles,
           );
         })
         .where((group) => group.titulos.isNotEmpty)
@@ -157,27 +180,25 @@ class _SchoolCensusPageState
           title: 'Censo escolar',
           showBackButton: true,
           onBackPressed: () => Navigator.of(context).pop(_hasSavedChanges),
-          actionButton:
-              widget.budgetId != null
-                  ? IconButton(
-                    onPressed: _isExporting ? null : _handleExportCsv,
-                    icon:
-                        _isExporting
-                            ? SizedBox(
-                              width: 20.sp,
-                              height: 20.sp,
-                              child: const CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Color(0xFF117BBD),
-                              ),
-                            )
-                            : Icon(
-                              Icons.share,
-                              color: const Color(0xFF117BBD),
-                              size: 24.sp,
-                            ),
-                  )
-                  : null,
+          actionButton: widget.budgetId != null
+              ? IconButton(
+                  onPressed: _isExporting ? null : _handleExportCsv,
+                  icon: _isExporting
+                      ? SizedBox(
+                          width: 20.sp,
+                          height: 20.sp,
+                          child: const CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Color(0xFF117BBD),
+                          ),
+                        )
+                      : Icon(
+                          Icons.share,
+                          color: const Color(0xFF117BBD),
+                          size: 24.sp,
+                        ),
+                )
+              : null,
         ),
         body: SafeArea(
           child: Observer(
@@ -220,14 +241,12 @@ class _SchoolCensusPageState
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             if (store.isMultiCity) _buildCitySelector(),
-
                             if (!store.isAggregatedView) _buildEditModeToggle(),
-
                             _buildCensusInfo(),
-
                             SizedBox(height: 16.h),
                             _buildStudentsSections(),
                             _buildProfessorsSections(),
+                            _buildCursistasSections(),
                             SizedBox(height: 16.h),
                           ],
                         ),
@@ -283,18 +302,16 @@ class _SchoolCensusPageState
               height: 24.h,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12.r),
-                color:
-                    store.isEditMode
-                        ? const Color(0xFF117BBD)
-                        : const Color(0xFFE0E0E0),
+                color: store.isEditMode
+                    ? const Color(0xFF117BBD)
+                    : const Color(0xFFE0E0E0),
               ),
               child: AnimatedAlign(
                 duration: const Duration(milliseconds: 300),
                 curve: Curves.easeInOut,
-                alignment:
-                    store.isEditMode
-                        ? Alignment.centerRight
-                        : Alignment.centerLeft,
+                alignment: store.isEditMode
+                    ? Alignment.centerRight
+                    : Alignment.centerLeft,
                 child: Container(
                   width: 20.w,
                   height: 20.h,
@@ -326,7 +343,7 @@ class _SchoolCensusPageState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Total de alunos: ${store.totalStudents.toStringAsFixed(0)}',
+          'Estudantes: ${store.totalStudents.toStringAsFixed(0)}',
           style: TextStyle(
             fontSize: 14.sp,
             fontWeight: FontWeight.w400,
@@ -335,7 +352,25 @@ class _SchoolCensusPageState
         ),
         SizedBox(height: 4.h),
         Text(
-          'Ano do censo: ${store.censoEscolar?.censoAno?.toString() ?? '-'}',
+          'Professores: ${store.totalProfessores.toStringAsFixed(0)} (quantidade estimada)',
+          style: TextStyle(
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w400,
+            color: Colors.black,
+          ),
+        ),
+        SizedBox(height: 4.h),
+        Text(
+          'Cursistas: ${store.totalCursistas.toStringAsFixed(0)} (quantidade estimada)',
+          style: TextStyle(
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w400,
+            color: Colors.black,
+          ),
+        ),
+        SizedBox(height: 4.h),
+        Text(
+          'Ano do Censo Escolar: ${store.censoEscolar?.censoAno?.toString() ?? '-'}',
           style: TextStyle(
             fontSize: 14.sp,
             fontWeight: FontWeight.w400,
@@ -351,19 +386,18 @@ class _SchoolCensusPageState
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children:
-          studentGroups
-              .map(
-                (group) => CensusDataSectionWidget.withId(
-                  group: group,
-                  isEditMode: store.isEditMode && !store.isAggregatedView,
-                  controllers: _controllers,
-                  onItemChanged: (entry) {
-                    store.updateValue(entry.key, entry.value);
-                  },
-                ),
-              )
-              .toList(),
+      children: studentGroups
+          .map(
+            (group) => CensusDataSectionWidget.withId(
+              group: group,
+              isEditMode: store.isEditMode && !store.isAggregatedView,
+              controllers: _controllers,
+              onItemChanged: (entry) {
+                store.updateValue(entry.key, entry.value);
+              },
+            ),
+          )
+          .toList(),
     );
   }
 
@@ -401,6 +435,40 @@ class _SchoolCensusPageState
     );
   }
 
+  Widget _buildCursistasSections() {
+    final cursistaGroups = _getCursistaGroups();
+
+    if (cursistaGroups.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(height: 16.h),
+        Text(
+          'Cursistas',
+          style: TextStyle(
+            fontSize: 16.sp,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF117BBD),
+          ),
+        ),
+        SizedBox(height: 8.h),
+        ...cursistaGroups.map(
+          (group) => CensusDataSectionWidget.withId(
+            group: group,
+            isEditMode: store.isEditMode && !store.isAggregatedView,
+            controllers: _controllers,
+            onItemChanged: (entry) {
+              store.updateValue(entry.key, entry.value);
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildSaveButton() {
     return Container(
       width: double.infinity,
@@ -415,24 +483,23 @@ class _SchoolCensusPageState
           padding: EdgeInsets.symmetric(vertical: 12.h),
           disabledBackgroundColor: Colors.grey,
         ),
-        child:
-            store.isSaving
-                ? SizedBox(
-                  width: 20.sp,
-                  height: 20.sp,
-                  child: const CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                )
-                : Text(
-                  'Salvar',
-                  style: TextStyle(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
+        child: store.isSaving
+            ? SizedBox(
+                width: 20.sp,
+                height: 20.sp,
+                child: const CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                 ),
+              )
+            : Text(
+                'Salvar',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
       ),
     );
   }

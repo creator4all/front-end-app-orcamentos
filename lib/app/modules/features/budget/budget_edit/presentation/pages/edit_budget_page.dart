@@ -7,7 +7,6 @@ import 'package:intl/intl.dart';
 import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 import 'package:multimidiaapp/app/shared/utils/date_utils.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_info_dialog.dart';
-
 import '../../../../../../shared/widgets/budget_summary_card.dart';
 import '../../../../../../shared/widgets/custom_top_bar.dart';
 import '../../../../../../shared/widgets/export_pdf_modal.dart';
@@ -342,37 +341,30 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
   Future<void> _handleSaveChanges() async {
     final result = await store.saveBudgetWithDto();
 
-    result.fold(
-      (failure) {
-        CustomInfoDialog.show(
-          context: context,
-          type: DialogType.error,
-          title: 'Erro ao salvar',
-          message: failure.message,
-        );
-      },
-      (budget) async {
-        await CustomInfoDialog.show(
-          context: context,
-          type: DialogType.success,
-          title: 'Sucesso',
-          message: 'Orçamento atualizado com sucesso!',
-        );
+    result.fold((failure) {
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.error,
+        title: 'Erro ao salvar',
+        message: failure.message,
+      );
+    }, (budget) async {
+      _shouldRefreshBudgetList = true;
 
-        _shouldRefreshBudgetList = true;
-        _closePage(
-          budgetListPatch: _createBudgetListPatch(
-            budgetId: budget.id,
-            name: budget.name,
-            validityDays: budget.validityDays,
-            validityDate: budget.validityDate,
-            status: budget.status,
-            isArchived: budget.isArchived,
-            total: budget.total,
-          ),
-        );
-      },
-    );
+      _capturePersistedBudgetListPatchFromStore();
+
+      await store.loadBudgetForEdit(budget.id);
+      _syncValidityFieldWithStore();
+
+      if (!mounted) return;
+
+      await CustomInfoDialog.show(
+        context: context,
+        type: DialogType.success,
+        title: 'Sucesso',
+        message: 'Orçamento atualizado com sucesso!',
+      );
+    });
   }
 
   @override
@@ -443,7 +435,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                               '/budget/census/$cityId',
                               arguments: {
                                 'censoEscolar': store.censoEscolar,
-                                'budgetId': widget.budgetId,
+                                'budgetId': store.budgetData?.id ?? widget.budgetId,
                                 'isMultiCityMode': isMultiCity,
                                 'onCensusUpdated': (updatedCenso) {
                                   store.updateCensoEscolar(updatedCenso);
@@ -929,10 +921,12 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
               icon: Icon(
                 Icons.ios_share,
                 size: 24.sp,
-                color: const Color(0xFF0C498E),
+                color: store.hasChanges ? Colors.grey : const Color(0xFF0C498E),
               ),
-              onPressed: _handleShare,
-              tooltip: 'Compartilhar orçamento',
+              onPressed: store.hasChanges ? _handleShareBlocked : _handleShare,
+              tooltip: store.hasChanges
+                  ? 'Salve antes de exportar'
+                  : 'Compartilhar orçamento',
             ),
           ],
         ),
@@ -1101,7 +1095,16 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
 
     await ExportPdfModal.show(
       context: context,
-      orcamentoId: widget.budgetId,
+      orcamentoId: store.budgetData!.id,
+    );
+  }
+
+  void _handleShareBlocked() {
+    CustomInfoDialog.show(
+      context: context,
+      type: DialogType.warning,
+      title: 'Alterações pendentes',
+      message: 'Salve as alterações antes de exportar o PDF',
     );
   }
 

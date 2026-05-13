@@ -72,6 +72,15 @@ abstract class _BudgetEditStoreBase with Store {
   /// Indica se o usuário alterou a data de validade nesta sessão de edição
   bool _validityDateChanged = false;
 
+  Set<int> _originalSelectedProductIds = {};
+  String _originalStatus = 'pendente';
+  bool _originalIsArchived = false;
+  DateTime? _originalValidityDate;
+  final Map<int, double> _originalProductQuantities = {};
+  final Map<int, double> _originalProductValues = {};
+  final Map<int, String?> _originalProductObservations = {};
+  final Map<int, Map<int, bool>> _originalProductIndicators = {};
+
   int _loadRequestVersion = 0;
 
   @observable
@@ -98,6 +107,40 @@ abstract class _BudgetEditStoreBase with Store {
   @observable
   ObservableList<ProductEntity> productsNeedingRemark =
       ObservableList<ProductEntity>();
+
+  @computed
+  bool get hasChanges {
+    if (selectedProductIds.length != _originalSelectedProductIds.length)
+      return true;
+    if (!selectedProductIds.containsAll(_originalSelectedProductIds))
+      return true;
+    if (selectedStatus != _originalStatus) return true;
+    if (isArchived != _originalIsArchived) return true;
+    if (validityDate != _originalValidityDate) return true;
+
+    for (final cat in categories) {
+      for (final sub in cat.subcategorias) {
+        for (final prod in sub.produtos) {
+          if (_originalProductQuantities[prod.id] != prod.quantidade)
+            return true;
+          if (_originalProductValues[prod.id] != prod.valor) return true;
+          if (_originalProductObservations[prod.id] != prod.observacoes)
+            return true;
+
+          final origIndicators = _originalProductIndicators[prod.id];
+          if (origIndicators != null) {
+            for (final ind in prod.indicadoresEtapa) {
+              if (origIndicators[ind.produtoIndicadorId] != ind.selecionado) {
+                return true;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return false;
+  }
 
   @computed
   bool get hasData => budgetData != null;
@@ -195,13 +238,11 @@ abstract class _BudgetEditStoreBase with Store {
           _originalValidityDays = budget.validityDays;
           _validityDateChanged = false;
 
-          selectedProductIds.clear();
-          selectedProductIds.addAll(
-            budget.products.where((p) => p.isSelected).map((p) => p.productId),
-          );
+          _updateSelectedProductIds();
 
           _parseCensoEscolarFromCitiesData();
           _recalculateProductQuantities();
+          _snapshotOriginalState();
 
           isLoading = false;
           isLoadingProducts = false;
@@ -426,6 +467,14 @@ abstract class _BudgetEditStoreBase with Store {
     error = null;
     _originalValidityDays = null;
     _validityDateChanged = false;
+    _originalSelectedProductIds.clear();
+    _originalStatus = 'pendente';
+    _originalIsArchived = false;
+    _originalValidityDate = null;
+    _originalProductQuantities.clear();
+    _originalProductValues.clear();
+    _originalProductObservations.clear();
+    _originalProductIndicators.clear();
   }
 
   @action
@@ -848,6 +897,33 @@ abstract class _BudgetEditStoreBase with Store {
       error = 'Erro ao salvar orçamento: $e';
       isSaving = false;
       return Left(UnknownFailure(e.toString()));
+    }
+  }
+
+  void _snapshotOriginalState() {
+    _originalSelectedProductIds = Set<int>.from(selectedProductIds);
+    _originalStatus = selectedStatus;
+    _originalIsArchived = isArchived;
+    _originalValidityDate = validityDate;
+
+    _originalProductQuantities.clear();
+    _originalProductValues.clear();
+    _originalProductObservations.clear();
+    _originalProductIndicators.clear();
+
+    for (final cat in categories) {
+      for (final sub in cat.subcategorias) {
+        for (final prod in sub.produtos) {
+          _originalProductQuantities[prod.id] = prod.quantidade;
+          _originalProductValues[prod.id] = prod.valor;
+          _originalProductObservations[prod.id] = prod.observacoes;
+          final indicatorMap = <int, bool>{};
+          for (final ind in prod.indicadoresEtapa) {
+            indicatorMap[ind.produtoIndicadorId] = ind.selecionado;
+          }
+          _originalProductIndicators[prod.id] = indicatorMap;
+        }
+      }
     }
   }
 
