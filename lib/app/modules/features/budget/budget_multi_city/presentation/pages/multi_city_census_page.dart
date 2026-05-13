@@ -107,7 +107,7 @@ class _MultiCityCensusPageState
     }
   }
 
-  void _onValueChanged(int cityId, String nomeEtapa, double value) {
+  void _onValueChanged(int cityId, String nomeEtapa, double? value) {
     store.updateValue(cityId, nomeEtapa, value);
   }
 

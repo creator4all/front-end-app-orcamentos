@@ -3,7 +3,7 @@ description: "Aplicativo para gerenciamento de orçamentos empresariais"
 
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
-version: 1.0.12+15
+version: 1.0.13+16
 
 environment:
   sdk: '>=3.4.1 <4.0.0'
@@ -92,7 +92,7 @@ flutter_launcher_icons:
   
   # Configuração para Android - Ícone Adaptativo
   adaptive_icon_background: "#FFFFFF"  # Fundo branco
-  adaptive_icon_foreground: "assets/images/app_icon4.png"
+  adaptive_icon_foreground: "assets/images/app_icon3.png"
   
   # Configurações para manter o ícone centralizado (contain)
   # O ícone será redimensionado para caber sem cortar, mantendo proporções

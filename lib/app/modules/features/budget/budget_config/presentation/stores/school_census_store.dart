@@ -145,7 +145,12 @@ abstract class _SchoolCensusStoreBase with Store {
   }
 
   @action
-  void updateValue(int indiceId, double value) {
+  void updateValue(int indiceId, double? value) {
+    if(value == null){
+      editedValues.remove(indiceId);
+      return;
+    }
+
     editedValues[indiceId] = value;
   }
 

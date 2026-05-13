@@ -816,6 +816,7 @@ abstract class _BudgetEditStoreBase with Store {
         cidadeId: isMultiCity ? null : budgetData!.cityIds.firstOrNull,
         cidades: isMultiCity ? budgetData!.cityIds : null,
         produtos: produtosParaSalvar,
+        partnerDestinoId: budgetData!.partnerId,
       );
 
       final Either<BudgetFailure, BudgetEditEntity> result;
