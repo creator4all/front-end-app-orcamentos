@@ -8,7 +8,7 @@ class ApiConfig {
   static const String _productionBaseUrl =
       'https://parceiro.multimidiaeducacional.com.br';
 
-  static Environment _currentEnvironment = Environment.localCasa;
+  static Environment _currentEnvironment = Environment.production;
 
   static void init(Environment environment) {
     _currentEnvironment = environment;
