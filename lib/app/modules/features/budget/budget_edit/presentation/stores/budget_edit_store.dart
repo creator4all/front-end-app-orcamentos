@@ -627,10 +627,6 @@ abstract class _BudgetEditStoreBase with Store {
         if (prodIndex != -1) {
           final product = subcategory.produtos[prodIndex];
 
-          if (!product.ativo) {
-            return;
-          }
-
           final updatedProduct = product.copyWith(valor: value);
 
           final updatedProducts = List<ProductEntity>.from(

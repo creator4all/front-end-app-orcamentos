@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:multimidiaapp/app/shared/widgets/widgets.dart';
 
-import '../../../../../shared/widgets/custom_top_bar.dart';
 import '../../../../features/auth/presentation/stores/auth_store.dart';
 import '../../domain/entities/product_config_entity.dart';
 import '../stores/product_management_store.dart';
@@ -53,10 +53,6 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
         builder: (_) {
           if (_store.isLoading) {
             return const Center(child: CircularProgressIndicator());
-          }
-
-          if (_store.errorMessage != null) {
-            return _buildErrorWidget();
           }
 
           return Column(
@@ -250,41 +246,6 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
     );
   }
 
-  Widget _buildErrorWidget() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.error_outline,
-            size: 64.sp,
-            color: Colors.red[400],
-          ),
-          SizedBox(height: 16.h),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 32.w),
-            child: Text(
-              _store.errorMessage ?? 'Erro ao carregar dados',
-              style: TextStyle(
-                fontSize: 14.sp,
-                color: Colors.red[600],
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          SizedBox(height: 16.h),
-          ElevatedButton(
-            onPressed: () {
-              _store.clearError();
-              _store.loadCategories();
-            },
-            child: const Text('Tentar novamente'),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _handleBack() {
     if (_store.canGoBack) {
       _store.goBack();
@@ -314,6 +275,25 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
     ProductConfigEntity product,
     bool newStatus,
   ) async {
-    await _store.updateProductStatus(product.id, newStatus);
+    final success = await _store.updateProductStatus(product.id, newStatus);
+    if (!mounted) return;
+
+    CustomInfoDialog.show(
+      context: context,
+      type: success ? DialogType.success : DialogType.error,
+      title: success ? 'Sucesso' : 'Erro',
+      message: success
+          ? newStatus
+              ? 'Produto reativado com sucesso.'
+              : 'Produto desativado com sucesso.'
+          : 'Erro ao desabilitar produto.',
+      onButtonPressed: success
+          ? null
+          : () {
+              if (_store.selectedSubcategory != null) {
+                _store.selectSubcategory(_store.selectedSubcategory!);
+              }
+            },
+    );
   }
 }

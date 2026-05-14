@@ -20,6 +20,7 @@ class ProductItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isSelected = product.selecionado;
+
     final borderColor =
         isSelected ? const Color(0xFF2830F2) : const Color(0xFFD9D9D9);
 

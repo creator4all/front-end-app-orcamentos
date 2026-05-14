@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:multimidiaapp/app/shared/widgets/custom_checkbox.dart';
 
 import '../../../../../shared/widgets/custom_info_dialog.dart';
 import '../../../../../shared/widgets/custom_modal.dart';
@@ -342,50 +343,36 @@ class _ProductEditConfigModalState extends State<ProductEditConfigModal> {
   }
 
   Widget _buildCustomCheckbox({
-    required bool value,
-    required String label,
-    required ValueChanged<bool> onChanged,
-    bool isBold = false,
-  }) {
-    return GestureDetector(
-      onTap: () => onChanged(!value),
-      child: Row(
-        children: [
-          Container(
-            width: 20.w,
-            height: 20.w,
-            decoration: BoxDecoration(
-              color: value ? const Color(0xFF0028C1) : Colors.transparent,
-              borderRadius: BorderRadius.circular(6.h),
-              border: Border.all(
-                color:
-                    value ? const Color(0xFF0028C1) : const Color(0xFFD9D9D9),
-                width: 1,
-              ),
-            ),
-            child: value
-                ? Icon(
-                    Icons.check,
-                    size: 14.sp,
-                    color: Colors.white,
-                  )
-                : null,
-          ),
-          SizedBox(width: 8.w),
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 13.sp,
-                fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-                color: const Color(0xFF484848),
-              ),
+  required bool value,
+  required String label,
+  required ValueChanged<bool> onChanged,
+  bool isBold = false,
+}) {
+  return GestureDetector(
+    onTap: () => onChanged(!value),
+    child: Row(
+      children: [
+        CustomCheckbox(
+          value: value,
+          onChanged: onChanged,
+          size: 20,
+          checkedColor: const Color(0xFF0028C1),
+        ),
+        SizedBox(width: 8.w),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13.sp,
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+              color: const Color(0xFF484848),
             ),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildTipoDropdown() {
     return Column(

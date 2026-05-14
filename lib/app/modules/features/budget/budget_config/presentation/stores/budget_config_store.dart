@@ -893,10 +893,6 @@ abstract class _BudgetConfigStoreBase with Store {
         if (productIndex != -1) {
           final product = subcategory.produtos[productIndex];
 
-          if (!product.ativo) {
-            return;
-          }
-
           final updatedProduct = product.copyWith(selecionado: selected);
 
           if (censoEscolar != null && selected) {
@@ -963,7 +959,6 @@ abstract class _BudgetConfigStoreBase with Store {
     final subcategory = category.subcategorias[subcategoryIndex];
 
     final updatedProducts = subcategory.produtos.map((product) {
-      if (!product.ativo) return product;
       return product.copyWith(selecionado: selected);
     }).toList();
 
@@ -986,7 +981,6 @@ abstract class _BudgetConfigStoreBase with Store {
 
     final updatedSubcategories = category.subcategorias.map((subcategory) {
       final updatedProducts = subcategory.produtos.map((product) {
-        if (!product.ativo) return product;
         return product.copyWith(selecionado: selected);
       }).toList();
       return subcategory.copyWith(produtos: updatedProducts);
@@ -1047,10 +1041,6 @@ abstract class _BudgetConfigStoreBase with Store {
         if (productIndex != -1) {
           final product = subcategory.produtos[productIndex];
 
-          if (!product.ativo) {
-            return;
-          }
-
           final updatedProduct = product.copyWith(quantidade: quantity);
 
           final updatedProducts =
@@ -1088,10 +1078,6 @@ abstract class _BudgetConfigStoreBase with Store {
 
         if (productIndex != -1) {
           final product = subcategory.produtos[productIndex];
-
-          if (!product.ativo) {
-            return;
-          }
 
           final updatedProduct = product.copyWith(valor: value);
 
@@ -1234,11 +1220,6 @@ abstract class _BudgetConfigStoreBase with Store {
 
         if (productIndex != -1) {
           final product = subcategory.produtos[productIndex];
-
-          // Regra de negÃ³cio: SÃ³ permitir se estiver ativo
-          if (!product.ativo) {
-            return;
-          }
 
           final updatedProducts =
               List<ProductEntity>.from(subcategory.produtos);

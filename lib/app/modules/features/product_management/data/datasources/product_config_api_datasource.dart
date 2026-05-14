@@ -75,8 +75,8 @@ class ProductConfigApiDatasource implements ProductConfigDatasource {
   @override
   Future<void> updateProductStatus(int productId, bool status) async {
     await httpClient.patch(
-      '/api/produtos/$productId',
-      data: {'pro_status': status},
+      '/api/produtos/$productId/desativar',
+      data: {'status': status},
     );
   }
 }
