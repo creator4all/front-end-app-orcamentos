@@ -277,10 +277,23 @@ class BudgetModuleNew extends Module {
             final budgetId = argsData?['budgetId'] as int?;
             final isMultiCityMode =
                 argsData?['isMultiCityMode'] as bool? ?? false;
+            final rawOnCensusUpdated = argsData?['onCensusUpdated'];
             final onCensusUpdated =
-                argsData?['onCensusUpdated'] as Function(CensoEscolarEntity)?;
-            final onCensusSaved =
-                argsData?['onCensusSaved'] as Future<void> Function()?;
+                rawOnCensusUpdated is Function(CensoEscolarEntity)
+                    ? rawOnCensusUpdated
+                    : null;
+
+            final rawOnCensusSaved = argsData?['onCensusSaved'];
+            final onCensusSaved = rawOnCensusSaved is Future<void> Function()
+                ? rawOnCensusSaved
+                : (rawOnCensusSaved is Function
+                    ? () async {
+                        final result = (rawOnCensusSaved as dynamic)();
+                        if (result is Future) {
+                          await result;
+                        }
+                      }
+                    : null);
 
             return SchoolCensusPage(
               cityId: cityId,

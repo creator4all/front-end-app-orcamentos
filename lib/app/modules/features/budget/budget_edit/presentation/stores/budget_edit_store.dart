@@ -383,6 +383,9 @@ abstract class _BudgetEditStoreBase with Store {
   void setValidityDate(DateTime? date) {
     validityDate = date;
     _validityDateChanged = true;
+    if (selectedStatus == 'expirado') {
+      selectedStatus = 'pendente';
+    }
   }
 
   @action
@@ -930,11 +933,9 @@ abstract class _BudgetEditStoreBase with Store {
     }
 
     if (budgetData!.censoAgregado.isNotEmpty) {
-      censoEscolar = CensoEscolarEntity(
-        cidadeId: 0,
-        cidadeNome: 'Agregado',
-        grupos: const [],
-        valoresPorEtapa: budgetData!.censoAgregado,
+      censoEscolar = _buildAggregatedCenso(
+        censoAgregado: budgetData!.censoAgregado,
+        citiesData: budgetData!.citiesDataRaw,
       );
       return;
     }
@@ -954,8 +955,6 @@ abstract class _BudgetEditStoreBase with Store {
 
   @action
   void updateCensoEscolar(CensoEscolarEntity updatedCenso) {
-    final oldCenso = censoEscolar;
-
     censoEscolar = updatedCenso;
 
     if (budgetData != null && budgetData!.citiesDataRaw.isNotEmpty) {
@@ -992,10 +991,6 @@ abstract class _BudgetEditStoreBase with Store {
         censoAgregado: Map<String, double>.from(updatedCenso.valoresPorEtapa),
       );
     }
-
-    if (oldCenso != null) {
-      _checkForProductsToRemark(oldCenso, updatedCenso);
-    }
   }
 
   @action
@@ -1006,16 +1001,10 @@ abstract class _BudgetEditStoreBase with Store {
     isLoadingProducts = true;
 
     try {
-      final oldCenso = censoEscolar;
-
       await loadBudgetForEdit(budgetData!.id);
 
       _recalculateProductQuantities();
       budgetData = budgetData?.copyWith(total: totalValue);
-
-      if (oldCenso != null && censoEscolar != null) {
-        _checkForProductsToRemark(oldCenso, censoEscolar!);
-      }
     } catch (e) {
       error = 'Erro ao recarregar orçamento: $e';
     } finally {
@@ -1234,6 +1223,90 @@ abstract class _BudgetEditStoreBase with Store {
           : _toInt(cityData['censo_ano']),
       grupos: grupos,
       valoresPorEtapa: valoresPorEtapa,
+    );
+  }
+
+  CensoEscolarEntity _buildAggregatedCenso({
+    required Map<String, double> censoAgregado,
+    required List<Map<String, dynamic>> citiesData,
+  }) {
+    if (citiesData.isEmpty) {
+      final grupos = <CensoGroupEntity>[
+        CensoGroupEntity(
+          id: 0,
+          nome: 'Agregado',
+          titulos: censoAgregado.entries
+              .map(
+                (e) => CensoTitleEntity(
+                  id: 0,
+                  nomeEtapa: e.key,
+                  tituloExibicao: e.key,
+                  valor: e.value,
+                  isProfessores: e.key.endsWith('P'),
+                  grupoId: 0,
+                ),
+              )
+              .toList(),
+        ),
+      ];
+
+      return CensoEscolarEntity(
+        cidadeId: 0,
+        cidadeNome: 'Agregado',
+        grupos: grupos,
+        valoresPorEtapa: censoAgregado,
+      );
+    }
+
+    final gruposMap = <int, List<CensoTitleEntity>>{};
+    final grupoNomes = <int, String>{};
+
+    for (final cityData in citiesData) {
+      final indices = _extractIndicesFromCityData(cityData);
+      for (final indice in indices) {
+        final nomeEtapa = indice['nome_etapa'].toString();
+        final titulo = indice['titulo'].toString();
+        final group = indice['grupo'] as Map<String, dynamic>? ?? const {};
+        final grupoId = _toInt(group['id']);
+        final grupoNome = (group['nome'] ?? '').toString();
+        final id = _toInt(indice['id']);
+        final valorAgregado = censoAgregado[nomeEtapa] ?? 0.0;
+
+        grupoNomes[grupoId] = grupoNome;
+        gruposMap.putIfAbsent(grupoId, () => []);
+
+        final jaExiste =
+            gruposMap[grupoId]!.any((titulo) => titulo.nomeEtapa == nomeEtapa);
+        if (jaExiste) continue;
+
+        gruposMap[grupoId]!.add(
+          CensoTitleEntity(
+            id: id,
+            nomeEtapa: nomeEtapa,
+            tituloExibicao: titulo,
+            valor: valorAgregado,
+            isProfessores: nomeEtapa.endsWith('P'),
+            grupoId: grupoId,
+          ),
+        );
+      }
+    }
+
+    final grupos = gruposMap.entries
+        .map(
+          (entry) => CensoGroupEntity(
+            id: entry.key,
+            nome: grupoNomes[entry.key] ?? 'Agregado',
+            titulos: entry.value,
+          ),
+        )
+        .toList();
+
+    return CensoEscolarEntity(
+      cidadeId: 0,
+      cidadeNome: 'Agregado',
+      grupos: grupos,
+      valoresPorEtapa: censoAgregado,
     );
   }
 

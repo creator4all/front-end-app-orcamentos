@@ -561,7 +561,7 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
         throw Exception('Arquivo não foi salvo corretamente');
       }
 
-      await Share.shareXFiles(
+      final shareResult = await Share.shareXFiles(
         [XFile(file.path)],
         text: 'Orçamento - ${_nomeVendedorController.text.trim()}',
         subject: 'Orçamento - ${_nomeVendedorController.text.trim()}',
@@ -571,12 +571,15 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
       if (!mounted) return;
 
       Navigator.of(context).pop();
-      CustomInfoDialog.show(
-        context: context,
-        type: DialogType.success,
-        title: 'Sucesso!',
-        message: 'PDF gerado e compartilhado com sucesso!',
-      );
+
+      if (shareResult.status == ShareResultStatus.success) {
+        CustomInfoDialog.show(
+          context: context,
+          type: DialogType.success,
+          title: 'Sucesso!',
+          message: 'PDF gerado e compartilhado com sucesso!',
+        );
+      }
     } catch (e) {
       setState(() {
         _isLoading = false;

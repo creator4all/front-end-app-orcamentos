@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 import 'package:multimidiaapp/app/shared/utils/date_utils.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_info_dialog.dart';
+
 import '../../../../../../shared/widgets/budget_summary_card.dart';
 import '../../../../../../shared/widgets/custom_top_bar.dart';
 import '../../../../../../shared/widgets/export_pdf_modal.dart';
@@ -84,16 +85,18 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
 
   String _buildHeaderTitle() {
     final loadedTitle = store.budgetName?.trim();
+    String title;
+
     if (loadedTitle != null && loadedTitle.isNotEmpty) {
-      return loadedTitle;
+      title = loadedTitle;
+    } else {
+      final initialTitle = widget.initialTitle?.trim();
+      title = (initialTitle != null && initialTitle.isNotEmpty)
+          ? initialTitle
+          : 'Editar orçamento';
     }
 
-    final initialTitle = widget.initialTitle?.trim();
-    if (initialTitle != null && initialTitle.isNotEmpty) {
-      return initialTitle;
-    }
-
-    return 'Editar Orçamento';
+    return store.hasChanges ? '$title *' : title;
   }
 
   void _closePage({Map<String, dynamic>? budgetListPatch}) {
@@ -435,7 +438,8 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                               '/budget/census/$cityId',
                               arguments: {
                                 'censoEscolar': store.censoEscolar,
-                                'budgetId': store.budgetData?.id ?? widget.budgetId,
+                                'budgetId':
+                                    store.budgetData?.id ?? widget.budgetId,
                                 'isMultiCityMode': isMultiCity,
                                 'onCensusUpdated': (updatedCenso) {
                                   store.updateCensoEscolar(updatedCenso);

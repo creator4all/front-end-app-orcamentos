@@ -435,6 +435,90 @@ abstract class _BudgetConfigStoreBase with Store {
     );
   }
 
+  CensoEscolarEntity _buildAggregatedCenso({
+    required Map<String, double> censoAgregado,
+    required List<Map<String, dynamic>> citiesData,
+  }) {
+    if (citiesData.isEmpty) {
+      final grupos = <CensoGroupEntity>[
+        CensoGroupEntity(
+          id: 0,
+          nome: 'Agregado',
+          titulos: censoAgregado.entries
+              .map(
+                (e) => CensoTitleEntity(
+                  id: 0,
+                  nomeEtapa: e.key,
+                  tituloExibicao: e.key,
+                  valor: e.value,
+                  isProfessores: e.key.endsWith('P'),
+                  grupoId: 0,
+                ),
+              )
+              .toList(),
+        ),
+      ];
+
+      return CensoEscolarEntity(
+        cidadeId: 0,
+        cidadeNome: 'Agregado',
+        grupos: grupos,
+        valoresPorEtapa: censoAgregado,
+      );
+    }
+
+    final gruposMap = <int, List<CensoTitleEntity>>{};
+    final grupoNomes = <int, String>{};
+
+    for (final cityData in citiesData) {
+      final indices = _extractIndicesFromCityData(cityData);
+      for (final indice in indices) {
+        final nomeEtapa = indice['nome_etapa'].toString();
+        final titulo = indice['titulo'].toString();
+        final group = indice['grupo'] as Map<String, dynamic>? ?? const {};
+        final grupoId = _toInt(group['id']);
+        final grupoNome = (group['nome'] ?? '').toString();
+        final id = _toInt(indice['id']);
+        final valorAgregado = censoAgregado[nomeEtapa] ?? 0.0;
+
+        grupoNomes[grupoId] = grupoNome;
+        gruposMap.putIfAbsent(grupoId, () => []);
+
+        final jaExiste = gruposMap[grupoId]!
+            .any((titulo) => titulo.nomeEtapa == nomeEtapa);
+        if (jaExiste) continue;
+
+        gruposMap[grupoId]!.add(
+          CensoTitleEntity(
+            id: id,
+            nomeEtapa: nomeEtapa,
+            tituloExibicao: titulo,
+            valor: valorAgregado,
+            isProfessores: nomeEtapa.endsWith('P'),
+            grupoId: grupoId,
+          ),
+        );
+      }
+    }
+
+    final grupos = gruposMap.entries
+        .map(
+          (entry) => CensoGroupEntity(
+            id: entry.key,
+            nome: grupoNomes[entry.key] ?? 'Agregado',
+            titulos: entry.value,
+          ),
+        )
+        .toList();
+
+    return CensoEscolarEntity(
+      cidadeId: 0,
+      cidadeNome: 'Agregado',
+      grupos: grupos,
+      valoresPorEtapa: censoAgregado,
+    );
+  }
+
   List<Map<String, dynamic>> _buildIndicesFromCenso(CensoEscolarEntity censo) {
     final indices = <Map<String, dynamic>>[];
 
@@ -590,7 +674,6 @@ abstract class _BudgetConfigStoreBase with Store {
 
   @action
   void updateCensoEscolar(CensoEscolarEntity updatedCenso) {
-    final oldCenso = censoEscolar;
     censoEscolar = updatedCenso;
 
     if (budgetDetail != null) {
@@ -623,10 +706,6 @@ abstract class _BudgetConfigStoreBase with Store {
         citiesData: updatedCities,
         censoAgregado: updatedCensoAgregado,
       );
-    }
-
-    if (oldCenso != null) {
-      _checkForProductsToRemark(oldCenso, updatedCenso);
     }
   }
 
@@ -702,11 +781,9 @@ abstract class _BudgetConfigStoreBase with Store {
           _validityDateChanged = false;
 
           if (budget.censoAgregado.isNotEmpty) {
-            censoEscolar = CensoEscolarEntity(
-              cidadeId: 0,
-              cidadeNome: 'Agregado',
-              grupos: const [],
-              valoresPorEtapa: budget.censoAgregado,
+            censoEscolar = _buildAggregatedCenso(
+              censoAgregado: budget.censoAgregado,
+              citiesData: budget.citiesData,
             );
           } else if (budget.citiesData.isNotEmpty) {
             censoEscolar = _buildCensoFromCityData(budget.citiesData.first);
@@ -1312,19 +1389,27 @@ abstract class _BudgetConfigStoreBase with Store {
     categories = ObservableList.of(newCategories);
   }
 
+  /// Recarrega o orçamento via GET após salvar o censo escolar.
+  ///
+  /// Esta é a ÚNICA fonte de verdade para reidratar produtos após uma
+  /// alteração de censo. O backend (atualizarCensoOrcamento) recalcula
+  /// quantidades mas NÃO reseta o campo `selecionado`. Desseleções locais
+  /// não persistidas são naturalmente descartadas pelo GET completo.
   @action
   Future<void> reloadProductsAfterCensusEdit() async {
     if (budgetDetail == null) return;
 
+    isLoading = true;
+    isLoadingProducts = true;
+
     try {
-      final oldCenso = censoEscolar;
       await loadBudgetDetail(budgetDetail!.id);
       _recalculateProductQuantities();
-      if (oldCenso != null && censoEscolar != null) {
-        _checkForProductsToRemark(oldCenso, censoEscolar!);
-      }
     } catch (e) {
       error = 'Erro ao recarregar orçamento: $e';
+    } finally {
+      isLoading = false;
+      isLoadingProducts = false;
     }
   }
 
