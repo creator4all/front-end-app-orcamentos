@@ -410,7 +410,7 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
               title: 'Recortar Logo',
               doneButtonTitle: 'Recortar',
               cancelButtonTitle: 'Cancelar',
-              aspectRatioLockEnabled: false,
+              aspectRatioLockEnabled: true,
               aspectRatioLockDimensionSwapEnabled: false,
               aspectRatioPickerButtonHidden: false,
               resetAspectRatioEnabled: false,

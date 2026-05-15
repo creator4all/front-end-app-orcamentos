@@ -103,8 +103,7 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
               title: 'Recortar Logo',
               doneButtonTitle: 'Recortar',
               cancelButtonTitle: 'Cancelar',
-              // Permite trocar entre presets mas bloqueia inversão de dimensão
-              aspectRatioLockEnabled: false,
+              aspectRatioLockEnabled: true,
               aspectRatioLockDimensionSwapEnabled: false,
               aspectRatioPickerButtonHidden: false,
               resetAspectRatioEnabled: false,
