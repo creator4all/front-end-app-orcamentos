@@ -926,6 +926,18 @@ abstract class _BudgetEditStoreBase with Store {
     }
   }
 
+  void _updateOriginalQuantitiesSnapshot() {
+    _originalProductQuantities.clear();
+
+    for (final cat in categories) {
+      for (final sub in cat.subcategorias) {
+        for (final prod in sub.produtos) {
+          _originalProductQuantities[prod.id] = prod.quantidade;
+        }
+      }
+    }
+  }
+
   void _parseCensoEscolarFromCitiesData() {
     if (budgetData == null) {
       censoEscolar = null;
@@ -996,21 +1008,11 @@ abstract class _BudgetEditStoreBase with Store {
   @action
   Future<void> reloadProductsAfterCensusEdit() async {
     if (budgetData == null) return;
-
-    isLoading = true;
-    isLoadingProducts = true;
-
-    try {
-      await loadBudgetForEdit(budgetData!.id);
-
-      _recalculateProductQuantities();
-      budgetData = budgetData?.copyWith(total: totalValue);
-    } catch (e) {
-      error = 'Erro ao recarregar orçamento: $e';
-    } finally {
-      isLoading = false;
-      isLoadingProducts = false;
-    }
+  
+    _parseCensoEscolarFromCitiesData();
+    _recalculateProductQuantities();
+    _updateOriginalQuantitiesSnapshot();
+    budgetData = budgetData?.copyWith(total: totalValue);
   }
 
   @action

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:multimidiaapp/app/shared/utils/brl_currency_input_formatter.dart';
+import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_checkbox.dart';
 
 import '../../../../../shared/widgets/custom_info_dialog.dart';
@@ -55,6 +58,7 @@ class _ProductEditConfigModalState extends State<ProductEditConfigModal> {
   static const _tipoOptions = ['mensal', 'anual', 'horas'];
   late TextEditingController _isbnController;
   late TextEditingController _percentController;
+  late TextEditingController _valorController;
   late Map<String, bool> _indicadores;
   late bool _ativo;
   bool _isSaving = false;
@@ -72,6 +76,9 @@ class _ProductEditConfigModalState extends State<ProductEditConfigModal> {
     _percentController = TextEditingController(
       text: widget.product.percent?.toString() ?? '',
     );
+    _valorController = TextEditingController(
+      text: CurrencyUtils.formatBRLNoSymbol(widget.product.valor),
+    );
     _indicadores = Map.from(widget.product.indicadores);
     _ativo = widget.product.ativo;
   }
@@ -83,6 +90,7 @@ class _ProductEditConfigModalState extends State<ProductEditConfigModal> {
 
     _isbnController.dispose();
     _percentController.dispose();
+    _valorController.dispose();
     super.dispose();
   }
 
@@ -123,6 +131,15 @@ class _ProductEditConfigModalState extends State<ProductEditConfigModal> {
             label: 'Percentual de horas:',
             controller: _percentController,
             keyboardType: TextInputType.number,
+          ),
+        ],
+        if (widget.product.isLivro || widget.product.isTecnologia) ...[
+          SizedBox(height: 16.h),
+          _buildTextField(
+            label: 'Valor Unitário:',
+            controller: _valorController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [BrlCurrencyInputFormatter()],
           ),
         ],
         SizedBox(height: 16.h),
@@ -215,6 +232,7 @@ class _ProductEditConfigModalState extends State<ProductEditConfigModal> {
     required String label,
     required TextEditingController controller,
     TextInputType keyboardType = TextInputType.text,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -231,6 +249,7 @@ class _ProductEditConfigModalState extends State<ProductEditConfigModal> {
         TextField(
           controller: controller,
           keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
           decoration: InputDecoration(
             contentPadding:
                 EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
@@ -343,36 +362,34 @@ class _ProductEditConfigModalState extends State<ProductEditConfigModal> {
   }
 
   Widget _buildCustomCheckbox({
-  required bool value,
-  required String label,
-  required ValueChanged<bool> onChanged,
-  bool isBold = false,
-}) {
-  return GestureDetector(
-    onTap: () => onChanged(!value),
-    child: Row(
-      children: [
-        CustomCheckbox(
-          value: value,
-          onChanged: onChanged,
-          size: 20,
-          checkedColor: const Color(0xFF0028C1),
-        ),
-        SizedBox(width: 8.w),
-        Expanded(
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 13.sp,
-              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-              color: const Color(0xFF484848),
+    required bool value,
+    required String label,
+    required ValueChanged<bool> onChanged,
+    bool isBold = false,
+  }) {
+    return GestureDetector(
+      onTap: () => onChanged(!value),
+      child: Row(
+        children: [
+          CustomCheckbox(
+            value: value,
+            onChanged: onChanged,
+          ),
+          SizedBox(width: 8.w),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 13.sp,
+                fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+                color: const Color(0xFF484848),
+              ),
             ),
           ),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
 
   Widget _buildTipoDropdown() {
     return Column(
@@ -421,10 +438,17 @@ class _ProductEditConfigModalState extends State<ProductEditConfigModal> {
   Future<void> _handleSave() async {
     setState(() => _isSaving = true);
 
+    final valor = (widget.product.isLivro || widget.product.isTecnologia)
+        ? BrlCurrencyInputFormatter.parseToDouble(_valorController.text)
+        : widget.product.valor;
+
     final updatedProduct = widget.product.copyWith(
       solucao: _solucaoController.text,
       indicacao: _indicacaoController.text,
       tipo: _selectedTipo,
+      valor: (widget.product.isLivro || widget.product.isTecnologia)
+          ? valor
+          : widget.product.valor,
       isbn: widget.product.isLivro ? _isbnController.text : null,
       percent: widget.product.isServico
           ? double.tryParse(_percentController.text)

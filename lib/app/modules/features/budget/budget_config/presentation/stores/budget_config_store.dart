@@ -484,8 +484,8 @@ abstract class _BudgetConfigStoreBase with Store {
         grupoNomes[grupoId] = grupoNome;
         gruposMap.putIfAbsent(grupoId, () => []);
 
-        final jaExiste = gruposMap[grupoId]!
-            .any((titulo) => titulo.nomeEtapa == nomeEtapa);
+        final jaExiste =
+            gruposMap[grupoId]!.any((titulo) => titulo.nomeEtapa == nomeEtapa);
         if (jaExiste) continue;
 
         gruposMap[grupoId]!.add(
@@ -1389,28 +1389,20 @@ abstract class _BudgetConfigStoreBase with Store {
     categories = ObservableList.of(newCategories);
   }
 
-  /// Recarrega o orçamento via GET após salvar o censo escolar.
-  ///
-  /// Esta é a ÚNICA fonte de verdade para reidratar produtos após uma
-  /// alteração de censo. O backend (atualizarCensoOrcamento) recalcula
-  /// quantidades mas NÃO reseta o campo `selecionado`. Desseleções locais
-  /// não persistidas são naturalmente descartadas pelo GET completo.
   @action
   Future<void> reloadProductsAfterCensusEdit() async {
     if (budgetDetail == null) return;
-
-    isLoading = true;
-    isLoadingProducts = true;
-
-    try {
-      await loadBudgetDetail(budgetDetail!.id);
-      _recalculateProductQuantities();
-    } catch (e) {
-      error = 'Erro ao recarregar orçamento: $e';
-    } finally {
-      isLoading = false;
-      isLoadingProducts = false;
+  
+    if (budgetDetail!.censoAgregado.isNotEmpty) {
+      censoEscolar = _buildAggregatedCenso(
+        censoAgregado: budgetDetail!.censoAgregado,
+        citiesData: budgetDetail!.citiesData,
+      );
+    } else if (budgetDetail!.citiesData.isNotEmpty) {
+      censoEscolar = _buildCensoFromCityData(budgetDetail!.citiesData.first);
     }
+  
+    _recalculateProductQuantities();
   }
 
   @action
