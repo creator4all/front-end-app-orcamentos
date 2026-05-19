@@ -296,6 +296,7 @@ abstract class _SchoolCensusStoreBase with Store {
       cidadeId: 0,
       cidadeNome: 'Todas as cidades',
       censoAno: null,
+      anoPopulacao: null,
       grupos: updatedGroups,
       valoresPorEtapa: Map<String, double>.from(censoAgregado),
     );

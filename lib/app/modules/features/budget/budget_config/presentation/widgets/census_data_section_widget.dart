@@ -82,7 +82,7 @@ class CensusDataSectionWidget<K> extends StatelessWidget {
         : title.valor;
 
     return CensusInputRowWidget(
-      label: title.tituloExibicao,
+      label: title.labelComPercentual,
       value: displayValue,
       isEditMode: isEditMode,
       controller: controller,

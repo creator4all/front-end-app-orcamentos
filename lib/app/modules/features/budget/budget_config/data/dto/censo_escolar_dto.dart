@@ -47,11 +47,9 @@ class CensoEscolarDto {
             grupo?['id'] ??
             grupo?['grupo_id'],
       );
-      final grupoNome = (item['grupo_nome'] ??
-              grupo?['nome'] ??
-              grupo?['nome_grupo'] ??
-              '')
-          .toString();
+      final grupoNome =
+          (item['grupo_nome'] ?? grupo?['nome'] ?? grupo?['nome_grupo'] ?? '')
+              .toString();
 
       valoresPorEtapa[etapa] = valor;
 
@@ -70,6 +68,9 @@ class CensoEscolarDto {
         'grupoId': grupoId,
         'grupoNome': grupoNome,
         'valor': valor,
+        'percentualPopulacao': item['percentual_populacao'] != null
+            ? _toDouble(item['percentual_populacao'])
+            : null,
       });
     }
 
@@ -90,6 +91,9 @@ class CensoEscolarDto {
           valor: _toDouble(item['valor']),
           isProfessores: isProfessores,
           grupoId: grupoId,
+          percentualPopulacao: item['percentualPopulacao'] != null
+              ? _toDouble(item['percentualPopulacao'])
+              : null,
         );
       }).toList();
 
@@ -105,6 +109,9 @@ class CensoEscolarDto {
       cidadeNome: (cidade['nome'] ?? cidade['nome_cidade'] ?? '').toString(),
       censoAno:
           _toInt(cidade['censo_ano']) == 0 ? null : _toInt(cidade['censo_ano']),
+      anoPopulacao: _toInt(cidade['ano_populacao']) == 0
+          ? null
+          : _toInt(cidade['ano_populacao']),
       grupos: grupos,
       valoresPorEtapa: valoresPorEtapa,
     );

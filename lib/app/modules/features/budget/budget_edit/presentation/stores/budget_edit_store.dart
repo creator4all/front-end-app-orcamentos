@@ -1008,7 +1008,7 @@ abstract class _BudgetEditStoreBase with Store {
   @action
   Future<void> reloadProductsAfterCensusEdit() async {
     if (budgetData == null) return;
-  
+
     _parseCensoEscolarFromCitiesData();
     _recalculateProductQuantities();
     _updateOriginalQuantitiesSnapshot();
@@ -1167,6 +1167,7 @@ abstract class _BudgetEditStoreBase with Store {
       'nome_etapa': nomeEtapa,
       'titulo': titulo,
       'valor': valor,
+      'percentual_populacao': item['percentual_populacao'],
       'grupo': {
         'id': groupId,
         'nome': groupName,
@@ -1202,6 +1203,9 @@ abstract class _BudgetEditStoreBase with Store {
           valor: valor,
           isProfessores: nomeEtapa.endsWith('P'),
           grupoId: grupoId,
+          percentualPopulacao: indice['percentual_populacao'] != null
+              ? _toDouble(indice['percentual_populacao'])
+              : null,
         ),
       );
     }
@@ -1223,6 +1227,9 @@ abstract class _BudgetEditStoreBase with Store {
       censoAno: _toInt(cityData['censo_ano']) == 0
           ? null
           : _toInt(cityData['censo_ano']),
+      anoPopulacao: _toInt(cityData['ano_populacao']) == 0
+          ? null
+          : _toInt(cityData['ano_populacao']),
       grupos: grupos,
       valoresPorEtapa: valoresPorEtapa,
     );
@@ -1255,6 +1262,7 @@ abstract class _BudgetEditStoreBase with Store {
       return CensoEscolarEntity(
         cidadeId: 0,
         cidadeNome: 'Agregado',
+        anoPopulacao: null,
         grupos: grupos,
         valoresPorEtapa: censoAgregado,
       );
@@ -1289,6 +1297,9 @@ abstract class _BudgetEditStoreBase with Store {
             valor: valorAgregado,
             isProfessores: nomeEtapa.endsWith('P'),
             grupoId: grupoId,
+            percentualPopulacao: indice['percentual_populacao'] != null
+                ? _toDouble(indice['percentual_populacao'])
+                : null,
           ),
         );
       }
@@ -1307,6 +1318,7 @@ abstract class _BudgetEditStoreBase with Store {
     return CensoEscolarEntity(
       cidadeId: 0,
       cidadeNome: 'Agregado',
+      anoPopulacao: null,
       grupos: grupos,
       valoresPorEtapa: censoAgregado,
     );

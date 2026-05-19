@@ -156,6 +156,8 @@ class MultiCityBudgetRemoteDataSourceImpl
           valor: valor,
           isProfessores: isProfessores,
           grupoId: groupId,
+          percentualPopulacao:
+              (item['percentual_populacao'] as num?)?.toDouble(),
         );
 
         titlesPerGroup[groupId]!.add(title);
@@ -174,6 +176,7 @@ class MultiCityBudgetRemoteDataSourceImpl
       cidadeId: cidadeId,
       cidadeNome: cidadeNome,
       censoAno: _toNullableInt(json['censo_ano']),
+      anoPopulacao: _toNullableInt(json['ano_populacao']),
       grupos: grupos,
       valoresPorEtapa: valoresPorEtapa,
     );

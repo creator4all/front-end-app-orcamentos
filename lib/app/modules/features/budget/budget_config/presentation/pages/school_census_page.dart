@@ -377,6 +377,15 @@ class _SchoolCensusPageState
             color: Colors.black,
           ),
         ),
+        SizedBox(height: 4.h),
+        Text(
+          'Ano base da população segundo IBGE: ${store.censoEscolar?.anoPopulacao?.toString() ?? '-'}',
+          style: TextStyle(
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w400,
+            color: Colors.black,
+          ),
+        ),
       ],
     );
   }

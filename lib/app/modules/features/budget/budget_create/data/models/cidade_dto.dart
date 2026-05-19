@@ -8,6 +8,7 @@ class CidadeDto {
   final int estadoId;
   final bool status;
   final bool excluido;
+  final int? anoPopulacao;
   final DateTime createdAt;
   final DateTime updatedAt;
   final List<CidadeIndiceEtapaDto> cidadesHasIndiceEtapa;
@@ -18,6 +19,7 @@ class CidadeDto {
     required this.estadoId,
     required this.status,
     required this.excluido,
+    this.anoPopulacao,
     required this.createdAt,
     required this.updatedAt,
     required this.cidadesHasIndiceEtapa,
@@ -39,6 +41,7 @@ class CidadeDto {
       estadoId: (json['estado_id'] as num?)?.toInt() ?? 0,
       status: json['status'] as bool? ?? false,
       excluido: json['excluido'] as bool? ?? false,
+      anoPopulacao: (json['ano_populacao'] as num?)?.toInt(),
       createdAt: parseDate(json['created_at']) ?? DateTime.now(),
       updatedAt: parseDate(json['updated_at']) ?? DateTime.now(),
       cidadesHasIndiceEtapa: etapas,
@@ -52,6 +55,7 @@ class CidadeDto {
       estadoId: estadoId,
       status: status,
       excluido: excluido,
+      anoPopulacao: anoPopulacao,
       createdAt: createdAt,
       updatedAt: updatedAt,
       cidadesHasIndiceEtapa:

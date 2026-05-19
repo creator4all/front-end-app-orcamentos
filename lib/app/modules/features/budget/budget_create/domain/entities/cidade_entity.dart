@@ -8,6 +8,7 @@ class CidadeEntity extends Equatable {
   final int estadoId;
   final bool status;
   final bool excluido;
+  final int? anoPopulacao;
   final DateTime createdAt;
   final DateTime updatedAt;
   final List<CidadeIndiceEtapaEntity> cidadesHasIndiceEtapa;
@@ -18,6 +19,7 @@ class CidadeEntity extends Equatable {
     required this.estadoId,
     required this.status,
     required this.excluido,
+    this.anoPopulacao,
     required this.createdAt,
     required this.updatedAt,
     required this.cidadesHasIndiceEtapa,
@@ -30,6 +32,7 @@ class CidadeEntity extends Equatable {
         estadoId,
         status,
         excluido,
+        anoPopulacao,
         createdAt,
         updatedAt,
         cidadesHasIndiceEtapa,

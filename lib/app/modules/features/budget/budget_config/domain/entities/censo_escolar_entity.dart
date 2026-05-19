@@ -10,6 +10,8 @@ class CensoEscolarEntity extends Equatable {
 
   final int? censoAno;
 
+  final int? anoPopulacao;
+
   final List<CensoGroupEntity> grupos;
 
   final Map<String, double> valoresPorEtapa;
@@ -18,6 +20,7 @@ class CensoEscolarEntity extends Equatable {
     required this.cidadeId,
     required this.cidadeNome,
     this.censoAno,
+    this.anoPopulacao,
     required this.grupos,
     required this.valoresPorEtapa,
   });
@@ -92,7 +95,7 @@ class CensoEscolarEntity extends Equatable {
 
   @override
   List<Object?> get props =>
-      [cidadeId, cidadeNome, censoAno, grupos, valoresPorEtapa];
+      [cidadeId, cidadeNome, censoAno, anoPopulacao, grupos, valoresPorEtapa];
 
   @override
   String toString() {

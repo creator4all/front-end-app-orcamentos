@@ -310,6 +310,7 @@ abstract class _BudgetConfigStoreBase with Store {
           valor: valor,
           isProfessores: nomeEtapa.endsWith('P'),
           grupoId: grupoId,
+          percentualPopulacao: etapa.indiceEtapa.percentualPopulacao,
         );
 
         gruposMap.putIfAbsent(grupoId, () => []);
@@ -327,6 +328,7 @@ abstract class _BudgetConfigStoreBase with Store {
       final censoEscolarEntity = CensoEscolarEntity(
         cidadeId: cidade.id,
         cidadeNome: cidade.nome,
+        anoPopulacao: cidade.anoPopulacao,
         grupos: grupos,
         valoresPorEtapa: valoresPorEtapa,
       );
@@ -374,6 +376,7 @@ abstract class _BudgetConfigStoreBase with Store {
       'nome_etapa': nomeEtapa,
       'titulo': (item['titulo'] ?? nomeEtapa).toString(),
       'valor': _toDouble(item['valor']),
+      'percentual_populacao': item['percentual_populacao'],
       'grupo': {
         'id': _toInt(group?['id']),
         'nome': (group?['nome'] ?? '').toString(),
@@ -410,6 +413,9 @@ abstract class _BudgetConfigStoreBase with Store {
           valor: valor,
           isProfessores: nomeEtapa.endsWith('P'),
           grupoId: grupoId,
+          percentualPopulacao: indice['percentual_populacao'] != null
+              ? _toDouble(indice['percentual_populacao'])
+              : null,
         ),
       );
     }
@@ -430,6 +436,9 @@ abstract class _BudgetConfigStoreBase with Store {
       censoAno: _toInt(cityData['censo_ano']) == 0
           ? null
           : _toInt(cityData['censo_ano']),
+      anoPopulacao: _toInt(cityData['ano_populacao']) == 0
+          ? null
+          : _toInt(cityData['ano_populacao']),
       grupos: grupos,
       valoresPorEtapa: valoresPorEtapa,
     );
@@ -462,6 +471,7 @@ abstract class _BudgetConfigStoreBase with Store {
       return CensoEscolarEntity(
         cidadeId: 0,
         cidadeNome: 'Agregado',
+        anoPopulacao: null,
         grupos: grupos,
         valoresPorEtapa: censoAgregado,
       );
@@ -496,6 +506,9 @@ abstract class _BudgetConfigStoreBase with Store {
             valor: valorAgregado,
             isProfessores: nomeEtapa.endsWith('P'),
             grupoId: grupoId,
+            percentualPopulacao: indice['percentual_populacao'] != null
+                ? _toDouble(indice['percentual_populacao'])
+                : null,
           ),
         );
       }
@@ -514,6 +527,7 @@ abstract class _BudgetConfigStoreBase with Store {
     return CensoEscolarEntity(
       cidadeId: 0,
       cidadeNome: 'Agregado',
+      anoPopulacao: null,
       grupos: grupos,
       valoresPorEtapa: censoAgregado,
     );
@@ -1392,7 +1406,7 @@ abstract class _BudgetConfigStoreBase with Store {
   @action
   Future<void> reloadProductsAfterCensusEdit() async {
     if (budgetDetail == null) return;
-  
+
     if (budgetDetail!.censoAgregado.isNotEmpty) {
       censoEscolar = _buildAggregatedCenso(
         censoAgregado: budgetDetail!.censoAgregado,
@@ -1401,7 +1415,7 @@ abstract class _BudgetConfigStoreBase with Store {
     } else if (budgetDetail!.citiesData.isNotEmpty) {
       censoEscolar = _buildCensoFromCityData(budgetDetail!.citiesData.first);
     }
-  
+
     _recalculateProductQuantities();
   }
 

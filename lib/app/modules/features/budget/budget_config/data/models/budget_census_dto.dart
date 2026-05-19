@@ -7,12 +7,14 @@ class CidadeCensoDto {
   final int id;
   final String nome;
   final int? censoAno;
+  final int? anoPopulacao;
   final List<IndiceCensoDto> indices;
 
   const CidadeCensoDto({
     required this.id,
     required this.nome,
     this.censoAno,
+    this.anoPopulacao,
     required this.indices,
   });
 
@@ -23,6 +25,8 @@ class CidadeCensoDto {
       nome: json['nome'] as String? ?? '',
       censoAno: (json['censo_ano'] as num?)?.toInt() ??
           int.tryParse('${json['censo_ano']}'),
+      anoPopulacao: (json['ano_populacao'] as num?)?.toInt() ??
+          int.tryParse('${json['ano_populacao']}'),
       indices: indicesJson
           .map((e) => IndiceCensoDto.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -34,6 +38,7 @@ class CidadeCensoDto {
       id: entity.cidadeId,
       nome: entity.cidadeNome,
       censoAno: entity.censoAno,
+      anoPopulacao: entity.anoPopulacao,
       indices: entity.grupos
           .expand((g) => g.titulos.map((t) => IndiceCensoDto.fromEntity(t, g)))
           .toList(),
@@ -56,6 +61,7 @@ class CidadeCensoDto {
         valor: indice.valor,
         isProfessores: indice.nomeEtapa.endsWith('P'),
         grupoId: grupoId,
+        percentualPopulacao: indice.percentualPopulacao,
       ));
     }
 
@@ -76,6 +82,7 @@ class CidadeCensoDto {
       cidadeId: id,
       cidadeNome: nome,
       censoAno: censoAno,
+      anoPopulacao: anoPopulacao,
       grupos: grupos,
       valoresPorEtapa: valoresPorEtapa,
     );
@@ -87,6 +94,7 @@ class IndiceCensoDto {
   final String nomeEtapa;
   final String titulo;
   final double valor;
+  final double? percentualPopulacao;
   final GrupoCensoDto? grupo;
 
   const IndiceCensoDto({
@@ -94,6 +102,7 @@ class IndiceCensoDto {
     required this.nomeEtapa,
     required this.titulo,
     required this.valor,
+    this.percentualPopulacao,
     this.grupo,
   });
 
@@ -103,6 +112,7 @@ class IndiceCensoDto {
       nomeEtapa: json['nome_etapa'] as String? ?? '',
       titulo: json['titulo'] as String? ?? '',
       valor: (json['valor'] as num?)?.toDouble() ?? 0.0,
+      percentualPopulacao: (json['percentual_populacao'] as num?)?.toDouble(),
       grupo: json['grupo'] != null
           ? GrupoCensoDto.fromJson(json['grupo'] as Map<String, dynamic>)
           : null,
@@ -116,6 +126,7 @@ class IndiceCensoDto {
       nomeEtapa: title.nomeEtapa,
       titulo: title.tituloExibicao,
       valor: title.valor,
+      percentualPopulacao: title.percentualPopulacao,
       grupo: GrupoCensoDto.fromEntity(group),
     );
   }

@@ -148,6 +148,9 @@ class CensusRemoteDataSourceImpl implements CensusRemoteDataSource {
           valor: valor,
           isProfessores: isProfessores,
           grupoId: groupId,
+          percentualPopulacao: item['percentual_populacao'] != null
+              ? (item['percentual_populacao'] as num).toDouble()
+              : null,
         );
 
         groupsMap[groupId]!.titulos.add(title);
@@ -158,6 +161,7 @@ class CensusRemoteDataSourceImpl implements CensusRemoteDataSource {
       cidadeId: cidadeId,
       cidadeNome: cidadeNome,
       censoAno: _toNullableInt(json['censo_ano']),
+      anoPopulacao: _toNullableInt(json['ano_populacao']),
       grupos: groupsMap.values.toList(),
       valoresPorEtapa: valoresPorEtapa,
     );
