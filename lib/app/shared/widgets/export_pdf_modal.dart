@@ -17,6 +17,7 @@ import '../../modules/features/budget/budget_edit/domain/repositories/budget_pdf
 import '../../modules/features/budget/budget_edit/domain/usecases/generate_pdf_usecase.dart';
 import '../../modules/features/partner/data/services/partner_service.dart';
 import '../utils/crop_aspect_ratio_presets.dart';
+import '../utils/brazilian_phone_input_formatter.dart';
 import '../utils/logo_aspect_ratio_validator.dart';
 import '../utils/logo_crop_source_preparer.dart';
 import 'custom_info_dialog.dart';
@@ -109,7 +110,9 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
     }
 
     if (user.phone != null && user.phone!.isNotEmpty) {
-      _telefoneController.text = user.phone!;
+      _telefoneController.text = BrazilianPhoneInputFormatter.format(
+        user.phone!,
+      );
     }
 
     _urlController.text = 'www.multimidiaeducacional.com.br';
@@ -148,8 +151,9 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
         CustomTextField(
           controller: _telefoneController,
           label: 'Telefone',
-          hintText: 'Digite o telefone',
+          hintText: '(00) 00000-0000',
           keyboardType: TextInputType.phone,
+          inputFormatters: [BrazilianPhoneInputFormatter()],
           isRequired: true,
           height: 44.h,
         ),
@@ -385,13 +389,29 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
       );
 
       if (pickedFile != null) {
-        final preparedSource = Platform.isAndroid
-            ? await LogoCropSourcePreparer.prepareForCrop(File(pickedFile.path))
-            : PreparedLogoCropSource.original(File(pickedFile.path));
+        final sourceLogo = File(pickedFile.path);
+        final targetAspectRatio = Platform.isAndroid || Platform.isIOS
+            ? await LogoAspectRatioValidator.closestSupportedAspectRatioForFile(
+                sourceLogo,
+              )
+            : null;
+        final preparedSource = Platform.isAndroid || Platform.isIOS
+            ? await LogoCropSourcePreparer.prepareForCrop(
+                sourceLogo,
+                targetAspectRatio: targetAspectRatio?.value ??
+                    LogoCropSourcePreparer.widescreenRatio,
+              )
+            : PreparedLogoCropSource.original(sourceLogo);
         final CroppedFile? croppedFile = await ImageCropper().cropImage(
           sourcePath: preparedSource.file.path,
           compressFormat: ImageCompressFormat.jpg,
           compressQuality: 85,
+          aspectRatio: targetAspectRatio == null
+              ? null
+              : CropAspectRatio(
+                  ratioX: targetAspectRatio.ratioX.toDouble(),
+                  ratioY: targetAspectRatio.ratioY.toDouble(),
+                ),
           uiSettings: [
             AndroidUiSettings(
               toolbarTitle: 'Recortar Logo',
@@ -399,8 +419,12 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
               statusBarLight: false,
               navBarLight: false,
               toolbarWidgetColor: Colors.white,
-              initAspectRatio: const CropPreset16x9(),
+              initAspectRatio:
+                  targetAspectRatio == LogoSupportedAspectRatio.square
+                      ? const CropPresetQuadrado()
+                      : const CropPreset16x9(),
               lockAspectRatio: true,
+              hideBottomControls: true,
               aspectRatioPresets: [
                 const CropPresetQuadrado(),
                 const CropPreset16x9()
@@ -410,15 +434,12 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
               title: 'Recortar Logo',
               doneButtonTitle: 'Recortar',
               cancelButtonTitle: 'Cancelar',
+              resetButtonHidden: true,
               aspectRatioLockEnabled: true,
               aspectRatioLockDimensionSwapEnabled: false,
-              aspectRatioPickerButtonHidden: false,
+              aspectRatioPickerButtonHidden: true,
               resetAspectRatioEnabled: false,
               hidesNavigationBar: false,
-              aspectRatioPresets: [
-                const CropPresetQuadrado(),
-                const CropPreset16x9()
-              ],
             ),
           ],
         );
@@ -426,8 +447,12 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
 
         if (croppedFile != null) {
           final selectedLogo = File(croppedFile.path);
-          final isValidLogo =
-              await LogoAspectRatioValidator.isValidFile(selectedLogo);
+          final isValidLogo = targetAspectRatio == null
+              ? await LogoAspectRatioValidator.isValidFile(selectedLogo)
+              : await LogoAspectRatioValidator.isValidFileForAspectRatio(
+                  file: selectedLogo,
+                  aspectRatio: targetAspectRatio,
+                );
 
           if (!isValidLogo) {
             if (mounted) {
@@ -511,6 +536,11 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
       return;
     }
 
+    if (!BrazilianPhoneInputFormatter.isValid(_telefoneController.text)) {
+      _showErrorMessage('Telefone inválido');
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
@@ -532,7 +562,9 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
         orcamentoId: widget.orcamentoId,
         nomeVendedor: _nomeVendedorController.text.trim(),
         cargo: _cargoController.text.trim(),
-        telefone: _telefoneController.text.trim(),
+        telefone: BrazilianPhoneInputFormatter.format(
+          _telefoneController.text.trim(),
+        ),
         url: _urlController.text.trim().isNotEmpty
             ? _urlController.text.trim()
             : null,

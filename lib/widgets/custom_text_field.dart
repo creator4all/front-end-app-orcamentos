@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter/services.dart';
 
 import '../theme/app_theme.dart';
 
@@ -17,6 +18,7 @@ class CustomTextField extends StatelessWidget {
   final FocusNode? focusNode;
   final void Function(String)? onChanged;
   final void Function(String)? onSubmitted;
+  final List<TextInputFormatter>? inputFormatters;
   final bool isRequired;
   final String? errorText;
   final double? height;
@@ -36,6 +38,7 @@ class CustomTextField extends StatelessWidget {
     this.focusNode,
     this.onChanged,
     this.onSubmitted,
+    this.inputFormatters,
     this.isRequired = false,
     this.errorText,
     this.height,
@@ -84,6 +87,7 @@ class CustomTextField extends StatelessWidget {
             focusNode: focusNode,
             onChanged: onChanged,
             onFieldSubmitted: onSubmitted,
+            inputFormatters: inputFormatters,
             decoration: InputDecoration(
               hintText: hintText,
               hintStyle: TextStyle(
