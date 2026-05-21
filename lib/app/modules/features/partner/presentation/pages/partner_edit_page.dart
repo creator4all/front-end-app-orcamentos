@@ -2,10 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter/services.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobx/mobx.dart';
@@ -117,7 +117,7 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
                       ? const CropPresetQuadrado()
                       : const CropPreset16x9(),
               lockAspectRatio: true,
-              hideBottomControls: true,
+              hideBottomControls: false,
               aspectRatioPresets: [
                 const CropPresetQuadrado(),
                 const CropPreset16x9()

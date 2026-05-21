@@ -7,7 +7,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_checkbox.dart';
-import 'package:multimidiaapp/app/shared/widgets/saving_budget_dialog.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -16,8 +15,8 @@ import '../../modules/features/auth/presentation/stores/auth_store.dart';
 import '../../modules/features/budget/budget_edit/domain/repositories/budget_pdf_repository.dart';
 import '../../modules/features/budget/budget_edit/domain/usecases/generate_pdf_usecase.dart';
 import '../../modules/features/partner/data/services/partner_service.dart';
-import '../utils/crop_aspect_ratio_presets.dart';
 import '../utils/brazilian_phone_input_formatter.dart';
+import '../utils/crop_aspect_ratio_presets.dart';
 import '../utils/logo_aspect_ratio_validator.dart';
 import '../utils/logo_crop_source_preparer.dart';
 import 'custom_info_dialog.dart';
@@ -424,7 +423,7 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
                       ? const CropPresetQuadrado()
                       : const CropPreset16x9(),
               lockAspectRatio: true,
-              hideBottomControls: true,
+              hideBottomControls: false,
               aspectRatioPresets: [
                 const CropPresetQuadrado(),
                 const CropPreset16x9()

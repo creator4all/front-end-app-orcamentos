@@ -89,6 +89,7 @@ class CustomTextField extends StatelessWidget {
             onFieldSubmitted: onSubmitted,
             inputFormatters: inputFormatters,
             decoration: InputDecoration(
+              errorMaxLines: 3,
               hintText: hintText,
               hintStyle: TextStyle(
                 fontSize: 14.sp,
