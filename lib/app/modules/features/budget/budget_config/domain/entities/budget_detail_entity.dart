@@ -94,6 +94,7 @@ class BudgetDetailEntity extends Equatable {
         products,
         categoryStates,
         categories,
+        citiesData,
         censoAgregado,
       ];
 }
