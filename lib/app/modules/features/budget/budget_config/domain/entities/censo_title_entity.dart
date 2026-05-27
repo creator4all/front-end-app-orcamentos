@@ -51,9 +51,13 @@ class CensoTitleEntity extends Equatable {
     if (percentualPopulacao == null) {
       return tituloExibicao;
     }
-    if (percentualPopulacao! > 0 && percentualPopulacao! < 1) {
-      final pctStr =
-          (percentualPopulacao! * 100).toStringAsFixed(1).replaceAll('.', ',');
+    if (percentualPopulacao! >= 0 && percentualPopulacao! <= 1) {
+      final pct = percentualPopulacao! * 100;
+      final pctStr = pct == 0
+          ? '0'
+          : pct == 100
+              ? '100'
+              : pct.toStringAsFixed(1).replaceAll('.', ',');
       return '$tituloExibicao ($pctStr%)';
     }
     return tituloExibicao;
