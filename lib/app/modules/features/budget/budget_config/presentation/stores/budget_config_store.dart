@@ -310,6 +310,7 @@ abstract class _BudgetConfigStoreBase with Store {
           valor: valor,
           isProfessores: nomeEtapa.endsWith('P'),
           grupoId: grupoId,
+          percentualPopulacao: etapa.indiceEtapa.percentualPopulacao,
         );
 
         gruposMap.putIfAbsent(grupoId, () => []);
@@ -327,6 +328,7 @@ abstract class _BudgetConfigStoreBase with Store {
       final censoEscolarEntity = CensoEscolarEntity(
         cidadeId: cidade.id,
         cidadeNome: cidade.nome,
+        anoPopulacao: cidade.anoPopulacao,
         grupos: grupos,
         valoresPorEtapa: valoresPorEtapa,
       );
@@ -374,6 +376,7 @@ abstract class _BudgetConfigStoreBase with Store {
       'nome_etapa': nomeEtapa,
       'titulo': (item['titulo'] ?? nomeEtapa).toString(),
       'valor': _toDouble(item['valor']),
+      'percentual_populacao': item['percentual_populacao'],
       'grupo': {
         'id': _toInt(group?['id']),
         'nome': (group?['nome'] ?? '').toString(),
@@ -410,6 +413,9 @@ abstract class _BudgetConfigStoreBase with Store {
           valor: valor,
           isProfessores: nomeEtapa.endsWith('P'),
           grupoId: grupoId,
+          percentualPopulacao: indice['percentual_populacao'] != null
+              ? _toDouble(indice['percentual_populacao'])
+              : null,
         ),
       );
     }
@@ -430,8 +436,100 @@ abstract class _BudgetConfigStoreBase with Store {
       censoAno: _toInt(cityData['censo_ano']) == 0
           ? null
           : _toInt(cityData['censo_ano']),
+      anoPopulacao: _toInt(cityData['ano_populacao']) == 0
+          ? null
+          : _toInt(cityData['ano_populacao']),
       grupos: grupos,
       valoresPorEtapa: valoresPorEtapa,
+    );
+  }
+
+  CensoEscolarEntity _buildAggregatedCenso({
+    required Map<String, double> censoAgregado,
+    required List<Map<String, dynamic>> citiesData,
+  }) {
+    if (citiesData.isEmpty) {
+      final grupos = <CensoGroupEntity>[
+        CensoGroupEntity(
+          id: 0,
+          nome: 'Agregado',
+          titulos: censoAgregado.entries
+              .map(
+                (e) => CensoTitleEntity(
+                  id: 0,
+                  nomeEtapa: e.key,
+                  tituloExibicao: e.key,
+                  valor: e.value,
+                  isProfessores: e.key.endsWith('P'),
+                  grupoId: 0,
+                ),
+              )
+              .toList(),
+        ),
+      ];
+
+      return CensoEscolarEntity(
+        cidadeId: 0,
+        cidadeNome: 'Agregado',
+        anoPopulacao: null,
+        grupos: grupos,
+        valoresPorEtapa: censoAgregado,
+      );
+    }
+
+    final gruposMap = <int, List<CensoTitleEntity>>{};
+    final grupoNomes = <int, String>{};
+
+    for (final cityData in citiesData) {
+      final indices = _extractIndicesFromCityData(cityData);
+      for (final indice in indices) {
+        final nomeEtapa = indice['nome_etapa'].toString();
+        final titulo = indice['titulo'].toString();
+        final group = indice['grupo'] as Map<String, dynamic>? ?? const {};
+        final grupoId = _toInt(group['id']);
+        final grupoNome = (group['nome'] ?? '').toString();
+        final id = _toInt(indice['id']);
+        final valorAgregado = censoAgregado[nomeEtapa] ?? 0.0;
+
+        grupoNomes[grupoId] = grupoNome;
+        gruposMap.putIfAbsent(grupoId, () => []);
+
+        final jaExiste =
+            gruposMap[grupoId]!.any((titulo) => titulo.nomeEtapa == nomeEtapa);
+        if (jaExiste) continue;
+
+        gruposMap[grupoId]!.add(
+          CensoTitleEntity(
+            id: id,
+            nomeEtapa: nomeEtapa,
+            tituloExibicao: titulo,
+            valor: valorAgregado,
+            isProfessores: nomeEtapa.endsWith('P'),
+            grupoId: grupoId,
+            percentualPopulacao: indice['percentual_populacao'] != null
+                ? _toDouble(indice['percentual_populacao'])
+                : null,
+          ),
+        );
+      }
+    }
+
+    final grupos = gruposMap.entries
+        .map(
+          (entry) => CensoGroupEntity(
+            id: entry.key,
+            nome: grupoNomes[entry.key] ?? 'Agregado',
+            titulos: entry.value,
+          ),
+        )
+        .toList();
+
+    return CensoEscolarEntity(
+      cidadeId: 0,
+      cidadeNome: 'Agregado',
+      anoPopulacao: null,
+      grupos: grupos,
+      valoresPorEtapa: censoAgregado,
     );
   }
 
@@ -590,7 +688,6 @@ abstract class _BudgetConfigStoreBase with Store {
 
   @action
   void updateCensoEscolar(CensoEscolarEntity updatedCenso) {
-    final oldCenso = censoEscolar;
     censoEscolar = updatedCenso;
 
     if (budgetDetail != null) {
@@ -623,10 +720,6 @@ abstract class _BudgetConfigStoreBase with Store {
         citiesData: updatedCities,
         censoAgregado: updatedCensoAgregado,
       );
-    }
-
-    if (oldCenso != null) {
-      _checkForProductsToRemark(oldCenso, updatedCenso);
     }
   }
 
@@ -702,11 +795,9 @@ abstract class _BudgetConfigStoreBase with Store {
           _validityDateChanged = false;
 
           if (budget.censoAgregado.isNotEmpty) {
-            censoEscolar = CensoEscolarEntity(
-              cidadeId: 0,
-              cidadeNome: 'Agregado',
-              grupos: const [],
-              valoresPorEtapa: budget.censoAgregado,
+            censoEscolar = _buildAggregatedCenso(
+              censoAgregado: budget.censoAgregado,
+              citiesData: budget.citiesData,
             );
           } else if (budget.citiesData.isNotEmpty) {
             censoEscolar = _buildCensoFromCityData(budget.citiesData.first);
@@ -893,10 +984,6 @@ abstract class _BudgetConfigStoreBase with Store {
         if (productIndex != -1) {
           final product = subcategory.produtos[productIndex];
 
-          if (!product.ativo) {
-            return;
-          }
-
           final updatedProduct = product.copyWith(selecionado: selected);
 
           if (censoEscolar != null && selected) {
@@ -963,7 +1050,6 @@ abstract class _BudgetConfigStoreBase with Store {
     final subcategory = category.subcategorias[subcategoryIndex];
 
     final updatedProducts = subcategory.produtos.map((product) {
-      if (!product.ativo) return product;
       return product.copyWith(selecionado: selected);
     }).toList();
 
@@ -986,7 +1072,6 @@ abstract class _BudgetConfigStoreBase with Store {
 
     final updatedSubcategories = category.subcategorias.map((subcategory) {
       final updatedProducts = subcategory.produtos.map((product) {
-        if (!product.ativo) return product;
         return product.copyWith(selecionado: selected);
       }).toList();
       return subcategory.copyWith(produtos: updatedProducts);
@@ -1047,10 +1132,6 @@ abstract class _BudgetConfigStoreBase with Store {
         if (productIndex != -1) {
           final product = subcategory.produtos[productIndex];
 
-          if (!product.ativo) {
-            return;
-          }
-
           final updatedProduct = product.copyWith(quantidade: quantity);
 
           final updatedProducts =
@@ -1088,10 +1169,6 @@ abstract class _BudgetConfigStoreBase with Store {
 
         if (productIndex != -1) {
           final product = subcategory.produtos[productIndex];
-
-          if (!product.ativo) {
-            return;
-          }
 
           final updatedProduct = product.copyWith(valor: value);
 
@@ -1235,11 +1312,6 @@ abstract class _BudgetConfigStoreBase with Store {
         if (productIndex != -1) {
           final product = subcategory.produtos[productIndex];
 
-          // Regra de negÃ³cio: SÃ³ permitir se estiver ativo
-          if (!product.ativo) {
-            return;
-          }
-
           final updatedProducts =
               List<ProductEntity>.from(subcategory.produtos);
 
@@ -1335,16 +1407,16 @@ abstract class _BudgetConfigStoreBase with Store {
   Future<void> reloadProductsAfterCensusEdit() async {
     if (budgetDetail == null) return;
 
-    try {
-      final oldCenso = censoEscolar;
-      await loadBudgetDetail(budgetDetail!.id);
-      _recalculateProductQuantities();
-      if (oldCenso != null && censoEscolar != null) {
-        _checkForProductsToRemark(oldCenso, censoEscolar!);
-      }
-    } catch (e) {
-      error = 'Erro ao recarregar orçamento: $e';
+    if (budgetDetail!.censoAgregado.isNotEmpty) {
+      censoEscolar = _buildAggregatedCenso(
+        censoAgregado: budgetDetail!.censoAgregado,
+        citiesData: budgetDetail!.citiesData,
+      );
+    } else if (budgetDetail!.citiesData.isNotEmpty) {
+      censoEscolar = _buildCensoFromCityData(budgetDetail!.citiesData.first);
     }
+
+    _recalculateProductQuantities();
   }
 
   @action

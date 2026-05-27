@@ -115,8 +115,11 @@ class CidadeData {
     );
   }
 
-  int get totalEstudantes =>
-      indicesEtapa.fold(0, (sum, item) => sum + item.valor.toInt());
+  int get totalEstudantes => indicesEtapa
+      .where((item) =>
+          !item.nomeEtapa.endsWith('P') &&
+          item.nomeEtapa.toLowerCase() != 'cursistas')
+      .fold(0, (sum, item) => sum + item.valor.toInt());
   int get quantidadeTurmas => indicesEtapa.length;
 }
 

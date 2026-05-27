@@ -27,5 +27,36 @@ void main() {
         isFalse,
       );
     });
+
+    test('detects the closest supported aspect ratio', () {
+      expect(
+        LogoAspectRatioValidator.closestSupportedAspectRatio(
+          width: 1000,
+          height: 1000,
+        ),
+        LogoSupportedAspectRatio.square,
+      );
+      expect(
+        LogoAspectRatioValidator.closestSupportedAspectRatio(
+          width: 1600,
+          height: 900,
+        ),
+        LogoSupportedAspectRatio.widescreen,
+      );
+      expect(
+        LogoAspectRatioValidator.closestSupportedAspectRatio(
+          width: 1200,
+          height: 900,
+        ),
+        LogoSupportedAspectRatio.square,
+      );
+      expect(
+        LogoAspectRatioValidator.closestSupportedAspectRatio(
+          width: 1500,
+          height: 1000,
+        ),
+        LogoSupportedAspectRatio.widescreen,
+      );
+    });
   });
 }

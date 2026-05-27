@@ -211,15 +211,19 @@ abstract class _MultiCityCensusStoreBase with Store {
   }
 
   @action
-  void updateValue(int cityId, String nomeEtapa, double value) {
+  void updateValue(int cityId, String nomeEtapa, double? value) {
     final indiceEtapaId = _nomeEtapaToId[nomeEtapa];
-    if (indiceEtapaId == null) {
+    if (indiceEtapaId == null) return;
+
+    if (value == null) {
+      editedValuesPerCity[cityId]?.remove(indiceEtapaId);
       return;
     }
 
     if (!editedValuesPerCity.containsKey(cityId)) {
       editedValuesPerCity[cityId] = ObservableMap<int, double>();
     }
+
     editedValuesPerCity[cityId]![indiceEtapaId] = value;
   }
 

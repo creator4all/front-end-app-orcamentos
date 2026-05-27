@@ -7,6 +7,7 @@ import '../../../../../shared/widgets/custom_top_bar.dart';
 import '../../../../../shared/widgets/searchable_dropdown_widget.dart';
 import '../../../budget/budget_config/data/models/budget_census_dto.dart';
 import '../../../budget/budget_config/domain/entities/censo_group_entity.dart';
+import '../../../budget/budget_config/domain/services/census_stage_rules.dart';
 import '../../../budget/budget_config/presentation/stores/school_census_store.dart';
 import '../../../budget/budget_config/presentation/widgets/census_data_section_widget.dart';
 
@@ -71,7 +72,8 @@ class _ReportCensusPageState extends State<ReportCensusPage> {
     return censo.grupos
         .map((group) {
           final studentTitles = group.titulos
-              .where((title) => !title.nomeEtapa.endsWith('P'))
+              .where(
+                  (title) => CensusStageRules.isStudentStage(title.nomeEtapa))
               .toList();
           return CensoGroupEntity(
             id: group.id,
@@ -90,12 +92,33 @@ class _ReportCensusPageState extends State<ReportCensusPage> {
     return censo.grupos
         .map((group) {
           final professorTitles = group.titulos
-              .where((title) => title.nomeEtapa.endsWith('P'))
+              .where(
+                  (title) => CensusStageRules.isProfessorStage(title.nomeEtapa))
               .toList();
           return CensoGroupEntity(
             id: group.id,
             nome: group.nome,
             titulos: professorTitles,
+          );
+        })
+        .where((group) => group.titulos.isNotEmpty)
+        .toList();
+  }
+
+  List<CensoGroupEntity> _getCursistaGroups() {
+    final censo = _store.censoEscolar;
+    if (censo == null) return [];
+
+    return censo.grupos
+        .map((group) {
+          final cursistaTitles = group.titulos
+              .where(
+                  (title) => CensusStageRules.isCursistaStage(title.nomeEtapa))
+              .toList();
+          return CensoGroupEntity(
+            id: group.id,
+            nome: group.nome,
+            titulos: cursistaTitles,
           );
         })
         .where((group) => group.titulos.isNotEmpty)
@@ -167,15 +190,11 @@ class _ReportCensusPageState extends State<ReportCensusPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     if (_store.isMultiCity) _buildCitySelector(),
-
                     _buildCensusInfo(),
-
                     SizedBox(height: 16.h),
-
                     _buildStudentsSections(),
-
                     _buildProfessorsSections(),
-
+                    _buildCursistasSections(),
                     SizedBox(height: 16.h),
                   ],
                 ),
@@ -216,7 +235,7 @@ class _ReportCensusPageState extends State<ReportCensusPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Total de alunos: ${_store.totalStudents.toStringAsFixed(0)}',
+          'Estudantes: ${_store.totalStudents.toStringAsFixed(0)}',
           style: TextStyle(
             fontSize: 14.sp,
             fontWeight: FontWeight.w400,
@@ -225,7 +244,25 @@ class _ReportCensusPageState extends State<ReportCensusPage> {
         ),
         SizedBox(height: 4.h),
         Text(
-          _mockYear,
+          'Professores: ${_store.totalProfessores.toStringAsFixed(0)} (quantidade estimada)',
+          style: TextStyle(
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w400,
+            color: Colors.black,
+          ),
+        ),
+        SizedBox(height: 4.h),
+        Text(
+          'Cursistas: ${_store.totalCursistas.toStringAsFixed(0)} (quantidade estimada)',
+          style: TextStyle(
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w400,
+            color: Colors.black,
+          ),
+        ),
+        SizedBox(height: 4.h),
+        Text(
+          'Ano do Censo Escolar: ${_store.censoEscolar?.censoAno?.toString() ?? _mockYear}',
           style: TextStyle(
             fontSize: 14.sp,
             fontWeight: FontWeight.w400,
@@ -273,6 +310,36 @@ class _ReportCensusPageState extends State<ReportCensusPage> {
         ),
         SizedBox(height: 8.h),
         ...professorGroups.map((group) => CensusDataSectionWidget.withId(
+              group: group,
+              isEditMode: false,
+              controllers: _controllers,
+              onItemChanged: null,
+            )),
+      ],
+    );
+  }
+
+  Widget _buildCursistasSections() {
+    final cursistaGroups = _getCursistaGroups();
+
+    if (cursistaGroups.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(height: 16.h),
+        Text(
+          'Cursistas',
+          style: TextStyle(
+            fontSize: 16.sp,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF117BBD),
+          ),
+        ),
+        SizedBox(height: 8.h),
+        ...cursistaGroups.map((group) => CensusDataSectionWidget.withId(
               group: group,
               isEditMode: false,
               controllers: _controllers,

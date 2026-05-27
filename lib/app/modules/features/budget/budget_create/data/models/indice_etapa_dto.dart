@@ -7,6 +7,7 @@ class IndiceEtapaDto {
   final String titulo;
   final int grupoId;
   final String? grupoNome;
+  final double? percentualPopulacao;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -16,6 +17,7 @@ class IndiceEtapaDto {
     required this.titulo,
     required this.grupoId,
     this.grupoNome,
+    this.percentualPopulacao,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -44,6 +46,7 @@ class IndiceEtapaDto {
           '',
       grupoId: grupoId,
       grupoNome: grupoNome,
+      percentualPopulacao: (json['percentual_populacao'] as num?)?.toDouble(),
       createdAt: parseDate(json['created_at']) ?? DateTime.now(),
       updatedAt: parseDate(json['updated_at']) ?? DateTime.now(),
     );
@@ -56,6 +59,7 @@ class IndiceEtapaDto {
       titulo: titulo,
       grupoId: grupoId,
       grupoNome: grupoNome ?? '',
+      percentualPopulacao: percentualPopulacao,
       createdAt: createdAt,
       updatedAt: updatedAt,
     );
@@ -67,6 +71,7 @@ class IndiceEtapaDto {
       'nome_etapa': nome,
       'titulo_etapa': titulo,
       'grupos_grupo_id': grupoId,
+      'percentual_populacao': percentualPopulacao,
       'grupo': {
         'grupo_id': grupoId,
         'nome_grupo': grupoNome,

@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:mobx/mobx.dart';
 
 import '../../../../../../widgets/custom_text_field.dart';
+import '../../../../../shared/utils/brazilian_phone_input_formatter.dart';
 import '../../../../../shared/utils/crop_aspect_ratio_presets.dart';
 import '../../../../../shared/widgets/widgets.dart';
 import '../../../auth/presentation/stores/auth_store.dart';
@@ -49,7 +50,9 @@ class _ProfilePageState extends State<ProfilePage> {
           _nameController.text = _store.name;
           _emailController.text = _store.email;
           _cargoController.text = _store.cargo;
-          _phoneController.text = _store.phone;
+          _phoneController.text = BrazilianPhoneInputFormatter.format(
+            _store.phone,
+          );
         }
       },
     );
@@ -64,20 +67,6 @@ class _ProfilePageState extends State<ProfilePage> {
     _cargoController.dispose();
     _phoneController.dispose();
     super.dispose();
-  }
-
-  String _formatPhone(String value) {
-    value = value.replaceAll(RegExp(r'[^0-9]'), '');
-
-    if (value.length > 11) {
-      value = value.substring(0, 11);
-    }
-    if (value.isNotEmpty) value = '($value';
-    if (value.length > 3)
-      value = '${value.substring(0, 3)}) ${value.substring(3)}';
-    if (value.length > 10)
-      value = '${value.substring(0, 10)}-${value.substring(10)}';
-    return value;
   }
 
   Future<void> _pickImage() async {
@@ -227,8 +216,15 @@ class _ProfilePageState extends State<ProfilePage> {
       setState(() => _cargoError = null);
     }
 
-    if (_phoneController.text.trim().isEmpty) {
+    final phoneDigits = BrazilianPhoneInputFormatter.digitsOnly(
+      _phoneController.text,
+    );
+
+    if (phoneDigits.isEmpty) {
       setState(() => _phoneError = 'Telefone é obrigatório');
+      isValid = false;
+    } else if (!BrazilianPhoneInputFormatter.isValid(_phoneController.text)) {
+      setState(() => _phoneError = 'Telefone inválido');
       isValid = false;
     } else {
       setState(() => _phoneError = null);
@@ -245,7 +241,9 @@ class _ProfilePageState extends State<ProfilePage> {
     _store.setName(_nameController.text.trim());
     _store.setEmail(_emailController.text.trim());
     _store.setCargo(_cargoController.text.trim());
-    _store.setPhone(_phoneController.text.trim());
+    _store.setPhone(BrazilianPhoneInputFormatter.digitsOnly(
+      _phoneController.text,
+    ));
 
     final success = await _store.save();
 
@@ -409,21 +407,12 @@ class _ProfilePageState extends State<ProfilePage> {
                   CustomTextField(
                     controller: _phoneController,
                     label: 'Telefone',
-                    hintText: '',
+                    hintText: '(00) 00000-0000',
                     keyboardType: TextInputType.phone,
+                    inputFormatters: [BrazilianPhoneInputFormatter()],
                     isRequired: true,
                     errorText: _phoneError,
                     height: 50.h,
-                    onChanged: (value) {
-                      final formatted = _formatPhone(value);
-                      if (formatted != value) {
-                        _phoneController.value = TextEditingValue(
-                          text: formatted,
-                          selection:
-                              TextSelection.collapsed(offset: formatted.length),
-                        );
-                      }
-                    },
                   ),
                   SizedBox(height: 32.h),
                   SizedBox(

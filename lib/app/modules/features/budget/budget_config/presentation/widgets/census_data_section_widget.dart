@@ -10,7 +10,7 @@ class CensusDataSectionWidget<K> extends StatelessWidget {
   final CensoGroupEntity group;
   final bool isEditMode;
   final Map<K, TextEditingController> controllers;
-  final ValueChanged<MapEntry<K, double>>? onItemChanged;
+  final ValueChanged<MapEntry<K, double?>>? onItemChanged;
   final K Function(CensoTitleEntity title) keySelector;
 
   const CensusDataSectionWidget({
@@ -27,7 +27,7 @@ class CensusDataSectionWidget<K> extends StatelessWidget {
     required CensoGroupEntity group,
     required bool isEditMode,
     required Map<int, TextEditingController> controllers,
-    ValueChanged<MapEntry<int, double>>? onItemChanged,
+    ValueChanged<MapEntry<int, double?>>? onItemChanged,
   }) {
     return CensusDataSectionWidget<int>(
       key: key,
@@ -44,7 +44,7 @@ class CensusDataSectionWidget<K> extends StatelessWidget {
     required CensoGroupEntity group,
     required bool isEditMode,
     required Map<String, TextEditingController> controllers,
-    ValueChanged<MapEntry<String, double>>? onItemChanged,
+    ValueChanged<MapEntry<String, double?>>? onItemChanged,
   }) {
     return CensusDataSectionWidget<String>(
       key: key,
@@ -82,14 +82,12 @@ class CensusDataSectionWidget<K> extends StatelessWidget {
         : title.valor;
 
     return CensusInputRowWidget(
-      label: title.tituloExibicao,
+      label: title.labelComPercentual,
       value: displayValue,
       isEditMode: isEditMode,
       controller: controller,
       onChanged: (value) {
-        if (onItemChanged != null) {
-          onItemChanged!(MapEntry(key, value));
-        }
+        onItemChanged?.call(MapEntry(key, value));
       },
     );
   }

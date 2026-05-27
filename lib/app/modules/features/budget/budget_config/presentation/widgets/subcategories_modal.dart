@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:multimidiaapp/app/shared/widgets/custom_checkbox.dart';
 
-import '../../../../../../shared/utils/string_utils.dart';
 import '../../../../../../shared/widgets/custom_modal.dart';
 import '../../domain/entities/category_entity.dart';
 import '../../domain/entities/subcategory_entity.dart';
@@ -24,7 +24,7 @@ class SubcategoriesModal extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CustomModal(
-      title: capitalizeFirstLetter(category.nome),
+      title: category.nome,
       content: ListView.separated(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
@@ -59,43 +59,17 @@ class SubcategoriesModal extends StatelessWidget {
         ),
         child: Row(
           children: [
-            GestureDetector(
-              onTap: isReadOnly
+            CustomCheckbox(
+              value: hasSelectedProducts,
+              onChanged: isReadOnly
                   ? null
-                  : () {
+                  : (value) {
                       onCheckboxChanged?.call(
                         category.id,
                         subcategory.id,
-                        !hasSelectedProducts,
+                        value,
                       );
                     },
-              child: Container(
-                width: 17.w,
-                height: 17.h,
-                decoration: BoxDecoration(
-                  color: hasSelectedProducts
-                      ? (isReadOnly
-                          ? Colors.grey[400]
-                          : const Color(0xFF2830F2))
-                      : Colors.white,
-                  border: Border.all(
-                    color: hasSelectedProducts
-                        ? (isReadOnly
-                            ? Colors.grey[400]!
-                            : const Color(0xFF2830F2))
-                        : const Color(0xFFEAEAEA),
-                    width: 2,
-                  ),
-                  borderRadius: BorderRadius.circular(5.r),
-                ),
-                child: hasSelectedProducts
-                    ? const Icon(
-                        Icons.check,
-                        color: Colors.white,
-                        size: 14,
-                      )
-                    : null,
-              ),
             ),
             SizedBox(width: 12.w),
             Expanded(
@@ -104,7 +78,7 @@ class SubcategoriesModal extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    capitalizeFirstLetter(subcategory.nome),
+                    subcategory.nome,
                     style: TextStyle(
                       fontSize: 14.sp,
                       fontWeight: FontWeight.w500,

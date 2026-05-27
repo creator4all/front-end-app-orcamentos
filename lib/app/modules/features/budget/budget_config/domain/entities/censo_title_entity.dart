@@ -25,6 +25,9 @@ class CensoTitleEntity extends Equatable {
   /// ID do grupo ao qual pertence
   final int grupoId;
 
+  /// Fração da população aplicada (ex.: 0.005 = 0,5%). Null quando não aplicável.
+  final double? percentualPopulacao;
+
   const CensoTitleEntity({
     required this.id,
     required this.nomeEtapa,
@@ -32,6 +35,7 @@ class CensoTitleEntity extends Equatable {
     required this.valor,
     required this.isProfessores,
     required this.grupoId,
+    this.percentualPopulacao,
   });
 
   /// Formata o valor para exibição
@@ -42,9 +46,33 @@ class CensoTitleEntity extends Equatable {
         );
   }
 
+  /// Label de exibição com percentual quando aplicável
+  String get labelComPercentual {
+    if (percentualPopulacao == null) {
+      return tituloExibicao;
+    }
+    if (percentualPopulacao! >= 0 && percentualPopulacao! <= 1) {
+      final pct = percentualPopulacao! * 100;
+      final pctStr = pct == 0
+          ? '0'
+          : pct == 100
+              ? '100'
+              : pct.toStringAsFixed(1).replaceAll('.', ',');
+      return '$tituloExibicao ($pctStr%)';
+    }
+    return tituloExibicao;
+  }
+
   @override
-  List<Object?> get props =>
-      [id, nomeEtapa, tituloExibicao, valor, isProfessores, grupoId];
+  List<Object?> get props => [
+        id,
+        nomeEtapa,
+        tituloExibicao,
+        valor,
+        isProfessores,
+        grupoId,
+        percentualPopulacao
+      ];
 
   @override
   String toString() {

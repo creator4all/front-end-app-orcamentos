@@ -123,7 +123,6 @@ class CustomInfoDialog extends StatelessWidget {
               ),
             ),
             SizedBox(height: 20.h),
-
             Text(
               title,
               style: TextStyle(
@@ -134,7 +133,6 @@ class CustomInfoDialog extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 12.h),
-
             Text(
               message,
               style: TextStyle(
@@ -144,7 +142,6 @@ class CustomInfoDialog extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 24.h),
-
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(

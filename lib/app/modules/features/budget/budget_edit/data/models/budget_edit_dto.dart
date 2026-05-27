@@ -180,7 +180,7 @@ class BudgetEditDto {
       status: json['status'] ?? 'pendente',
       total: (json['total'] ?? 0.0).toDouble(),
       userId: json['usuario_id'] ?? 0,
-      partnerId: json['partner_id'],
+      partnerId: (json['partner_destino_id'] as num?)?.toInt(),
       cityIds: cities,
       citiesDataRaw: citiesData,
       products: productsList,

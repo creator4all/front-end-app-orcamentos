@@ -3,7 +3,7 @@ description: "Aplicativo para gerenciamento de orçamentos empresariais"
 
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
-version: 1.0.11+14
+version: 1.0.18+21
 
 environment:
   sdk: '>=3.4.1 <4.0.0'
@@ -35,10 +35,10 @@ dependencies:
   flutter_secure_storage: ^8.0.0
   
   # Nice to Have
-  skeletonizer: ^0.6.0
+  skeletonizer: ^2.1.3
   copy_with_extension: ^5.0.0
   flutter_svg: ^2.0.9
-  intl: ^0.19.0
+  intl: ^0.20.2
   image_picker: ^1.0.4
   share_plus: ^7.2.1
   path_provider: ^2.1.1
@@ -88,7 +88,7 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/app_icon3.png"
+  image_path: "assets/images/app_icon4.png"
   
   # Configuração para Android - Ícone Adaptativo
   adaptive_icon_background: "#FFFFFF"  # Fundo branco

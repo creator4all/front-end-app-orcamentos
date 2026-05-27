@@ -85,16 +85,18 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
 
   String _buildHeaderTitle() {
     final loadedTitle = store.budgetName?.trim();
+    String title;
+
     if (loadedTitle != null && loadedTitle.isNotEmpty) {
-      return loadedTitle;
+      title = loadedTitle;
+    } else {
+      final initialTitle = widget.initialTitle?.trim();
+      title = (initialTitle != null && initialTitle.isNotEmpty)
+          ? initialTitle
+          : 'Editar orçamento';
     }
 
-    final initialTitle = widget.initialTitle?.trim();
-    if (initialTitle != null && initialTitle.isNotEmpty) {
-      return initialTitle;
-    }
-
-    return 'Editar Orçamento';
+    return store.hasChanges ? '$title *' : title;
   }
 
   void _closePage({Map<String, dynamic>? budgetListPatch}) {
@@ -342,37 +344,30 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
   Future<void> _handleSaveChanges() async {
     final result = await store.saveBudgetWithDto();
 
-    result.fold(
-      (failure) {
-        CustomInfoDialog.show(
-          context: context,
-          type: DialogType.error,
-          title: 'Erro ao salvar',
-          message: failure.message,
-        );
-      },
-      (budget) async {
-        await CustomInfoDialog.show(
-          context: context,
-          type: DialogType.success,
-          title: 'Sucesso',
-          message: 'Orçamento atualizado com sucesso!',
-        );
+    result.fold((failure) {
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.error,
+        title: 'Erro ao salvar',
+        message: failure.message,
+      );
+    }, (budget) async {
+      _shouldRefreshBudgetList = true;
 
-        _shouldRefreshBudgetList = true;
-        _closePage(
-          budgetListPatch: _createBudgetListPatch(
-            budgetId: budget.id,
-            name: budget.name,
-            validityDays: budget.validityDays,
-            validityDate: budget.validityDate,
-            status: budget.status,
-            isArchived: budget.isArchived,
-            total: budget.total,
-          ),
-        );
-      },
-    );
+      _capturePersistedBudgetListPatchFromStore();
+
+      await store.loadBudgetForEdit(budget.id);
+      _syncValidityFieldWithStore();
+
+      if (!mounted) return;
+
+      await CustomInfoDialog.show(
+        context: context,
+        type: DialogType.success,
+        title: 'Sucesso',
+        message: 'Orçamento atualizado com sucesso!',
+      );
+    });
   }
 
   @override
@@ -443,7 +438,8 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                               '/budget/census/$cityId',
                               arguments: {
                                 'censoEscolar': store.censoEscolar,
-                                'budgetId': widget.budgetId,
+                                'budgetId':
+                                    store.budgetData?.id ?? widget.budgetId,
                                 'isMultiCityMode': isMultiCity,
                                 'onCensusUpdated': (updatedCenso) {
                                   store.updateCensoEscolar(updatedCenso);
@@ -929,10 +925,12 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
               icon: Icon(
                 Icons.ios_share,
                 size: 24.sp,
-                color: const Color(0xFF0C498E),
+                color: store.hasChanges ? Colors.grey : const Color(0xFF0C498E),
               ),
-              onPressed: _handleShare,
-              tooltip: 'Compartilhar orçamento',
+              onPressed: store.hasChanges ? _handleShareBlocked : _handleShare,
+              tooltip: store.hasChanges
+                  ? 'Salve antes de exportar'
+                  : 'Compartilhar orçamento',
             ),
           ],
         ),
@@ -1101,7 +1099,16 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
 
     await ExportPdfModal.show(
       context: context,
-      orcamentoId: widget.budgetId,
+      orcamentoId: store.budgetData!.id,
+    );
+  }
+
+  void _handleShareBlocked() {
+    CustomInfoDialog.show(
+      context: context,
+      type: DialogType.warning,
+      title: 'Alterações pendentes',
+      message: 'Salve as alterações antes de exportar o PDF',
     );
   }
 

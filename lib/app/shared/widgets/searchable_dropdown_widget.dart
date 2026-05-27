@@ -110,12 +110,12 @@ class _SearchableDropdownWidgetState extends State<SearchableDropdownWidget> {
   }
 
   List<String> _getFilteredItems() {
-    final searchText = _searchController.text.toLowerCase();
+    final searchText = removeAccents(_searchController.text.toLowerCase());
     if (searchText.isEmpty) {
       return _sortedItems;
     }
     return _sortedItems
-        .where((item) => item.toLowerCase().contains(searchText))
+        .where((item) => removeAccents(item.toLowerCase()).contains(searchText))
         .toList();
   }
 
@@ -190,7 +190,6 @@ class _SearchableDropdownWidgetState extends State<SearchableDropdownWidget> {
                 ),
               ),
             ),
-
             if (_isOpen) ...[
               Divider(height: 1, color: Colors.grey[300]),
               ConstrainedBox(
@@ -274,4 +273,3 @@ class _SearchableDropdownWidgetState extends State<SearchableDropdownWidget> {
     );
   }
 }
-

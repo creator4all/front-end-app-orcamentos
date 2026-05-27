@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:multimidiaapp/app/shared/utils/brl_currency_input_formatter.dart';
 import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 
 import '../../domain/entities/indicador_etapa_entity.dart';
@@ -88,8 +89,8 @@ class _ProductEditModalState extends State<ProductEditModal> {
   }
 
   void _handleSave() {
-    final valorText = _valorController.text.replaceAll(RegExp(r'[^\d,]'), '');
-    final valor = double.tryParse(valorText.replaceAll(',', '.')) ?? 0.0;
+    final valor =
+        BrlCurrencyInputFormatter.parseToDouble(_valorController.text);
 
     final updatedProduct = widget.product.copyWith(
       valor: valor,
@@ -203,6 +204,7 @@ class _ProductEditModalState extends State<ProductEditModal> {
                         controller: _valorController,
                         keyboardType: const TextInputType.numberWithOptions(
                             decimal: true),
+                        inputFormatters: [BrlCurrencyInputFormatter()],
                         decoration: InputDecoration(
                           prefixText: 'R\$ ',
                           border: OutlineInputBorder(
