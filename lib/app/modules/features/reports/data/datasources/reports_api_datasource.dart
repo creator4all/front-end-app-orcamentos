@@ -64,7 +64,7 @@ class ReportsApiDatasource implements ReportsDatasource {
     String? status,
   }) async {
     final queryParams = <String, dynamic>{};
-    queryParams['usuario_id'] = userId.toString();
+    queryParams['orc_usuario_id'] = userId.toString();
     if (dataInicio != null) {
       queryParams['dataInicio'] = _dateFormat.format(dataInicio);
     }

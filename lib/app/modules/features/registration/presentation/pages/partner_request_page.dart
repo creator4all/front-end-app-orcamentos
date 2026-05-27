@@ -4,6 +4,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:multimidiaapp/app/shared/utils/brazilian_phone_input_formatter.dart';
 import 'package:multimidiaapp/app/shared/utils/chewie_options_translation.dart';
 import 'package:multimidiaapp/app/shared/utils/document_validators.dart';
 import 'package:multimidiaapp/app/shared/utils/email_validator.dart';
@@ -105,22 +106,6 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
     super.dispose();
   }
 
-  String _formatPhone(String value) {
-    value = value.replaceAll(RegExp(r'[^0-9]'), '');
-
-    if (value.isNotEmpty) {
-      value = '($value';
-    }
-    if (value.length > 3) {
-      value = '${value.substring(0, 3)}) ${value.substring(3)}';
-    }
-    if (value.length > 10) {
-      value = '${value.substring(0, 10)}-${value.substring(10)}';
-    }
-
-    return value;
-  }
-
   String _formatCpfCnpj(String value) {
     value = value.replaceAll(RegExp(r'[^0-9]'), '');
 
@@ -171,11 +156,8 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
 
     if (_phoneController.text.trim().isEmpty) {
       missingFields.add('Telefone');
-    } else {
-      final phone = _phoneController.text.replaceAll(RegExp(r'[^0-9]'), '');
-      if (phone.length < 10 || phone.length > 11) {
-        missingFields.add('Telefone (formato inválido)');
-      }
+    } else if (!BrazilianPhoneInputFormatter.isValid(_phoneController.text)) {
+      missingFields.add('Telefone (formato inválido)');
     }
 
     if (_companyController.text.trim().isEmpty) {
@@ -218,7 +200,7 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
     final request = PartnerRequest(
       name: _nameController.text.trim(),
       email: _emailController.text.trim(),
-      phone: _phoneController.text.replaceAll(RegExp(r'[^0-9]'), ''),
+      phone: BrazilianPhoneInputFormatter.digitsOnly(_phoneController.text),
       company: _companyController.text.trim(),
       cnpj: _cnpjController.text.replaceAll(RegExp(r'[^0-9]'), ''),
       publicSectorExperience: _publicSectorExperience,
@@ -360,22 +342,12 @@ class _PartnerRequestPageState extends State<PartnerRequestPage> {
                   isRequired: true,
                   hintText: 'Informe seu telefone',
                   keyboardType: TextInputType.phone,
-                  onChanged: (value) {
-                    final formatted = _formatPhone(value);
-                    if (formatted != value) {
-                      _phoneController.value = TextEditingValue(
-                        text: formatted,
-                        selection:
-                            TextSelection.collapsed(offset: formatted.length),
-                      );
-                    }
-                  },
+                  inputFormatters: [BrazilianPhoneInputFormatter()],
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Por favor, digite seu telefone';
                     }
-                    final phone = value.replaceAll(RegExp(r'[^0-9]'), '');
-                    if (phone.length < 10 || phone.length > 11) {
+                    if (!BrazilianPhoneInputFormatter.isValid(value)) {
                       return 'Telefone inválido';
                     }
                     return null;

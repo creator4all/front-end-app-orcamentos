@@ -7,7 +7,7 @@ class CensusInputRowWidget extends StatelessWidget {
   final double value;
   final bool isEditMode;
   final TextEditingController? controller;
-  final ValueChanged<double>? onChanged;
+  final ValueChanged<double?>? onChanged;
 
   const CensusInputRowWidget({
     super.key,
@@ -60,8 +60,17 @@ class CensusInputRowWidget extends StatelessWidget {
     return TextField(
       controller: controller,
       onChanged: (text) {
-        final parsed = double.tryParse(text);
-        if (parsed != null && parsed >= 0 && onChanged != null) {
+        if (onChanged == null) return;
+
+        final trimmed = text.trim();
+
+        if (trimmed.isEmpty) {
+          onChanged!(null);
+          return;
+        }
+
+        final parsed = double.tryParse(trimmed);
+        if (parsed != null && parsed >= 0) {
           onChanged!(parsed);
         }
       },

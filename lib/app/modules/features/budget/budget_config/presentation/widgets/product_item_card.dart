@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 
-import '../../../../../../shared/utils/string_utils.dart';
 import '../../../../../../shared/widgets/custom_checkbox.dart';
 import '../../domain/entities/product_entity.dart';
 
@@ -21,6 +20,7 @@ class ProductItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isSelected = product.selecionado;
+
     final borderColor =
         isSelected ? const Color(0xFF2830F2) : const Color(0xFFD9D9D9);
 
@@ -48,7 +48,7 @@ class ProductItemCard extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  capitalizeFirstLetter(product.solucao),
+                  product.solucao,
                   style: TextStyle(
                     fontSize: 12.sp,
                     fontWeight: FontWeight.w400,
@@ -93,7 +93,7 @@ class ProductItemCard extends StatelessWidget {
             onTap: onInfoTap,
             child: Icon(
               Icons.info_outline,
-              size: 22.sp,
+              size: 28.sp,
               color: const Color(0xFF2830F2),
             ),
           ),

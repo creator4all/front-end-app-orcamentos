@@ -209,30 +209,25 @@ abstract class _ProductManagementStoreBase with Store {
   }
 
   @action
-  void clearError() {
-    errorMessage = null;
-  }
-
-  @action
   Future<bool> updateProductStatus(int productId, bool status) async {
-    isSaving = true;
-    errorMessage = null;
+    final index = products.indexWhere((p) => p.id == productId);
+    if (index == -1) return false;
+
+    final previous = products[index];
+    products[index] = products[index].copyWith(status: status, ativo: status);
 
     final result = await repository.updateProductStatus(productId, status);
 
     bool success = false;
     result.fold(
-      (failure) => errorMessage = failure.message,
       (_) {
-        final index = products.indexWhere((p) => p.id == productId);
-        if (index != -1) {
-          products[index] = products[index].copyWith(status: status);
-        }
+        products[index] = previous;
+      },
+      (_) {
         success = true;
       },
     );
 
-    isSaving = false;
     return success;
   }
 }

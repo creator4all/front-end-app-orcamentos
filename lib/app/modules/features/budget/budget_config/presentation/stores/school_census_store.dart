@@ -21,6 +21,12 @@ abstract class _SchoolCensusStoreBase with Store {
     this._getBudgetCensusUseCase,
   ]);
 
+  @computed
+  double get totalProfessores => censoEscolar?.valorTotalProfessores ?? 0.0;
+
+  @computed
+  double get totalCursistas => censoEscolar?.valorTotalCursistas ?? 0.0;
+
   @observable
   CensoEscolarEntity? censoEscolar;
 
@@ -145,7 +151,12 @@ abstract class _SchoolCensusStoreBase with Store {
   }
 
   @action
-  void updateValue(int indiceId, double value) {
+  void updateValue(int indiceId, double? value) {
+    if (value == null) {
+      editedValues.remove(indiceId);
+      return;
+    }
+
     editedValues[indiceId] = value;
   }
 
@@ -285,6 +296,7 @@ abstract class _SchoolCensusStoreBase with Store {
       cidadeId: 0,
       cidadeNome: 'Todas as cidades',
       censoAno: null,
+      anoPopulacao: null,
       grupos: updatedGroups,
       valoresPorEtapa: Map<String, double>.from(censoAgregado),
     );

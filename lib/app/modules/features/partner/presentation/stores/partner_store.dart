@@ -117,6 +117,7 @@ abstract class _PartnerStoreBase with Store {
       return true;
     } catch (e) {
       error = e.toString();
+      selectedLogo = null;
       return false;
     } finally {
       isSaving = false;

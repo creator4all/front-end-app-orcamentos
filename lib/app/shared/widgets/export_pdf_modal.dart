@@ -6,6 +6,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:multimidiaapp/app/shared/widgets/custom_checkbox.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -14,6 +15,7 @@ import '../../modules/features/auth/presentation/stores/auth_store.dart';
 import '../../modules/features/budget/budget_edit/domain/repositories/budget_pdf_repository.dart';
 import '../../modules/features/budget/budget_edit/domain/usecases/generate_pdf_usecase.dart';
 import '../../modules/features/partner/data/services/partner_service.dart';
+import '../utils/brazilian_phone_input_formatter.dart';
 import '../utils/crop_aspect_ratio_presets.dart';
 import '../utils/logo_aspect_ratio_validator.dart';
 import '../utils/logo_crop_source_preparer.dart';
@@ -107,7 +109,9 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
     }
 
     if (user.phone != null && user.phone!.isNotEmpty) {
-      _telefoneController.text = user.phone!;
+      _telefoneController.text = BrazilianPhoneInputFormatter.format(
+        user.phone!,
+      );
     }
 
     _urlController.text = 'www.multimidiaeducacional.com.br';
@@ -146,8 +150,9 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
         CustomTextField(
           controller: _telefoneController,
           label: 'Telefone',
-          hintText: 'Digite o telefone',
+          hintText: '(00) 00000-0000',
           keyboardType: TextInputType.phone,
+          inputFormatters: [BrazilianPhoneInputFormatter()],
           isRequired: true,
           height: 44.h,
         ),
@@ -173,37 +178,44 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
   Widget _buildCheckboxSection() {
     return Column(
       children: [
-        CheckboxListTile(
-          title: Text(
-            'Incluir logo no PDF',
-            style: TextStyle(
-              fontSize: 14.sp,
-              color: Colors.black87,
+        Row(
+          children: [
+            CustomCheckbox(
+              value: _incluirLogoNoPdf,
+              onChanged: (value) {
+                setState(() => _incluirLogoNoPdf = value);
+              },
+              checkedColor: const Color(0xFF117BBD),
             ),
-          ),
-          value: _incluirLogoNoPdf,
-          onChanged: (value) {
-            setState(() => _incluirLogoNoPdf = value ?? true);
-          },
-          activeColor: const Color(0xFF117BBD),
-          controlAffinity: ListTileControlAffinity.leading,
-          contentPadding: EdgeInsets.zero,
+            SizedBox(width: 10.w),
+            Text(
+              'Incluir logo no PDF',
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: Colors.black87,
+              ),
+            ),
+          ],
         ),
-        CheckboxListTile(
-          title: Text(
-            'Incluir dados do censo escolar',
-            style: TextStyle(
-              fontSize: 14.sp,
-              color: Colors.black87,
+        SizedBox(height: 16.h),
+        Row(
+          children: [
+            CustomCheckbox(
+              value: _incluirCensoNoPdf,
+              onChanged: (value) {
+                setState(() => _incluirCensoNoPdf = value);
+              },
+              checkedColor: const Color(0xFF117BBD),
             ),
-          ),
-          value: _incluirCensoNoPdf,
-          onChanged: (value) {
-            setState(() => _incluirCensoNoPdf = value ?? false);
-          },
-          activeColor: const Color(0xFF117BBD),
-          controlAffinity: ListTileControlAffinity.leading,
-          contentPadding: EdgeInsets.zero,
+            SizedBox(width: 10.w),
+            Text(
+              'Incluir dados do censo escolar',
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: Colors.black87,
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -376,13 +388,29 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
       );
 
       if (pickedFile != null) {
-        final preparedSource = Platform.isAndroid
-            ? await LogoCropSourcePreparer.prepareForCrop(File(pickedFile.path))
-            : PreparedLogoCropSource.original(File(pickedFile.path));
+        final sourceLogo = File(pickedFile.path);
+        final targetAspectRatio = Platform.isAndroid || Platform.isIOS
+            ? await LogoAspectRatioValidator.closestSupportedAspectRatioForFile(
+                sourceLogo,
+              )
+            : null;
+        final preparedSource = Platform.isAndroid || Platform.isIOS
+            ? await LogoCropSourcePreparer.prepareForCrop(
+                sourceLogo,
+                targetAspectRatio: targetAspectRatio?.value ??
+                    LogoCropSourcePreparer.widescreenRatio,
+              )
+            : PreparedLogoCropSource.original(sourceLogo);
         final CroppedFile? croppedFile = await ImageCropper().cropImage(
           sourcePath: preparedSource.file.path,
           compressFormat: ImageCompressFormat.jpg,
           compressQuality: 85,
+          aspectRatio: targetAspectRatio == null
+              ? null
+              : CropAspectRatio(
+                  ratioX: targetAspectRatio.ratioX.toDouble(),
+                  ratioY: targetAspectRatio.ratioY.toDouble(),
+                ),
           uiSettings: [
             AndroidUiSettings(
               toolbarTitle: 'Recortar Logo',
@@ -390,8 +418,12 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
               statusBarLight: false,
               navBarLight: false,
               toolbarWidgetColor: Colors.white,
-              initAspectRatio: const CropPreset16x9(),
+              initAspectRatio:
+                  targetAspectRatio == LogoSupportedAspectRatio.square
+                      ? const CropPresetQuadrado()
+                      : const CropPreset16x9(),
               lockAspectRatio: true,
+              hideBottomControls: false,
               aspectRatioPresets: [
                 const CropPresetQuadrado(),
                 const CropPreset16x9()
@@ -401,15 +433,12 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
               title: 'Recortar Logo',
               doneButtonTitle: 'Recortar',
               cancelButtonTitle: 'Cancelar',
-              aspectRatioLockEnabled: false,
+              resetButtonHidden: true,
+              aspectRatioLockEnabled: true,
               aspectRatioLockDimensionSwapEnabled: false,
-              aspectRatioPickerButtonHidden: false,
+              aspectRatioPickerButtonHidden: true,
               resetAspectRatioEnabled: false,
               hidesNavigationBar: false,
-              aspectRatioPresets: [
-                const CropPresetQuadrado(),
-                const CropPreset16x9()
-              ],
             ),
           ],
         );
@@ -417,8 +446,12 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
 
         if (croppedFile != null) {
           final selectedLogo = File(croppedFile.path);
-          final isValidLogo =
-              await LogoAspectRatioValidator.isValidFile(selectedLogo);
+          final isValidLogo = targetAspectRatio == null
+              ? await LogoAspectRatioValidator.isValidFile(selectedLogo)
+              : await LogoAspectRatioValidator.isValidFileForAspectRatio(
+                  file: selectedLogo,
+                  aspectRatio: targetAspectRatio,
+                );
 
           if (!isValidLogo) {
             if (mounted) {
@@ -502,6 +535,11 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
       return;
     }
 
+    if (!BrazilianPhoneInputFormatter.isValid(_telefoneController.text)) {
+      _showErrorMessage('Telefone inválido');
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
@@ -523,7 +561,9 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
         orcamentoId: widget.orcamentoId,
         nomeVendedor: _nomeVendedorController.text.trim(),
         cargo: _cargoController.text.trim(),
-        telefone: _telefoneController.text.trim(),
+        telefone: BrazilianPhoneInputFormatter.format(
+          _telefoneController.text.trim(),
+        ),
         url: _urlController.text.trim().isNotEmpty
             ? _urlController.text.trim()
             : null,
@@ -552,7 +592,7 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
         throw Exception('Arquivo não foi salvo corretamente');
       }
 
-      await Share.shareXFiles(
+      final shareResult = await Share.shareXFiles(
         [XFile(file.path)],
         text: 'Orçamento - ${_nomeVendedorController.text.trim()}',
         subject: 'Orçamento - ${_nomeVendedorController.text.trim()}',
@@ -562,12 +602,15 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
       if (!mounted) return;
 
       Navigator.of(context).pop();
-      CustomInfoDialog.show(
-        context: context,
-        type: DialogType.success,
-        title: 'Sucesso!',
-        message: 'PDF gerado e compartilhado com sucesso!',
-      );
+
+      if (shareResult.status == ShareResultStatus.success) {
+        CustomInfoDialog.show(
+          context: context,
+          type: DialogType.success,
+          title: 'Sucesso!',
+          message: 'PDF gerado e compartilhado com sucesso!',
+        );
+      }
     } catch (e) {
       setState(() {
         _isLoading = false;

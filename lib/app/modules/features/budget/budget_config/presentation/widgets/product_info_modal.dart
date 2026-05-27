@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:multimidiaapp/app/shared/utils/brl_currency_input_formatter.dart';
 import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 
-import '../../../../../../shared/utils/string_utils.dart';
 import '../../../../../../shared/widgets/custom_modal.dart';
 import '../../domain/entities/product_entity.dart';
 import 'indicadores_etapa_section.dart';
@@ -82,16 +82,10 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
   }
 
   double? _parseValueInput() {
-    var cleanValue = _valueController.text.replaceAll(RegExp(r'[^\d.,-]'), '');
-    if (cleanValue.isEmpty) {
-      return null;
-    }
-
-    if (cleanValue.contains(',')) {
-      cleanValue = cleanValue.replaceAll('.', '').replaceAll(',', '.');
-    }
-
-    return double.tryParse(cleanValue);
+    final text = _valueController.text;
+    if (text.isEmpty) return null;
+    final value = BrlCurrencyInputFormatter.parseToDouble(text);
+    return value > 0 ? value : null;
   }
 
   void _handleSave() {
@@ -148,11 +142,11 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildInfoRow('Grupo', capitalizeFirstLetter(categoryName)),
+          _buildInfoRow('Grupo', categoryName),
           SizedBox(height: 8.h),
-          _buildInfoRow('Sub-grupo', capitalizeFirstLetter(subcategoryName)),
+          _buildInfoRow('Sub-grupo', subcategoryName),
           SizedBox(height: 8.h),
-          _buildInfoRow('Solução', capitalizeFirstLetter(product.solucao)),
+          _buildInfoRow('Solução', product.solucao),
           SizedBox(height: 8.h),
           _buildInfoRow('Indicação', product.indicacao),
           SizedBox(height: 8.h),
@@ -307,6 +301,7 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
         TextField(
           controller: _valueController,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: [BrlCurrencyInputFormatter()],
           decoration: InputDecoration(
             hintText: 'Insira o novo valor',
             hintStyle: TextStyle(

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -9,6 +10,7 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobx/mobx.dart';
 
+import '../../../../../shared/utils/brazilian_phone_input_formatter.dart';
 import '../../../../../shared/utils/crop_aspect_ratio_presets.dart';
 import '../../../../../shared/utils/document_validators.dart';
 import '../../../../../shared/utils/logo_aspect_ratio_validator.dart';
@@ -48,7 +50,9 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
         if (partner != null) {
           _tradeNameController.text = partner.tradeName;
           _emailController.text = partner.email ?? '';
-          _phoneController.text = partner.phone;
+          _phoneController.text = BrazilianPhoneInputFormatter.format(
+            partner.phone,
+          );
           _legalNameController.text = partner.legalName;
           _cnpjController.text =
               DocumentValidators.formatDocument(partner.cnpj);
@@ -78,13 +82,29 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
       );
 
       if (image != null) {
-        final preparedSource = Platform.isAndroid
-            ? await LogoCropSourcePreparer.prepareForCrop(File(image.path))
-            : PreparedLogoCropSource.original(File(image.path));
+        final sourceLogo = File(image.path);
+        final targetAspectRatio = Platform.isAndroid || Platform.isIOS
+            ? await LogoAspectRatioValidator.closestSupportedAspectRatioForFile(
+                sourceLogo,
+              )
+            : null;
+        final preparedSource = Platform.isAndroid || Platform.isIOS
+            ? await LogoCropSourcePreparer.prepareForCrop(
+                sourceLogo,
+                targetAspectRatio: targetAspectRatio?.value ??
+                    LogoCropSourcePreparer.widescreenRatio,
+              )
+            : PreparedLogoCropSource.original(sourceLogo);
         final CroppedFile? croppedFile = await ImageCropper().cropImage(
           sourcePath: preparedSource.file.path,
           compressFormat: ImageCompressFormat.jpg,
           compressQuality: 85,
+          aspectRatio: targetAspectRatio == null
+              ? null
+              : CropAspectRatio(
+                  ratioX: targetAspectRatio.ratioX.toDouble(),
+                  ratioY: targetAspectRatio.ratioY.toDouble(),
+                ),
           uiSettings: [
             AndroidUiSettings(
               toolbarTitle: 'Recortar Logo',
@@ -92,8 +112,12 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
               statusBarLight: false,
               navBarLight: false,
               toolbarWidgetColor: Colors.white,
-              initAspectRatio: const CropPreset16x9(),
+              initAspectRatio:
+                  targetAspectRatio == LogoSupportedAspectRatio.square
+                      ? const CropPresetQuadrado()
+                      : const CropPreset16x9(),
               lockAspectRatio: true,
+              hideBottomControls: false,
               aspectRatioPresets: [
                 const CropPresetQuadrado(),
                 const CropPreset16x9()
@@ -103,16 +127,12 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
               title: 'Recortar Logo',
               doneButtonTitle: 'Recortar',
               cancelButtonTitle: 'Cancelar',
-              // Permite trocar entre presets mas bloqueia inversão de dimensão
-              aspectRatioLockEnabled: false,
+              resetButtonHidden: true,
+              aspectRatioLockEnabled: true,
               aspectRatioLockDimensionSwapEnabled: false,
-              aspectRatioPickerButtonHidden: false,
+              aspectRatioPickerButtonHidden: true,
               resetAspectRatioEnabled: false,
               hidesNavigationBar: false,
-              aspectRatioPresets: [
-                const CropPresetQuadrado(),
-                const CropPreset16x9()
-              ],
             ),
           ],
         );
@@ -120,8 +140,12 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
 
         if (croppedFile != null) {
           final selectedLogo = File(croppedFile.path);
-          final isValidLogo =
-              await LogoAspectRatioValidator.isValidFile(selectedLogo);
+          final isValidLogo = targetAspectRatio == null
+              ? await LogoAspectRatioValidator.isValidFile(selectedLogo)
+              : await LogoAspectRatioValidator.isValidFileForAspectRatio(
+                  file: selectedLogo,
+                  aspectRatio: targetAspectRatio,
+                );
 
           if (!isValidLogo) {
             if (!mounted) return;
@@ -152,18 +176,16 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
                 _store.error ?? 'Ocorreu um erro desconhecido.';
             DialogType dialogType = DialogType.error;
 
-            if (errorMessage.toLowerCase().contains('formato') ||
-                errorMessage.toLowerCase().contains('tamanho') ||
-                errorMessage.toLowerCase().contains('inválido')) {
-              dialogType = DialogType.warning;
-              errorTitle = 'Formato de imagem inválido';
+            final normalizedErrorMessage = errorMessage.toLowerCase();
 
-              if (errorMessage.contains('Formatos aceitos')) {
-                errorMessage =
-                    'A imagem selecionada não está em um formato válido.\n\n'
-                    'Por favor, escolha uma imagem nos formatos: JPG, PNG, GIF, WebP, BMP, TIFF ou SVG.\n\n'
-                    'Tamanho máximo: 5MB';
-              }
+            if (normalizedErrorMessage.contains('formato') ||
+                normalizedErrorMessage.contains('tamanho') ||
+                normalizedErrorMessage.contains('inválido') ||
+                normalizedErrorMessage.contains('invalido') ||
+                normalizedErrorMessage.contains('permitido')) {
+              dialogType = DialogType.warning;
+              errorTitle = 'Item não permitido';
+              errorMessage = 'Item não permitido.';
             }
 
             CustomInfoDialog.show(
@@ -199,7 +221,9 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
   Future<void> _save() async {
     _store.setTradeName(_tradeNameController.text);
     _store.setEmail(_emailController.text);
-    _store.setPhone(_phoneController.text);
+    _store.setPhone(BrazilianPhoneInputFormatter.digitsOnly(
+      _phoneController.text,
+    ));
 
     final success = await _store.save();
 
@@ -321,6 +345,7 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
                     controller: _phoneController,
                     label: 'Telefone',
                     keyboardType: TextInputType.phone,
+                    inputFormatters: [BrazilianPhoneInputFormatter()],
                   ),
                   SizedBox(height: 24.h),
                   _buildReadOnlyTextField(
@@ -454,6 +479,7 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
     required TextEditingController controller,
     required String label,
     TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -470,6 +496,7 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
         TextField(
           controller: controller,
           keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
           decoration: InputDecoration(
             filled: true,
             fillColor: Colors.white,

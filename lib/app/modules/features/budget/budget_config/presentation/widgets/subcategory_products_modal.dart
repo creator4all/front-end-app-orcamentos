@@ -3,7 +3,6 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:multimidiaapp/app/modules/features/budget/budget_config/presentation/widgets/product_item_card.dart';
 
-import '../../../../../../shared/utils/string_utils.dart';
 import '../../../../../../shared/widgets/custom_modal.dart';
 import '../../domain/entities/category_entity.dart';
 import '../../domain/entities/product_entity.dart';
@@ -58,8 +57,7 @@ class SubcategoryProductsModal extends StatelessWidget {
   }) {
     return CustomModal.show(
       context: context,
-      title:
-          '${capitalizeFirstLetter(category.nome)}: ${capitalizeFirstLetter(subcategory.nome)}',
+      title: '${category.nome}: ${subcategory.nome}',
       content: SubcategoryProductsModal(
         categoryId: category.id,
         subcategoryId: subcategory.id,
@@ -78,14 +76,16 @@ class SubcategoryProductsModal extends StatelessWidget {
     ProductInfoModal.show(
       context: context,
       getProduct: () {
-        final currentSubcategory = resolveSubcategory(categoryId, subcategoryId);
+        final currentSubcategory =
+            resolveSubcategory(categoryId, subcategoryId);
         return currentSubcategory.produtos.firstWhere(
           (item) => item.id == product.id,
           orElse: () => product,
         );
       },
       getCategoryName: () => resolveCategory(categoryId).nome,
-      getSubcategoryName: () => resolveSubcategory(categoryId, subcategoryId).nome,
+      getSubcategoryName: () =>
+          resolveSubcategory(categoryId, subcategoryId).nome,
       onValueChanged: isReadOnly
           ? null
           : (value) => onUpdateProductValue?.call(product.id, value),

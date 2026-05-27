@@ -28,16 +28,15 @@ class SubcategoryEntity extends Equatable {
   bool get usandoEstatisticas => produtos.isEmpty && estatisticas != null;
 
   List<ProductEntity> get activeProdutos {
-    return produtos.where((p) => p.ativo).toList()
-      ..sort((a, b) => a.ordem.compareTo(b.ordem));
+    return produtos.toList()..sort((a, b) => a.ordem.compareTo(b.ordem));
   }
 
   List<ProductEntity> get selectedProdutos {
-    return produtos.where((p) => p.ativo && p.selecionado).toList();
+    return produtos.where((p) => p.selecionado).toList();
   }
 
   List<ProductEntity> get unselectedProdutos {
-    return produtos.where((p) => p.ativo && !p.selecionado).toList();
+    return produtos.where((p) => !p.selecionado).toList();
   }
 
   int get activeProductsCount {

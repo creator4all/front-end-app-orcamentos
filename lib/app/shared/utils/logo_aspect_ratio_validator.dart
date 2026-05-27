@@ -31,6 +31,60 @@ class LogoAspectRatioValidator {
         width: dimensions.width, height: dimensions.height);
   }
 
+  static bool isValidDimensionsForAspectRatio({
+    required int width,
+    required int height,
+    required LogoSupportedAspectRatio aspectRatio,
+    double tolerance = LogoAspectRatioValidator.tolerance,
+  }) {
+    if (width <= 0 || height <= 0) {
+      return false;
+    }
+
+    return _isWithinTolerance(width / height, aspectRatio.value, tolerance);
+  }
+
+  static Future<bool> isValidFileForAspectRatio({
+    required File file,
+    required LogoSupportedAspectRatio aspectRatio,
+    double tolerance = LogoAspectRatioValidator.tolerance,
+  }) async {
+    final dimensions = await getImageDimensions(file);
+    return isValidDimensionsForAspectRatio(
+      width: dimensions.width,
+      height: dimensions.height,
+      aspectRatio: aspectRatio,
+      tolerance: tolerance,
+    );
+  }
+
+  static LogoSupportedAspectRatio closestSupportedAspectRatio({
+    required int width,
+    required int height,
+  }) {
+    if (width <= 0 || height <= 0) {
+      throw ArgumentError('As dimensões da imagem devem ser maiores que zero.');
+    }
+
+    final aspectRatio = width / height;
+    final squareDistance = (aspectRatio - squareRatio).abs();
+    final widescreenDistance = (aspectRatio - widescreenRatio).abs();
+
+    return squareDistance <= widescreenDistance
+        ? LogoSupportedAspectRatio.square
+        : LogoSupportedAspectRatio.widescreen;
+  }
+
+  static Future<LogoSupportedAspectRatio> closestSupportedAspectRatioForFile(
+    File file,
+  ) async {
+    final dimensions = await getImageDimensions(file);
+    return closestSupportedAspectRatio(
+      width: dimensions.width,
+      height: dimensions.height,
+    );
+  }
+
   static Future<LogoImageDimensions> getImageDimensions(File file) async {
     final bytes = await file.readAsBytes();
     return decodeDimensions(bytes);
@@ -70,4 +124,29 @@ class LogoImageDimensions {
     required this.width,
     required this.height,
   });
+}
+
+enum LogoSupportedAspectRatio {
+  square,
+  widescreen;
+
+  int get ratioX {
+    switch (this) {
+      case LogoSupportedAspectRatio.square:
+        return 1;
+      case LogoSupportedAspectRatio.widescreen:
+        return 16;
+    }
+  }
+
+  int get ratioY {
+    switch (this) {
+      case LogoSupportedAspectRatio.square:
+        return 1;
+      case LogoSupportedAspectRatio.widescreen:
+        return 9;
+    }
+  }
+
+  double get value => ratioX / ratioY;
 }

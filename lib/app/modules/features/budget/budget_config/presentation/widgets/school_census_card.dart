@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:multimidiaapp/app/modules/features/budget/budget_config/domain/services/census_stage_rules.dart';
 
 import '../../../../../../shared/widgets/card_layout.dart';
 import '../../domain/services/census_value_normalizer.dart';
@@ -53,7 +54,7 @@ class SchoolCensusCard extends StatelessWidget {
   int _calculateTotalStudents() {
     if (censoAgregado != null && censoAgregado!.isNotEmpty) {
       return censoAgregado!.entries
-          .where((e) => !e.key.endsWith('P'))
+          .where((e) => CensusStageRules.isStudentStage(e.key))
           .fold(
             0.0,
             (sum, e) =>
@@ -70,7 +71,7 @@ class SchoolCensusCard extends StatelessWidget {
         if (indicador is Map<String, dynamic>) {
           final nome =
               (indicador['nome_etapa'] ?? indicador['nome'] ?? '').toString();
-          if (nome.endsWith('P')) continue;
+          if (!CensusStageRules.isStudentStage(nome)) continue;
           totalStudents += CensusValueNormalizer.consolidateStageValue(
             nome,
             _parseValorIndicador(indicador),
