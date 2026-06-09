@@ -1,9 +1,7 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:multimidiaapp/app/shared/widgets/custom_info_dialog.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_top_bar.dart';
 
 import '../../../auth/presentation/stores/auth_store.dart';
@@ -11,7 +9,7 @@ import '../../domain/entities/drive_item.dart';
 import '../stores/file_opener_store.dart';
 import '../stores/new_drive_store.dart';
 import '../widgets/item_card_doc.dart';
-import '../widgets/file_details_modal.dart';
+import '../widgets/drive_item_details.dart';
 
 class FolderContentsPage extends StatefulWidget {
   final String folderId;
@@ -366,64 +364,44 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
   }
 
   void _handleItemTap(DriveItem item) {
-    if (item.type == DriveItemType.folder) {
-      store.navigateToFolder(item.id, item.name);
 
-      Modular.to.pushNamed(
-        './folder',
-        arguments: {
-          'folderId': item.id,
-          'folderName': item.name,
-        },
-      );
-    } else if (item.type == DriveItemType.video) {
-      Modular.to.pushNamed(
-        './video-player',
-        arguments: item,
-      );
-    } else if (item.type == DriveItemType.image) {
-      Modular.to.pushNamed(
-        './image-viewer',
-        arguments: item,
-      );
-    } else {
-      FileDetailsModal.show(
-        context: context,
-        item: item,
-        onOpen: () => fileOpenerStore.openFile(item),
-        onDownload: () => _handleDownload(item),
-      );
-    }
+    DriveItemDetails.show(
+      context: context,
+      item: item,
+      fileOpenerStore: fileOpenerStore,
+      onOpen: _openFileFromDetails,
+    );
   }
 
-  Future<void> _handleDownload(DriveItem item) async {
-    final savedPath = await fileOpenerStore.downloadFile(item);
-    if (!mounted) return;
-
-    if (savedPath != null) {
-      final fileName = savedPath.split('/').last;
-      final folderPath = savedPath.substring(0, savedPath.lastIndexOf('/'));
-      final messageStr = Platform.isIOS
-          ? 'O arquivo "$fileName" foi disponibilizado nos seus Arquivos'
-          : 'O arquivo "$fileName" foi salvo em:\n$folderPath';
-      CustomInfoDialog.show(
-        context: context,
-        type: DialogType.success,
-        title: 'Download concluído',
-        message: messageStr,
-      );
-      return;
-    }
-
-    final error = fileOpenerStore.errorMessage;
-    if (error != null && error.isNotEmpty) {
-      CustomInfoDialog.show(
-        context: context,
-        type: DialogType.error,
-        title: 'Erro no download',
-        message: error,
-      );
-      fileOpenerStore.clearError();
-    }
+Future<void> _openFileFromDetails(DriveItem item) async {
+  if(item.type == DriveItemType.folder) {
+    store.navigateToFolder(item.id, item.name);
+    Modular.to.pushNamed(
+      './folder',
+      arguments: {
+        'folderId': item.id,
+        'folderName': item.name,
+      },
+    );
+    return;
   }
+  
+  if (item.type == DriveItemType.video) {
+    Modular.to.pushNamed(
+      './video-player',
+      arguments: item,
+    );
+    return;
+  }
+
+  if (item.type == DriveItemType.image) {
+    Modular.to.pushNamed(
+      './image-viewer',
+      arguments: item,
+    );
+    return;
+  }
+
+  await fileOpenerStore.openFile(item);
+}
 }

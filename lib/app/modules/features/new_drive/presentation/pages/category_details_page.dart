@@ -9,6 +9,7 @@ import '../../../auth/presentation/stores/auth_store.dart';
 import '../../domain/entities/drive_item.dart';
 import '../stores/file_opener_store.dart';
 import '../stores/new_drive_store.dart';
+import '../widgets/drive_item_details.dart';
 
 class CategoryDetailsPage extends StatefulWidget {
   final DriveItemType categoryType;
@@ -97,7 +98,7 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
                       children: [
                         ItemCardDoc(
                           item: item,
-                          onTap: () => _handleFileOpen(item),
+                          onTap: () => _showFileDetails(item),
                         ),
                         SizedBox(height: 12.h),
                       ],
@@ -143,6 +144,15 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
           color: const Color(0xFF171A1F),
         ),
       ),
+    );
+  }
+
+  void _showFileDetails(DriveItem item) {
+    DriveItemDetails.show(
+      context: context,
+      item: item,
+      fileOpenerStore: fileOpenerStore,
+      onOpen: _handleFileOpen,
     );
   }
 

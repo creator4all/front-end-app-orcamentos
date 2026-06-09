@@ -1,9 +1,7 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:multimidiaapp/app/shared/widgets/custom_info_dialog.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_top_bar.dart';
 
 import '../../../../features/auth/presentation/stores/auth_store.dart';
@@ -11,7 +9,7 @@ import '../../domain/entities/drive_item.dart';
 import '../stores/file_opener_store.dart';
 import '../stores/new_drive_store.dart';
 import '../widgets/item_card_doc.dart';
-import '../widgets/file_details_modal.dart';
+import '../widgets/drive_item_details.dart';
 
 class MyFilesPage extends StatefulWidget {
   const MyFilesPage({super.key});
@@ -182,43 +180,12 @@ class _MyFilesPageState extends State<MyFilesPage> {
   }
 
   void _showFileDetails(DriveItem item) {
-    FileDetailsModal.show(
+    DriveItemDetails.show(
       context: context,
       item: item,
-      onOpen: () async => _handleFileOpen(item),
-      onDownload: () async => _handleDownload(item),
+      fileOpenerStore: fileOpenerStore,
+      onOpen: _handleFileOpen,
     );
-  }
-
-  Future<void> _handleDownload(DriveItem item) async {
-    final savedPath = await fileOpenerStore.downloadFile(item);
-    if (!mounted) return;
-
-    if (savedPath != null) {
-      final fileName = savedPath.split('/').last;
-      final folderPath = savedPath.substring(0, savedPath.lastIndexOf('/'));
-      final messageStr = Platform.isIOS
-          ? 'O arquivo "$fileName" foi disponibilizado nos seus Arquivos'
-          : 'O arquivo "$fileName" foi salvo em:\n$folderPath';
-      CustomInfoDialog.show(
-        context: context,
-        type: DialogType.success,
-        title: 'Download concluído',
-        message: messageStr,
-      );
-      return;
-    }
-
-    final error = fileOpenerStore.errorMessage;
-    if (error != null && error.isNotEmpty) {
-      CustomInfoDialog.show(
-        context: context,
-        type: DialogType.error,
-        title: 'Erro no download',
-        message: error,
-      );
-      fileOpenerStore.clearError();
-    }
   }
 
   void _handleFileOpen(DriveItem item) {

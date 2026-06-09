@@ -115,11 +115,17 @@ abstract class _NewDriveStoreBase with Store {
     if (selectedCategoryType == null) {
       return [];
     }
-    return allItems
-        .where(
-          (item) => item.type == selectedCategoryType && item.parentId == null,
-        )
-        .toList();
+    return allItems.where((item) {
+      if (item.type != selectedCategoryType) {
+        return false;
+      }
+
+      if (selectedCategoryType == DriveItemType.folder) {
+        return item.parentId == null;
+      }
+
+      return true;
+    }).toList();
   }
 
   @computed
@@ -239,29 +245,25 @@ abstract class _NewDriveStoreBase with Store {
   Future<void> loadCategories() async {
     categories.clear();
 
-    final rootItems = allItems.where((item) => item.parentId == null);
+    final documentItems =
+        allItems.where((item) => item.type == DriveItemType.document);
+    final imageItems =
+        allItems.where((item) => item.type == DriveItemType.image);
+    final videoItems =
+        allItems.where((item) => item.type == DriveItemType.video);
+    final folderItems = allItems.where(
+      (item) => item.type == DriveItemType.folder && item.parentId == null,
+    );
 
-    final documents =
-        rootItems.where((item) => item.type == DriveItemType.document).length;
-    final images =
-        rootItems.where((item) => item.type == DriveItemType.image).length;
-    final videos =
-        rootItems.where((item) => item.type == DriveItemType.video).length;
-    final folders =
-        rootItems.where((item) => item.type == DriveItemType.folder).length;
+    final documents = documentItems.length;
+    final images = imageItems.length;
+    final videos = videoItems.length;
+    final folders = folderItems.length;
 
-    final documentsSize = _calculateTotalSize(
-      rootItems.where((item) => item.type == DriveItemType.document),
-    );
-    final imagesSize = _calculateTotalSize(
-      rootItems.where((item) => item.type == DriveItemType.image),
-    );
-    final videosSize = _calculateTotalSize(
-      rootItems.where((item) => item.type == DriveItemType.video),
-    );
-    final foldersSize = _calculateTotalSize(
-      rootItems.where((item) => item.type == DriveItemType.folder),
-    );
+    final documentsSize = _calculateTotalSize(documentItems);
+    final imagesSize = _calculateTotalSize(imageItems);
+    final videosSize = _calculateTotalSize(videoItems);
+    final foldersSize = _calculateTotalSize(folderItems);
 
     categories.addAll([
       DriveCategory(
@@ -302,7 +304,7 @@ abstract class _NewDriveStoreBase with Store {
     for (final item in items) {
       totalMB += _parseSizeToMB(item.size);
     }
-    return '${totalMB.toStringAsFixed(1)} MB';
+    return _formatSizeFromMB(totalMB);
   }
 
   double _parseSizeToMB(String size) {
@@ -320,6 +322,26 @@ abstract class _NewDriveStoreBase with Store {
       'GB' => value * 1024,
       _ => 0.0,
     };
+  }
+
+  String _formatSizeFromMB(double mb) {
+    if (mb < 1 / 1024) {
+      final bytes = mb * 1024 * 1024;
+      return '${bytes.toStringAsFixed(0)} B';
+    }
+    if (mb < 1) {
+      final kb = mb * 1024;
+      return '${kb.toStringAsFixed(1)} KB';
+    }
+    if (mb < 1024) {
+      return '${mb.toStringAsFixed(1)} MB';
+    }
+    if (mb < 1024 * 1024) {
+      final gb = mb / 1024;
+      return '${gb.toStringAsFixed(1)} GB';
+    }
+    final tb = mb / (1024 * 1024);
+    return '${tb.toStringAsFixed(1)} TB';
   }
 
   @action

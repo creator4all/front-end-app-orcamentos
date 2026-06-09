@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -12,7 +11,7 @@ import '../../domain/entities/drive_item.dart';
 import '../stores/file_opener_store.dart';
 import '../stores/new_drive_store.dart';
 import '../widgets/category_card.dart';
-import '../widgets/file_details_modal.dart';
+import '../widgets/drive_item_details.dart';
 import '../widgets/item_card_doc.dart';
 
 class NewDrivePage extends StatefulWidget {
@@ -263,54 +262,17 @@ class _NewDrivePageState extends State<NewDrivePage> {
       item: item,
       maxNameLines: 2,
       showMenu: false,
-      onTap: item.type == DriveItemType.folder
-          ? () => _handleFileOpen(item)
-          : () => _showFileDetails(item),
+      onTap: () => _showFileDetails(item),
     );
   }
 
-  void _showFileDetails(DriveItem item) {
-    FileDetailsModal.show(
+  void _showFileDetails(DriveItem item){
+    DriveItemDetails.show(
       context: context,
       item: item,
-      onOpen: () => _handleFileOpenAsync(item),
-      onDownload: () => _handleDownloadAsync(item),
+      fileOpenerStore: fileOpenerStore,
+      onOpen: _handleFileOpen,
     );
-  }
-
-  Future<void> _handleFileOpenAsync(DriveItem item) async {
-    await _handleFileOpen(item);
-  }
-
-  Future<void> _handleDownloadAsync(DriveItem item) async {
-    final savedPath = await fileOpenerStore.downloadFile(item);
-    if (!mounted) return;
-
-    if (savedPath != null) {
-      final fileName = savedPath.split('/').last;
-      final folderPath = savedPath.substring(0, savedPath.lastIndexOf('/'));
-      final messageStr = Platform.isIOS
-          ? 'O arquivo "$fileName" foi disponibilizado nos seus Arquivos'
-          : 'O arquivo "$fileName" foi salvo em:\n$folderPath';
-      CustomInfoDialog.show(
-        context: context,
-        type: DialogType.success,
-        title: 'Download concluído',
-        message: messageStr,
-      );
-      return;
-    }
-
-    final error = fileOpenerStore.errorMessage;
-    if (error != null && error.isNotEmpty) {
-      CustomInfoDialog.show(
-        context: context,
-        type: DialogType.error,
-        title: 'Erro no download',
-        message: error,
-      );
-      fileOpenerStore.clearError();
-    }
   }
 
   Widget _buildMyFilesButton() {
