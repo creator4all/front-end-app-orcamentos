@@ -64,6 +64,7 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
 
   bool _incluirLogoNoPdf = true;
   bool _incluirCensoNoPdf = false;
+  bool _incluirUrlNoPdf = true;
 
   bool _isLoading = false;
   bool _isLoadingPartnerLogo = false;
@@ -86,6 +87,11 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
         setState(() {
           _partnerLogoBase64 = partner.logoBase64;
         });
+      }
+
+      final partnerUrl = partner.url?.trim() ?? '';
+      if (partnerUrl.isNotEmpty) {
+        _urlController.text = partnerUrl;
       }
     } catch (_) {
       _partnerLogoBase64 = null;
@@ -114,7 +120,7 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
       );
     }
 
-    _urlController.text = 'www.multimidiaeducacional.com.br';
+    // URL será preenchida em _carregarLogoParceiro com a URL do parceiro
   }
 
   @override
@@ -210,6 +216,26 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
             SizedBox(width: 10.w),
             Text(
               'Incluir dados do censo escolar',
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: Colors.black87,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 16.h),
+        Row(
+          children: [
+            CustomCheckbox(
+              value: _incluirUrlNoPdf,
+              onChanged: (value) {
+                setState(() => _incluirUrlNoPdf = value);
+              },
+              checkedColor: const Color(0xFF117BBD),
+            ),
+            SizedBox(width: 10.w),
+            Text(
+              'Incluir URL no PDF',
               style: TextStyle(
                 fontSize: 14.sp,
                 color: Colors.black87,
@@ -564,11 +590,14 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
         telefone: BrazilianPhoneInputFormatter.format(
           _telefoneController.text.trim(),
         ),
-        url: _urlController.text.trim().isNotEmpty
-            ? _urlController.text.trim()
+        url: _incluirUrlNoPdf
+            ? (_urlController.text.trim().isNotEmpty
+                ? _urlController.text.trim()
+                : null)
             : null,
         incluirLogo: _incluirLogoNoPdf,
         incluirCenso: _incluirCensoNoPdf,
+        incluirUrl: _incluirUrlNoPdf,
         logoBase64: logoBase64,
       );
 

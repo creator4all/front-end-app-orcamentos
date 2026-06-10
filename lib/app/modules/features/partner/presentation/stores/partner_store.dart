@@ -2,7 +2,10 @@
 
 import 'package:mobx/mobx.dart';
 import 'package:multimidiaapp/app/modules/features/partner/data/services/partner_service.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:path_provider/path_provider.dart';
 
+import '../../../../../shared/utils/document_validators.dart';
 import '../../domain/models/partner_profile.dart';
 
 part 'partner_store.g.dart';
@@ -36,7 +39,19 @@ abstract class _PartnerStoreBase with Store {
   String phone = '';
 
   @observable
+  String legalName = '';
+
+  @observable
+  String cnpj = '';
+
+  @observable
   File? selectedLogo;
+
+  @observable
+  String url = '';
+
+  @observable
+  bool isViewingContract = false;
 
   @action
   Future<void> fetch() async {
@@ -48,6 +63,9 @@ abstract class _PartnerStoreBase with Store {
       tradeName = partner!.tradeName;
       email = partner!.email ?? '';
       phone = partner!.phone;
+      url = partner!.url ?? '';
+      legalName = partner!.legalName;
+      cnpj = partner!.cnpj;
     } catch (e) {
       error = e.toString();
     } finally {
@@ -58,6 +76,21 @@ abstract class _PartnerStoreBase with Store {
   @action
   void setTradeName(String value) {
     tradeName = value;
+  }
+
+  @action
+  void setUrl(String value) {
+    url = value;
+  }
+
+  @action
+  void setLegalName(String value) {
+    legalName = value;
+  }
+
+  @action
+  void setCnpj(String value) {
+    cnpj = value;
   }
 
   @action
@@ -82,8 +115,11 @@ abstract class _PartnerStoreBase with Store {
     try {
       final dados = {
         'par_trade_name': tradeName,
+        'par_legal_name': legalName,
+        'par_cnpj': DocumentValidators.normalizeDocument(cnpj),
         'par_email': email.isEmpty ? null : email,
         'par_phone': phone,
+        'par_url': url.trim().isEmpty ? null : url.trim(),
       };
 
       partner = await _service.atualizarParceiro(dados);
@@ -91,6 +127,9 @@ abstract class _PartnerStoreBase with Store {
       tradeName = partner!.tradeName;
       email = partner!.email ?? '';
       phone = partner!.phone;
+      url = partner!.url ?? '';
+      legalName = partner!.legalName;
+      cnpj = partner!.cnpj;
 
       return true;
     } catch (e) {
@@ -125,12 +164,44 @@ abstract class _PartnerStoreBase with Store {
   }
 
   @action
+  Future<void> viewContract() async {
+    if (partner == null) return;
+
+    isViewingContract = true;
+    error = null;
+    try {
+      final bytes = await _service.viewContract(partner!.id);
+
+      final directory = await getTemporaryDirectory();
+      final fileName = partner!.contractFileName ?? 'contrato.pdf';
+      final filePath = '${directory.path}/$fileName';
+
+      final file = File(filePath);
+      await file.writeAsBytes(bytes);
+
+      final result = await OpenFilex.open(filePath);
+
+      if (result.type != ResultType.done) {
+        error =
+            'Não foi possível abrir o contrato. Verifique se há um aplicativo de PDF instalado.';
+      }
+    } catch (e) {
+      error = e.toString();
+    } finally {
+      isViewingContract = false;
+    }
+  }
+
+  @action
   void reset() {
     if (partner != null) {
       tradeName = partner!.tradeName;
       email = partner!.email ?? '';
       phone = partner!.phone;
       selectedLogo = null;
+      url = partner!.url ?? '';
+      legalName = partner!.legalName;
+      cnpj = partner!.cnpj;
     }
   }
 }

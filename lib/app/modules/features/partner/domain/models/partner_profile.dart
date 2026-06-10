@@ -8,8 +8,16 @@
   final String? logoBase64;
   final String cnpj;
   final bool status;
+  final String? url;
+  final String? contractStoragePath;
+  final String? contractFileName;
+  final String? contractMimeType;
+  final int? contractSize;
+  final DateTime? contractUploadedAt;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+
+  bool get hasContract => contractStoragePath != null && contractFileName != null;
 
   PartnerProfile({
     required this.id,
@@ -23,6 +31,12 @@
     required this.status,
     this.createdAt,
     this.updatedAt,
+    this.url,
+    this.contractStoragePath,
+    this.contractFileName,
+    this.contractMimeType,
+    this.contractSize,
+    this.contractUploadedAt,
   });
 
   factory PartnerProfile.fromMap(Map<String, dynamic> map) {
@@ -42,6 +56,14 @@
       updatedAt: map['updated_at'] != null
           ? DateTime.tryParse(map['updated_at'])
           : null,
+      url: map['par_url'],
+      contractStoragePath: map['par_contract_storage_path'],
+      contractFileName: map['par_contract_file_name'],
+      contractMimeType: map['par_contract_mime_type'],
+      contractSize: map['par_contract_size'],
+      contractUploadedAt: map['par_contract_uploaded_at'] != null
+          ? DateTime.tryParse(map['par_contract_uploaded_at'])
+          : null,
     );
   }
 
@@ -58,6 +80,12 @@
       'par_status': status,
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
+      'par_url': url,
+      'par_contract_storage_path': contractStoragePath,
+      'par_contract_file_name': contractFileName,
+      'par_contract_mime_type': contractMimeType,
+      'par_contract_size': contractSize,
+      'par_contract_uploaded_at': contractUploadedAt?.toIso8601String(),
     };
   }
 
@@ -73,6 +101,12 @@
     bool? status,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? url,
+    String? contractStoragePath,
+    String? contractFileName,
+    String? contractMimeType,
+    int? contractSize,
+    DateTime? contractUploadedAt,
   }) {
     return PartnerProfile(
       id: id ?? this.id,
@@ -86,6 +120,12 @@
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      url: url ?? this.url,
+      contractStoragePath: contractStoragePath ?? this.contractStoragePath,
+      contractFileName: contractFileName ?? this.contractFileName,
+      contractMimeType: contractMimeType ?? this.contractMimeType,
+      contractSize: contractSize ?? this.contractSize,
+      contractUploadedAt: contractUploadedAt ?? this.contractUploadedAt,
     );
   }
 }

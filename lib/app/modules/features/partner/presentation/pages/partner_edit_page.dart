@@ -11,6 +11,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:mobx/mobx.dart';
 
 import '../../../../../shared/utils/brazilian_phone_input_formatter.dart';
+import '../../../../../shared/utils/cnpj_input_formatter.dart';
 import '../../../../../shared/utils/crop_aspect_ratio_presets.dart';
 import '../../../../../shared/utils/document_validators.dart';
 import '../../../../../shared/utils/logo_aspect_ratio_validator.dart';
@@ -37,6 +38,7 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _legalNameController = TextEditingController();
   final TextEditingController _cnpjController = TextEditingController();
+  final TextEditingController _urlController = TextEditingController();
 
   @override
   void didChangeDependencies() {
@@ -56,6 +58,7 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
           _legalNameController.text = partner.legalName;
           _cnpjController.text =
               DocumentValidators.formatDocument(partner.cnpj);
+          _urlController.text = partner.url ?? '';
         }
       },
     );
@@ -70,6 +73,7 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
     _phoneController.dispose();
     _legalNameController.dispose();
     _cnpjController.dispose();
+    _urlController.dispose();
     super.dispose();
   }
 
@@ -220,10 +224,13 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
 
   Future<void> _save() async {
     _store.setTradeName(_tradeNameController.text);
+    _store.setLegalName(_legalNameController.text);
+    _store.setCnpj(_cnpjController.text);
     _store.setEmail(_emailController.text);
     _store.setPhone(BrazilianPhoneInputFormatter.digitsOnly(
       _phoneController.text,
     ));
+    _store.setUrl(_urlController.text);
 
     final success = await _store.save();
 
@@ -348,15 +355,25 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
                     inputFormatters: [BrazilianPhoneInputFormatter()],
                   ),
                   SizedBox(height: 24.h),
-                  _buildReadOnlyTextField(
+                  _buildTextFieldWithLabel(
                     controller: _legalNameController,
                     label: 'Razão Social',
                   ),
                   SizedBox(height: 16.h),
-                  _buildReadOnlyTextField(
+                  _buildTextFieldWithLabel(
                     controller: _cnpjController,
                     label: 'CNPJ',
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [CnpjInputFormatter()],
                   ),
+                  SizedBox(height: 16.h),
+                  _buildTextFieldWithLabel(
+                    controller: _urlController,
+                    label: 'URL da empresa',
+                    keyboardType: TextInputType.url,
+                  ),
+                  SizedBox(height: 16.h),
+                  _buildContractIndicator(),
                   SizedBox(height: 32.h),
                   SizedBox(
                     width: double.infinity,
@@ -520,47 +537,101 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
     );
   }
 
-  Widget _buildReadOnlyTextField({
-    required TextEditingController controller,
-    required String label,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 14.sp,
-            fontWeight: FontWeight.w600,
-            color: Colors.grey[500],
-          ),
-        ),
-        SizedBox(height: 8.h),
-        TextField(
-          controller: controller,
-          readOnly: true,
-          enabled: false,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: Colors.grey[100],
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8.r),
-              borderSide: BorderSide(color: Colors.grey[200]!),
+  Widget _buildContractIndicator() {
+    return Observer(
+      builder: (_) {
+        final hasContract = _store.partner?.hasContract ?? false;
+        final isViewing = _store.isViewingContract;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Contrato',
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[700],
+              ),
             ),
-            disabledBorder: OutlineInputBorder(
+            SizedBox(height: 8.h),
+            InkWell(
+              onTap: (hasContract && !isViewing) ? _viewContract : null,
               borderRadius: BorderRadius.circular(8.r),
-              borderSide: BorderSide(color: Colors.grey[200]!),
+              child: Container(
+                width: double.infinity,
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8.r),
+                  border: Border.all(
+                    color: hasContract ? Colors.green[400]! : Colors.grey[300]!,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      hasContract
+                          ? Icons.check_circle_outline
+                          : Icons.cancel_outlined,
+                      color: hasContract ? Colors.green[600] : Colors.grey[500],
+                      size: 22.sp,
+                    ),
+                    SizedBox(width: 10.w),
+                    Expanded(
+                      child: Text(
+                        hasContract
+                            ? 'Contrato vinculado'
+                            : 'Sem contrato vinculado',
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          color: hasContract
+                              ? Colors.green[700]
+                              : Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    if (hasContract && isViewing)
+                      SizedBox(
+                        width: 20.w,
+                        height: 20.h,
+                        child: const CircularProgressIndicator(
+                          color: Color(0xFF117BBD),
+                          strokeWidth: 2,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             ),
-            contentPadding:
-                EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-          ),
-          style: TextStyle(
-            color: Colors.grey[600],
-            fontSize: 16.sp,
-          ),
-        ),
-      ],
+            if (_store.error != null && _store.isViewingContract == false)
+              Padding(
+                padding: EdgeInsets.only(top: 4.h),
+                child: Text(
+                  _store.error!,
+                  style: TextStyle(fontSize: 12.sp, color: Colors.red),
+                ),
+              ),
+          ],
+        );
+      },
     );
+  }
+
+  Future<void> _viewContract() async {
+    await _store.viewContract();
+
+    if (!mounted) return;
+
+    if (_store.error != null) {
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.error,
+        title: 'Erro ao visualizar contrato',
+        message: 'Não foi possível abrir o contrato. Tente novamente.',
+      );
+    }
   }
 }
 

@@ -64,6 +64,14 @@ class PartnerService {
     return PartnerProfile.fromMap(data);
   }
 
+  Future<List<int>> viewContract(int partnerId) async {
+    final token = await _getToken();
+    return await _client.getBytes(
+      '/api/partners/$partnerId/contract',
+      config: HttpRequestConfig(token: token),
+    );
+  }
+
   Future<PartnerProfile> uploadLogo(File imageFile) async {
     final token = await _getToken();
     final response = await _client.uploadFile(

@@ -11,6 +11,7 @@ class GeneratePdfParams {
   final String? url;
   final bool incluirLogo;
   final bool incluirCenso;
+  final bool incluirUrl;
   final String? logoBase64;
 
   const GeneratePdfParams({
@@ -21,6 +22,7 @@ class GeneratePdfParams {
     this.url,
     required this.incluirLogo,
     required this.incluirCenso,
+    required this.incluirUrl,
     this.logoBase64,
   });
 
@@ -32,6 +34,7 @@ class GeneratePdfParams {
       'url': url ?? '',
       'incluir_logo': incluirLogo,
       'incluir_censo': incluirCenso,
+      'incluir_url': incluirUrl,
       'logo': logoBase64,
     };
   }
