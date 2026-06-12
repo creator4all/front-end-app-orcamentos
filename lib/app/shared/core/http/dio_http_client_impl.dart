@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import '../errors/app_error.dart';
 import '../errors/http_exceptions.dart';
@@ -143,12 +144,19 @@ class DioHttpClientImpl implements AppHttpClient {
       cancelToken.subscribe(() => dioCancel!.cancel('Download cancelado'));
     }
 
+    _debugDownloadLog('Starting download request [$fullUrl] -> $savePath');
+
     try {
-      final response = await _dio.download(
+      final response = await _dioFor(config).download(
         fullUrl,
         savePath,
         cancelToken: dioCancel,
-        onReceiveProgress: config?.receiveProgress,
+        onReceiveProgress: _wrapDownloadProgress(
+          'download',
+          fullUrl,
+          savePath: savePath,
+          callback: config?.receiveProgress,
+        ),
         options: options,
         queryParameters: config?.queryParameters,
       );
@@ -167,8 +175,14 @@ class DioHttpClientImpl implements AppHttpClient {
         );
       }
 
+      _debugDownloadLog(
+        'Completed download request [$fullUrl] -> $savePath (status=${response.statusCode})',
+      );
       return response.toDownloadHttpResponse(filePath: savePath);
     } on DioException catch (e) {
+      _debugDownloadLog(
+        'Download request failed [$fullUrl] -> $savePath: type=${e.type}, message=${e.message}',
+      );
       if (e.error is FileSystemException) {
         final fileError = e.error as FileSystemException;
         if (fileError.osError?.message.contains('No space left') ?? false) {
@@ -203,17 +217,26 @@ class DioHttpClientImpl implements AppHttpClient {
 
     final fullUrl = _buildUrl(url, config);
 
+    _debugDownloadLog('Starting bytes request [$fullUrl]');
+
     try {
-      final response = await _dio.get<List<int>>(
+      final response = await _dioFor(config).get<List<int>>(
         fullUrl,
         options: options,
         queryParameters: config?.queryParameters,
-        onReceiveProgress: config?.receiveProgress,
+        onReceiveProgress: _wrapDownloadProgress(
+          'getBytes',
+          fullUrl,
+          callback: config?.receiveProgress,
+        ),
       );
 
       if (response.statusCode != null &&
           response.statusCode! >= 200 &&
           response.statusCode! < 300) {
+        _debugDownloadLog(
+          'Completed bytes request [$fullUrl] (status=${response.statusCode}, bytes=${response.data?.length ?? 0})',
+        );
         return response.data ?? [];
       }
 
@@ -227,9 +250,13 @@ class DioHttpClientImpl implements AppHttpClient {
         endpoint: fullUrl,
       );
     } on DioException catch (e) {
+      _debugDownloadLog(
+        'Bytes request failed [$fullUrl]: type=${e.type}, message=${e.message}',
+      );
       throw _handleDioException(e);
     } catch (e) {
       if (e is AppError) rethrow;
+      _debugDownloadLog('Bytes request threw [$fullUrl]: $e');
       throw AppUnknownError(
         message: 'Erro ao baixar bytes: ${e.toString()}',
         data: e,
@@ -288,6 +315,59 @@ class DioHttpClientImpl implements AppHttpClient {
       sendTimeout: config?.timeout,
       validateStatus: (status) => true,
     );
+  }
+
+  Dio _dioFor(HttpRequestConfig? config) {
+    if (config?.connectTimeout == null) return _dio;
+
+    final clone = Dio(
+      _dio.options.copyWith(connectTimeout: config!.connectTimeout),
+    );
+    clone.interceptors.addAll(_dio.interceptors);
+    return clone;
+  }
+
+  void _debugDownloadLog(String message) {
+    if (!kDebugMode) return;
+    debugPrint('[HTTP DOWNLOAD] $message');
+  }
+
+  void Function(int received, int total)? _wrapDownloadProgress(
+    String operation,
+    String url, {
+    String? savePath,
+    void Function(int received, int total)? callback,
+  }) {
+    if (!kDebugMode) return callback;
+
+    bool firstByteLogged = false;
+    int? lastBucket;
+
+    return (received, total) {
+      if (!firstByteLogged && received > 0) {
+        firstByteLogged = true;
+        _debugDownloadLog(
+          '$operation: first byte received${savePath != null ? ' -> $savePath' : ''} [$url]',
+        );
+      }
+
+      if (total > 0) {
+        final percent = (received / total) * 100;
+        final bucket = (percent / 10).floor();
+        if (lastBucket != bucket || received == total) {
+          lastBucket = bucket;
+          _debugDownloadLog(
+            '$operation: ${percent.toStringAsFixed(1)}% ($received/$total)${savePath != null ? ' -> $savePath' : ''} [$url]',
+          );
+        }
+      } else if (received > 0 && received % (512 * 1024) == 0) {
+        _debugDownloadLog(
+          '$operation: received $received bytes (total unknown)${savePath != null ? ' -> $savePath' : ''} [$url]',
+        );
+      }
+
+      callback?.call(received, total);
+    };
   }
 
   String _buildUrl(String url, HttpRequestConfig? config) {

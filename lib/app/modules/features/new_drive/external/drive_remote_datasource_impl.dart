@@ -1,5 +1,7 @@
+import 'package:multimidiaapp/app/shared/core/errors/http_exceptions.dart';
 import 'package:multimidiaapp/app/shared/core/http/app_http_client.dart';
 import 'package:multimidiaapp/app/shared/core/http/http_request_config.dart';
+import 'package:multimidiaapp/app/shared/core/http/http_response.dart';
 import 'package:multimidiaapp/app/shared/core/utils/token_cache.dart';
 import 'package:multimidiaapp/config/api_config.dart';
 
@@ -100,10 +102,37 @@ class DriveRemoteDataSourceImpl implements DriveRemoteDataSource {
         config: HttpRequestConfig(
           token: TokenCache.instance.getTokenOrEmpty(),
           timeout: const Duration(minutes: 5),
+          connectTimeout: const Duration(seconds: 30),
         ),
       );
 
       return bytes;
+    } catch (e) {
+      throw Exception('Erro ao baixar arquivo: $e');
+    }
+  }
+
+  @override
+  Future<void> downloadFileToPath(
+    String fileId,
+    String savePath, {
+    void Function(int received, int total)? onReceiveProgress,
+    CancelDownload? cancelToken,
+  }) async {
+    try {
+      await _client.download(
+        '${ApiConfig.baseUrl}/api/files/$fileId/download',
+        savePath,
+        config: HttpRequestConfig(
+          token: TokenCache.instance.getTokenOrEmpty(),
+          timeout: const Duration(minutes: 5),
+          connectTimeout: const Duration(seconds: 30),
+          receiveProgress: onReceiveProgress,
+        ),
+        cancelToken: cancelToken,
+      );
+    } on CancelledException {
+      rethrow;
     } catch (e) {
       throw Exception('Erro ao baixar arquivo: $e');
     }

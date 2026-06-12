@@ -24,6 +24,10 @@ class DownloadFileFailure extends NewDriveFailure {
   const DownloadFileFailure(super.message);
 }
 
+class DownloadCancelledFailure extends NewDriveFailure {
+  const DownloadCancelledFailure(super.message);
+}
+
 class NoAppToOpenFailure extends NewDriveFailure {
   const NoAppToOpenFailure(super.message);
 }

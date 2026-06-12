@@ -8,6 +8,7 @@ class GeneratePdfParams {
   final String nomeVendedor;
   final String cargo;
   final String telefone;
+  final String emailVendedor;
   final String? url;
   final bool incluirLogo;
   final bool incluirCenso;
@@ -19,6 +20,7 @@ class GeneratePdfParams {
     required this.nomeVendedor,
     required this.cargo,
     required this.telefone,
+    required this.emailVendedor,
     this.url,
     required this.incluirLogo,
     required this.incluirCenso,
@@ -31,6 +33,7 @@ class GeneratePdfParams {
       'nome_vendedor': nomeVendedor,
       'cargo': cargo,
       'telefone': telefone,
+      'email_vendedor': emailVendedor,
       'url': url ?? '',
       'incluir_logo': incluirLogo,
       'incluir_censo': incluirCenso,

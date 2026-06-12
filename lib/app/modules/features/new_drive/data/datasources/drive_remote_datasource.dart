@@ -1,3 +1,5 @@
+import 'package:multimidiaapp/app/shared/core/http/http_response.dart';
+
 import '../models/drive_item_model.dart';
 
 abstract class DriveRemoteDataSource {
@@ -10,4 +12,11 @@ abstract class DriveRemoteDataSource {
   Future<DriveItemModel> getItemHierarchy(String itemId);
 
   Future<List<int>> downloadFileBytes(String fileId);
+
+  Future<void> downloadFileToPath(
+    String fileId,
+    String savePath, {
+    void Function(int received, int total)? onReceiveProgress,
+    CancelDownload? cancelToken,
+  });
 }

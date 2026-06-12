@@ -10,6 +10,7 @@ import 'package:multimidiaapp/app/shared/widgets/searchable_dropdown_widget.dart
 import '../../../../../../../stores/store_provider.dart';
 import '../../../../../../shared/widgets/custom_top_bar.dart';
 import '../../../../auth/presentation/stores/auth_store.dart';
+import '../../domain/entities/partner_entity.dart';
 import '../stores/budget_create_store.dart';
 
 class NewBudgetPage extends StatefulWidget {
@@ -63,6 +64,7 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
       if (mounted) setState(() {});
     }
   }
+
   Future<String?> _showMultiCityBudgetNameModal() async {
     final controller = TextEditingController();
 
@@ -148,6 +150,29 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
       _geo = provider.geoStore;
       _censo = provider.censoStore;
     }
+  }
+
+  String _partnerLabel(PartnerEntity partner) {
+    final name = partner.displayName;
+    final hasDuplicateName =
+        _store.partners.where((item) => item.displayName == name).length > 1;
+    final cnpj = partner.cnpj?.trim() ?? '';
+
+    if (hasDuplicateName && cnpj.isNotEmpty) {
+      return '$name - $cnpj';
+    }
+
+    return name;
+  }
+
+  PartnerEntity? _findPartnerByLabel(String label) {
+    for (final partner in _store.partners) {
+      if (_partnerLabel(partner) == label) {
+        return partner;
+      }
+    }
+
+    return null;
   }
 
   void _syncLocation() {
@@ -284,7 +309,6 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(height: 5.h),
-
               Observer(
                 builder: (_) {
                   if (!_authStore.isAdmin) {
@@ -303,59 +327,41 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                         ),
                       ),
                       SizedBox(height: 10.h),
-                      Container(
-                        width: double.infinity,
-                        height: 35.h,
-                        padding: EdgeInsets.symmetric(horizontal: 16.w),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey[300]!),
-                          borderRadius: BorderRadius.circular(8.r),
+                      if (_store.isLoadingPartners)
+                        SizedBox(
+                          height: 35.h,
+                          child: Center(
+                            child: SizedBox(
+                              width: 20.w,
+                              height: 20.h,
+                              child: const CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Color(0xFF117BBD),
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        SearchableDropdownWidget(
+                          label: 'Gerar orçamento para',
+                          hint: !_store.hasPartners
+                              ? 'Nenhum parceiro disponível'
+                              : 'Selecione um parceiro',
+                          searchHint: 'Pesquisar parceiro...',
+                          items: _store.partners.map(_partnerLabel).toList(),
+                          value: _store.selectedPartner != null
+                              ? _partnerLabel(_store.selectedPartner!)
+                              : null,
+                          enabled: _store.hasPartners,
+                          onChanged: (value) {
+                            if (value == null) return;
+
+                            final partner = _findPartnerByLabel(value);
+                            if (partner != null) {
+                              _store.selectPartner(partner);
+                            }
+                          },
                         ),
-                        child: DropdownButtonHideUnderline(
-                          child: _store.isLoadingPartners
-                              ? Center(
-                                  child: SizedBox(
-                                    width: 20.w,
-                                    height: 20.h,
-                                    child: const CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Color(0xFF117BBD),
-                                    ),
-                                  ),
-                                )
-                              : DropdownButton<int>(
-                                  value: _store.selectedPartner?.id,
-                                  isExpanded: true,
-                                  hint: Text(
-                                    !_store.hasPartners
-                                        ? 'Nenhum parceiro disponível'
-                                        : 'Selecione um parceiro',
-                                    style: TextStyle(
-                                      fontSize: 16.sp,
-                                      color: Colors.grey[500],
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  items: _store.partners
-                                      .map((partner) => DropdownMenuItem<int>(
-                                            value: partner.id,
-                                            child: Text(
-                                              partner.displayName,
-                                              style: TextStyle(fontSize: 16.sp),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ))
-                                      .toList(),
-                                  onChanged: !_store.hasPartners
-                                      ? null
-                                      : (value) {
-                                          final partner = _store.partners
-                                              .firstWhere((p) => p.id == value);
-                                          _store.selectPartner(partner);
-                                        },
-                                ),
-                        ),
-                      ),
                       SizedBox(height: 10.h),
                       Container(
                         width: double.infinity,
@@ -367,7 +373,6 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                   );
                 },
               ),
-
               Observer(
                 builder: (_) {
                   final List<String> estadosNomes = _geo.estados
@@ -391,27 +396,26 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                       if (estado != null) {
                         await _geo.selecionarEstado(estado);
 
-                              _store.setSelectedState(
-                                estado.id?.toString() ?? '',
-                                estado.nome,
-                                estado.uf,
-                              );
-
-                              if (mounted) setState(() {});
-                            }
-                          },
+                        _store.setSelectedState(
+                          estado.id?.toString() ?? '',
+                          estado.nome,
+                          estado.uf,
                         );
-                      },
-                    ),
 
-                    if (_geo.estadoSelecionado != null) ...[
-                      SizedBox(height: 10.h),
-                      Observer(
-                        builder: (_) {
-                          final List<String> cidadesNomes = _geo.cidades
-                              .map((dynamic c) => c.nome as String)
-                              .cast<String>()
-                              .toList();
+                        if (mounted) setState(() {});
+                      }
+                    },
+                  );
+                },
+              ),
+              if (_geo.estadoSelecionado != null) ...[
+                SizedBox(height: 10.h),
+                Observer(
+                  builder: (_) {
+                    final List<String> cidadesNomes = _geo.cidades
+                        .map((dynamic c) => c.nome as String)
+                        .cast<String>()
+                        .toList();
 
                     return SearchableDropdownWidget(
                       label: 'Selecione a Cidade',
@@ -430,11 +434,11 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                         if (cidade != null) {
                           _geo.selecionarCidade(cidade);
 
-                                _store.setSelectedCity(
-                                  cidade.id.toString(),
-                                  cidade.nome,
-                                  cityId: cidade.id,
-                                );
+                          _store.setSelectedCity(
+                            cidade.id.toString(),
+                            cidade.nome,
+                            cityId: cidade.id,
+                          );
 
                           if (mounted) setState(() {});
                         }
@@ -443,17 +447,13 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                   },
                 ),
               ],
-
               SizedBox(height: 20.h),
-
-                    Container(
-                      width: double.infinity,
-                      height: 1.h,
-                      color: Colors.grey[300],
-                    ),
-
+              Container(
+                width: double.infinity,
+                height: 1.h,
+                color: Colors.grey[300],
+              ),
               SizedBox(height: 20.h),
-
               Text(
                 'Responsável cliente (opcional):',
                 style: TextStyle(
@@ -486,73 +486,69 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                   ),
                 ),
               ),
-
               SizedBox(height: 10.h),
-
-                    Text(
-                      'Email (opcional):',
-                      style: TextStyle(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    SizedBox(height: 10.h),
-                    Observer(
-                      builder: (_) => SizedBox(
-                        height: 35.h,
-                        child: TextFormField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          decoration: InputDecoration(
-                            hintText: 'Informe o email',
-                            hintStyle: TextStyle(
-                              fontSize: 16.sp,
-                              color: Colors.grey[500],
-                            ),
-                            errorText: _emailController.text.isNotEmpty &&
-                                    !_store.isEmailValid
-                                ? 'Email inválido'
-                                : null,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8.r),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8.r),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
-                            ),
-                            errorBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8.r),
-                              borderSide: const BorderSide(color: Colors.red),
-                            ),
-                            contentPadding: EdgeInsets.symmetric(
-                                horizontal: 16.w, vertical: 8.h),
-                          ),
-                        ),
-                      ),
-                    ),
-
+              Text(
+                'Email (opcional):',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black87,
+                ),
+              ),
               SizedBox(height: 10.h),
-
-                    Text(
-                      'Telefone (opcional):',
-                      style: TextStyle(
+              Observer(
+                builder: (_) => SizedBox(
+                  height: 35.h,
+                  child: TextFormField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: InputDecoration(
+                      hintText: 'Informe o email',
+                      hintStyle: TextStyle(
                         fontSize: 16.sp,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.black87,
+                        color: Colors.grey[500],
                       ),
+                      errorText: _emailController.text.isNotEmpty &&
+                              !_store.isEmailValid
+                          ? 'Email inválido'
+                          : null,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.r),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.r),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8.r),
+                        borderSide: const BorderSide(color: Colors.red),
+                      ),
+                      contentPadding:
+                          EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
                     ),
-                    SizedBox(height: 10.h),
-                    SizedBox(
-                      height: 35.h,
-                      child: TextFormField(
-                        controller: _phoneController,
-                        keyboardType: TextInputType.phone,
-                        inputFormatters: [
-                          TextInputFormatter.withFunction((oldValue, newValue) {
-                            String text =
-                                newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+                  ),
+                ),
+              ),
+              SizedBox(height: 10.h),
+              Text(
+                'Telefone (opcional):',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black87,
+                ),
+              ),
+              SizedBox(height: 10.h),
+              SizedBox(
+                height: 35.h,
+                child: TextFormField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  inputFormatters: [
+                    TextInputFormatter.withFunction((oldValue, newValue) {
+                      String text =
+                          newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
 
                       if (text.length > 11) {
                         text = text.substring(0, 11);
@@ -603,9 +599,7 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                   ),
                 ),
               ),
-
               SizedBox(height: 32.h),
-
               Observer(
                 builder: (_) => SizedBox(
                   width: double.infinity,
@@ -651,51 +645,47 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                   ),
                 ),
               ),
-
               SizedBox(height: 10.h),
+              Center(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () async {
+                    final budgetName = await _showMultiCityBudgetNameModal();
+                    if (budgetName == null || budgetName.isEmpty) return;
 
-                  Center(
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () async {
-                        final budgetName =
-                            await _showMultiCityBudgetNameModal();
-                        if (budgetName == null || budgetName.isEmpty) return;
+                    if (!mounted) return;
+                    final selectedCities =
+                        await _showMultiCityCitySelectionModal();
+                    if (selectedCities == null || selectedCities.isEmpty)
+                      return;
 
-                        if (!mounted) return;
-                        final selectedCities =
-                            await _showMultiCityCitySelectionModal();
-                        if (selectedCities == null || selectedCities.isEmpty)
-                          return;
-
-                        if (!mounted) return;
-                        await Modular.to.pushNamed(
-                          '/budget/multi-city/census',
-                          arguments: {
-                            'budgetName': budgetName,
-                            'budgetId': null,
-                            'selectedCities': selectedCities,
-                          },
-                        );
+                    if (!mounted) return;
+                    await Modular.to.pushNamed(
+                      '/budget/multi-city/census',
+                      arguments: {
+                        'budgetName': budgetName,
+                        'budgetId': null,
+                        'selectedCities': selectedCities,
                       },
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(
-                          vertical: 16.h,
-                          horizontal: 24.w,
-                        ),
-                        child: Text(
-                          'Orçamento multi-cidades',
-                          style: TextStyle(
-                            fontSize: 16.sp,
-                            color: const Color(0xFF117BBD),
-                            decoration: TextDecoration.underline,
-                            decorationColor: const Color(0xFF117BBD),
-                          ),
-                        ),
+                    );
+                  },
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      vertical: 16.h,
+                      horizontal: 24.w,
+                    ),
+                    child: Text(
+                      'Orçamento multi-cidades',
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        color: const Color(0xFF117BBD),
+                        decoration: TextDecoration.underline,
+                        decorationColor: const Color(0xFF117BBD),
                       ),
                     ),
                   ),
-
+                ),
+              ),
               SizedBox(height: 16.h),
             ],
           ),

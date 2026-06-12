@@ -7,8 +7,9 @@ import 'data/repositories/file_saver_impl.dart';
 import 'domain/entities/drive_item.dart';
 import 'domain/repositories/drive_repository.dart';
 import 'domain/repositories/file_saver.dart';
-import 'domain/usecases/download_file_usecase.dart';
 import 'domain/usecases/download_and_open_file_usecase.dart';
+import 'domain/usecases/download_file_to_cache_usecase.dart';
+import 'domain/usecases/download_file_usecase.dart';
 import 'domain/usecases/get_folder_contents_usecase.dart';
 import 'domain/usecases/get_own_files_usecase.dart';
 import 'domain/usecases/get_recent_items_usecase.dart';
@@ -54,6 +55,12 @@ class NewDriveModule extends Module {
             i.get<FileSaver>(),
           ),
         ),
+        Bind.singleton<DownloadFileToCacheUsecase>(
+          (i) => DownloadFileToCacheUsecase(
+            i.get<DriveRepository>(),
+            i.get<FileSaver>(),
+          ),
+        ),
         Bind.singleton<NewDriveStore>(
           (i) => NewDriveStore(
             getRecentItemsUseCase: i.get<GetRecentItemsUseCase>(),
@@ -66,6 +73,7 @@ class NewDriveModule extends Module {
           (i) => FileOpenerStore(
             i.get<DownloadAndOpenFileUsecase>(),
             i.get<DownloadFileUsecase>(),
+            i.get<DownloadFileToCacheUsecase>(),
           ),
         ),
       ];
@@ -73,17 +81,14 @@ class NewDriveModule extends Module {
   @override
   List<ModularRoute> get routes => [
         ChildRoute('/', child: (context, args) => const NewDrivePage()),
-
         ChildRoute(
           '/video-player',
           child: (context, args) => VideoPlayerPage(item: args.data),
         ),
-
         ChildRoute(
           '/image-viewer',
           child: (context, args) => ImageViewerPage(item: args.data),
         ),
-
         ChildRoute(
           '/category',
           child: (context, args) {
@@ -92,14 +97,11 @@ class NewDriveModule extends Module {
             return CategoryDetailsPage(categoryType: categoryType);
           },
         ),
-
         ChildRoute('/my-files', child: (context, args) => const MyFilesPage()),
-
         ChildRoute(
           '/shared-files',
           child: (context, args) => const AllSharedFilesPage(),
         ),
-
         ChildRoute(
           '/folder',
           child: (context, args) {

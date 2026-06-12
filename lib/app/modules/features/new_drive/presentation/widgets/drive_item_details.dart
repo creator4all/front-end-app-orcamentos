@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_info_dialog.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../domain/entities/drive_item.dart';
 import '../stores/file_opener_store.dart';
@@ -22,8 +23,14 @@ class DriveItemDetails {
     return FileDetailsModal.show(
       context: context,
       item: item,
+      fileOpenerStore: fileOpenerStore,
       onOpen: () async => onOpen(item),
       onDownload: () => _download(
+        context: context,
+        item: item,
+        fileOpenerStore: fileOpenerStore,
+      ),
+      onShare: () => _share(
         context: context,
         item: item,
         fileOpenerStore: fileOpenerStore,
@@ -60,6 +67,34 @@ class DriveItemDetails {
         context: context,
         type: DialogType.error,
         title: 'Erro no download',
+        message: error,
+      );
+      fileOpenerStore.clearError();
+    }
+  }
+
+  static Future<void> _share({
+    required BuildContext context,
+    required DriveItem item,
+    required FileOpenerStore fileOpenerStore,
+  }) async {
+    final savedPath = await fileOpenerStore.downloadFileToCache(item);
+    if (!context.mounted) return;
+
+    if (savedPath != null) {
+      await Share.shareXFiles(
+        [XFile(savedPath)],
+        subject: item.name,
+      );
+      return;
+    }
+
+    final error = fileOpenerStore.errorMessage;
+    if (error != null && error.isNotEmpty) {
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.error,
+        title: 'Erro ao compartilhar',
         message: error,
       );
       fileOpenerStore.clearError();

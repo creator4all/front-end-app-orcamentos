@@ -1,26 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_modal.dart';
 import 'package:multimidiaapp/app/shared/widgets/user_avatar_widget.dart';
 
 import '../../domain/entities/drive_item.dart';
+import '../stores/file_opener_store.dart';
 import '../stores/new_drive_store.dart';
 
 class FileDetailsModal {
   static Future<void> show({
     required BuildContext context,
     required DriveItem item,
+    required FileOpenerStore fileOpenerStore,
     required Future<void> Function() onOpen,
     required Future<void> Function() onDownload,
+    required Future<void> Function() onShare,
   }) {
     return CustomModal.show(
       context: context,
       title: 'Detalhes do arquivo',
       content: _FileDetailsContent(
         item: item,
+        fileOpenerStore: fileOpenerStore,
         onOpen: onOpen,
         onDownload: onDownload,
+        onShare: onShare,
       ),
     );
   }
@@ -28,13 +34,17 @@ class FileDetailsModal {
 
 class _FileDetailsContent extends StatefulWidget {
   final DriveItem item;
+  final FileOpenerStore fileOpenerStore;
   final Future<void> Function() onOpen;
   final Future<void> Function() onDownload;
+  final Future<void> Function() onShare;
 
   const _FileDetailsContent({
     required this.item,
+    required this.fileOpenerStore,
     required this.onOpen,
     required this.onDownload,
+    required this.onShare,
   });
 
   @override
@@ -43,8 +53,8 @@ class _FileDetailsContent extends StatefulWidget {
 
 class _FileDetailsContentState extends State<_FileDetailsContent> {
   bool _isOpening = false;
-  bool _isDownloading = false;
   bool _isLoadingDetails = true;
+  bool _isSharing = false;
   DriveItem? _detailedItem;
 
   @override
@@ -73,7 +83,9 @@ class _FileDetailsContentState extends State<_FileDetailsContent> {
   }
 
   Future<void> _handleOpen() async {
-    if (_isOpening || _isDownloading) return;
+    if (_isOpening || _isSharing || widget.fileOpenerStore.isDownloading) {
+      return;
+    }
     setState(() => _isOpening = true);
     try {
       await widget.onOpen();
@@ -83,12 +95,25 @@ class _FileDetailsContentState extends State<_FileDetailsContent> {
   }
 
   Future<void> _handleDownload() async {
-    if (_isOpening || _isDownloading) return;
-    setState(() => _isDownloading = true);
+    if (_isOpening || _isSharing || widget.fileOpenerStore.isDownloading) {
+      return;
+    }
+    await widget.onDownload();
+  }
+
+  void _handleCancelDownload() {
+    widget.fileOpenerStore.cancelDownload();
+  }
+
+  Future<void> _handleShare() async {
+    if (_isOpening || _isSharing || widget.fileOpenerStore.isDownloading) {
+      return;
+    }
+    setState(() => _isSharing = true);
     try {
-      await widget.onDownload();
+      await widget.onShare();
     } finally {
-      if (mounted) setState(() => _isDownloading = false);
+      if (mounted) setState(() => _isSharing = false);
     }
   }
 
@@ -224,22 +249,51 @@ class _FileDetailsContentState extends State<_FileDetailsContent> {
           ),
           SizedBox(height: 24.h),
         ],
-        _buildActionButton(
-          icon: item.type == DriveItemType.folder
-              ? Icons.folder_open
-              : Icons.open_in_new,
-          label:
-              item.type == DriveItemType.folder ? 'Abrir' : 'Abrir/Visualizar',
-          isLoading: _isOpening,
-          onTap: _handleOpen,
+        Observer(
+          builder: (_) {
+            final isOpeningActive = widget.fileOpenerStore.isOperationActive(
+              item,
+              FileOperation.open,
+            );
+            final isBusy = widget.fileOpenerStore.isDownloading;
+
+            return _buildActionButton(
+              icon: item.type == DriveItemType.folder
+                  ? Icons.folder_open
+                  : Icons.open_in_new,
+              label: item.type == DriveItemType.folder
+                  ? 'Abrir'
+                  : 'Abrir/Visualizar',
+              isLoading: _isOpening || isOpeningActive,
+              isDisabled: _isSharing || (isBusy && !isOpeningActive),
+              onTap: _handleOpen,
+            );
+          },
         ),
         if (item.type != DriveItemType.folder) ...[
           SizedBox(height: 12.h),
-          _buildActionButton(
-            icon: Icons.download_outlined,
-            label: 'Baixar',
-            isLoading: _isDownloading,
-            onTap: _handleDownload,
+          _buildDownloadButton(item),
+        ],
+        if (item.type != DriveItemType.folder) ...[
+          SizedBox(
+            height: 12.h,
+          ),
+          Observer(
+            builder: (_) {
+              final isSharingActive = widget.fileOpenerStore.isOperationActive(
+                item,
+                FileOperation.share,
+              );
+              final isBusy = widget.fileOpenerStore.isDownloading;
+
+              return _buildActionButton(
+                icon: Icons.share_outlined,
+                label: 'Compartilhar',
+                isLoading: _isSharing || isSharingActive,
+                isDisabled: _isOpening || (isBusy && !isSharingActive),
+                onTap: _handleShare,
+              );
+            },
           ),
         ],
         SizedBox(height: 16.h),
@@ -251,10 +305,18 @@ class _FileDetailsContentState extends State<_FileDetailsContent> {
     required IconData icon,
     required String label,
     required bool isLoading,
+    bool isDisabled = false,
     required VoidCallback onTap,
   }) {
+    final foregroundColor = isDisabled && !isLoading
+        ? const Color(0xFF9095A0)
+        : const Color(0xFF171A1F);
+    final borderColor = isDisabled && !isLoading
+        ? const Color(0xFFE5E7EB)
+        : const Color(0xFFBCC1CA);
+
     return InkWell(
-      onTap: isLoading ? null : onTap,
+      onTap: isLoading || isDisabled ? null : onTap,
       borderRadius: BorderRadius.circular(8),
       child: Container(
         width: double.infinity,
@@ -262,7 +324,7 @@ class _FileDetailsContentState extends State<_FileDetailsContent> {
         decoration: BoxDecoration(
           color: Colors.white,
           border: Border.all(
-            color: const Color(0xFFBCC1CA),
+            color: borderColor,
             width: 1,
           ),
           borderRadius: BorderRadius.circular(8),
@@ -274,16 +336,16 @@ class _FileDetailsContentState extends State<_FileDetailsContent> {
               SizedBox(
                 width: 20.sp,
                 height: 20.sp,
-                child: const CircularProgressIndicator(
+                child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: Color(0xFF171A1F),
+                  color: foregroundColor,
                 ),
               )
             else
               Icon(
                 icon,
                 size: 20.sp,
-                color: const Color(0xFF171A1F),
+                color: foregroundColor,
               ),
             SizedBox(width: 8.w),
             Text(
@@ -291,12 +353,67 @@ class _FileDetailsContentState extends State<_FileDetailsContent> {
               style: TextStyle(
                 fontSize: 14.sp,
                 fontWeight: FontWeight.w500,
-                color: const Color(0xFF171A1F),
+                color: foregroundColor,
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildDownloadButton(DriveItem item) {
+    return Observer(
+      builder: (_) {
+        final isDirectDownloadActive = widget.fileOpenerStore
+            .isOperationActive(item, FileOperation.download);
+        final isBusy = widget.fileOpenerStore.isDownloading;
+
+        final label = isDirectDownloadActive
+            ? 'Cancelar ${widget.fileOpenerStore.progressPercentage}%'
+            : 'Baixar';
+        final icon = isDirectDownloadActive
+            ? Icons.cancel_outlined
+            : Icons.download_outlined;
+
+        return InkWell(
+          onTap: isDirectDownloadActive
+              ? _handleCancelDownload
+              : (isBusy || _isOpening || _isSharing ? null : _handleDownload),
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(vertical: 14.h),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(
+                color: const Color(0xFFBCC1CA),
+                width: 1,
+              ),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: 20.sp,
+                  color: const Color(0xFF171A1F),
+                ),
+                SizedBox(width: 8.w),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF171A1F),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

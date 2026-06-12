@@ -29,6 +29,8 @@ class HttpRequestConfig {
   /// Timeout específico para esta requisição
   final Duration? timeout;
 
+  final Duration? connectTimeout;
+
   /// BaseUrl customizada (sobrescreve a global)
   final String? baseUrl;
 
@@ -54,6 +56,7 @@ class HttpRequestConfig {
     this.contentType,
     this.token,
     this.timeout,
+    this.connectTimeout,
     this.baseUrl,
     this.responseType,
     this.sendProgress,
@@ -68,6 +71,7 @@ class HttpRequestConfig {
     String? contentType,
     String? token,
     Duration? timeout,
+    Duration? connectTimeout,
     String? baseUrl,
     HttpResponseType? responseType,
     Function(int, int)? sendProgress,
@@ -80,6 +84,7 @@ class HttpRequestConfig {
       contentType: contentType ?? this.contentType,
       token: token ?? this.token,
       timeout: timeout ?? this.timeout,
+      connectTimeout: connectTimeout ?? this.connectTimeout,
       baseUrl: baseUrl ?? this.baseUrl,
       responseType: responseType ?? this.responseType,
       sendProgress: sendProgress ?? this.sendProgress,

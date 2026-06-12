@@ -17,6 +17,7 @@ import '../../modules/features/budget/budget_edit/domain/usecases/generate_pdf_u
 import '../../modules/features/partner/data/services/partner_service.dart';
 import '../utils/brazilian_phone_input_formatter.dart';
 import '../utils/crop_aspect_ratio_presets.dart';
+import '../utils/email_validator.dart';
 import '../utils/logo_aspect_ratio_validator.dart';
 import '../utils/logo_crop_source_preparer.dart';
 import 'custom_info_dialog.dart';
@@ -56,6 +57,7 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
   final TextEditingController _nomeVendedorController = TextEditingController();
   final TextEditingController _cargoController = TextEditingController();
   final TextEditingController _telefoneController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _urlController = TextEditingController();
 
   File? _logoImage;
@@ -120,6 +122,8 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
       );
     }
 
+    _emailController.text = user.email;
+
     // URL será preenchida em _carregarLogoParceiro com a URL do parceiro
   }
 
@@ -128,6 +132,7 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
     _nomeVendedorController.dispose();
     _cargoController.dispose();
     _telefoneController.dispose();
+    _emailController.dispose();
     _urlController.dispose();
     super.dispose();
   }
@@ -159,6 +164,15 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
           hintText: '(00) 00000-0000',
           keyboardType: TextInputType.phone,
           inputFormatters: [BrazilianPhoneInputFormatter()],
+          isRequired: true,
+          height: 44.h,
+        ),
+        SizedBox(height: 16.h),
+        CustomTextField(
+          controller: _emailController,
+          label: 'E-mail',
+          hintText: 'Digite o e-mail do vendedor',
+          keyboardType: TextInputType.emailAddress,
           isRequired: true,
           height: 44.h,
         ),
@@ -566,6 +580,16 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
       return;
     }
 
+    if (_emailController.text.trim().isEmpty) {
+      _showErrorMessage('E-mail do vendedor é obrigatório');
+      return;
+    }
+
+    if (!EmailValidator.isValid(_emailController.text.trim())) {
+      _showErrorMessage('E-mail do vendedor inválido');
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
@@ -590,6 +614,7 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
         telefone: BrazilianPhoneInputFormatter.format(
           _telefoneController.text.trim(),
         ),
+        emailVendedor: _emailController.text.trim(),
         url: _incluirUrlNoPdf
             ? (_urlController.text.trim().isNotEmpty
                 ? _urlController.text.trim()

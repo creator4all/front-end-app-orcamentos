@@ -1,4 +1,6 @@
 import 'package:dartz/dartz.dart';
+import 'package:multimidiaapp/app/shared/core/errors/http_exceptions.dart';
+import 'package:multimidiaapp/app/shared/core/http/http_response.dart';
 
 import '../../domain/entities/drive_item.dart';
 import '../../domain/repositories/drive_repository.dart';
@@ -66,6 +68,28 @@ class DriveRepositoryImpl implements DriveRepository {
     try {
       final bytes = await remoteDataSource.downloadFileBytes(fileId);
       return Right(bytes);
+    } catch (e) {
+      return Left(DownloadFileFailure('Erro ao fazer download: $e'));
+    }
+  }
+
+  @override
+  Future<Either<NewDriveFailure, String>> downloadFileToPath(
+    String fileId,
+    String savePath, {
+    void Function(int received, int total)? onReceiveProgress,
+    CancelDownload? cancelToken,
+  }) async {
+    try {
+      await remoteDataSource.downloadFileToPath(
+        fileId,
+        savePath,
+        onReceiveProgress: onReceiveProgress,
+        cancelToken: cancelToken,
+      );
+      return Right(savePath);
+    } on CancelledException {
+      return const Left(DownloadCancelledFailure('Download cancelado'));
     } catch (e) {
       return Left(DownloadFileFailure('Erro ao fazer download: $e'));
     }
