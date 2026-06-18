@@ -1,6 +1,8 @@
 import '../../domain/entities/budget_detail_entity.dart';
 import 'category_dto.dart';
+import 'product_dto.dart';
 import 'product_selection_dto.dart';
+import 'subcategory_dto.dart';
 
 class BudgetDetailDto {
   final int id;
@@ -48,37 +50,44 @@ class BudgetDetailDto {
     if (json['cidades'] != null && json['cidades'] is List) {
       for (final cidade in json['cidades'] as List) {
         if (cidade is Map<String, dynamic>) {
-          final cidadeId = cidade['id'] as int;
+          final cidadeId = (cidade['idCidades'] as num?)?.toInt() ??
+              (cidade['id'] as num?)?.toInt() ??
+              0;
           final indicadores = (cidade['indices'] ??
-                  cidade['indicadores'] ??
-                  cidade['cidades_has_indice_etapa'] ??
-                  []) as List;
+              cidade['indicadores'] ??
+              cidade['cidades_has_indice_etapa'] ??
+              []) as List;
           cities.add(cidadeId);
           citiesDataList.add({
             'id': cidadeId,
-            'nome': cidade['nome'] ?? 'Cidade $cidadeId',
+            'nome':
+                cidade['nome_cidade'] ?? cidade['nome'] ?? 'Cidade $cidadeId',
             'indices': indicadores,
             'indicadores': indicadores,
           });
         }
       }
-    }
-    else if (json['cidade'] != null && json['cidade'] is Map) {
+    } else if (json['cidade'] != null && json['cidade'] is Map) {
       final cidadeMap = json['cidade'] as Map<String, dynamic>;
-      final cidadeId = cidadeMap['id'] as int;
+      final cidadeId = (cidadeMap['idCidades'] as num?)?.toInt() ??
+          (cidadeMap['id'] as num?)?.toInt() ??
+          0;
       final indicadores = (cidadeMap['indices'] ??
-              cidadeMap['indicadores'] ??
-              cidadeMap['cidades_has_indice_etapa'] ??
-              []) as List;
+          cidadeMap['indicadores'] ??
+          cidadeMap['cidades_has_indice_etapa'] ??
+          []) as List;
       cities.add(cidadeId);
       citiesDataList.add({
         'id': cidadeId,
-        'nome': cidadeMap['nome'] ?? 'Cidade $cidadeId',
+        'nome':
+            cidadeMap['nome_cidade'] ?? cidadeMap['nome'] ?? 'Cidade $cidadeId',
         'indices': indicadores,
         'indicadores': indicadores,
       });
-    } else if (json['cidade_id'] != null) {
-      final cidadeId = json['cidade_id'] as int;
+    } else if (json['orc_cidade_id'] != null || json['cidade_id'] != null) {
+      final cidadeId = (json['orc_cidade_id'] as num?)?.toInt() ??
+          (json['cidade_id'] as num?)?.toInt() ??
+          0;
       cities.add(cidadeId);
       citiesDataList.add({
         'id': cidadeId,
@@ -94,6 +103,11 @@ class BudgetDetailDto {
           (c) => CategoryDTO.fromJson(Map<String, dynamic>.from(c)),
         ),
       );
+    } else if (json['orcamento_produtos'] != null &&
+        json['orcamento_produtos'] is List) {
+      // Build categories hierarchy from orcamento_produtos (new API format)
+      categoriesList.addAll(buildCategoriesFromOrcamentoProdutos(
+          json['orcamento_produtos'] as List));
     }
 
     if (categoriesList.isNotEmpty) {
@@ -130,20 +144,36 @@ class BudgetDetailDto {
 
     final usuarioJson = json['usuario'] as Map<String, dynamic>?;
 
+    // Support prefixed user fields (usr_userId)
+    final userId = (usuarioJson?['usr_userId'] as num?)?.toInt() ??
+        (usuarioJson?['id'] as num?)?.toInt() ??
+        (json['orc_usuario_id'] as num?)?.toInt() ??
+        0;
+
     return BudgetDetailDto(
-      id: json['id'] as int? ?? 0,
-      name: json['nome'] as String?,
-      validityDays: json['dias_validade'] as int? ?? 30,
-      validityDate: json['data_validade'] != null
-          ? DateTime.tryParse(json['data_validade'] as String)
+      id: (json['orc_orcamentoId'] as num?)?.toInt() ??
+          (json['id'] as num?)?.toInt() ??
+          0,
+      name: json['orc_nome'] as String? ?? json['nome'] as String?,
+      validityDays: (json['orc_dias_validade'] as num?)?.toInt() ??
+          (json['dias_validade'] as num?)?.toInt() ??
+          30,
+      validityDate: (json['orc_data_validade'] ?? json['data_validade']) != null
+          ? DateTime.tryParse(
+              (json['orc_data_validade'] ?? json['data_validade']) as String)
           : null,
       creationDate: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'] as String)
           : null,
-      status: json['status'] as String? ?? 'rascunho',
-      total: (json['total'] as num?)?.toDouble() ?? 0.0,
-      userId: usuarioJson?['id'] as int? ?? 0,
-      partnerId: json['partner_destino_id'] as int?,
+      status: json['orc_status'] as String? ??
+          json['status'] as String? ??
+          'rascunho',
+      total: double.tryParse(
+              (json['orc_total'] ?? json['total'])?.toString() ?? '0') ??
+          0.0,
+      userId: userId,
+      partnerId: (json['orc_partner_destino_id'] as num?)?.toInt() ??
+          (json['partner_destino_id'] as num?)?.toInt(),
       cityIds: cities,
       products: productsList,
       categoryStates: categoryStates,
@@ -194,6 +224,86 @@ class BudgetDetailDto {
     );
   }
 
+  /// Builds the categories hierarchy from orcamento_produtos array.
+  /// The new API returns products with nested subcategoria.categoria
+  /// instead of a flat categorias array.
+  static List<CategoryDTO> buildCategoriesFromOrcamentoProdutos(
+      List orcamentoProdutos) {
+    // Map: categoriaId -> { categoria info, subcategorias map }
+    final Map<int, _CatBuilder> catMap = {};
+
+    for (final op in orcamentoProdutos) {
+      if (op is! Map<String, dynamic>) continue;
+      final produtoJson = op['produto'] as Map<String, dynamic>?;
+      if (produtoJson == null) continue;
+
+      final subcategoriaJson =
+          produtoJson['subcategoria'] as Map<String, dynamic>?;
+      if (subcategoriaJson == null) continue;
+
+      final categoriaJson =
+          subcategoriaJson['categoria'] as Map<String, dynamic>?;
+      if (categoriaJson == null) continue;
+
+      final catId = (categoriaJson['cat_categoriaId'] as num?)?.toInt() ?? 0;
+      final catNome = categoriaJson['cat_nome'] as String? ?? '';
+      final catOrdem = (categoriaJson['cat_ordem'] as num?)?.toInt() ?? 0;
+      final catExpandido = categoriaJson['cat_expandido'] as bool? ?? true;
+
+      final subId =
+          (subcategoriaJson['sub_subcategoriasId'] as num?)?.toInt() ?? 0;
+      final subNome = subcategoriaJson['sub_name'] as String? ?? '';
+      final subOrdem = (subcategoriaJson['sub_order'] as num?)?.toInt() ?? 0;
+
+      // Build product from the nested produto + orcamento_produto data
+      final productJson = Map<String, dynamic>.from(produtoJson);
+      // Inject orcamento_produto selection data
+      productJson['orcamento_produto'] = {
+        'selecionado': op['op_selecionado'] as bool? ?? false,
+        'quantidade':
+            double.tryParse(op['op_quantidade']?.toString() ?? '0') ?? 0.0,
+      };
+
+      // Check for overrides
+      final overrides = op['overrides_do_orcamento'] as List?;
+      if (overrides != null && overrides.isNotEmpty) {
+        productJson['tem_override'] = true;
+        // Apply override values
+        for (final ovr in overrides) {
+          if (ovr is Map<String, dynamic>) {
+            if (ovr['opo_tipo_override'] == 'produto_completo') {
+              if (ovr['opo_valor_override'] != null) {
+                productJson['pro_valor'] = ovr['opo_valor_override'];
+              }
+              if (ovr['opo_ativo_override'] != null) {
+                productJson['pro_ativo'] = ovr['opo_ativo_override'];
+              }
+            }
+          }
+        }
+      }
+
+      final product = ProductDTO.fromJson(productJson);
+
+      // Add to category map
+      catMap.putIfAbsent(
+          catId,
+          () => _CatBuilder(
+                id: catId,
+                nome: catNome,
+                ordem: catOrdem,
+                expandido: catExpandido,
+              ));
+
+      catMap[catId]!.addProduct(subId, subNome, subOrdem, product);
+    }
+
+    // Convert map to sorted list of CategoryDTO
+    final result = catMap.values.map((builder) => builder.build()).toList();
+    result.sort((a, b) => a.ordem.compareTo(b.ordem));
+    return result;
+  }
+
   factory BudgetDetailDto.fromEntity(BudgetDetailEntity entity) {
     return BudgetDetailDto(
       id: entity.id,
@@ -214,6 +324,70 @@ class BudgetDetailDto {
           entity.categories.map((c) => CategoryDTO.fromEntity(c)).toList(),
       citiesData: [],
       censoAgregado: entity.censoAgregado,
+    );
+  }
+}
+
+/// Helper class to build CategoryDTO from grouped orcamento_produtos
+class _CatBuilder {
+  final int id;
+  final String nome;
+  final int ordem;
+  final bool expandido;
+  final Map<int, _SubBuilder> _subcategorias = {};
+
+  _CatBuilder({
+    required this.id,
+    required this.nome,
+    required this.ordem,
+    required this.expandido,
+  });
+
+  void addProduct(int subId, String subNome, int subOrdem, ProductDTO product) {
+    _subcategorias.putIfAbsent(
+        subId,
+        () => _SubBuilder(
+              id: subId,
+              nome: subNome,
+              ordem: subOrdem,
+            ));
+    _subcategorias[subId]!.produtos.add(product);
+  }
+
+  CategoryDTO build() {
+    final subs = _subcategorias.values.map((sb) => sb.build()).toList();
+    subs.sort((a, b) => a.ordem.compareTo(b.ordem));
+    return CategoryDTO(
+      id: id,
+      nome: nome,
+      ordem: ordem,
+      expandido: expandido,
+      subcategorias: subs,
+    );
+  }
+}
+
+/// Helper class to build SubcategoryDTO
+class _SubBuilder {
+  final int id;
+  final String nome;
+  final int ordem;
+  final List<ProductDTO> produtos = [];
+
+  _SubBuilder({
+    required this.id,
+    required this.nome,
+    required this.ordem,
+  });
+
+  SubcategoryDTO build() {
+    final sorted = List<ProductDTO>.from(produtos);
+    sorted.sort((a, b) => a.ordem.compareTo(b.ordem));
+    return SubcategoryDTO(
+      id: id,
+      nome: nome,
+      ordem: ordem,
+      produtos: sorted,
     );
   }
 }

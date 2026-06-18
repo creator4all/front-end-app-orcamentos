@@ -24,22 +24,30 @@ class IndiceEtapaDto {
 
   factory IndiceEtapaDto.fromJson(Map<String, dynamic> json) {
     final grupoJson = json['grupo'] as Map<String, dynamic>?;
-    final grupoId = (json['grupos_grupo_id'] as num?)?.toInt() ??
+    final grupoId = (json['gru_gruposId'] as num?)?.toInt() ??
+        (json['grupos_grupo_id'] as num?)?.toInt() ??
         (json['grupo_id'] as num?)?.toInt() ??
+        (grupoJson?['gru_gruposId'] as num?)?.toInt() ??
         (grupoJson?['id'] as num?)?.toInt() ??
         (grupoJson?['grupo_id'] as num?)?.toInt() ??
         0;
-    final grupoNome = grupoJson?['nome'] as String? ??
+    final grupoNome = grupoJson?['gru_grupo_nome'] as String? ??
+        grupoJson?['nome'] as String? ??
         grupoJson?['nome_grupo'] as String? ??
         json['grupo_nome'] as String?;
 
     return IndiceEtapaDto(
-      id: (json['idindice_etapa'] as num?)?.toInt() ??
+      id: (json['ine_indicadoresId'] as num?)?.toInt() ??
+          (json['idindice_etapa'] as num?)?.toInt() ??
           (json['id'] as num?)?.toInt() ??
           (json['indice_etapa_id'] as num?)?.toInt() ??
           0,
-      nome: json['nome_etapa'] as String? ?? json['nome'] as String? ?? '',
-      titulo: json['titulo'] as String? ??
+      nome: json['ine_nome'] as String? ??
+          json['nome_etapa'] as String? ??
+          json['nome'] as String? ??
+          '',
+      titulo: json['ine_titulo'] as String? ??
+          json['titulo'] as String? ??
           json['titulo_etapa'] as String? ??
           json['nome'] as String? ??
           json['nome_etapa'] as String? ??

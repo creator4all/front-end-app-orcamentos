@@ -10,6 +10,10 @@ class ProductSelectionUpdateDto extends Equatable {
   final String tipoProduto;
   final List<IndicadorProdutoUpdateDto>? indicadores;
   final double? valor;
+  final bool? selecionadoChanged;
+  final bool? quantidadeChanged;
+  final bool? valorChanged;
+  final bool isDelta;
 
   const ProductSelectionUpdateDto({
     required this.productId,
@@ -18,11 +22,50 @@ class ProductSelectionUpdateDto extends Equatable {
     required this.tipoProduto,
     this.indicadores,
     this.valor,
+    this.selecionadoChanged,
+    this.quantidadeChanged,
+    this.valorChanged,
+    this.isDelta = false,
   });
 
   bool get isServico {
     final tipo = tipoProduto.toLowerCase();
     return tipo == 'servico' || tipo == 'serviÃ§o';
+  }
+
+  /// Factory para criar um DTO de delta (field-level): apenas os campos
+  /// efetivamente alterados em relação ao snapshot inicial serão serializados.
+  /// `produto_id` é sempre incluído.
+  factory ProductSelectionUpdateDto.delta({
+    required ProductEntity entity,
+    required bool selecionadoChanged,
+    required bool quantidadeChanged,
+    required bool valorChanged,
+    required Set<int> changedIndicatorIds,
+  }) {
+    final changedIndicadores = changedIndicatorIds.isEmpty
+        ? null
+        : (entity.indicadoresEtapa
+                .where((ind) =>
+                    changedIndicatorIds.contains(ind.produtoIndicadorId))
+                .toList()
+              ..sort((a, b) =>
+                  a.produtoIndicadorId.compareTo(b.produtoIndicadorId)))
+            .map((ind) => IndicadorProdutoUpdateDto.fromEntity(ind))
+            .toList();
+
+    return ProductSelectionUpdateDto(
+      productId: entity.id,
+      selecionado: entity.selecionado,
+      quantidade: entity.quantidade,
+      tipoProduto: entity.tipoProduto,
+      indicadores: changedIndicadores,
+      valor: entity.valor,
+      selecionadoChanged: selecionadoChanged,
+      quantidadeChanged: quantidadeChanged,
+      valorChanged: valorChanged,
+      isDelta: true,
+    );
   }
 
   factory ProductSelectionUpdateDto.fromEntity(ProductEntity entity) {
@@ -44,14 +87,29 @@ class ProductSelectionUpdateDto extends Equatable {
     );
   }
 
-  Map<String, dynamic> toJson() => {
+  /// Modo delta: o produto só é incluído no payload quando teve alguma
+  /// alteração, mas então enviamos sempre `produto_id`, `selecionado`,
+  /// `quantidade` e `valor` (preservando os valores originais). Apenas os
+  /// `indicadores_etapa` são filtrados (somente os alterados).
+  Map<String, dynamic> toJsonDelta() => {
         'produto_id': productId,
         'selecionado': selecionado,
-        if (isServico) 'quantidade': quantidade,
-        if (indicadores != null)
+        'quantidade': quantidade,
+        if (indicadores != null && indicadores!.isNotEmpty)
           'indicadores_etapa': indicadores!.map((i) => i.toJson()).toList(),
         if (valor != null) 'valor': valor,
       };
+
+  Map<String, dynamic> toJson() => isDelta
+      ? toJsonDelta()
+      : {
+          'produto_id': productId,
+          'selecionado': selecionado,
+          if (isServico) 'quantidade': quantidade,
+          if (indicadores != null)
+            'indicadores_etapa': indicadores!.map((i) => i.toJson()).toList(),
+          if (valor != null) 'valor': valor,
+        };
 
   Map<String, dynamic> toJsonForMultiCity() => {
         'produto_id': productId,

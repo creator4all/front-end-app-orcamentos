@@ -54,7 +54,7 @@ class BudgetUpdateDto extends Equatable {
     if (indicadores != null) {
       map['indicadores'] = indicadores!.map((i) => i.toJson()).toList();
     }
-    if (produtos != null) {
+    if (produtos != null && produtos!.isNotEmpty) {
       map['produtos'] = produtos!.map((p) => p.toJson()).toList();
     }
     if (partnerDestinoId != null) {
@@ -79,7 +79,7 @@ class BudgetUpdateDto extends Equatable {
           cidades!.map((id) => {'cidade_id': id, 'overrides': null}).toList();
     }
 
-    if (produtos != null) {
+    if (produtos != null && produtos!.isNotEmpty) {
       map['produtos'] = produtos!.map((p) => p.toJsonForMultiCity()).toList();
     }
 

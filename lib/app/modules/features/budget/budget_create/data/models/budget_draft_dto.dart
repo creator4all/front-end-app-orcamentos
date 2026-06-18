@@ -1,5 +1,7 @@
 import '../../../../../../../app/shared/utils/date_utils.dart';
-import '../../../budget_config/data/models/category_dto.dart' as config;
+import '../../../budget_config/data/models/category_dto.dart';
+import '../../../budget_config/data/models/product_dto.dart';
+import '../../../budget_config/data/models/subcategory_dto.dart';
 import '../../domain/entities/budget_draft_entity.dart';
 import '../../domain/entities/location_entity.dart';
 import 'cidade_dto.dart';
@@ -26,7 +28,7 @@ class BudgetDraftDto {
   final DateTime dataValidade;
   final CidadeDto? cidade;
   final List<OrcamentoProdutoDto> orcamentoProdutos;
-  final List<config.CategoryDTO> categories;
+  final List<CategoryDTO> categories;
 
   const BudgetDraftDto({
     required this.id,
@@ -56,50 +58,82 @@ class BudgetDraftDto {
     final usuario = json['usuario'] as Map<String, dynamic>?;
     final partnerDestino = json['partner_destino'] as Map<String, dynamic>?;
     final cidadeJson = json['cidade'] as Map<String, dynamic>?;
-    final produtosArray = json['orcamento_produtos'] as List? ?? [];
-    final categoriasArray = json['categorias'] as List? ?? [];
+    final produtosArray = json['produtos'];
 
-    final cityId = (json['cidade_id'] as num?)?.toInt() ?? 0;
-    final cityName = cidadeJson?['nome'] as String? ?? '';
+    if (produtosArray is! List) {
+      throw const FormatException(
+          'Contrato inválido: "produtos" deve ser uma lista');
+    }
+
+    final mapaIndicadores = _parseMapaIndicadores(json['mapa_indicadores']);
+
+    // Support prefixed (orc_cidade_id) and unprefixed (cidade_id) fields
+    final cityId = (json['orc_cidade_id'] as num?)?.toInt() ??
+        (json['cidade_id'] as num?)?.toInt() ??
+        0;
+    final cityName = cidadeJson?['nome_cidade'] as String? ??
+        cidadeJson?['nome'] as String? ??
+        '';
     final cityIds = cityId > 0 ? [cityId] : <int>[];
     final cityNames = cityName.isNotEmpty ? [cityName] : <String>[];
 
-    final validityDateStr = json['data_validade'];
+    // Support prefixed (orc_data_validade) and unprefixed (data_validade)
+    final validityDateStr = json['orc_data_validade'] ?? json['data_validade'];
     final parsedValidityDate = validityDateStr != null
         ? DateTime.parse(validityDateStr as String)
         : DateTime.now();
 
-    final orcamentoProdutos = produtosArray
-        .map((item) =>
-            OrcamentoProdutoDto.fromJson(item as Map<String, dynamic>))
-        .toList();
-
-    final categories = categoriasArray
-        .map(
-            (item) => config.CategoryDTO.fromJson(item as Map<String, dynamic>))
-        .toList();
+    final orcamentoProdutos = <OrcamentoProdutoDto>[];
+    final categories = _buildCategoriesFromProdutos(
+      produtosArray,
+      mapaIndicadores,
+    );
 
     final cidade = cidadeJson != null ? CidadeDto.fromJson(cidadeJson) : null;
 
+    // Support prefixed partner fields (par_partnerId, par_trade_name)
+    final partnerIdValue =
+        partnerDestino?['par_partnerId'] ?? partnerDestino?['id'];
+    final partnerNameValue =
+        partnerDestino?['par_trade_name'] ?? partnerDestino?['nome_fantasia'];
+
+    // Support prefixed user fields (usr_userId, usr_name, usr_email)
+    final userIdValue = (usuario?['usr_userId'] as num?)?.toInt() ??
+        (usuario?['id'] as num?)?.toInt() ??
+        0;
+    final userNameValue =
+        usuario?['usr_name'] as String? ?? usuario?['nome'] as String? ?? '';
+    final userEmailValue =
+        usuario?['usr_email'] as String? ?? usuario?['email'] as String? ?? '';
+
     return BudgetDraftDto(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      name: json['nome'] as String?,
-      partnerId: partnerDestino?['id'] != null
-          ? (partnerDestino!['id'] as num?)?.toInt()
-          : null,
-      partnerName: partnerDestino?['nome_fantasia'] as String?,
-      userId: (usuario?['id'] as num?)?.toInt() ?? 0,
-      userName: usuario?['nome'] as String? ?? '',
-      userEmail: usuario?['email'] as String? ?? '',
+      id: (json['orc_orcamentoId'] as num?)?.toInt() ??
+          (json['id'] as num?)?.toInt() ??
+          0,
+      name: json['orc_nome'] as String? ?? json['nome'] as String?,
+      partnerId:
+          partnerIdValue != null ? (partnerIdValue as num?)?.toInt() : null,
+      partnerName: partnerNameValue as String?,
+      userId: userIdValue,
+      userName: userNameValue,
+      userEmail: userEmailValue,
       cityIds: cityIds,
       cityNames: cityNames,
       responsibleName: json['orc_responsavel_nome'] as String?,
       responsibleEmail: json['orc_responsavel_email'] as String?,
       validityDate: parsedValidityDate,
-      validityDays: (json['dias_validade'] as num?)?.toInt() ?? 60,
-      status: json['status'] as String? ?? 'rascunho',
-      total: (json['total'] as num?)?.toDouble() ?? 0.0,
-      createdByAdmin: json['criado_por_admin'] as bool? ?? false,
+      validityDays: (json['orc_dias_validade'] as num?)?.toInt() ??
+          (json['dias_validade'] as num?)?.toInt() ??
+          60,
+      status: json['orc_status'] as String? ??
+          json['status'] as String? ??
+          'rascunho',
+      total: double.tryParse(
+              (json['orc_total'] ?? json['total'])?.toString() ?? '0') ??
+          0.0,
+      createdByAdmin: json['orc_criado_por_admin'] as bool? ??
+          json['criado_por_admin'] as bool? ??
+          false,
       createdAt: parseDate(json['created_at']),
       dataValidade: parsedValidityDate,
       cidade: cidade,
@@ -146,7 +180,7 @@ class BudgetDraftDto {
       'status': status,
       'total': total,
       'dias_validade': validityDays,
-      'data_validade': validityDate?.toIso8601String(),
+      'data_validade': validityDate.toIso8601String(),
       'criado_por_admin': createdByAdmin,
     };
 
@@ -163,5 +197,237 @@ class BudgetDraftDto {
     }
 
     return data;
+  }
+
+  static Map<int, Map<String, dynamic>> _parseMapaIndicadores(dynamic value) {
+    if (value is! Map) {
+      throw const FormatException(
+          'Contrato inválido: "mapa_indicadores" deve ser um objeto');
+    }
+
+    return value.map((key, item) {
+      final indicador = _asMap(item, 'mapa_indicadores[$key]');
+      final id = _toInt(indicador['ine_indicadoresId']);
+
+      if (id <= 0) {
+        throw FormatException(
+            'Contrato inválido: indicador sem ine_indicadoresId em "$key"');
+      }
+
+      return MapEntry(id, indicador);
+    });
+  }
+
+  static List<CategoryDTO> _buildCategoriesFromProdutos(
+    List<dynamic> produtosArray,
+    Map<int, Map<String, dynamic>> mapaIndicadores,
+  ) {
+    final categorias = <int, _CategoryBucket>{};
+
+    for (final item in produtosArray) {
+      final produtoJson = _asMap(item, 'produtos[]');
+      final subcategoriaJson =
+          _asMap(produtoJson['subcategoria'], 'produto.subcategoria');
+      final categoriaJson =
+          _asMap(subcategoriaJson['categoria'], 'subcategoria.categoria');
+
+      final categoriaId = _toInt(categoriaJson['cat_categoriaId']);
+      final subcategoriaId = _toInt(subcategoriaJson['sub_subcategoriasId']);
+
+      if (categoriaId <= 0 || subcategoriaId <= 0) {
+        throw const FormatException(
+            'Contrato inválido: produto sem categoria/subcategoria válida');
+      }
+
+      final categoria = categorias.putIfAbsent(
+        categoriaId,
+        () => _CategoryBucket(
+          id: categoriaId,
+          nome: _toString(categoriaJson['cat_nome']),
+          ordem: _toInt(categoriaJson['cat_ordem']),
+          expandido: _toBool(categoriaJson['cat_expandido']),
+        ),
+      );
+
+      final subcategoria = categoria.subcategorias.putIfAbsent(
+        subcategoriaId,
+        () => _SubcategoryBucket(
+          id: subcategoriaId,
+          nome: _toString(subcategoriaJson['sub_name']),
+          ordem: _toInt(subcategoriaJson['sub_order']),
+        ),
+      );
+
+      final produtoComIndicadores = Map<String, dynamic>.from(produtoJson);
+      produtoComIndicadores['indicadores_etapa'] =
+          _buildIndicadoresEtapa(produtoJson, mapaIndicadores);
+
+      subcategoria.produtos.add(ProductDTO.fromJson(produtoComIndicadores));
+    }
+
+    final orderedCategorias = categorias.values.toList()
+      ..sort((a, b) {
+        final ordem = a.ordem.compareTo(b.ordem);
+        if (ordem != 0) return ordem;
+        return a.id.compareTo(b.id);
+      });
+
+    return orderedCategorias.map((categoria) => categoria.toDto()).toList();
+  }
+
+  static List<Map<String, dynamic>> _buildIndicadoresEtapa(
+    Map<String, dynamic> produtoJson,
+    Map<int, Map<String, dynamic>> mapaIndicadores,
+  ) {
+    final indicadoresProduto = produtoJson['indicadores'];
+
+    if (indicadoresProduto is! List) {
+      throw const FormatException(
+          'Contrato inválido: produto.indicadores deve ser uma lista');
+    }
+
+    final indicadoresSelecionados = <int>{};
+    final produtoIndicadorPorIndicador = <int, int>{};
+
+    for (final item in indicadoresProduto) {
+      final indicadorProduto = _asMap(item, 'produto.indicadores[]');
+      final indicadorId =
+          _toInt(indicadorProduto['indicadores_etapa_ine_indicadoresId']);
+
+      if (indicadorId <= 0) continue;
+
+      if (_toBool(indicadorProduto['prd_valor'])) {
+        indicadoresSelecionados.add(indicadorId);
+      }
+
+      final produtoIndicadorId =
+          _toInt(indicadorProduto['prd_produtos_indicadoresId']);
+      if (produtoIndicadorId > 0) {
+        produtoIndicadorPorIndicador[indicadorId] = produtoIndicadorId;
+      }
+    }
+
+    final indicadores = mapaIndicadores.values.toList()
+      ..sort((a, b) {
+        final grupoA = _asOptionalMap(a['grupo']);
+        final grupoB = _asOptionalMap(b['grupo']);
+        final grupoOrdem = _toInt(grupoA?['gru_ordem'])
+            .compareTo(_toInt(grupoB?['gru_ordem']));
+        if (grupoOrdem != 0) return grupoOrdem;
+
+        final indicadorOrdem =
+            _toInt(a['ine_ordem']).compareTo(_toInt(b['ine_ordem']));
+        if (indicadorOrdem != 0) return indicadorOrdem;
+
+        return _toInt(a['ine_indicadoresId'])
+            .compareTo(_toInt(b['ine_indicadoresId']));
+      });
+
+    return indicadores.map((indicador) {
+      final indicadorId = _toInt(indicador['ine_indicadoresId']);
+      final grupo = _asOptionalMap(indicador['grupo']);
+      final selecionado = indicadoresSelecionados.contains(indicadorId);
+
+      return <String, dynamic>{
+        'produto_indicador_id': produtoIndicadorPorIndicador[indicadorId] ?? 0,
+        'indicador_id': indicadorId,
+        'indicador_nome': _toString(indicador['ine_titulo']),
+        'nome_etapa': _toString(indicador['ine_nome']),
+        'grupo_id': _toInt(indicador['gru_gruposId']),
+        'grupo_nome': _toString(grupo?['gru_grupo_nome']),
+        'selecionado': selecionado,
+        'valor_padrao': selecionado,
+      };
+    }).toList();
+  }
+
+  static Map<String, dynamic> _asMap(dynamic value, String context) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) return Map<String, dynamic>.from(value);
+    throw FormatException('Contrato inválido: "$context" deve ser um objeto');
+  }
+
+  static Map<String, dynamic>? _asOptionalMap(dynamic value) {
+    if (value == null) return null;
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) return Map<String, dynamic>.from(value);
+    return null;
+  }
+
+  static int _toInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  static bool _toBool(dynamic value) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    final normalized = value?.toString().toLowerCase();
+    return normalized == 'true' || normalized == '1';
+  }
+
+  static String _toString(dynamic value) => value?.toString() ?? '';
+}
+
+class _CategoryBucket {
+  final int id;
+  final String nome;
+  final int ordem;
+  final bool expandido;
+  final Map<int, _SubcategoryBucket> subcategorias = {};
+
+  _CategoryBucket({
+    required this.id,
+    required this.nome,
+    required this.ordem,
+    required this.expandido,
+  });
+
+  CategoryDTO toDto() {
+    final orderedSubcategorias = subcategorias.values.toList()
+      ..sort((a, b) {
+        final ordem = a.ordem.compareTo(b.ordem);
+        if (ordem != 0) return ordem;
+        return a.id.compareTo(b.id);
+      });
+
+    return CategoryDTO(
+      id: id,
+      nome: nome,
+      ordem: ordem,
+      expandido: expandido,
+      subcategorias: orderedSubcategorias
+          .map((subcategoria) => subcategoria.toDto())
+          .toList(),
+    );
+  }
+}
+
+class _SubcategoryBucket {
+  final int id;
+  final String nome;
+  final int ordem;
+  final List<ProductDTO> produtos = [];
+
+  _SubcategoryBucket({
+    required this.id,
+    required this.nome,
+    required this.ordem,
+  });
+
+  SubcategoryDTO toDto() {
+    produtos.sort((a, b) {
+      final ordem = a.ordem.compareTo(b.ordem);
+      if (ordem != 0) return ordem;
+      return a.id.compareTo(b.id);
+    });
+
+    return SubcategoryDTO(
+      id: id,
+      nome: nome,
+      ordem: ordem,
+      produtos: produtos,
+    );
   }
 }

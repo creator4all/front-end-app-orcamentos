@@ -68,7 +68,10 @@ class IndicadoresEtapaSection extends StatelessWidget {
             onChanged: onToggle == null
                 ? null
                 : (value) {
-                    onToggle!(indicador.produtoIndicadorId, value);
+                    final toggleId = indicador.produtoIndicadorId > 0
+                        ? indicador.produtoIndicadorId
+                        : indicador.indicadorId;
+                    onToggle!(toggleId, value);
                   },
           ),
           SizedBox(width: 12.w),

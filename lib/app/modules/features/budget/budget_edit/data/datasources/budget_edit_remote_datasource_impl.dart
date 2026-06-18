@@ -12,11 +12,10 @@ class BudgetEditRemoteDataSourceImpl implements BudgetEditRemoteDataSource {
   @override
   Future<BudgetEditDto> getBudgetForEdit(int id) async {
     try {
-      final response = await _client.get('/api/orcamentos/$id');
+      final response = await _client.get('/api/orcamentos/novo/$id');
 
       if (response.isSuccess) {
-        final data = response.body['dados'] as Map<String, dynamic>;
-        return BudgetEditDto.fromJson(data);
+        return BudgetEditDto.fromJson(response.body);
       }
 
       throw Exception(response.body['error'] ?? 'Orçamento não encontrado');

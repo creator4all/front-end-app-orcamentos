@@ -5,20 +5,32 @@ class CategoriaDto {
   final String nome;
   final int status;
   final int ordem;
+  final bool expandido;
 
   const CategoriaDto({
     required this.id,
     required this.nome,
     required this.status,
     required this.ordem,
+    this.expandido = true,
   });
 
   factory CategoriaDto.fromJson(Map<String, dynamic> json) {
+    // cat_status can be bool or int from the API
+    final rawStatus = json['cat_status'];
+    int statusValue;
+    if (rawStatus is bool) {
+      statusValue = rawStatus ? 1 : 0;
+    } else {
+      statusValue = (rawStatus as num?)?.toInt() ?? 0;
+    }
+
     return CategoriaDto(
       id: (json['cat_categoriaId'] as num?)?.toInt() ?? 0,
       nome: json['cat_nome'] as String? ?? '',
-      status: (json['cat_status'] as num?)?.toInt() ?? 0,
+      status: statusValue,
       ordem: (json['cat_ordem'] as num?)?.toInt() ?? 0,
+      expandido: json['cat_expandido'] as bool? ?? true,
     );
   }
 
@@ -37,6 +49,7 @@ class CategoriaDto {
       'cat_nome': nome,
       'cat_status': status,
       'cat_ordem': ordem,
+      'cat_expandido': expandido,
     };
   }
 }

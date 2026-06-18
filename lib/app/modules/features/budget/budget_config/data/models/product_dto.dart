@@ -43,29 +43,50 @@ class ProductDTO {
 
   factory ProductDTO.fromJson(Map<String, dynamic> json) {
     try {
-      final int id = json['id'] as int;
-      final String codigo = (json['codigo'] ?? '') as String;
-      final String solucao = (json['solucao'] ?? '') as String;
-      final String tipo = (json['tipo'] ?? '') as String;
+      final int id = (json['pro_produtosId'] as num?)?.toInt() ??
+          (json['id'] as num?)?.toInt() ??
+          0;
+      final String codigo =
+          (json['pro_codigo'] ?? json['codigo'] ?? '') as String;
+      final String solucao =
+          (json['pro_solucao'] ?? json['solucao'] ?? '') as String;
+      final String tipo = (json['pro_tipo'] ?? json['tipo'] ?? '') as String;
 
-      final dynamic rawAtivo = json['status'];
+      final dynamic rawAtivo =
+          json['pro_ativo'] ?? json['pro_status'] ?? json['status'];
       final bool ativo = rawAtivo is bool ? rawAtivo : (rawAtivo == 1);
 
-      final double valor = (json['valor'] as num? ?? 0).toDouble();
-      final String indicacao = (json['indicacao'] ?? '') as String;
-      final String tipoProduto = (json['tipo_produto'] ?? '') as String;
-
-      final int ordem = (json['ordem'] as int?) ?? 0;
-      final int subcategoriaId = (json['subcategoria_id'] as int?) ?? 0;
-
-      // Contrato backend ainda não está unificado:
       final orcProduto = json['orcamento_produto'] as Map<String, dynamic>?;
-      final bool selecionado =
-          (orcProduto?['selecionado'] ?? json['selecionado']) as bool? ?? true;
-      final double quantidade =
-          ((orcProduto?['quantidade'] ?? json['quantidade']) as num?)
-                  ?.toDouble() ??
-              0.0;
+
+      final double valor = double.tryParse(
+              (orcProduto?['op_valor'] ?? json['pro_valor'] ?? json['valor'])
+                      ?.toString() ??
+                  '0') ??
+          0.0;
+      final String indicacao =
+          (json['pro_indicacao'] ?? json['indicacao'] ?? '') as String;
+      final String tipoProduto =
+          (json['pro_tipo_produto'] ?? json['tipo_produto'] ?? '') as String;
+
+      final int ordem = (json['pro_ordem'] as num?)?.toInt() ??
+          (json['ordem'] as num?)?.toInt() ??
+          0;
+      final int subcategoriaId =
+          (json['pro_subcategoria_id'] as num?)?.toInt() ??
+              (json['subcategoria_id'] as num?)?.toInt() ??
+              0;
+
+      final bool selecionado = _parseBool(
+        orcProduto?['op_selecionado'] ??
+            orcProduto?['selecionado'] ??
+            json['selecionado'] ??
+            true,
+      );
+      final double quantidade = _parseDouble(
+        orcProduto?['op_quantidade'] ??
+            orcProduto?['quantidade'] ??
+            json['quantidade'],
+      );
 
       final bool temOverride = (json['tem_override'] as bool?) ?? false;
       final String? observacoes = json['observacoes'] as String?;
@@ -91,18 +112,32 @@ class ProductDTO {
           final indEtapa = ind['indicador_etapa'] as Map<String, dynamic>?;
           final grupo = indEtapa?['grupo'] as Map<String, dynamic>?;
 
-          final bool selecionado = ind['selecionado'] is bool
-              ? ind['selecionado'] as bool
-              : (ind['selecionado'] == 1);
+          // Support prd_valor (bool) as selecionado indicator
+          final dynamic rawSel = ind['selecionado'] ?? ind['prd_valor'];
+          final bool selecionado = rawSel is bool ? rawSel : (rawSel == 1);
 
           return IndicadorEtapaEntity(
-            produtoIndicadorId: ind['id'] as int? ?? 0,
-            indicadorId: indEtapa?['id'] as int? ?? 0,
-            indicadorNome:
-                (indEtapa?['titulo'] ?? indEtapa?['nome'] ?? '') as String,
-            nomeEtapa: (indEtapa?['nome'] ?? '') as String,
-            grupoId: grupo?['id'] as int? ?? 0,
-            grupoNome: (grupo?['nome'] ?? grupo?['nome_grupo'] ?? '') as String,
+            produtoIndicadorId:
+                (ind['prd_produtos_indicadoresId'] as num?)?.toInt() ??
+                    (ind['id'] as num?)?.toInt() ??
+                    0,
+            indicadorId: (indEtapa?['ine_indicadoresId'] as num?)?.toInt() ??
+                (indEtapa?['id'] as num?)?.toInt() ??
+                0,
+            indicadorNome: (indEtapa?['ine_titulo'] ??
+                indEtapa?['titulo'] ??
+                indEtapa?['nome'] ??
+                '') as String,
+            nomeEtapa:
+                (indEtapa?['ine_nome'] ?? indEtapa?['nome'] ?? '') as String,
+            grupoId: (grupo?['gru_gruposId'] as num?)?.toInt() ??
+                (grupo?['id'] as num?)?.toInt() ??
+                (indEtapa?['gru_gruposId'] as num?)?.toInt() ??
+                0,
+            grupoNome: (grupo?['gru_grupo_nome'] ??
+                grupo?['nome'] ??
+                grupo?['nome_grupo'] ??
+                '') as String,
             selecionado: selecionado,
           );
         }).toList();
@@ -198,5 +233,18 @@ class ProductDTO {
       ativoOriginal: entity.ativoOriginal,
       indicadoresEtapa: entity.indicadoresEtapa,
     );
+  }
+
+  static bool _parseBool(dynamic value) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    final normalized = value?.toString().toLowerCase();
+    return normalized == 'true' || normalized == '1';
+  }
+
+  static double _parseDouble(dynamic value) {
+    if (value is double) return value;
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? 0.0;
   }
 }

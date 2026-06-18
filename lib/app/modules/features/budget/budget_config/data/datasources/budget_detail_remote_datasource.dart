@@ -19,7 +19,7 @@ abstract class BudgetDetailRemoteDataSource {
     List<int>? selectedProductIds,
   });
 
-  Future<BudgetDetailDto> updateBudgetWithDto({
+  Future<BudgetDetailDto?> updateBudgetWithDto({
     required int budgetId,
     required BudgetUpdateDto updateData,
   });

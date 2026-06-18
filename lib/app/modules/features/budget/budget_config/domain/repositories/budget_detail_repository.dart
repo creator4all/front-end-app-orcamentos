@@ -22,7 +22,7 @@ abstract class BudgetDetailRepository {
     List<int>? selectedProductIds,
   });
 
-  Future<Either<BudgetFailure, BudgetDetailEntity>> updateBudgetWithDto({
+  Future<Either<BudgetFailure, BudgetDetailEntity?>> updateBudgetWithDto({
     required int budgetId,
     required BudgetUpdateDto updateData,
   });

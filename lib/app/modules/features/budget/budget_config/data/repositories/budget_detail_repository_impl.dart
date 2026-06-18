@@ -1,8 +1,7 @@
 import 'package:dartz/dartz.dart';
 
 import '../../../../../../shared/core/constants/http_constants.dart';
-import '../../../../../../shared/core/errors/http_exceptions.dart'
-    as core_http;
+import '../../../../../../shared/core/errors/http_exceptions.dart' as core_http;
 import '../../../shared/errors/budget_failure.dart';
 import '../../../shared/models/budget_update_dto.dart';
 import '../../domain/entities/budget_detail_entity.dart';
@@ -57,7 +56,6 @@ class BudgetDetailRepositoryImpl implements BudgetDetailRepository {
     List<int>? selectedProductIds,
   }) async {
     try {
-
       final dto = await remoteDataSource.updateBudget(
         id: id,
         name: name,
@@ -76,7 +74,7 @@ class BudgetDetailRepositoryImpl implements BudgetDetailRepository {
   }
 
   @override
-  Future<Either<BudgetFailure, BudgetDetailEntity>> updateBudgetWithDto({
+  Future<Either<BudgetFailure, BudgetDetailEntity?>> updateBudgetWithDto({
     required int budgetId,
     required BudgetUpdateDto updateData,
   }) async {
@@ -86,9 +84,9 @@ class BudgetDetailRepositoryImpl implements BudgetDetailRepository {
         updateData: updateData,
       );
 
-      final entity = dto.toEntity();
-
-      return Right(entity);
+      // Backend pode responder apenas com status de sucesso (sem corpo):
+      // nesse caso não há entidade atualizada para retornar.
+      return Right(dto?.toEntity());
     } on Exception catch (e) {
       return Left(_mapExceptionToFailure(e));
     }
@@ -181,13 +179,15 @@ class BudgetDetailRepositoryImpl implements BudgetDetailRepository {
       return firstError;
     }
 
-    final containsValidityKey = payload.toString().contains('orc_dias_validade') ||
-        payload.toString().contains('dias_validade');
+    final containsValidityKey =
+        payload.toString().contains('orc_dias_validade') ||
+            payload.toString().contains('dias_validade');
     if (containsValidityKey) {
       return 'Validade do orçamento deve estar entre 1 e 365 dias';
     }
 
-    final generic = payload['mensagem'] ?? payload['message'] ?? payload['error'];
+    final generic =
+        payload['mensagem'] ?? payload['message'] ?? payload['error'];
     if (generic is String && generic.trim().isNotEmpty) {
       return generic.trim();
     }

@@ -19,9 +19,14 @@ class SubcategoryDTO {
 
   factory SubcategoryDTO.fromJson(Map<String, dynamic> json) {
     try {
-      final int id = json['id'] as int;
-      final String nome = json['nome'] as String;
-      final int ordem = json['ordem'] as int? ?? 0;
+      final int id = (json['sub_subcategoriasId'] as num?)?.toInt() ??
+          (json['id'] as num?)?.toInt() ??
+          0;
+      final String nome =
+          json['sub_name'] as String? ?? json['nome'] as String? ?? '';
+      final int ordem = (json['sub_order'] as num?)?.toInt() ??
+          (json['ordem'] as num?)?.toInt() ??
+          0;
 
       final List<ProductDTO> produtos = [];
       if (json['produtos'] != null && json['produtos'] is List) {
@@ -55,7 +60,7 @@ class SubcategoryDTO {
       rethrow;
     }
   }
-  
+
   SubcategoryEntity toEntity() {
     return SubcategoryEntity(
       id: id,

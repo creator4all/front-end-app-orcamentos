@@ -21,10 +21,16 @@ class CategoryDTO {
 
   factory CategoryDTO.fromJson(Map<String, dynamic> json) {
     try {
-      final int id = json['id'] as int;
-      final String nome = json['nome'] as String;
-      final int ordem = json['ordem'] as int? ?? 0;
-      final bool expandido = json['expandido'] as bool? ?? false;
+      final int id = (json['cat_categoriaId'] as num?)?.toInt() ??
+          (json['id'] as num?)?.toInt() ??
+          0;
+      final String nome =
+          json['cat_nome'] as String? ?? json['nome'] as String? ?? '';
+      final int ordem = (json['cat_ordem'] as num?)?.toInt() ??
+          (json['ordem'] as num?)?.toInt() ??
+          0;
+      final bool expandido =
+          json['cat_expandido'] as bool? ?? json['expandido'] as bool? ?? false;
 
       final List<SubcategoryDTO> subcategorias = [];
       if (json['subcategorias'] != null && json['subcategorias'] is List) {

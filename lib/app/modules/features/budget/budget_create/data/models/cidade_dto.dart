@@ -36,12 +36,17 @@ class CidadeDto {
         .toList();
 
     return CidadeDto(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      nome: json['nome'] as String? ?? '',
-      estadoId: (json['estado_id'] as num?)?.toInt() ?? 0,
+      id: (json['idCidades'] as num?)?.toInt() ??
+          (json['id'] as num?)?.toInt() ??
+          0,
+      nome: json['nome_cidade'] as String? ?? json['nome'] as String? ?? '',
+      estadoId: (json['estados_idestados'] as num?)?.toInt() ??
+          (json['estado_id'] as num?)?.toInt() ??
+          0,
       status: json['status'] as bool? ?? false,
       excluido: json['excluido'] as bool? ?? false,
-      anoPopulacao: (json['ano_populacao'] as num?)?.toInt(),
+      anoPopulacao: (json['censo_ano'] as num?)?.toInt() ??
+          (json['ano_populacao'] as num?)?.toInt(),
       createdAt: parseDate(json['created_at']) ?? DateTime.now(),
       updatedAt: parseDate(json['updated_at']) ?? DateTime.now(),
       cidadesHasIndiceEtapa: etapas,

@@ -19,7 +19,8 @@ class BudgetDetailRemoteDataSourceImpl implements BudgetDetailRemoteDataSource {
   @override
   Future<BudgetDetailDto> getBudgetById(int id) async {
     try {
-      final response = await _client.get('/api/orcamentos/$id', config: _config);
+      final response =
+          await _client.get('/api/orcamentos/$id', config: _config);
 
       if (response.isSuccess) {
         final data = response.body['dados'] as Map<String, dynamic>;
@@ -110,7 +111,7 @@ class BudgetDetailRemoteDataSourceImpl implements BudgetDetailRemoteDataSource {
   }
 
   @override
-  Future<BudgetDetailDto> updateBudgetWithDto({
+  Future<BudgetDetailDto?> updateBudgetWithDto({
     required int budgetId,
     required BudgetUpdateDto updateData,
   }) async {
@@ -124,8 +125,12 @@ class BudgetDetailRemoteDataSourceImpl implements BudgetDetailRemoteDataSource {
       );
 
       if (response.isSuccess) {
-        final data = response.body['dados'] as Map<String, dynamic>;
-        return BudgetDetailDto.fromJson(data);
+        final dados = response.body['dados'];
+        if (dados is! Map<String, dynamic>) {
+          // Backend pode responder apenas com status de sucesso (sem corpo).
+          return null;
+        }
+        return BudgetDetailDto.fromJson(dados);
       }
 
       throw Exception(response.body['error'] ?? 'Erro ao atualizar orçamento');

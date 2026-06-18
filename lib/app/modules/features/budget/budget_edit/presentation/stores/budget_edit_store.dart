@@ -752,9 +752,12 @@ abstract class _BudgetEditStoreBase with Store {
         if (productIndex != -1) {
           final product = subcategory.produtos[productIndex];
 
-          final indicatorIndex = product.indicadoresEtapa.indexWhere(
-            (ind) => ind.produtoIndicadorId == indicatorId,
-          );
+          final indicatorIndex = product.indicadoresEtapa.indexWhere((ind) {
+            if (ind.produtoIndicadorId > 0) {
+              return ind.produtoIndicadorId == indicatorId;
+            }
+            return ind.indicadorId == indicatorId;
+          });
 
           if (indicatorIndex != -1) {
             final indicator = product.indicadoresEtapa[indicatorIndex];

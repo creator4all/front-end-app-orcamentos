@@ -71,12 +71,20 @@ class ProdutoDto {
     }
 
     return ProdutoDto(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      status: json['status'] as bool? ?? false,
-      valor: (json['valor'] as num?)?.toDouble() ?? 0.0,
+      id: (json['pro_produtosId'] as num?)?.toInt() ??
+          (json['id'] as num?)?.toInt() ??
+          0,
+      status: json['pro_status'] as bool? ?? json['status'] as bool? ?? false,
+      valor: (json['pro_valor'] as num?)?.toDouble() ??
+          double.tryParse(json['pro_valor']?.toString() ?? '') ??
+          (json['valor'] as num?)?.toDouble() ??
+          0.0,
       subcategoriaId: (json['pro_subcategoria_id'] as num?)?.toInt() ?? 0,
-      solucao: json['solucao'] as String? ?? '',
-      indicacao: json['indicacao'] as String? ?? '',
+      solucao:
+          json['pro_solucao'] as String? ?? json['solucao'] as String? ?? '',
+      indicacao: json['pro_indicacao'] as String? ??
+          json['indicacao'] as String? ??
+          '',
       indicadores: indicadores,
       subcategoria: SubcategoriaDto.fromJson(subcategoriaJson),
       orcamentoProduto: orcamentoProduto,

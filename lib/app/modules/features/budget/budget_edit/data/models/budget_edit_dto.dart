@@ -52,142 +52,200 @@ class BudgetEditDto {
     return double.tryParse(value?.toString() ?? '') ?? 0.0;
   }
 
-  static List<Map<String, dynamic>> _normalizeIndicators(List<dynamic> raw) {
-    return raw.whereType<Map>().map((item) {
-      final map = Map<String, dynamic>.from(item);
-      final group = map['grupo'] as Map<String, dynamic>?;
-      final pivot = map['pivot'] as Map<String, dynamic>?;
+  /// Agrupa a lista achatada `produtos` em categorias/subcategorias no formato
+  /// que `CategoryDTO.fromJson` consome (cat_*/sub_* com `produtos` aninhados).
+  /// Os itens de produto seguem crus, pois `ProductDTO.fromJson` já os entende.
+  static List<Map<String, dynamic>> _buildCategoriesData(
+    List<Map<String, dynamic>> produtos,
+  ) {
+    final categorias = <int, Map<String, dynamic>>{};
+    final subcategoriasPorCategoria = <int, Map<int, Map<String, dynamic>>>{};
 
-      final groupId = _toInt(
-        map['grupo_id'] ??
-            map['grupos_grupo_id'] ??
-            group?['id'] ??
-            group?['grupo_id'],
+    for (final produto in produtos) {
+      final subcategoria = produto['subcategoria'] as Map<String, dynamic>?;
+      if (subcategoria == null) continue;
+      final categoria = subcategoria['categoria'] as Map<String, dynamic>?;
+      if (categoria == null) continue;
+
+      final catId = _toInt(categoria['cat_categoriaId']);
+      final subId = _toInt(subcategoria['sub_subcategoriasId']);
+
+      categorias.putIfAbsent(
+        catId,
+        () => <String, dynamic>{
+          'cat_categoriaId': catId,
+          'cat_nome': categoria['cat_nome'],
+          'cat_ordem': _toInt(categoria['cat_ordem']),
+          'cat_expandido': categoria['cat_expandido'] ?? true,
+          'subcategorias': <Map<String, dynamic>>[],
+        },
       );
-      final groupName =
-          (map['grupo_nome'] ?? group?['nome'] ?? group?['nome_grupo'] ?? '')
-              .toString();
 
-      return <String, dynamic>{
-        'id': _toInt(
-          map['id'] ??
-              map['idindice_etapa'] ??
-              map['indice_etapa_id'] ??
-              map['indice_etapa_idindice_etapa'],
-        ),
-        'nome': (map['nome'] ?? map['nome_etapa'] ?? '').toString(),
-        'titulo': (map['titulo'] ??
-                map['titulo_etapa'] ??
-                map['nome'] ??
-                map['nome_etapa'] ??
-                '')
-            .toString(),
-        'valor': _toDouble(
-          map['valor'] ?? map['etapa_valor'] ?? pivot?['etapa_valor'],
-        ),
-        'grupo_id': groupId,
-        'grupo_nome': groupName,
-      };
-    }).toList();
+      final subs = subcategoriasPorCategoria.putIfAbsent(catId, () => {});
+      final sub = subs.putIfAbsent(subId, () {
+        final novaSub = <String, dynamic>{
+          'sub_subcategoriasId': subId,
+          'sub_name': subcategoria['sub_name'],
+          'sub_order': _toInt(subcategoria['sub_order']),
+          'produtos': <Map<String, dynamic>>[],
+        };
+        (categorias[catId]!['subcategorias'] as List).add(novaSub);
+        return novaSub;
+      });
+
+      (sub['produtos'] as List).add(produto);
+    }
+
+    final lista = categorias.values.toList()
+      ..sort(
+          (a, b) => (a['cat_ordem'] as int).compareTo(b['cat_ordem'] as int));
+
+    for (final categoria in lista) {
+      final subs = (categoria['subcategorias'] as List)
+          .cast<Map<String, dynamic>>()
+        ..sort(
+            (a, b) => (a['sub_order'] as int).compareTo(b['sub_order'] as int));
+      for (final sub in subs) {
+        (sub['produtos'] as List).cast<Map<String, dynamic>>().sort(
+            (a, b) => _toInt(a['pro_ordem']).compareTo(_toInt(b['pro_ordem'])));
+      }
+    }
+
+    return lista;
   }
 
-  static Map<String, dynamic> _normalizeCityData(Map<String, dynamic> cityMap) {
-    final rawIndicators = cityMap['indices'] as List? ??
-        cityMap['indicadores'] as List? ??
-        cityMap['cidades_has_indice_etapa'] as List? ??
-        const [];
-    final indicadores = _normalizeIndicators(rawIndicators);
+  /// Constrói a lista de produtos selecionados (usada pelos helpers do store).
+  static List<ProductSelectionDto> _buildSelectedProducts(
+    List<Map<String, dynamic>> produtos,
+  ) {
+    final selecionados = <ProductSelectionDto>[];
 
-    final indices = indicadores
-        .map(
-          (item) => <String, dynamic>{
-            'id': item['id'],
-            'nome_etapa': item['nome'],
-            'titulo': item['titulo'],
-            'valor': item['valor'],
-            'grupo': {
-              'id': item['grupo_id'],
-              'nome': item['grupo_nome'],
-            },
-          },
-        )
-        .toList();
+    for (final produto in produtos) {
+      final orcamentoProduto =
+          produto['orcamento_produto'] as Map<String, dynamic>?;
+      if (orcamentoProduto == null) continue;
+      if (_toInt(orcamentoProduto['op_selecionado']) != 1) continue;
 
-    return {
-      ...cityMap,
-      'id': _toInt(cityMap['id'] ?? cityMap['idCidades']),
-      'nome': (cityMap['nome'] ?? cityMap['nome_cidade'] ?? '').toString(),
-      'indices': indices,
-      'indicadores': indicadores,
-    };
+      final subcategoria = produto['subcategoria'] as Map<String, dynamic>?;
+      final categoria = subcategoria?['categoria'] as Map<String, dynamic>?;
+
+      final indicadores = (produto['indicadores'] as List?)
+              ?.whereType<Map<String, dynamic>>()
+              .map(
+                (ind) => ProductIndicatorDto(
+                  produtoIndicadorId: _toInt(ind['prd_produtos_indicadoresId']),
+                  selecionado: ind['prd_valor'] == true,
+                ),
+              )
+              .toList() ??
+          const <ProductIndicatorDto>[];
+
+      selecionados.add(
+        ProductSelectionDto(
+          productId: _toInt(produto['pro_produtosId']),
+          name: (produto['pro_solucao'] ?? '') as String,
+          category: (categoria?['cat_nome'] ?? '') as String,
+          price: _toDouble(orcamentoProduto['op_valor']),
+          isSelected: true,
+          quantity: _toDouble(orcamentoProduto['op_quantidade']),
+          indicadoresEtapa: indicadores,
+        ),
+      );
+    }
+
+    return selecionados;
+  }
+
+  /// Monta, para cada produto, a lista completa de indicadores a partir do
+  /// `mapa_indicadores` global. Os indicadores que já vêm no produto ficam
+  /// marcados como selecionados (preservando `prd_produtos_indicadoresId`); os
+  /// demais entram desmarcados (`produtoIndicadorId = 0`), permitindo ao usuário
+  /// marcar/desmarcar. A lista é ordenada por grupo (`gru_ordem`) e, dentro do
+  /// grupo, por etapa (`ine_ordem`), e o `indicador_etapa` é injetado no formato
+  /// que `ProductDTO.fromJson` consome.
+  static void _mergeIndicadores(
+    List<Map<String, dynamic>> produtos,
+    Map<String, dynamic> mapaIndicadores,
+  ) {
+    final etapasOrdenadas =
+        mapaIndicadores.values.whereType<Map<String, dynamic>>().toList()
+          ..sort((a, b) {
+            final ordemGrupoA =
+                _toInt((a['grupo'] as Map<String, dynamic>?)?['gru_ordem']);
+            final ordemGrupoB =
+                _toInt((b['grupo'] as Map<String, dynamic>?)?['gru_ordem']);
+            if (ordemGrupoA != ordemGrupoB) {
+              return ordemGrupoA.compareTo(ordemGrupoB);
+            }
+            return _toInt(a['ine_ordem']).compareTo(_toInt(b['ine_ordem']));
+          });
+
+    for (final produto in produtos) {
+      final selecionadosPorEtapa = <int, Map<String, dynamic>>{};
+      final indicadoresOriginais = produto['indicadores'];
+      if (indicadoresOriginais is List) {
+        for (final ind in indicadoresOriginais) {
+          if (ind is Map<String, dynamic>) {
+            selecionadosPorEtapa[
+                _toInt(ind['indicadores_etapa_ine_indicadoresId'])] = ind;
+          }
+        }
+      }
+
+      produto['indicadores'] = etapasOrdenadas.map((etapa) {
+        final ineId = _toInt(etapa['ine_indicadoresId']);
+        final original = selecionadosPorEtapa[ineId];
+        return <String, dynamic>{
+          'prd_produtos_indicadoresId':
+              _toInt(original?['prd_produtos_indicadoresId']),
+          'prd_valor': original != null && original['prd_valor'] == true,
+          'indicadores_etapa_ine_indicadoresId': ineId,
+          'indicador_etapa': etapa,
+        };
+      }).toList();
+    }
   }
 
   factory BudgetEditDto.fromJson(Map<String, dynamic> json) {
-    final List<ProductSelectionDto> productsList = [];
+    final produtos = (json['produtos'] as List?)
+            ?.whereType<Map<String, dynamic>>()
+            .toList() ??
+        const <Map<String, dynamic>>[];
 
-    final List<int> cities = [];
-    final List<Map<String, dynamic>> citiesData = [];
-
-    if (json['cidades'] != null && json['cidades'] is List) {
-      final cidadesList = json['cidades'] as List;
-      for (final cidade in cidadesList) {
-        if (cidade is Map<String, dynamic> && cidade['id'] != null) {
-          final normalized = _normalizeCityData(cidade);
-          cities.add(_toInt(normalized['id']));
-          citiesData.add(normalized);
-        } else if (cidade is int) {
-          cities.add(cidade);
-        }
-      }
-    } else if (json['cidade'] != null && json['cidade'] is Map) {
-      final cidadeMap = json['cidade'] as Map<String, dynamic>;
-      final cidadeId = _toInt(cidadeMap['id']);
-      final cidadeName = (cidadeMap['nome'] ?? 'Cidade $cidadeId').toString();
-
-      cities.add(cidadeId);
-
-      final normalizedCity = _normalizeCityData({
-        ...cidadeMap,
-        'id': cidadeId,
-        'nome': cidadeName,
-      });
-      citiesData.add(normalizedCity);
+    final mapaIndicadores = json['mapa_indicadores'] as Map<String, dynamic>?;
+    if (mapaIndicadores != null) {
+      _mergeIndicadores(produtos, mapaIndicadores);
     }
 
-    CensusDataDto? census;
-    if (json['censo'] != null) {
-      census = CensusDataDto.fromJson(json['censo']);
-    }
-
-    Map<String, double> censoAgregado = {};
-    final censoAgregadoRaw = json['censo_agregado'];
-    if (censoAgregadoRaw is Map<String, dynamic>) {
-      censoAgregado = censoAgregadoRaw.map(
-        (key, value) => MapEntry(key, (value as num).toDouble()),
-      );
+    final cities = <int>[];
+    final citiesData = <Map<String, dynamic>>[];
+    final cidade = json['cidade'];
+    if (cidade is Map<String, dynamic>) {
+      cities.add(_toInt(cidade['idCidades']));
+      citiesData.add(cidade);
     }
 
     return BudgetEditDto(
-      id: json['id'] ?? 0,
-      name: json['nome'],
-      validityDays: json['dias_validade'] ?? 30,
-      validityDate: json['data_validade'] != null
-          ? DateTime.tryParse(json['data_validade'])
+      id: _toInt(json['orc_orcamentoId']),
+      name: json['orc_nome'] as String?,
+      validityDays: _toInt(json['orc_dias_validade']),
+      validityDate: json['orc_data_validade'] != null
+          ? DateTime.tryParse(json['orc_data_validade'] as String)
           : null,
-      creationDate: json['created_at'] != null
-          ? DateTime.tryParse(json['created_at'])
+      creationDate: null,
+      status: (json['orc_status'] as String?) ?? 'pendente',
+      total: _toDouble(json['orc_total']),
+      userId: _toInt(json['orc_usuario_id']),
+      partnerId: json['orc_partner_destino_id'] != null
+          ? _toInt(json['orc_partner_destino_id'])
           : null,
-      status: json['status'] ?? 'pendente',
-      total: (json['total'] ?? 0.0).toDouble(),
-      userId: json['usuario_id'] ?? 0,
-      partnerId: (json['partner_destino_id'] as num?)?.toInt(),
       cityIds: cities,
       citiesDataRaw: citiesData,
-      products: productsList,
-      categoriesData: json['categorias'] ?? [],
-      censusData: census,
-      isArchived: json['is_archived'] as bool? ?? false,
-      censoAgregado: censoAgregado,
+      products: _buildSelectedProducts(produtos),
+      categoriesData: _buildCategoriesData(produtos),
+      censusData: null,
+      isArchived: false,
+      censoAgregado: const {},
     );
   }
 

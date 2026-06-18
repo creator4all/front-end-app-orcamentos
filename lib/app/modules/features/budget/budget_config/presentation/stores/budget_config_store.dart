@@ -85,6 +85,15 @@ abstract class _BudgetConfigStoreBase with Store {
   /// Indica se o usuário alterou a data de validade nesta sessão
   bool _validityDateChanged = false;
 
+  // ── Snapshot do estado inicial dos produtos (para delta no PUT) ──
+  final Map<int, bool> _origSelecionado = {};
+  final Map<int, double> _origQuantidade = {};
+  final Map<int, double> _origValor = {};
+  final Map<int, Map<int, bool>> _origIndicadores = {};
+
+  /// Indica se o snapshot inicial dos produtos já foi capturado nesta sessão.
+  bool _snapshotTaken = false;
+
   @observable
   String? budgetName;
 
@@ -672,6 +681,7 @@ abstract class _BudgetConfigStoreBase with Store {
 
   @action
   void confirmProductRemark() {
+    _ensureSnapshot();
     if (productsNeedingRemark.isEmpty) return;
 
     _remarkProducts(productsNeedingRemark);
@@ -688,6 +698,7 @@ abstract class _BudgetConfigStoreBase with Store {
 
   @action
   void updateCensoEscolar(CensoEscolarEntity updatedCenso) {
+    _ensureSnapshot();
     censoEscolar = updatedCenso;
 
     if (budgetDetail != null) {
@@ -972,6 +983,7 @@ abstract class _BudgetConfigStoreBase with Store {
 
   @action
   void toggleProduct(int productId, bool selected) {
+    _ensureSnapshot();
     for (var i = 0; i < categories.length; i++) {
       final category = categories[i];
 
@@ -1038,6 +1050,7 @@ abstract class _BudgetConfigStoreBase with Store {
   @action
   void toggleSubcategoryWithCascade(
       int categoryId, int subcategoryId, bool selected) {
+    _ensureSnapshot();
     final categoryIndex = categories.indexWhere((c) => c.id == categoryId);
     if (categoryIndex == -1) return;
 
@@ -1065,6 +1078,7 @@ abstract class _BudgetConfigStoreBase with Store {
 
   @action
   void toggleCategoryWithCascade(int categoryId, bool selected) {
+    _ensureSnapshot();
     final categoryIndex = categories.indexWhere((c) => c.id == categoryId);
     if (categoryIndex == -1) return;
 
@@ -1083,6 +1097,7 @@ abstract class _BudgetConfigStoreBase with Store {
 
   @action
   void updateProductFromModal(ProductEntity updatedProduct) {
+    _ensureSnapshot();
     for (var i = 0; i < categories.length; i++) {
       final category = categories[i];
 
@@ -1116,6 +1131,7 @@ abstract class _BudgetConfigStoreBase with Store {
 
   @action
   void updateProductQuantity(int productId, double quantity) {
+    _ensureSnapshot();
     if (quantity < 1.0) {
       return;
     }
@@ -1158,6 +1174,7 @@ abstract class _BudgetConfigStoreBase with Store {
 
   @action
   void updateProductValue(int productId, double value) {
+    _ensureSnapshot();
     for (var i = 0; i < categories.length; i++) {
       final category = categories[i];
 
@@ -1196,6 +1213,7 @@ abstract class _BudgetConfigStoreBase with Store {
 
   @action
   void updateProductObservations(int productId, String? observations) {
+    _ensureSnapshot();
     for (var i = 0; i < categories.length; i++) {
       final category = categories[i];
 
@@ -1234,6 +1252,7 @@ abstract class _BudgetConfigStoreBase with Store {
 
   @action
   void toggleProductIndicator(int productId, int indicatorId) {
+    _ensureSnapshot();
     for (var i = 0; i < categories.length; i++) {
       final category = categories[i];
 
@@ -1246,8 +1265,12 @@ abstract class _BudgetConfigStoreBase with Store {
         if (productIndex != -1) {
           final product = subcategory.produtos[productIndex];
 
-          final indicatorIndex = product.indicadoresEtapa
-              .indexWhere((ind) => ind.produtoIndicadorId == indicatorId);
+          final indicatorIndex = product.indicadoresEtapa.indexWhere((ind) {
+            if (ind.produtoIndicadorId > 0) {
+              return ind.produtoIndicadorId == indicatorId;
+            }
+            return ind.indicadorId == indicatorId;
+          });
 
           if (indicatorIndex != -1) {
             final indicator = product.indicadoresEtapa[indicatorIndex];
@@ -1300,6 +1323,7 @@ abstract class _BudgetConfigStoreBase with Store {
   @action
   void updateProductIndicators(
       int productId, Map<String, List<String>> selectedIndicators) {
+    _ensureSnapshot();
     for (var i = 0; i < categories.length; i++) {
       final category = categories[i];
 
@@ -1405,6 +1429,7 @@ abstract class _BudgetConfigStoreBase with Store {
 
   @action
   Future<void> reloadProductsAfterCensusEdit() async {
+    _ensureSnapshot();
     if (budgetDetail == null) return;
 
     if (budgetDetail!.censoAgregado.isNotEmpty) {
@@ -1432,6 +1457,65 @@ abstract class _BudgetConfigStoreBase with Store {
     }
   }
 
+  /// Captura o snapshot inicial uma única vez, imediatamente antes da
+  /// primeira alteração do usuário (estado "padrão" pós-carregamento).
+  void _ensureSnapshot() {
+    if (_snapshotTaken) return;
+    _snapshotInitialProducts();
+    _snapshotTaken = true;
+  }
+
+  void _snapshotInitialProducts() {
+    _origSelecionado.clear();
+    _origQuantidade.clear();
+    _origValor.clear();
+    _origIndicadores.clear();
+
+    for (final cat in categories) {
+      for (final sub in cat.subcategorias) {
+        for (final prod in sub.produtos) {
+          _origSelecionado[prod.id] = prod.selecionado;
+          _origQuantidade[prod.id] = prod.quantidade;
+          _origValor[prod.id] = prod.valor;
+          final indicatorMap = <int, bool>{};
+          for (final ind in prod.indicadoresEtapa) {
+            indicatorMap[ind.produtoIndicadorId] = ind.selecionado;
+          }
+          _origIndicadores[prod.id] = indicatorMap;
+        }
+      }
+    }
+  }
+
+  bool _isProductChanged(ProductEntity prod) {
+    if (_origSelecionado[prod.id] != prod.selecionado) return true;
+    if ((_origQuantidade[prod.id] ?? 0) != prod.quantidade) return true;
+    if ((_origValor[prod.id] ?? 0) != prod.valor) return true;
+
+    final origInds = _origIndicadores[prod.id];
+    if (origInds != null) {
+      for (final ind in prod.indicadoresEtapa) {
+        if (origInds[ind.produtoIndicadorId] != ind.selecionado) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  Set<int> _changedIndicatorIds(ProductEntity prod) {
+    final changed = <int>{};
+    final origInds = _origIndicadores[prod.id];
+    if (origInds == null) return changed;
+    for (final ind in prod.indicadoresEtapa) {
+      if (origInds[ind.produtoIndicadorId] != ind.selecionado) {
+        changed.add(ind.produtoIndicadorId);
+      }
+    }
+    return changed;
+  }
+
   @action
   void reset() {
     budgetDetail = null;
@@ -1447,7 +1531,12 @@ abstract class _BudgetConfigStoreBase with Store {
     isLoadingCensus = false;
     isSaving = false;
     _originalValidityDays = null;
+    _snapshotTaken = false;
     _validityDateChanged = false;
+    _origSelecionado.clear();
+    _origQuantidade.clear();
+    _origValor.clear();
+    _origIndicadores.clear();
   }
 
   @action
@@ -1466,14 +1555,27 @@ abstract class _BudgetConfigStoreBase with Store {
     error = null;
 
     try {
+      _ensureSnapshot();
+
       final produtosParaSalvar = <ProductSelectionUpdateDto>[];
 
       for (final category in categories) {
         for (final subcategory in category.subcategorias) {
           for (final product in subcategory.produtos) {
-            produtosParaSalvar.add(
-              ProductSelectionUpdateDto.fromEntity(product),
-            );
+            if (_isProductChanged(product)) {
+              final changedIndIds = _changedIndicatorIds(product);
+              produtosParaSalvar.add(
+                ProductSelectionUpdateDto.delta(
+                  entity: product,
+                  selecionadoChanged:
+                      _origSelecionado[product.id] != product.selecionado,
+                  quantidadeChanged:
+                      (_origQuantidade[product.id] ?? 0) != product.quantidade,
+                  valorChanged: (_origValor[product.id] ?? 0) != product.valor,
+                  changedIndicatorIds: changedIndIds,
+                ),
+              );
+            }
           }
         }
       }
@@ -1511,9 +1613,13 @@ abstract class _BudgetConfigStoreBase with Store {
           return Left(failure);
         },
         (updatedBudget) {
-          budgetDetail = updatedBudget;
+          // Backend pode responder apenas com status de sucesso (sem corpo):
+          // nesse caso mantemos o estado local já atualizado.
+          if (updatedBudget != null) {
+            budgetDetail = updatedBudget;
+          }
           isSaving = false;
-          return Right(updatedBudget);
+          return Right(budgetDetail!);
         },
       );
     } catch (e) {
