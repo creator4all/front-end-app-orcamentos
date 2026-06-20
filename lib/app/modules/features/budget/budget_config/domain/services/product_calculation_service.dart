@@ -11,6 +11,11 @@ class ProductCalculationService {
     ProductEntity produto,
     CensoEscolarEntity? censo,
   ) {
+    // Quantidade manual tem prioridade: ignora indicadores/censo
+    if (produto.quantidadeManual) {
+      return produto.quantidade.toDouble();
+    }
+
     if (_isServico(produto.tipoProduto)) {
       return produto.quantidade.toDouble();
     }

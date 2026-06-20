@@ -17,6 +17,7 @@ typedef SubcategoryResolver = SubcategoryEntity Function(
 typedef ProductSelectionChanged = void Function(int productId, bool selected);
 typedef ProductValueChanged = void Function(int productId, double value);
 typedef ProductQuantityChanged = void Function(int productId, double quantity);
+typedef ProductQuantityModeChanged = void Function(int productId, bool manual);
 typedef ProductIndicatorToggled = void Function(int productId, int indicatorId);
 
 class SubcategoryProductsModal extends StatelessWidget {
@@ -27,6 +28,8 @@ class SubcategoryProductsModal extends StatelessWidget {
   final ProductSelectionChanged? onToggleProduct;
   final ProductValueChanged? onUpdateProductValue;
   final ProductQuantityChanged? onUpdateProductQuantity;
+  final ProductQuantityChanged? onUpdateProductManualQuantity;
+  final ProductQuantityModeChanged? onUpdateProductQuantityMode;
   final ProductIndicatorToggled? onToggleProductIndicator;
   final bool isReadOnly;
 
@@ -39,6 +42,8 @@ class SubcategoryProductsModal extends StatelessWidget {
     this.onToggleProduct,
     this.onUpdateProductValue,
     this.onUpdateProductQuantity,
+    this.onUpdateProductManualQuantity,
+    this.onUpdateProductQuantityMode,
     this.onToggleProductIndicator,
     this.isReadOnly = false,
   });
@@ -52,6 +57,8 @@ class SubcategoryProductsModal extends StatelessWidget {
     ProductSelectionChanged? onToggleProduct,
     ProductValueChanged? onUpdateProductValue,
     ProductQuantityChanged? onUpdateProductQuantity,
+    ProductQuantityChanged? onUpdateProductManualQuantity,
+    ProductQuantityModeChanged? onUpdateProductQuantityMode,
     ProductIndicatorToggled? onToggleProductIndicator,
     bool isReadOnly = false,
   }) {
@@ -66,6 +73,8 @@ class SubcategoryProductsModal extends StatelessWidget {
         onToggleProduct: onToggleProduct,
         onUpdateProductValue: onUpdateProductValue,
         onUpdateProductQuantity: onUpdateProductQuantity,
+        onUpdateProductManualQuantity: onUpdateProductManualQuantity,
+        onUpdateProductQuantityMode: onUpdateProductQuantityMode,
         onToggleProductIndicator: onToggleProductIndicator,
         isReadOnly: isReadOnly,
       ),
@@ -92,6 +101,13 @@ class SubcategoryProductsModal extends StatelessWidget {
       onQuantityChanged: isReadOnly
           ? null
           : (quantity) => onUpdateProductQuantity?.call(product.id, quantity),
+      onManualQuantityChanged: isReadOnly
+          ? null
+          : (quantity) =>
+              onUpdateProductManualQuantity?.call(product.id, quantity),
+      onQuantityModeChanged: isReadOnly
+          ? null
+          : (manual) => onUpdateProductQuantityMode?.call(product.id, manual),
       onIndicatorToggled: isReadOnly
           ? null
           : (indicatorId) =>

@@ -7,6 +7,7 @@ class ProductSelectionUpdateDto extends Equatable {
   final int productId;
   final bool selecionado;
   final double quantidade;
+  final bool quantidadeManual;
   final String tipoProduto;
   final List<IndicadorProdutoUpdateDto>? indicadores;
   final double? valor;
@@ -19,6 +20,7 @@ class ProductSelectionUpdateDto extends Equatable {
     required this.productId,
     required this.selecionado,
     required this.quantidade,
+    this.quantidadeManual = false,
     required this.tipoProduto,
     this.indicadores,
     this.valor,
@@ -58,6 +60,7 @@ class ProductSelectionUpdateDto extends Equatable {
       productId: entity.id,
       selecionado: entity.selecionado,
       quantidade: entity.quantidade,
+      quantidadeManual: entity.quantidadeManual,
       tipoProduto: entity.tipoProduto,
       indicadores: changedIndicadores,
       valor: entity.valor,
@@ -81,6 +84,7 @@ class ProductSelectionUpdateDto extends Equatable {
       productId: entity.id,
       selecionado: entity.selecionado,
       quantidade: entity.quantidade,
+      quantidadeManual: entity.quantidadeManual,
       tipoProduto: entity.tipoProduto,
       indicadores: indicadoresDto.isNotEmpty ? indicadoresDto : null,
       valor: valorAlterado,
@@ -95,6 +99,7 @@ class ProductSelectionUpdateDto extends Equatable {
         'produto_id': productId,
         'selecionado': selecionado,
         'quantidade': quantidade,
+        'quantidade_manual': quantidadeManual,
         if (indicadores != null && indicadores!.isNotEmpty)
           'indicadores_etapa': indicadores!.map((i) => i.toJson()).toList(),
         if (valor != null) 'valor': valor,
@@ -105,7 +110,8 @@ class ProductSelectionUpdateDto extends Equatable {
       : {
           'produto_id': productId,
           'selecionado': selecionado,
-          if (isServico) 'quantidade': quantidade,
+          if (isServico || quantidadeManual) 'quantidade': quantidade,
+          'quantidade_manual': quantidadeManual,
           if (indicadores != null)
             'indicadores_etapa': indicadores!.map((i) => i.toJson()).toList(),
           if (valor != null) 'valor': valor,
@@ -114,7 +120,8 @@ class ProductSelectionUpdateDto extends Equatable {
   Map<String, dynamic> toJsonForMultiCity() => {
         'produto_id': productId,
         'selecionado': selecionado,
-        if (isServico) 'quantidade': quantidade,
+        if (isServico || quantidadeManual) 'quantidade': quantidade,
+        'quantidade_manual': quantidadeManual,
         if (!isServico && indicadores != null && indicadores!.isNotEmpty)
           'indicadores_etapa': indicadores!.map((i) => i.toJson()).toList(),
         if (valor != null) 'valor': valor,
@@ -125,6 +132,7 @@ class ProductSelectionUpdateDto extends Equatable {
         productId,
         selecionado,
         quantidade,
+        quantidadeManual,
         tipoProduto,
         indicadores,
         valor,

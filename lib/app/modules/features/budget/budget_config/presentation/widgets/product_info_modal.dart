@@ -16,6 +16,12 @@ class ProductInfoModal extends StatefulWidget {
   final ValueChanged<double>? onQuantityChanged;
   final ValueChanged<int>? onIndicatorToggled;
 
+  /// Define a quantidade manualmente (ativa o modo manual).
+  final ValueChanged<double>? onManualQuantityChanged;
+
+  /// Alterna entre quantidade manual (true) e cálculo por indicadores (false).
+  final ValueChanged<bool>? onQuantityModeChanged;
+
   const ProductInfoModal({
     super.key,
     required this.getProduct,
@@ -24,6 +30,8 @@ class ProductInfoModal extends StatefulWidget {
     this.onValueChanged,
     this.onQuantityChanged,
     this.onIndicatorToggled,
+    this.onManualQuantityChanged,
+    this.onQuantityModeChanged,
   });
 
   static Future<void> show({
@@ -34,6 +42,8 @@ class ProductInfoModal extends StatefulWidget {
     ValueChanged<double>? onValueChanged,
     ValueChanged<double>? onQuantityChanged,
     ValueChanged<int>? onIndicatorToggled,
+    ValueChanged<double>? onManualQuantityChanged,
+    ValueChanged<bool>? onQuantityModeChanged,
   }) {
     return CustomModal.show(
       context: context,
@@ -45,6 +55,8 @@ class ProductInfoModal extends StatefulWidget {
         onValueChanged: onValueChanged,
         onQuantityChanged: onQuantityChanged,
         onIndicatorToggled: onIndicatorToggled,
+        onManualQuantityChanged: onManualQuantityChanged,
+        onQuantityModeChanged: onQuantityModeChanged,
       ),
     );
   }
@@ -56,6 +68,8 @@ class ProductInfoModal extends StatefulWidget {
 class _ProductInfoModalState extends State<ProductInfoModal> {
   late final TextEditingController _valueController;
   late final TextEditingController _horasController;
+  late final TextEditingController _quantidadeController;
+  final FocusNode _quantidadeFocus = FocusNode();
 
   @override
   void initState() {
@@ -67,12 +81,17 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
     _horasController = TextEditingController(
       text: product.quantidade > 0 ? product.formattedQuantidade : '',
     );
+    _quantidadeController = TextEditingController(
+      text: product.quantidade > 0 ? product.formattedQuantidade : '',
+    );
   }
 
   @override
   void dispose() {
     _valueController.dispose();
     _horasController.dispose();
+    _quantidadeController.dispose();
+    _quantidadeFocus.dispose();
     super.dispose();
   }
 
@@ -179,8 +198,15 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
               _buildHorasField(product),
               SizedBox(height: 24.h),
             ] else if (product.indicadoresEtapa.isNotEmpty) ...[
+              _buildQuantityModeSwitch(product),
+              SizedBox(height: 16.h),
+              if (product.quantidadeManual) ...[
+                _buildQuantidadeField(product),
+                SizedBox(height: 24.h),
+              ],
               IndicadoresEtapaSection(
                 indicadores: product.indicadoresEtapa,
+                enabled: !product.quantidadeManual,
                 onToggle: (indicadorId, valor) {
                   widget.onIndicatorToggled?.call(indicadorId);
                 },
@@ -241,6 +267,115 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
           },
           decoration: InputDecoration(
             hintText: 'Insira a quantidade de horas',
+            hintStyle: TextStyle(
+              color: const Color(0xFF8C8C8C),
+              fontSize: 14.sp,
+            ),
+            contentPadding:
+                EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8.r),
+              borderSide: const BorderSide(color: Color(0xFFD9D9D9)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8.r),
+              borderSide: const BorderSide(color: Color(0xFFD9D9D9)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8.r),
+              borderSide: const BorderSide(color: Color(0xFF2830F2)),
+            ),
+          ),
+          style: TextStyle(
+            fontSize: 14.sp,
+            color: Colors.black,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuantityModeSwitch(ProductEntity product) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Text(
+            product.quantidadeManual
+                ? 'Quantidade manual'
+                : 'Calcular pelos indicadores',
+            style: TextStyle(
+              fontSize: 14.sp,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+              fontFamily: 'Roboto',
+            ),
+          ),
+        ),
+        Switch(
+          value: product.quantidadeManual,
+          activeColor: const Color(0xFF2830F2),
+          onChanged: widget.onQuantityModeChanged == null
+              ? null
+              : (value) => widget.onQuantityModeChanged!(value),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuantidadeField(ProductEntity product) {
+    // Mantém o campo sincronizado com a quantidade atual quando não está em foco
+    // (ex.: após recálculo), sem atrapalhar a digitação do usuário.
+    if (!_quantidadeFocus.hasFocus) {
+      final text = product.quantidade > 0 ? product.formattedQuantidade : '';
+      if (_quantidadeController.text != text) {
+        _quantidadeController.value = TextEditingValue(
+          text: text,
+          selection: TextSelection.collapsed(offset: text.length),
+        );
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        RichText(
+          text: TextSpan(
+            children: [
+              TextSpan(
+                text: 'Quantidade: ',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                  fontFamily: 'Roboto',
+                ),
+              ),
+              TextSpan(
+                text: product.formattedQuantidade,
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w400,
+                  color: Colors.black,
+                  fontFamily: 'Roboto',
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: 8.h),
+        TextField(
+          controller: _quantidadeController,
+          focusNode: _quantidadeFocus,
+          keyboardType: TextInputType.number,
+          onChanged: (value) {
+            final qtd = double.tryParse(value) ?? 0;
+            if (qtd > 0) {
+              widget.onManualQuantityChanged?.call(qtd);
+            }
+          },
+          decoration: InputDecoration(
+            hintText: 'Insira a quantidade',
             hintStyle: TextStyle(
               color: const Color(0xFF8C8C8C),
               fontSize: 14.sp,

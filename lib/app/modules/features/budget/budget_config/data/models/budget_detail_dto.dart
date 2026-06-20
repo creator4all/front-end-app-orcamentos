@@ -262,6 +262,7 @@ class BudgetDetailDto {
         'selecionado': op['op_selecionado'] as bool? ?? false,
         'quantidade':
             double.tryParse(op['op_quantidade']?.toString() ?? '0') ?? 0.0,
+        'op_quantidade_manual': op['op_quantidade_manual'] as bool? ?? false,
       };
 
       // Check for overrides

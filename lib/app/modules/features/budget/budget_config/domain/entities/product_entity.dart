@@ -27,6 +27,10 @@ class ProductEntity extends Equatable {
   final bool selecionado;
 
   final double quantidade;
+
+  /// Se true, a quantidade foi definida manualmente e ignora os indicadores.
+  final bool quantidadeManual;
+
   final bool temOverride;
   final String? observacoes;
   final double valorOriginal;
@@ -46,6 +50,7 @@ class ProductEntity extends Equatable {
     required this.subcategoriaId,
     required this.selecionado,
     required this.quantidade,
+    this.quantidadeManual = false,
     required this.temOverride,
     this.observacoes,
     required this.valorOriginal,
@@ -89,6 +94,7 @@ class ProductEntity extends Equatable {
         subcategoriaId,
         selecionado,
         quantidade,
+        quantidadeManual,
         temOverride,
         observacoes,
         valorOriginal,

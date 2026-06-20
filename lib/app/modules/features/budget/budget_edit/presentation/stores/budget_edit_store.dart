@@ -574,7 +574,9 @@ abstract class _BudgetEditStoreBase with Store {
           final product = subcategory.produtos[prodIndex];
           var updatedProduct = product.copyWith(selecionado: selected);
 
-          if (selected && censoEscolar != null) {
+          if (selected &&
+              censoEscolar != null &&
+              !updatedProduct.quantidadeManual) {
             final novaQuantidade = calculationService.calcularQuantidade(
               updatedProduct,
               censoEscolar,
@@ -697,6 +699,104 @@ abstract class _BudgetEditStoreBase with Store {
     }
   }
 
+  /// Define a quantidade manualmente para um produto, ativando o modo manual
+  /// (a quantidade passa a ignorar os indicadores).
+  @action
+  void setProductManualQuantity(int productId, double quantity) {
+    for (var i = 0; i < categories.length; i++) {
+      final category = categories[i];
+
+      for (var j = 0; j < category.subcategorias.length; j++) {
+        final subcategory = category.subcategorias[j];
+        final prodIndex = subcategory.produtos.indexWhere(
+          (p) => p.id == productId,
+        );
+
+        if (prodIndex != -1) {
+          final product = subcategory.produtos[prodIndex];
+          final updatedProduct = product.copyWith(
+            quantidade: quantity,
+            quantidadeManual: true,
+          );
+
+          final updatedProducts = List<ProductEntity>.from(
+            subcategory.produtos,
+          );
+          updatedProducts[prodIndex] = updatedProduct;
+
+          final updatedSubcategory = subcategory.copyWith(
+            produtos: updatedProducts,
+          );
+
+          final updatedSubcategories = List<SubcategoryEntity>.from(
+            category.subcategorias,
+          );
+          updatedSubcategories[j] = updatedSubcategory;
+
+          final updatedCategory = category.copyWith(
+            subcategorias: updatedSubcategories,
+          );
+
+          categories[i] = updatedCategory;
+          return;
+        }
+      }
+    }
+  }
+
+  /// Alterna o modo de cálculo da quantidade entre manual e por indicadores.
+  /// Ao voltar para indicadores (manual=false), recalcula a quantidade.
+  @action
+  void setProductQuantityMode(int productId, bool manual) {
+    for (var i = 0; i < categories.length; i++) {
+      final category = categories[i];
+
+      for (var j = 0; j < category.subcategorias.length; j++) {
+        final subcategory = category.subcategorias[j];
+        final prodIndex = subcategory.produtos.indexWhere(
+          (p) => p.id == productId,
+        );
+
+        if (prodIndex != -1) {
+          final product = subcategory.produtos[prodIndex];
+          var updatedProduct = product.copyWith(quantidadeManual: manual);
+
+          if (!manual) {
+            // Voltar ao cálculo por indicadores: recalcular a quantidade
+            final novaQuantidade = calculationService.calcularQuantidade(
+              updatedProduct,
+              censoEscolar,
+            );
+            updatedProduct = updatedProduct.copyWith(
+              quantidade: novaQuantidade,
+            );
+          }
+
+          final updatedProducts = List<ProductEntity>.from(
+            subcategory.produtos,
+          );
+          updatedProducts[prodIndex] = updatedProduct;
+
+          final updatedSubcategory = subcategory.copyWith(
+            produtos: updatedProducts,
+          );
+
+          final updatedSubcategories = List<SubcategoryEntity>.from(
+            category.subcategorias,
+          );
+          updatedSubcategories[j] = updatedSubcategory;
+
+          final updatedCategory = category.copyWith(
+            subcategorias: updatedSubcategories,
+          );
+
+          categories[i] = updatedCategory;
+          return;
+        }
+      }
+    }
+  }
+
   @action
   void updateProductObservations(int productId, String observations) {
     for (var i = 0; i < categories.length; i++) {
@@ -776,7 +876,7 @@ abstract class _BudgetEditStoreBase with Store {
               indicadoresEtapa: updatedIndicators,
             );
 
-            if (censoEscolar != null) {
+            if (censoEscolar != null && !updatedProduct.quantidadeManual) {
               final novaQuantidade = calculationService.calcularQuantidade(
                 updatedProduct,
                 censoEscolar,

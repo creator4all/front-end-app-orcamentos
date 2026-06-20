@@ -8,10 +8,14 @@ class IndicadoresEtapaSection extends StatelessWidget {
   final List<IndicadorEtapaEntity> indicadores;
   final Function(int indicadorId, bool valor)? onToggle;
 
+  /// Quando false, os indicadores ficam visíveis porém desabilitados (cinza).
+  final bool enabled;
+
   const IndicadoresEtapaSection({
     super.key,
     required this.indicadores,
     this.onToggle,
+    this.enabled = true,
   });
 
   @override
@@ -65,7 +69,7 @@ class IndicadoresEtapaSection extends StatelessWidget {
         children: [
           CustomCheckbox(
             value: indicador.selecionado,
-            onChanged: onToggle == null
+            onChanged: (!enabled || onToggle == null)
                 ? null
                 : (value) {
                     final toggleId = indicador.produtoIndicadorId > 0
@@ -80,7 +84,8 @@ class IndicadoresEtapaSection extends StatelessWidget {
               indicador.indicadorNome,
               style: TextStyle(
                 fontSize: 14.sp,
-                color: const Color(0xFF484848),
+                color:
+                    enabled ? const Color(0xFF484848) : const Color(0xFFBFBFBF),
                 fontWeight: FontWeight.w400,
               ),
             ),

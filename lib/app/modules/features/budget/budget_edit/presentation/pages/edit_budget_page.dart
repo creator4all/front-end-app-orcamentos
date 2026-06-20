@@ -841,6 +841,8 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
       onToggleProduct: store.toggleProduct,
       onUpdateProductValue: store.updateProductValue,
       onUpdateProductQuantity: store.updateProductQuantity,
+      onUpdateProductManualQuantity: store.setProductManualQuantity,
+      onUpdateProductQuantityMode: store.setProductQuantityMode,
       onToggleProductIndicator: store.toggleProductIndicator,
     );
   }

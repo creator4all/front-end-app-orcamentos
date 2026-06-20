@@ -15,6 +15,7 @@ class ProductDTO {
   final int subcategoriaId;
   final bool selecionado;
   final double quantidade;
+  final bool quantidadeManual;
   final bool temOverride;
   final String? observacoes;
   final double valorOriginal;
@@ -34,6 +35,7 @@ class ProductDTO {
     required this.subcategoriaId,
     required this.selecionado,
     required this.quantidade,
+    this.quantidadeManual = false,
     required this.temOverride,
     this.observacoes,
     required this.valorOriginal,
@@ -86,6 +88,12 @@ class ProductDTO {
         orcProduto?['op_quantidade'] ??
             orcProduto?['quantidade'] ??
             json['quantidade'],
+      );
+      final bool quantidadeManual = _parseBool(
+        orcProduto?['op_quantidade_manual'] ??
+            orcProduto?['quantidade_manual'] ??
+            json['quantidade_manual'] ??
+            false,
       );
 
       final bool temOverride = (json['tem_override'] as bool?) ?? false;
@@ -156,6 +164,7 @@ class ProductDTO {
         subcategoriaId: subcategoriaId,
         selecionado: selecionado,
         quantidade: quantidade,
+        quantidadeManual: quantidadeManual,
         temOverride: temOverride,
         observacoes: observacoes,
         valorOriginal: valorOriginal,
@@ -181,6 +190,7 @@ class ProductDTO {
       subcategoriaId: subcategoriaId,
       selecionado: quantidade > 0 ? selecionado : false,
       quantidade: quantidade,
+      quantidadeManual: quantidadeManual,
       temOverride: temOverride,
       observacoes: observacoes,
       valorOriginal: valorOriginal,
@@ -203,6 +213,7 @@ class ProductDTO {
       'subcategoria_id': subcategoriaId,
       'selecionado': selecionado,
       'quantidade': quantidade,
+      'quantidade_manual': quantidadeManual,
       'tem_override': temOverride,
       'observacoes': observacoes,
       'valor_original': valorOriginal,
@@ -227,6 +238,7 @@ class ProductDTO {
       subcategoriaId: entity.subcategoriaId,
       selecionado: entity.selecionado,
       quantidade: entity.quantidade,
+      quantidadeManual: entity.quantidadeManual,
       temOverride: entity.temOverride,
       observacoes: entity.observacoes,
       valorOriginal: entity.valorOriginal,
