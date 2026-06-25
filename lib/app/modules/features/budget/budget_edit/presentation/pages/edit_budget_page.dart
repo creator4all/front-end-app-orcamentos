@@ -12,6 +12,7 @@ import '../../../../../../shared/widgets/budget_summary_card.dart';
 import '../../../../../../shared/widgets/custom_top_bar.dart';
 import '../../../../../../shared/widgets/export_pdf_modal.dart';
 import '../../../../../../shared/widgets/product_category.dart';
+import '../../../../../../shared/widgets/select_all_card.dart';
 import '../../../../../../shared/widgets/status_tag_widget.dart';
 import '../../../../auth/presentation/stores/auth_store.dart';
 import '../../../budget_config/domain/entities/category_entity.dart';
@@ -667,16 +668,40 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     );
   }
 
+  Widget _buildSelectAllCategoryCard(CategoryEntity category) {
+    return Observer(
+      builder: (_) {
+        final currentCategory = store.categories.firstWhere(
+          (c) => c.id == category.id,
+          orElse: () => category,
+        );
+
+        return SelectAllCard(
+          value: currentCategory.allActiveSubcategoriesSelected,
+          onChanged: (selected) {
+            store.toggleCategoryWithCascade(currentCategory.id, selected);
+          },
+        );
+      },
+    );
+  }
+
   List<Widget> _buildExpandedSubcategories(CategoryEntity category) {
     final sortedSubcategories = category.subcategorias.toList()
       ..sort((a, b) => a.ordem.compareTo(b.ordem));
 
-    return sortedSubcategories.map((subcategory) {
-      return Padding(
+    return [
+      Padding(
         padding: EdgeInsets.only(bottom: 12.h),
-        child: _buildSubcategoryCard(subcategory, category),
-      );
-    }).toList();
+        child: _buildSelectAllCategoryCard(category),
+      ),
+      ...sortedSubcategories.map((subcategory) {
+        return Padding(
+          padding: EdgeInsets.only(bottom: 12.h),
+          child: _buildSubcategoryCard(subcategory, category),
+        );
+      }),
+    ];
   }
 
   Widget _buildSubcategoryCard(
@@ -717,6 +742,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
           onActionTap: () {
             _showProductsModal(currentCategory, currentSubcategory);
           },
+          splitTapZones: true,
         );
       },
     );
@@ -844,6 +870,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
       onUpdateProductManualQuantity: store.setProductManualQuantity,
       onUpdateProductQuantityMode: store.setProductQuantityMode,
       onToggleProductIndicator: store.toggleProductIndicator,
+      onToggleAllProducts: store.toggleSubcategoryWithCascade,
     );
   }
 
@@ -900,6 +927,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
           onActionTap: () {
             _showSubcategoriesModal(currentCategory);
           },
+          splitTapZones: true,
         );
       },
     );

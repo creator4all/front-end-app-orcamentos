@@ -37,6 +37,10 @@ class ProductEntity extends Equatable {
   final bool ativoOriginal;
   final List<IndicadorEtapaEntity> indicadoresEtapa;
 
+  final double? percent;
+  final double? horasFixas;
+  final List<int> produtosRelacionadosIds;
+
   const ProductEntity({
     required this.id,
     required this.codigo,
@@ -56,6 +60,9 @@ class ProductEntity extends Equatable {
     required this.valorOriginal,
     required this.ativoOriginal,
     required this.indicadoresEtapa,
+    this.percent,
+    this.horasFixas,
+    this.produtosRelacionadosIds = const [],
   });
 
   bool get canBeDisplayed => ativo;
@@ -100,6 +107,9 @@ class ProductEntity extends Equatable {
         valorOriginal,
         ativoOriginal,
         indicadoresEtapa,
+        percent,
+        horasFixas,
+        produtosRelacionadosIds,
       ];
 
   @override

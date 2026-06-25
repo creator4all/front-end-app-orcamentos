@@ -9,14 +9,18 @@ class ProductCalculationService {
 
   double calcularQuantidade(
     ProductEntity produto,
-    CensoEscolarEntity? censo,
-  ) {
+    CensoEscolarEntity? censo, {
+    List<ProductEntity>? todosProdutos,
+  }) {
     // Quantidade manual tem prioridade: ignora indicadores/censo
     if (produto.quantidadeManual) {
       return produto.quantidade.toDouble();
     }
 
     if (_isServico(produto.tipoProduto)) {
+      if (todosProdutos != null) {
+        return calcularQuantidadeServico(produto, todosProdutos, censo);
+      }
       return produto.quantidade.toDouble();
     }
 
@@ -40,9 +44,11 @@ class ProductCalculationService {
 
   double calcularValorProduto(
     ProductEntity produto,
-    CensoEscolarEntity? censo,
-  ) {
-    final quantidade = calcularQuantidade(produto, censo);
+    CensoEscolarEntity? censo, {
+    List<ProductEntity>? todosProdutos,
+  }) {
+    final quantidade =
+        calcularQuantidade(produto, censo, todosProdutos: todosProdutos);
     return produto.valor * quantidade;
   }
 
@@ -85,6 +91,39 @@ class ProductCalculationService {
         tipo.contains('software') ||
         tipo.contains('plataforma') ||
         tipo.contains('digital');
+  }
+
+  double calcularQuantidadeServico(
+    ProductEntity servico,
+    List<ProductEntity> todosProdutos,
+    CensoEscolarEntity? censo,
+  ) {
+    if (servico.quantidadeManual) {
+      return servico.quantidade.toDouble();
+    }
+
+    if (servico.produtosRelacionadosIds.isEmpty || censo == null) {
+      return servico.quantidade.toDouble();
+    }
+
+    final vinculadosSelecionados = todosProdutos
+        .where((p) =>
+            servico.produtosRelacionadosIds.contains(p.id) && p.selecionado)
+        .toList();
+
+    if (vinculadosSelecionados.isEmpty) {
+      return 0.0;
+    }
+
+    double soma = 0.0;
+    for (final vinculado in vinculadosSelecionados) {
+      soma += calcularQuantidade(vinculado, censo);
+    }
+
+    final percent = servico.percent ?? 0.08;
+    final horasFixas = servico.horasFixas ?? 0.0;
+
+    return ((soma * percent) + horasFixas).floorToDouble();
   }
 
   bool _isServico(String tipoProduto) {
@@ -166,6 +205,10 @@ class ProductCalculationService {
     List<CategoryEntity> categories,
     CensoEscolarEntity censo,
   ) {
+    final todosProdutos = categories
+        .expand((c) => c.subcategorias.expand((s) => s.produtos))
+        .toList();
+
     final result = <CategoryEntity>[];
 
     for (final category in categories) {
@@ -181,7 +224,11 @@ class ProductCalculationService {
           final product = updatedProds[k];
           if (!product.selecionado) continue;
 
-          final novaQtd = calcularQuantidade(product, censo);
+          final novaQtd = calcularQuantidade(
+            product,
+            censo,
+            todosProdutos: todosProdutos,
+          );
           if (novaQtd != product.quantidade) {
             updatedProds[k] = product.copyWith(quantidade: novaQtd);
             subChanged = true;

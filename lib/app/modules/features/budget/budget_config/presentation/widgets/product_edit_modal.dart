@@ -263,6 +263,7 @@ class _ProductEditModalState extends State<ProductEditModal> {
                           return CheckboxListTile(
                             value: indicador.selecionado,
                             onChanged: (value) => _toggleIndicador(index),
+                            activeColor: const Color(0xFF117BBD),
                             title: Text(
                               _formatarNomeIndicador(indicador.nomeEtapa),
                               style: TextStyle(

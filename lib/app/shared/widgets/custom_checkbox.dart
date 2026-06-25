@@ -26,7 +26,7 @@ class CustomCheckbox extends StatelessWidget {
     this.uncheckedBorderColor,
   });
 
-  static const _defaultCheckedColor = Color(0xFF2830F2);
+  static const _defaultCheckedColor = Color(0xFF117BBD);
   static const _defaultDisabledColor = Color(0xFFBDBDBD);
   static const _defaultUncheckedBorderColor = Color(0xFFD9D9D9);
 

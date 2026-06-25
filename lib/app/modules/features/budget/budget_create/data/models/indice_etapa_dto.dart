@@ -54,7 +54,7 @@ class IndiceEtapaDto {
           '',
       grupoId: grupoId,
       grupoNome: grupoNome,
-      percentualPopulacao: (json['percentual_populacao'] as num?)?.toDouble(),
+      percentualPopulacao: _toDoubleOrNull(json['percentual_populacao']),
       createdAt: parseDate(json['created_at']) ?? DateTime.now(),
       updatedAt: parseDate(json['updated_at']) ?? DateTime.now(),
     );
@@ -87,5 +87,11 @@ class IndiceEtapaDto {
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
+  }
+
+  static double? _toDoubleOrNull(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    return double.tryParse(value.toString());
   }
 }

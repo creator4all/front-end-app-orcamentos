@@ -37,7 +37,7 @@ class CategoryEntity extends Equatable {
   List<SubcategoryEntity> get orderedSubcategorias {
     return subcategorias.toList()..sort((a, b) => a.ordem.compareTo(b.ordem));
   }
-  
+
   int get activeSubcategoriesCount => activeSubcategories.length;
 
   int get totalActiveProducts {
@@ -64,6 +64,11 @@ class CategoryEntity extends Equatable {
   double get selectionPercentage {
     if (totalActiveProducts == 0) return 0.0;
     return (selectedProductsCount / totalActiveProducts) * 100;
+  }
+
+  bool get allActiveSubcategoriesSelected {
+    final active = activeSubcategories;
+    return active.isNotEmpty && active.every((s) => s.hasSelectedProducts);
   }
 
   bool get hasSelectedProducts => selectedProductsCount > 0;

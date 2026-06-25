@@ -512,6 +512,14 @@ abstract class _BudgetEditStoreBase with Store {
         }
       }
     }
+
+    final changedIds = <int>{};
+    for (final sub in category.subcategorias) {
+      for (final prod in sub.produtos) {
+        changedIds.add(prod.id);
+      }
+    }
+    _recalcServicosDependentes(changedIds);
   }
 
   @action
@@ -557,6 +565,9 @@ abstract class _BudgetEditStoreBase with Store {
         selectedProductIds.remove(prod.id);
       }
     }
+
+    final changedIds = subcategory.produtos.map((p) => p.id).toSet();
+    _recalcServicosDependentes(changedIds);
   }
 
   @action
@@ -577,9 +588,13 @@ abstract class _BudgetEditStoreBase with Store {
           if (selected &&
               censoEscolar != null &&
               !updatedProduct.quantidadeManual) {
+            final todosProdutos = categories
+                .expand((c) => c.subcategorias.expand((s) => s.produtos))
+                .toList();
             final novaQuantidade = calculationService.calcularQuantidade(
               updatedProduct,
               censoEscolar,
+              todosProdutos: todosProdutos,
             );
             updatedProduct = updatedProduct.copyWith(
               quantidade: novaQuantidade,
@@ -612,6 +627,7 @@ abstract class _BudgetEditStoreBase with Store {
             selectedProductIds.remove(productId);
           }
 
+          _recalcServicosDependentes({productId});
           return;
         }
       }
@@ -852,12 +868,8 @@ abstract class _BudgetEditStoreBase with Store {
         if (productIndex != -1) {
           final product = subcategory.produtos[productIndex];
 
-          final indicatorIndex = product.indicadoresEtapa.indexWhere((ind) {
-            if (ind.produtoIndicadorId > 0) {
-              return ind.produtoIndicadorId == indicatorId;
-            }
-            return ind.indicadorId == indicatorId;
-          });
+          final indicatorIndex = product.indicadoresEtapa
+              .indexWhere((ind) => ind.indicadorId == indicatorId);
 
           if (indicatorIndex != -1) {
             final indicator = product.indicadoresEtapa[indicatorIndex];
@@ -877,9 +889,13 @@ abstract class _BudgetEditStoreBase with Store {
             );
 
             if (censoEscolar != null && !updatedProduct.quantidadeManual) {
+              final todosProdutos = categories
+                  .expand((c) => c.subcategorias.expand((s) => s.produtos))
+                  .toList();
               final novaQuantidade = calculationService.calcularQuantidade(
                 updatedProduct,
                 censoEscolar,
+                todosProdutos: todosProdutos,
               );
 
               updatedProduct = updatedProduct.copyWith(
@@ -907,6 +923,7 @@ abstract class _BudgetEditStoreBase with Store {
 
             categories[i] = updatedCategory;
 
+            _recalcServicosDependentes({productId});
             return;
           }
         }
@@ -1128,6 +1145,75 @@ abstract class _BudgetEditStoreBase with Store {
     );
     for (var i = 0; i < updated.length; i++) {
       categories[i] = updated[i];
+    }
+  }
+
+  Map<int, List<int>> _buildServiceDependencyIndex() {
+    final index = <int, List<int>>{};
+    for (final cat in categories) {
+      for (final sub in cat.subcategorias) {
+        for (final prod in sub.produtos) {
+          if (prod.produtosRelacionadosIds.isNotEmpty) {
+            for (final linkedId in prod.produtosRelacionadosIds) {
+              index.putIfAbsent(linkedId, () => []).add(prod.id);
+            }
+          }
+        }
+      }
+    }
+    return index;
+  }
+
+  void _recalcServicosDependentes(Set<int> changedProductIds) {
+    if (censoEscolar == null) return;
+
+    final depIndex = _buildServiceDependencyIndex();
+    final affectedServiceIds = <int>{};
+    for (final pid in changedProductIds) {
+      affectedServiceIds.addAll(depIndex[pid] ?? []);
+    }
+    if (affectedServiceIds.isEmpty) return;
+
+    final todosProdutos = categories
+        .expand((c) => c.subcategorias.expand((s) => s.produtos))
+        .toList();
+
+    for (var i = 0; i < categories.length; i++) {
+      final category = categories[i];
+      var categoryChanged = false;
+      final updatedSubs = List<SubcategoryEntity>.from(category.subcategorias);
+
+      for (var j = 0; j < updatedSubs.length; j++) {
+        final sub = updatedSubs[j];
+        var subChanged = false;
+        final updatedProds = List<ProductEntity>.from(sub.produtos);
+
+        for (var k = 0; k < updatedProds.length; k++) {
+          final prod = updatedProds[k];
+          if (!affectedServiceIds.contains(prod.id)) continue;
+          if (!prod.selecionado) continue;
+          if (prod.quantidadeManual) continue;
+
+          final novaQtd = calculationService.calcularQuantidadeServico(
+            prod,
+            todosProdutos,
+            censoEscolar!,
+          );
+          if (novaQtd != prod.quantidade) {
+            updatedProds[k] = prod.copyWith(quantidade: novaQtd);
+            subChanged = true;
+          }
+        }
+
+        if (subChanged) {
+          updatedSubs[j] = sub.copyWith(produtos: updatedProds);
+          categoryChanged = true;
+        }
+      }
+
+      if (categoryChanged) {
+        categories[i] = category.copyWith(subcategorias: updatedSubs);
+      }
     }
   }
 

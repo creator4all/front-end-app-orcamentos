@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:multimidiaapp/app/shared/utils/brl_currency_input_formatter.dart';
 import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 
+import '../../../../../../shared/widgets/custom_info_dialog.dart';
 import '../../../../../../shared/widgets/custom_modal.dart';
 import '../../domain/entities/product_entity.dart';
 import 'indicadores_etapa_section.dart';
@@ -70,6 +71,7 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
   late final TextEditingController _horasController;
   late final TextEditingController _quantidadeController;
   final FocusNode _quantidadeFocus = FocusNode();
+  final GlobalKey _quantidadeFieldKey = GlobalKey();
 
   @override
   void initState() {
@@ -84,6 +86,22 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
     _quantidadeController = TextEditingController(
       text: product.quantidade > 0 ? product.formattedQuantidade : '',
     );
+    _quantidadeFocus.addListener(_onQuantidadeFocusChange);
+  }
+
+  void _onQuantidadeFocusChange() {
+    if (_quantidadeFocus.hasFocus) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final keyContext = _quantidadeFieldKey.currentContext;
+        if (keyContext != null) {
+          Scrollable.ensureVisible(
+            keyContext,
+            alignment: 0.5,
+            duration: const Duration(milliseconds: 300),
+          );
+        }
+      });
+    }
   }
 
   @override
@@ -91,6 +109,7 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
     _valueController.dispose();
     _horasController.dispose();
     _quantidadeController.dispose();
+    _quantidadeFocus.removeListener(_onQuantidadeFocusChange);
     _quantidadeFocus.dispose();
     super.dispose();
   }
@@ -198,19 +217,18 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
               _buildHorasField(product),
               SizedBox(height: 24.h),
             ] else if (product.indicadoresEtapa.isNotEmpty) ...[
-              _buildQuantityModeSwitch(product),
-              SizedBox(height: 16.h),
-              if (product.quantidadeManual) ...[
-                _buildQuantidadeField(product),
-                SizedBox(height: 24.h),
-              ],
               IndicadoresEtapaSection(
                 indicadores: product.indicadoresEtapa,
                 enabled: !product.quantidadeManual,
                 onToggle: (indicadorId, valor) {
                   widget.onIndicatorToggled?.call(indicadorId);
                 },
+                onBlockedTap: product.quantidadeManual
+                    ? () => _showBlockedDialog(context)
+                    : null,
               ),
+              SizedBox(height: 8.h),
+              _buildQuantidadeField(product),
               SizedBox(height: 24.h),
             ],
             _buildValueField(product),
@@ -283,7 +301,7 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8.r),
-              borderSide: const BorderSide(color: Color(0xFF2830F2)),
+              borderSide: const BorderSide(color: Color(0xFF117BBD)),
             ),
           ),
           style: TextStyle(
@@ -295,31 +313,14 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
     );
   }
 
-  Widget _buildQuantityModeSwitch(ProductEntity product) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: Text(
-            product.quantidadeManual
-                ? 'Quantidade manual'
-                : 'Calcular pelos indicadores',
-            style: TextStyle(
-              fontSize: 14.sp,
-              fontWeight: FontWeight.bold,
-              color: Colors.black,
-              fontFamily: 'Roboto',
-            ),
-          ),
-        ),
-        Switch(
-          value: product.quantidadeManual,
-          activeColor: const Color(0xFF2830F2),
-          onChanged: widget.onQuantityModeChanged == null
-              ? null
-              : (value) => widget.onQuantityModeChanged!(value),
-        ),
-      ],
+  void _showBlockedDialog(BuildContext context) {
+    CustomInfoDialog.show(
+      context: context,
+      type: DialogType.info,
+      title: 'Quantidade definida manualmente',
+      message:
+          'Você digitou uma quantidade personalizada para este produto, por isso os itens de cálculo automático estão desativados.\n\nPara voltar a calcular a quantidade automaticamente pelos indicadores, toque no ícone de recarregar (↺) que aparece dentro do campo de quantidade.',
+      buttonText: 'Entendi',
     );
   }
 
@@ -329,14 +330,21 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
     if (!_quantidadeFocus.hasFocus) {
       final text = product.quantidade > 0 ? product.formattedQuantidade : '';
       if (_quantidadeController.text != text) {
-        _quantidadeController.value = TextEditingValue(
-          text: text,
-          selection: TextSelection.collapsed(offset: text.length),
-        );
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && !_quantidadeFocus.hasFocus) {
+            _quantidadeController.value = TextEditingValue(
+              text: text,
+              selection: TextSelection.collapsed(offset: text.length),
+            );
+          }
+        });
       }
     }
 
+    final isReadOnly = widget.onManualQuantityChanged == null;
+
     return Column(
+      key: _quantidadeFieldKey,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         RichText(
@@ -368,6 +376,7 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
           controller: _quantidadeController,
           focusNode: _quantidadeFocus,
           keyboardType: TextInputType.number,
+          readOnly: isReadOnly,
           onChanged: (value) {
             final qtd = double.tryParse(value) ?? 0;
             if (qtd > 0) {
@@ -382,6 +391,17 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
             ),
             contentPadding:
                 EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+            suffixIcon:
+                product.quantidadeManual && widget.onQuantityModeChanged != null
+                    ? IconButton(
+                        icon: const Icon(
+                          Icons.refresh,
+                          color: Color(0xFF117BBD),
+                        ),
+                        tooltip: 'Voltar ao cálculo automático',
+                        onPressed: () => widget.onQuantityModeChanged!(false),
+                      )
+                    : null,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8.r),
               borderSide: const BorderSide(color: Color(0xFFD9D9D9)),
@@ -392,7 +412,7 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8.r),
-              borderSide: const BorderSide(color: Color(0xFF2830F2)),
+              borderSide: const BorderSide(color: Color(0xFF117BBD)),
             ),
           ),
           style: TextStyle(
@@ -455,7 +475,7 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8.r),
-              borderSide: const BorderSide(color: Color(0xFF2830F2)),
+              borderSide: const BorderSide(color: Color(0xFF117BBD)),
             ),
           ),
           style: TextStyle(

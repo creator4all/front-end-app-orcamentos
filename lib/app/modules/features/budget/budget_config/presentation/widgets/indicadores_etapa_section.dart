@@ -11,11 +11,15 @@ class IndicadoresEtapaSection extends StatelessWidget {
   /// Quando false, os indicadores ficam visíveis porém desabilitados (cinza).
   final bool enabled;
 
+  /// Chamado ao tocar em qualquer indicador quando [enabled] é false.
+  final VoidCallback? onBlockedTap;
+
   const IndicadoresEtapaSection({
     super.key,
     required this.indicadores,
     this.onToggle,
     this.enabled = true,
+    this.onBlockedTap,
   });
 
   @override
@@ -63,35 +67,36 @@ class IndicadoresEtapaSection extends StatelessWidget {
   }
 
   Widget _buildCheckboxItem(IndicadorEtapaEntity indicador) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: 12.h),
-      child: Row(
-        children: [
-          CustomCheckbox(
-            value: indicador.selecionado,
-            onChanged: (!enabled || onToggle == null)
-                ? null
-                : (value) {
-                    final toggleId = indicador.produtoIndicadorId > 0
-                        ? indicador.produtoIndicadorId
-                        : indicador.indicadorId;
-                    onToggle!(toggleId, value);
-                  },
-          ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Text(
-              indicador.indicadorNome,
-              style: TextStyle(
-                fontSize: 14.sp,
-                color:
-                    enabled ? const Color(0xFF484848) : const Color(0xFFBFBFBF),
-                fontWeight: FontWeight.w400,
-              ),
+    final row = Row(
+      children: [
+        CustomCheckbox(
+          value: indicador.selecionado,
+          onChanged: (!enabled || onToggle == null)
+              ? null
+              : (value) {
+                  onToggle!(indicador.indicadorId, value);
+                },
+        ),
+        SizedBox(width: 12.w),
+        Expanded(
+          child: Text(
+            indicador.indicadorNome,
+            style: TextStyle(
+              fontSize: 14.sp,
+              color:
+                  enabled ? const Color(0xFF484848) : const Color(0xFFBFBFBF),
+              fontWeight: FontWeight.w400,
             ),
           ),
-        ],
-      ),
+        ),
+      ],
+    );
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: 12.h),
+      child: !enabled && onBlockedTap != null
+          ? GestureDetector(onTap: onBlockedTap, child: row)
+          : row,
     );
   }
 }

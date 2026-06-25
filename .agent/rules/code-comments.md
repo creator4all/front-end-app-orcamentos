@@ -4,162 +4,127 @@ trigger: always_on
 
 # Regras para Comentários de Código
 
-## Princípio Fundamental: "O QUÊ" e "POR QUÊ", não "COMO"
+## Princípio
 
-O código deve explicar **o que** faz através de nomes claros. Os comentários devem explicar **por que** algo foi feito de determinada forma.
+Comentários devem explicar **por que** algo existe, não repetir **como** o código funciona.
+O código deve explicar o "o quê" por meio de:
 
----
+- nomes claros;
+- funções pequenas;
+- tipos explícitos;
+- separação de responsabilidades.
 
-## ✅ O QUE COMENTAR
+## O que comentar
 
-### 1. Intenção e Propósito (O "Por Quê")
+### Decisão não óbvia
+
 ```dart
-// Usamos cache local porque a API tem rate limit de 100 req/min
-final cache = LocalCache();
+// Usamos cache local aqui porque a API de pastas é chamada novamente ao voltar na navegação.
+folderCache[folderId] = folderItem;
 ```
 
-### 2. Decisões de Design
+### Regra de negócio
+
 ```dart
-// Optamos por BLoC ao invés de Provider aqui devido à complexidade
-// do estado compartilhado entre múltiplas telas
+// Regra: vendedor não visualiza dados do parceiro no card de orçamento.
 ```
 
-### 3. Lógica Complexa ou Não-Óbvia
+### Workaround
+
 ```dart
-// Algoritmo de Luhn para validação de cartão de crédito
-// Referência: https://en.wikipedia.org/wiki/Luhn_algorithm
+// WORKAROUND: API retorna null em `children` para pasta vazia.
+final children = response.children ?? [];
 ```
 
-### 4. Workarounds e Bugs Conhecidos
+### Limitação externa
+
 ```dart
-// WORKAROUND: API retorna null em vez de lista vazia (bug #1234)
-final items = response['items'] ?? [];
+// A permissão de mída no Android depende da versão do SDK.
 ```
 
-### 5. Regras de Negócio
+### API pública
+
+Usar docstring em classes/funções públicas quando o propósito não for óbvio:
+
 ```dart
-// Regra: Desconto de 10% para compras acima de R$500
-// conforme definido pelo time de produto em 2024-01
+/// Carrega os arquivos próprios do usuário autenticado.
+Future<void> loadOwnFiles();
 ```
 
-### 6. APIs Públicas (Docstrings)
-```dart
-/// Calcula o total do orçamento com impostos.
-/// 
-/// [includeShipping] - Se true, inclui frete no cálculo.
-/// Retorna o valor total formatado.
-double calculateTotal({bool includeShipping = false})
-```
+Docstrings completas em APIs públicas devem explicar:
 
-### 7. TODOs e FIXMEs
-```dart
-// TODO: Implementar paginação quando API suportar
-// FIXME: Corrigir memory leak no dispose
-```
-
----
-
-## ❌ O QUE NÃO COMENTAR
-
-### 1. O Óbvio
-```dart
-// ❌ RUIM - Redundante
-int sum = a + b; // Soma a e b
-
-// ✅ BOM - Código auto-explicativo
-int total = precoBase + taxas;
-```
-
-### 2. Código Ruim com Comentário Explicativo
-```dart
-// ❌ RUIM - Comentário não conserta código ruim
-// Esta função faz muitas coisas: valida, salva e notifica
-void processarTudo() { ... }
-
-// ✅ BOM - Refatora em funções menores
-void validarDados() { ... }
-void salvarNoBanco() { ... }
-void notificarUsuario() { ... }
-```
-
-### 3. Detalhes de Implementação Triviais
-```dart
-// ❌ RUIM
-for (int i = 0; i < items.length; i++) { // Itera sobre items
-  
-// ✅ BOM - Nome descritivo, sem comentário
-for (final product in selectedProducts) {
-```
-
----
-
-## 📝 CÓDIGO AUTO-DOCUMENTADO
-
-Prefira código que se explica sozinho:
-
-### Nomes Descritivos
-```dart
-// ❌ RUIM
-int d; // dias restantes
-
-// ✅ BOM
-int diasRestantes;
-```
-
-### Funções Pequenas e Focadas
-```dart
-// ❌ RUIM - Função faz muitas coisas
-void processarOrcamento() {
-  // 50 linhas de código...
-}
-
-// ✅ BOM - Funções focadas
-void validarOrcamento() { ... }
-void calcularTotais() { ... }
-void salvarOrcamento() { ... }
-```
-
-### Extrair Condições Complexas
-```dart
-// ❌ RUIM
-if (user.age >= 18 && user.verified && !user.blocked) {
-
-// ✅ BOM
-bool podeAcessar = user.age >= 18 && user.verified && !user.blocked;
-if (podeAcessar) {
-```
-
----
-
-## 🤖 REGRAS PARA IA
-
-### 1. Não Gerar Comentários Redundantes
-A IA nunca deve adicionar comentários que apenas repetem o que o código faz.
-
-### 2. Explicar Decisões Não-Óbvias
-Se a IA fizer uma escolha de implementação específica, deve comentar o motivo.
-
-### 3. Priorizar Código Limpo
-Antes de adicionar um comentário, a IA deve considerar se o código pode ser refatorado para ser mais claro.
-
-### 4. Manter Comentários Atualizados
-Ao modificar código, a IA deve atualizar ou remover comentários relacionados.
-
-### 5. Usar Docstrings para APIs
-Todas as funções e classes públicas devem ter docstrings explicando:
 - Propósito
 - Parâmetros
 - Retorno
 - Exceções (se aplicável)
 
----
+```dart
+/// Calcula o total do orçamento com impostos.
+///
+/// [includeShipping] - Se true, inclui frete no cálculo.
+/// Retorna o valor total formatado.
+double calculateTotal({bool includeShipping = false})
+```
 
-## 🎯 Checklist Rápido
+## O que não comentar
+
+### Óbvio
+
+Evitar:
+
+```dart
+// Soma a + b
+final total = a + b;
+```
+
+### Código ruim
+
+Não usar comentário para justificar função confusa. Refatorar.
+Evitar:
+
+```dart
+// Esta função valida, salva, chama API e atualiza tela.
+void processEverything() {}
+```
+
+Preferir separar responsabilidades.
+
+### Comentário desatualizável
+
+Evitar comentário que repete nome de classe, parâmetro ou rota e pode ficar desatualizado.
+
+## TODO/FIXME
+
+Todo `TODO` ou `FIXME` deve ter contexto.
+
+Preferir:
+
+```dart
+// TODO(#123): remover fallback quando a API padronizar `children: []`.
+```
+
+Evitar:
+
+```dart
+// TODO: arrumar depois
+```
+
+## Regras para IA
+
+- Não adicionar comentários redundantes.
+- Antes de comentar, tentar melhorar nome/estrutura.
+- Atualizar comentários quando alterar comportamento.
+- Remover comentários mentirosos/desatualizados.
+- Comentar decisão técnica não óbvia.
+- Documentar regra de negócio que não está clara no código.
+- Não inserir comentário alegando fonte inexistente.
+
+## Checklist Rápido
 
 Antes de adicionar um comentário, pergunte:
 
-1. ⬜ O código pode ser mais claro com melhores nomes?
-2. ⬜ O comentário explica "por quê" e não "como"?
-3. ⬜ O comentário será útil daqui a 6 meses?
-4. ⬜ O comentário ficará desatualizado facilmente?
-5. ⬜ Existe uma regra de negócio que precisa ser documentada?
+1. O código pode ser mais claro com melhores nomes?
+2. O comentário explica "por quê" e não "como"?
+3. O comentário será útil daqui a 6 meses?
+4. O comentário ficar desatualizado facilmente?
+5. Existe uma regra de negócio que precisa ser documentada?

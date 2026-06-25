@@ -22,7 +22,7 @@ class ProductItemCard extends StatelessWidget {
     final isSelected = product.selecionado;
 
     final borderColor =
-        isSelected ? const Color(0xFF2830F2) : const Color(0xFFD9D9D9);
+        isSelected ? const Color(0xFF117BBD) : const Color(0xFFD9D9D9);
 
     return Container(
       padding: EdgeInsets.all(12.w),
@@ -94,7 +94,7 @@ class ProductItemCard extends StatelessWidget {
             child: Icon(
               Icons.info_outline,
               size: 28.sp,
-              color: const Color(0xFF2830F2),
+              color: const Color(0xFF117BBD),
             ),
           ),
         ],

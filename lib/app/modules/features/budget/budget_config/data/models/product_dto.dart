@@ -21,6 +21,9 @@ class ProductDTO {
   final double valorOriginal;
   final bool ativoOriginal;
   final List<IndicadorEtapaEntity> indicadoresEtapa;
+  final double? percent;
+  final double? horasFixas;
+  final List<int> produtosRelacionadosIds;
 
   ProductDTO({
     required this.id,
@@ -41,6 +44,9 @@ class ProductDTO {
     required this.valorOriginal,
     required this.ativoOriginal,
     required this.indicadoresEtapa,
+    this.percent,
+    this.horasFixas,
+    this.produtosRelacionadosIds = const [],
   });
 
   factory ProductDTO.fromJson(Map<String, dynamic> json) {
@@ -151,6 +157,20 @@ class ProductDTO {
         }).toList();
       }
 
+      final double? percent = json['pro_percent'] == null
+          ? null
+          : _parseDouble(json['pro_percent']);
+      final double? horasFixas = json['pro_horas_fixas'] == null
+          ? null
+          : _parseDouble(json['pro_horas_fixas']);
+      final List<int> produtosRelacionadosIds =
+          (json['produtos_relacionados'] as List?)
+                  ?.whereType<Map>()
+                  .map((e) => (e['pro_produtosId'] as num?)?.toInt() ?? 0)
+                  .where((id) => id > 0)
+                  .toList() ??
+              const [];
+
       return ProductDTO(
         id: id,
         codigo: codigo,
@@ -170,6 +190,9 @@ class ProductDTO {
         valorOriginal: valorOriginal,
         ativoOriginal: ativoOriginal,
         indicadoresEtapa: indicadoresEtapa,
+        percent: percent,
+        horasFixas: horasFixas,
+        produtosRelacionadosIds: produtosRelacionadosIds,
       );
     } catch (e) {
       rethrow;
@@ -196,6 +219,9 @@ class ProductDTO {
       valorOriginal: valorOriginal,
       ativoOriginal: ativoOriginal,
       indicadoresEtapa: indicadoresEtapa,
+      percent: percent,
+      horasFixas: horasFixas,
+      produtosRelacionadosIds: produtosRelacionadosIds,
     );
   }
 
@@ -221,6 +247,10 @@ class ProductDTO {
       'indicadores_etapa': indicadoresEtapa
           .map((e) => IndicadorEtapaDTO.fromEntity(e).toJson())
           .toList(),
+      if (percent != null) 'pro_percent': percent,
+      if (horasFixas != null) 'pro_horas_fixas': horasFixas,
+      'produtos_relacionados':
+          produtosRelacionadosIds.map((id) => {'pro_produtosId': id}).toList(),
     };
   }
 
@@ -244,6 +274,9 @@ class ProductDTO {
       valorOriginal: entity.valorOriginal,
       ativoOriginal: entity.ativoOriginal,
       indicadoresEtapa: entity.indicadoresEtapa,
+      percent: entity.percent,
+      horasFixas: entity.horasFixas,
+      produtosRelacionadosIds: entity.produtosRelacionadosIds,
     );
   }
 

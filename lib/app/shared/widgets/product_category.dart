@@ -15,6 +15,7 @@ class ProductCategory extends StatelessWidget {
   final bool isReadOnly;
   final VoidCallback? onActionTap;
   final VoidCallback? onCardTap;
+  final bool splitTapZones;
 
   const ProductCategory({
     super.key,
@@ -28,13 +29,14 @@ class ProductCategory extends StatelessWidget {
     this.isReadOnly = false,
     this.onActionTap,
     this.onCardTap,
+    this.splitTapZones = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    return AnimatedContainer(
+    final content = AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
       width: double.infinity,
@@ -168,5 +170,49 @@ class ProductCategory extends StatelessWidget {
         ],
       ),
     );
+
+    // If splitTapZones is enabled, overlay tap zones on top of the visual content
+    if (splitTapZones) {
+      return Stack(
+        children: [
+          content, // Base visual content (unchanged)
+          Positioned.fill(
+            child: Row(
+              children: [
+                // Left 33% - Toggle checkbox
+                Expanded(
+                  flex: 33,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: (!isReadOnly && onCheckboxChanged != null)
+                        ? () => onCheckboxChanged!(!isSelected)
+                        : null,
+                  ),
+                ),
+                // Middle 34% - Inert (absorbs tap)
+                Expanded(
+                  flex: 34,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {}, // Empty tap handler to make it inert
+                  ),
+                ),
+                // Right 33% - Open modal
+                Expanded(
+                  flex: 33,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: onCardTap ?? onActionTap,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Default behavior when splitTapZones is false
+    return content;
   }
 }
