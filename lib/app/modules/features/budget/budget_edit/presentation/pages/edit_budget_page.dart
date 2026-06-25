@@ -358,6 +358,21 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
       _capturePersistedBudgetListPatchFromStore();
 
       await store.loadBudgetForEdit(budget.id);
+
+      if (store.error != null) {
+        final reloadError = store.error;
+        store.clearError();
+        if (mounted) {
+          await CustomInfoDialog.show(
+            context: context,
+            type: DialogType.error,
+            title: 'Erro ao recarregar após salvar',
+            message: reloadError ?? 'Não foi possível recarregar o orçamento.',
+          );
+        }
+        return;
+      }
+
       _syncValidityFieldWithStore();
 
       if (!mounted) return;

@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-import 'package:multimidiaapp/app/modules/features/budget/budget_config/domain/services/census_stage_rules.dart';
 
 import 'censo_group_entity.dart';
 
@@ -25,38 +24,41 @@ class CensoEscolarEntity extends Equatable {
     required this.valoresPorEtapa,
   });
 
+  /// Grupos ordenados por `grupo_ordem`.
+  List<CensoGroupEntity> get gruposOrdenados {
+    final ordenados = [...grupos]..sort((a, b) => a.ordem.compareTo(b.ordem));
+    return ordenados;
+  }
+
+  static String _normalizarNomeGrupo(String nome) => nome.trim().toLowerCase();
+
+  static bool _ehGrupoProfessores(CensoGroupEntity grupo) =>
+      _normalizarNomeGrupo(grupo.nome) == 'professores';
+
+  static bool _ehGrupoCursistas(CensoGroupEntity grupo) =>
+      _normalizarNomeGrupo(grupo.nome) == 'cursistas';
+
   double get valorTotal {
     return grupos.fold(0.0, (sum, grupo) => sum + grupo.valorTotal);
   }
 
   double get valorTotalAlunos {
-    return grupos.fold(0.0, (sum, grupo) {
-      return sum +
-          grupo.titulos
-              .where(
-                  (titulo) => CensusStageRules.isStudentStage(titulo.nomeEtapa))
-              .fold(0.0, (s, titulo) => s + titulo.valor);
-    });
+    return grupos
+        .where(
+            (grupo) => !_ehGrupoProfessores(grupo) && !_ehGrupoCursistas(grupo))
+        .fold(0.0, (sum, grupo) => sum + grupo.valorTotal);
   }
 
   double get valorTotalProfessores {
-    return grupos.fold(0.0, (sum, grupo) {
-      return sum +
-          grupo.titulos
-              .where((titulo) =>
-                  CensusStageRules.isProfessorStage(titulo.nomeEtapa))
-              .fold(0.0, (s, titulo) => s + titulo.valor);
-    });
+    return grupos
+        .where(_ehGrupoProfessores)
+        .fold(0.0, (sum, grupo) => sum + grupo.valorTotal);
   }
 
   double get valorTotalCursistas {
-    return grupos.fold(0.0, (sum, grupo) {
-      return sum +
-          grupo.titulos
-              .where((titulo) =>
-                  CensusStageRules.isCursistaStage(titulo.nomeEtapa))
-              .fold(0.0, (s, titulo) => s + titulo.valor);
-    });
+    return grupos
+        .where(_ehGrupoCursistas)
+        .fold(0.0, (sum, grupo) => sum + grupo.valorTotal);
   }
 
   double? getValorEtapa(String nomeEtapa) {

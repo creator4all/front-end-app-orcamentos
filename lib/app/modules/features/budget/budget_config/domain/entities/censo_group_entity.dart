@@ -18,10 +18,14 @@ class CensoGroupEntity extends Equatable {
   /// Títulos/etapas dentro deste grupo
   final List<CensoTitleEntity> titulos;
 
+  /// Ordem do grupo (vinda de `grupo_ordem`).
+  final int ordem;
+
   const CensoGroupEntity({
     required this.id,
     required this.nome,
     required this.titulos,
+    this.ordem = 0,
   });
 
   /// Valor total somando todos os títulos do grupo
@@ -33,7 +37,7 @@ class CensoGroupEntity extends Equatable {
   int get quantidadeTitulos => titulos.length;
 
   @override
-  List<Object?> get props => [id, nome, titulos];
+  List<Object?> get props => [id, nome, titulos, ordem];
 
   @override
   String toString() {

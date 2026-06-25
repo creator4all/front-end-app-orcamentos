@@ -120,6 +120,7 @@ class MultiCityBudgetRemoteDataSourceImpl
     final Map<String, double> valoresPorEtapa = {};
     final Map<int, List<CensoTitleEntity>> titlesPerGroup = {};
     final Map<int, String> groupNames = {};
+    final Map<int, int> groupOrders = {};
 
     for (var item in indicesList) {
       final int indiceId = item['indice_etapa_id'] is int
@@ -146,6 +147,7 @@ class MultiCityBudgetRemoteDataSourceImpl
         final String groupName = (groupJson['nome_grupo'] ?? '').toString();
 
         groupNames[groupId] = groupName;
+        groupOrders[groupId] = (groupJson['grupo_ordem'] as num?)?.toInt() ?? 0;
         titlesPerGroup.putIfAbsent(groupId, () => []);
 
         final bool isProfessores = nomeEtapa.endsWith('P');
@@ -158,6 +160,7 @@ class MultiCityBudgetRemoteDataSourceImpl
           grupoId: groupId,
           percentualPopulacao:
               (item['percentual_populacao'] as num?)?.toDouble(),
+          ordem: (item['ind_ordem'] as num?)?.toInt() ?? 0,
         );
 
         titlesPerGroup[groupId]!.add(title);
@@ -165,12 +168,15 @@ class MultiCityBudgetRemoteDataSourceImpl
     }
 
     final List<CensoGroupEntity> grupos = titlesPerGroup.entries.map((entry) {
+      final titulos = entry.value..sort((a, b) => a.ordem.compareTo(b.ordem));
       return CensoGroupEntity(
         id: entry.key,
         nome: groupNames[entry.key] ?? '',
-        titulos: entry.value,
+        titulos: titulos,
+        ordem: groupOrders[entry.key] ?? 0,
       );
-    }).toList();
+    }).toList()
+      ..sort((a, b) => a.ordem.compareTo(b.ordem));
 
     return CensoEscolarEntity(
       cidadeId: cidadeId,

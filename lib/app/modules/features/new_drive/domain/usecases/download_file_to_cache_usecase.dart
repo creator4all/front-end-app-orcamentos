@@ -1,19 +1,19 @@
-import 'dart:io';
-
 import 'package:dartz/dartz.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../../new_drive_failure.dart';
 import '../entities/drive_item.dart';
 import '../helpers/file_name_sanitizer.dart';
 import '../repositories/drive_repository.dart';
 import '../repositories/file_saver.dart';
+import '../repositories/temp_file_store.dart';
 
 class DownloadFileToCacheUsecase {
   final DriveRepository repository;
   final FileSaver fileSaver;
+  final TempFileStore tempFileStore;
 
-  DownloadFileToCacheUsecase(this.repository, this.fileSaver);
+  DownloadFileToCacheUsecase(
+      this.repository, this.fileSaver, this.tempFileStore);
 
   Future<Either<NewDriveFailure, String>> call(
     DriveItem item, {
@@ -23,17 +23,15 @@ class DownloadFileToCacheUsecase {
 
     try {
       final sanitizedName = FileNameSanitizer.sanitize(item.name);
-      final directory = await getTemporaryDirectory();
-      final cacheDirectory = Directory(
-        '${directory.path}/new_drive_share_cache/${item.id}',
-      );
-      await cacheDirectory.create(recursive: true);
+      final cacheDirPath =
+          await tempFileStore.getCacheFilePath(item.id, sanitizedName);
+      final cacheDir = cacheDirPath.substring(0, cacheDirPath.lastIndexOf('/'));
+      await tempFileStore.createDirectory(cacheDir);
 
-      final filePath = '${cacheDirectory.path}/$sanitizedName';
+      final filePath = cacheDirPath;
       partialPath = '$filePath.part';
 
-      final cachedFile = File(filePath);
-      if (await cachedFile.exists()) {
+      if (await tempFileStore.exists(filePath)) {
         onProgress?.call(1.0);
         return right(filePath);
       }
@@ -59,8 +57,7 @@ class DownloadFileToCacheUsecase {
           return left(failure);
         },
         (savedPath) async {
-          final partialFile = File(savedPath);
-          if (!await partialFile.exists()) {
+          if (!await tempFileStore.exists(savedPath)) {
             return left(
               const FileNotFoundFailure(
                 'Arquivo temporario nao encontrado apos download',
@@ -69,7 +66,7 @@ class DownloadFileToCacheUsecase {
           }
 
           await _deleteIfExists(filePath);
-          await partialFile.rename(filePath);
+          await tempFileStore.rename(savedPath, filePath);
           onProgress?.call(1.0);
           return right(filePath);
         },
@@ -86,9 +83,8 @@ class DownloadFileToCacheUsecase {
   }
 
   Future<void> _deleteIfExists(String path) async {
-    final file = File(path);
-    if (await file.exists()) {
-      await file.delete();
+    if (await tempFileStore.exists(path)) {
+      await tempFileStore.delete(path);
     }
   }
 }

@@ -7,7 +7,6 @@ import '../../../../../shared/widgets/custom_top_bar.dart';
 import '../../../../../shared/widgets/searchable_dropdown_widget.dart';
 import '../../../budget/budget_config/data/models/budget_census_dto.dart';
 import '../../../budget/budget_config/domain/entities/censo_group_entity.dart';
-import '../../../budget/budget_config/domain/services/census_stage_rules.dart';
 import '../../../budget/budget_config/presentation/stores/school_census_store.dart';
 import '../../../budget/budget_config/presentation/widgets/census_data_section_widget.dart';
 
@@ -65,62 +64,11 @@ class _ReportCensusPageState extends State<ReportCensusPage> {
     }
   }
 
-  List<CensoGroupEntity> _getStudentGroups() {
+  List<CensoGroupEntity> _getOrderedGroups() {
     final censo = _store.censoEscolar;
     if (censo == null) return [];
 
-    return censo.grupos
-        .map((group) {
-          final studentTitles = group.titulos
-              .where(
-                  (title) => CensusStageRules.isStudentStage(title.nomeEtapa))
-              .toList();
-          return CensoGroupEntity(
-            id: group.id,
-            nome: group.nome,
-            titulos: studentTitles,
-          );
-        })
-        .where((group) => group.titulos.isNotEmpty)
-        .toList();
-  }
-
-  List<CensoGroupEntity> _getProfessorGroups() {
-    final censo = _store.censoEscolar;
-    if (censo == null) return [];
-
-    return censo.grupos
-        .map((group) {
-          final professorTitles = group.titulos
-              .where(
-                  (title) => CensusStageRules.isProfessorStage(title.nomeEtapa))
-              .toList();
-          return CensoGroupEntity(
-            id: group.id,
-            nome: group.nome,
-            titulos: professorTitles,
-          );
-        })
-        .where((group) => group.titulos.isNotEmpty)
-        .toList();
-  }
-
-  List<CensoGroupEntity> _getCursistaGroups() {
-    final censo = _store.censoEscolar;
-    if (censo == null) return [];
-
-    return censo.grupos
-        .map((group) {
-          final cursistaTitles = group.titulos
-              .where(
-                  (title) => CensusStageRules.isCursistaStage(title.nomeEtapa))
-              .toList();
-          return CensoGroupEntity(
-            id: group.id,
-            nome: group.nome,
-            titulos: cursistaTitles,
-          );
-        })
+    return censo.gruposOrdenados
         .where((group) => group.titulos.isNotEmpty)
         .toList();
   }
@@ -192,9 +140,7 @@ class _ReportCensusPageState extends State<ReportCensusPage> {
                     if (_store.isMultiCity) _buildCitySelector(),
                     _buildCensusInfo(),
                     SizedBox(height: 16.h),
-                    _buildStudentsSections(),
-                    _buildProfessorsSections(),
-                    _buildCursistasSections(),
+                    _buildCensusSections(),
                     SizedBox(height: 16.h),
                   ],
                 ),
@@ -273,12 +219,12 @@ class _ReportCensusPageState extends State<ReportCensusPage> {
     );
   }
 
-  Widget _buildStudentsSections() {
-    final studentGroups = _getStudentGroups();
+  Widget _buildCensusSections() {
+    final groups = _getOrderedGroups();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: studentGroups
+      children: groups
           .map((group) => CensusDataSectionWidget.withId(
                 group: group,
                 isEditMode: false,
@@ -286,66 +232,6 @@ class _ReportCensusPageState extends State<ReportCensusPage> {
                 onItemChanged: null,
               ))
           .toList(),
-    );
-  }
-
-  Widget _buildProfessorsSections() {
-    final professorGroups = _getProfessorGroups();
-
-    if (professorGroups.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(height: 16.h),
-        Text(
-          'Professores',
-          style: TextStyle(
-            fontSize: 16.sp,
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFF117BBD),
-          ),
-        ),
-        SizedBox(height: 8.h),
-        ...professorGroups.map((group) => CensusDataSectionWidget.withId(
-              group: group,
-              isEditMode: false,
-              controllers: _controllers,
-              onItemChanged: null,
-            )),
-      ],
-    );
-  }
-
-  Widget _buildCursistasSections() {
-    final cursistaGroups = _getCursistaGroups();
-
-    if (cursistaGroups.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(height: 16.h),
-        Text(
-          'Cursistas',
-          style: TextStyle(
-            fontSize: 16.sp,
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFF117BBD),
-          ),
-        ),
-        SizedBox(height: 8.h),
-        ...cursistaGroups.map((group) => CensusDataSectionWidget.withId(
-              group: group,
-              isEditMode: false,
-              controllers: _controllers,
-              onItemChanged: null,
-            )),
-      ],
     );
   }
 }

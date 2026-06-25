@@ -49,6 +49,7 @@ class ProductSelectionUpdateDto extends Equatable {
         ? null
         : (entity.indicadoresEtapa
                 .where((ind) =>
+                    ind.produtoIndicadorId > 0 &&
                     changedIndicatorIds.contains(ind.produtoIndicadorId))
                 .toList()
               ..sort((a, b) =>
@@ -62,7 +63,9 @@ class ProductSelectionUpdateDto extends Equatable {
       quantidade: entity.quantidade,
       quantidadeManual: entity.quantidadeManual,
       tipoProduto: entity.tipoProduto,
-      indicadores: changedIndicadores,
+      indicadores: changedIndicadores != null && changedIndicadores.isEmpty
+          ? null
+          : changedIndicadores,
       valor: entity.valor,
       selecionadoChanged: selecionadoChanged,
       quantidadeChanged: quantidadeChanged,
@@ -72,7 +75,9 @@ class ProductSelectionUpdateDto extends Equatable {
   }
 
   factory ProductSelectionUpdateDto.fromEntity(ProductEntity entity) {
-    final indicadoresDto = (entity.indicadoresEtapa.toList()
+    final indicadoresDto = (entity.indicadoresEtapa
+            .where((ind) => ind.produtoIndicadorId > 0)
+            .toList()
           ..sort(
               (a, b) => a.produtoIndicadorId.compareTo(b.produtoIndicadorId)))
         .map((ind) => IndicadorProdutoUpdateDto.fromEntity(ind))
@@ -112,7 +117,7 @@ class ProductSelectionUpdateDto extends Equatable {
           'selecionado': selecionado,
           if (isServico || quantidadeManual) 'quantidade': quantidade,
           'quantidade_manual': quantidadeManual,
-          if (indicadores != null)
+          if (indicadores != null && indicadores!.isNotEmpty)
             'indicadores_etapa': indicadores!.map((i) => i.toJson()).toList(),
           if (valor != null) 'valor': valor,
         };

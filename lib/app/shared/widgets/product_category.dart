@@ -36,7 +36,21 @@ class ProductCategory extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    final content = AnimatedContainer(
+    final checkboxOnChanged =
+        splitTapZones || isReadOnly || onCheckboxChanged == null
+            ? null
+            : (value) => onCheckboxChanged!(value);
+
+    final leftZoneTap =
+        splitTapZones && !isReadOnly && onCheckboxChanged != null
+            ? () => onCheckboxChanged!(!isSelected)
+            : null;
+
+    final middleZoneTap = splitTapZones ? () {} : (onCardTap ?? onActionTap);
+    final rightZoneTap = onCardTap ?? onActionTap;
+    final actionButtonTap = splitTapZones ? null : onActionTap;
+
+    return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
       width: double.infinity,
@@ -73,32 +87,35 @@ class ProductCategory extends StatelessWidget {
                 children: [
                   Expanded(
                     flex: 2,
-                    child: Padding(
-                      padding: EdgeInsets.only(right: 12.w, bottom: 12.h),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          CustomCheckbox(
-                            value: isSelected,
-                            checkedColor: const Color(0xFF117BBD),
-                            uncheckedBorderColor: Colors.grey[300]!,
-                            disabledColor: Colors.grey[400]!,
-                            onChanged: isReadOnly || onCheckboxChanged == null
-                                ? null
-                                : (value) => onCheckboxChanged!(value),
-                          ),
-                          SizedBox(width: 8.w),
-                          Flexible(
-                            child: categoryIcon,
-                          ),
-                        ],
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: leftZoneTap,
+                      child: Padding(
+                        padding: EdgeInsets.only(right: 12.w, bottom: 12.h),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            CustomCheckbox(
+                              value: isSelected,
+                              checkedColor: const Color(0xFF117BBD),
+                              uncheckedBorderColor: Colors.grey[300]!,
+                              disabledColor: Colors.grey[400]!,
+                              enabled: !isReadOnly,
+                              onChanged: checkboxOnChanged,
+                            ),
+                            SizedBox(width: 8.w),
+                            Flexible(
+                              child: categoryIcon,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                   Expanded(
                     flex: 7,
                     child: GestureDetector(
-                      onTap: onCardTap ?? onActionTap,
+                      onTap: middleZoneTap,
                       child: Container(
                         color: Colors.transparent,
                         child: Padding(
@@ -137,7 +154,7 @@ class ProductCategory extends StatelessWidget {
                   Expanded(
                     flex: 2,
                     child: GestureDetector(
-                      onTap: onCardTap ?? onActionTap,
+                      onTap: rightZoneTap,
                       child: Container(
                         alignment: Alignment.bottomRight,
                         color: Colors.transparent,
@@ -156,7 +173,7 @@ class ProductCategory extends StatelessWidget {
                               ),
                             ),
                             ActionButton(
-                              onTap: onActionTap,
+                              onTap: actionButtonTap,
                             ),
                           ],
                         ),
@@ -170,49 +187,5 @@ class ProductCategory extends StatelessWidget {
         ],
       ),
     );
-
-    // If splitTapZones is enabled, overlay tap zones on top of the visual content
-    if (splitTapZones) {
-      return Stack(
-        children: [
-          content, // Base visual content (unchanged)
-          Positioned.fill(
-            child: Row(
-              children: [
-                // Left 33% - Toggle checkbox
-                Expanded(
-                  flex: 33,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: (!isReadOnly && onCheckboxChanged != null)
-                        ? () => onCheckboxChanged!(!isSelected)
-                        : null,
-                  ),
-                ),
-                // Middle 34% - Inert (absorbs tap)
-                Expanded(
-                  flex: 34,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () {}, // Empty tap handler to make it inert
-                  ),
-                ),
-                // Right 33% - Open modal
-                Expanded(
-                  flex: 33,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: onCardTap ?? onActionTap,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      );
-    }
-
-    // Default behavior when splitTapZones is false
-    return content;
   }
 }

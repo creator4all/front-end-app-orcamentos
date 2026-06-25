@@ -48,10 +48,12 @@ class CidadeCensoDto {
   CensoEscolarEntity toEntity() {
     final gruposMap = <int, List<CensoTitleEntity>>{};
     final grupoNomes = <int, String>{};
+    final grupoOrdens = <int, int>{};
 
     for (final indice in indices) {
       final grupoId = indice.grupo?.id ?? 0;
       grupoNomes[grupoId] = indice.grupo?.nome ?? '';
+      grupoOrdens[grupoId] = indice.grupo?.ordem ?? 0;
 
       gruposMap.putIfAbsent(grupoId, () => []);
       gruposMap[grupoId]!.add(CensoTitleEntity(
@@ -62,16 +64,20 @@ class CidadeCensoDto {
         isProfessores: indice.nomeEtapa.endsWith('P'),
         grupoId: grupoId,
         percentualPopulacao: indice.percentualPopulacao,
+        ordem: indice.ordem,
       ));
     }
 
     final grupos = gruposMap.entries.map((entry) {
+      final titulos = entry.value..sort((a, b) => a.ordem.compareTo(b.ordem));
       return CensoGroupEntity(
         id: entry.key,
         nome: grupoNomes[entry.key] ?? '',
-        titulos: entry.value,
+        titulos: titulos,
+        ordem: grupoOrdens[entry.key] ?? 0,
       );
-    }).toList();
+    }).toList()
+      ..sort((a, b) => a.ordem.compareTo(b.ordem));
 
     final valoresPorEtapa = <String, double>{};
     for (final indice in indices) {
@@ -95,6 +101,7 @@ class IndiceCensoDto {
   final String titulo;
   final double valor;
   final double? percentualPopulacao;
+  final int ordem;
   final GrupoCensoDto? grupo;
 
   const IndiceCensoDto({
@@ -103,6 +110,7 @@ class IndiceCensoDto {
     required this.titulo,
     required this.valor,
     this.percentualPopulacao,
+    this.ordem = 0,
     this.grupo,
   });
 
@@ -113,6 +121,7 @@ class IndiceCensoDto {
       titulo: json['titulo'] as String? ?? '',
       valor: (json['valor'] as num?)?.toDouble() ?? 0.0,
       percentualPopulacao: (json['percentual_populacao'] as num?)?.toDouble(),
+      ordem: (json['ind_ordem'] as num?)?.toInt() ?? 0,
       grupo: json['grupo'] != null
           ? GrupoCensoDto.fromJson(json['grupo'] as Map<String, dynamic>)
           : null,
@@ -127,6 +136,7 @@ class IndiceCensoDto {
       titulo: title.tituloExibicao,
       valor: title.valor,
       percentualPopulacao: title.percentualPopulacao,
+      ordem: title.ordem,
       grupo: GrupoCensoDto.fromEntity(group),
     );
   }
@@ -135,16 +145,19 @@ class IndiceCensoDto {
 class GrupoCensoDto {
   final int id;
   final String nome;
+  final int ordem;
 
   const GrupoCensoDto({
     required this.id,
     required this.nome,
+    this.ordem = 0,
   });
 
   factory GrupoCensoDto.fromJson(Map<String, dynamic> json) {
     return GrupoCensoDto(
       id: json['id'] as int? ?? 0,
       nome: json['nome'] as String? ?? '',
+      ordem: (json['ordem'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -152,6 +165,7 @@ class GrupoCensoDto {
     return GrupoCensoDto(
       id: entity.id,
       nome: entity.nome,
+      ordem: entity.ordem,
     );
   }
 }

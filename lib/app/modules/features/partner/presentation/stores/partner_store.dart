@@ -1,21 +1,36 @@
 ﻿import 'dart:io';
 
 import 'package:mobx/mobx.dart';
-import 'package:multimidiaapp/app/modules/features/partner/data/services/partner_service.dart';
-import 'package:open_filex/open_filex.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../../../../../shared/utils/document_validators.dart';
+import '../../../new_drive/domain/repositories/file_opener.dart';
+import '../../../new_drive/domain/repositories/temp_file_store.dart';
 import '../../domain/models/partner_profile.dart';
+import '../../domain/usecases/get_partner_usecase.dart';
+import '../../domain/usecases/update_partner_usecase.dart';
+import '../../domain/usecases/upload_logo_usecase.dart';
+import '../../domain/usecases/view_contract_usecase.dart';
 
 part 'partner_store.g.dart';
 
 class PartnerStore = _PartnerStoreBase with _$PartnerStore;
 
 abstract class _PartnerStoreBase with Store {
-  final PartnerService _service;
+  final GetPartnerUseCase _getPartnerUseCase;
+  final UpdatePartnerUseCase _updatePartnerUseCase;
+  final UploadLogoUseCase _uploadLogoUseCase;
+  final ViewContractUseCase _viewContractUseCase;
+  final TempFileStore _tempFileStore;
+  final FileOpener _fileOpener;
 
-  _PartnerStoreBase(this._service);
+  _PartnerStoreBase(
+    this._getPartnerUseCase,
+    this._updatePartnerUseCase,
+    this._uploadLogoUseCase,
+    this._viewContractUseCase,
+    this._tempFileStore,
+    this._fileOpener,
+  );
 
   @observable
   PartnerProfile? partner;
@@ -58,7 +73,7 @@ abstract class _PartnerStoreBase with Store {
     isLoading = true;
     error = null;
     try {
-      partner = await _service.obterParceiro();
+      partner = await _getPartnerUseCase();
 
       tradeName = partner!.tradeName;
       email = partner!.email ?? '';
@@ -67,7 +82,7 @@ abstract class _PartnerStoreBase with Store {
       legalName = partner!.legalName;
       cnpj = partner!.cnpj;
     } catch (e) {
-      error = e.toString();
+      error = 'Não foi possível carregar os dados do parceiro.';
     } finally {
       isLoading = false;
     }
@@ -122,7 +137,7 @@ abstract class _PartnerStoreBase with Store {
         'par_url': url.trim().isEmpty ? null : url.trim(),
       };
 
-      partner = await _service.atualizarParceiro(dados);
+      partner = await _updatePartnerUseCase(dados);
 
       tradeName = partner!.tradeName;
       email = partner!.email ?? '';
@@ -133,7 +148,7 @@ abstract class _PartnerStoreBase with Store {
 
       return true;
     } catch (e) {
-      error = e.toString();
+      error = 'Não foi possível salvar os dados. Tente novamente.';
       return false;
     } finally {
       isSaving = false;
@@ -150,12 +165,12 @@ abstract class _PartnerStoreBase with Store {
     isSaving = true;
     error = null;
     try {
-      partner = await _service.uploadLogo(selectedLogo!);
+      partner = await _uploadLogoUseCase(selectedLogo!.path);
       selectedLogo = null;
 
       return true;
     } catch (e) {
-      error = e.toString();
+      error = 'Não foi possível enviar o logo. Tente novamente.';
       selectedLogo = null;
       return false;
     } finally {
@@ -165,28 +180,28 @@ abstract class _PartnerStoreBase with Store {
 
   @action
   Future<void> viewContract() async {
-    if (partner == null) return;
+    if (partner == null) {
+      return;
+    }
 
     isViewingContract = true;
     error = null;
     try {
-      final bytes = await _service.viewContract(partner!.id);
+      final bytes = await _viewContractUseCase(partner!.id);
 
-      final directory = await getTemporaryDirectory();
       final fileName = partner!.contractFileName ?? 'contrato.pdf';
-      final filePath = '${directory.path}/$fileName';
+      final filePath = await _tempFileStore.getTempFilePath(fileName);
 
-      final file = File(filePath);
-      await file.writeAsBytes(bytes);
+      await _tempFileStore.writeBytes(filePath, bytes);
 
-      final result = await OpenFilex.open(filePath);
+      final result = await _fileOpener.open(filePath);
 
-      if (result.type != ResultType.done) {
+      if (result.type != FileOpenResultType.done) {
         error =
             'Não foi possível abrir o contrato. Verifique se há um aplicativo de PDF instalado.';
       }
     } catch (e) {
-      error = e.toString();
+      error = 'Não foi possível abrir o contrato. Tente novamente.';
     } finally {
       isViewingContract = false;
     }

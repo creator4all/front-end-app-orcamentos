@@ -88,6 +88,7 @@ abstract class _BudgetConfigStoreBase with Store {
   // ── Snapshot do estado inicial dos produtos (para delta no PUT) ──
   final Map<int, bool> _origSelecionado = {};
   final Map<int, double> _origQuantidade = {};
+  final Map<int, bool> _origQuantidadeManual = {};
   final Map<int, double> _origValor = {};
   final Map<int, Map<int, bool>> _origIndicadores = {};
 
@@ -1182,6 +1183,103 @@ abstract class _BudgetConfigStoreBase with Store {
 
           categories[i] = updatedCategory;
 
+          _recalcServicosDependentes({productId});
+          return;
+        }
+      }
+    }
+  }
+
+  @action
+  void setProductManualQuantity(int productId, double quantity) {
+    _ensureSnapshot();
+    if (quantity < 1.0) return;
+
+    for (var i = 0; i < categories.length; i++) {
+      final category = categories[i];
+
+      for (var j = 0; j < category.subcategorias.length; j++) {
+        final subcategory = category.subcategorias[j];
+        final productIndex =
+            subcategory.produtos.indexWhere((p) => p.id == productId);
+
+        if (productIndex != -1) {
+          final product = subcategory.produtos[productIndex];
+          final updatedProduct = product.copyWith(
+            quantidade: quantity,
+            quantidadeManual: true,
+          );
+
+          final updatedProducts =
+              List<ProductEntity>.from(subcategory.produtos);
+          updatedProducts[productIndex] = updatedProduct;
+
+          final updatedSubcategory =
+              subcategory.copyWith(produtos: updatedProducts);
+
+          final updatedSubcategories =
+              List<SubcategoryEntity>.from(category.subcategorias);
+          updatedSubcategories[j] = updatedSubcategory;
+
+          final updatedCategory =
+              category.copyWith(subcategorias: updatedSubcategories);
+
+          categories[i] = updatedCategory;
+          _recalcServicosDependentes({productId});
+          return;
+        }
+      }
+    }
+  }
+
+  /// Alterna o modo de cálculo da quantidade entre manual e por indicadores.
+  /// Ao voltar para indicadores (manual=false), recalcula a quantidade.
+  @action
+  void setProductQuantityMode(int productId, bool manual) {
+    _ensureSnapshot();
+    for (var i = 0; i < categories.length; i++) {
+      final category = categories[i];
+
+      for (var j = 0; j < category.subcategorias.length; j++) {
+        final subcategory = category.subcategorias[j];
+        final productIndex =
+            subcategory.produtos.indexWhere((p) => p.id == productId);
+
+        if (productIndex != -1) {
+          final product = subcategory.produtos[productIndex];
+          var updatedProduct = product.copyWith(quantidadeManual: manual);
+
+          if (!manual && censoEscolar != null) {
+            final todosProdutos = categories
+                .expand((c) => c.subcategorias.expand((s) => s.produtos))
+                .toList();
+            final novaQuantidade = calculationService.calcularQuantidade(
+              updatedProduct,
+              censoEscolar!,
+              todosProdutos: todosProdutos,
+            );
+            updatedProduct =
+                updatedProduct.copyWith(quantidade: novaQuantidade);
+          }
+
+          final updatedProducts =
+              List<ProductEntity>.from(subcategory.produtos);
+          updatedProducts[productIndex] = updatedProduct;
+
+          final updatedSubcategory =
+              subcategory.copyWith(produtos: updatedProducts);
+
+          final updatedSubcategories =
+              List<SubcategoryEntity>.from(category.subcategorias);
+          updatedSubcategories[j] = updatedSubcategory;
+
+          final updatedCategory =
+              category.copyWith(subcategorias: updatedSubcategories);
+
+          categories[i] = updatedCategory;
+          if (!manual) {
+            _recalcServicosDependentes({productId});
+          }
           return;
         }
       }
@@ -1554,6 +1652,7 @@ abstract class _BudgetConfigStoreBase with Store {
   void _snapshotInitialProducts() {
     _origSelecionado.clear();
     _origQuantidade.clear();
+    _origQuantidadeManual.clear();
     _origValor.clear();
     _origIndicadores.clear();
 
@@ -1562,6 +1661,7 @@ abstract class _BudgetConfigStoreBase with Store {
         for (final prod in sub.produtos) {
           _origSelecionado[prod.id] = prod.selecionado;
           _origQuantidade[prod.id] = prod.quantidade;
+          _origQuantidadeManual[prod.id] = prod.quantidadeManual;
           _origValor[prod.id] = prod.valor;
           final indicatorMap = <int, bool>{};
           for (final ind in prod.indicadoresEtapa) {
@@ -1576,6 +1676,7 @@ abstract class _BudgetConfigStoreBase with Store {
   bool _isProductChanged(ProductEntity prod) {
     if (_origSelecionado[prod.id] != prod.selecionado) return true;
     if ((_origQuantidade[prod.id] ?? 0) != prod.quantidade) return true;
+    if (_origQuantidadeManual[prod.id] != prod.quantidadeManual) return true;
     if ((_origValor[prod.id] ?? 0) != prod.valor) return true;
 
     final origInds = _origIndicadores[prod.id];
@@ -1621,6 +1722,7 @@ abstract class _BudgetConfigStoreBase with Store {
     _validityDateChanged = false;
     _origSelecionado.clear();
     _origQuantidade.clear();
+    _origQuantidadeManual.clear();
     _origValor.clear();
     _origIndicadores.clear();
   }

@@ -16,6 +16,13 @@ class CustomCheckbox extends StatelessWidget {
 
   final Color? disabledColor;
 
+  /// Controla a aparência habilitada/desabilitada do checkbox.
+  ///
+  /// Quando o toque é tratado por um widget externo (ex.: zonas de toque do
+  /// card), `onChanged` é nulo mas o checkbox ainda deve parecer habilitado.
+  /// Se nulo, a aparência segue `onChanged != null`.
+  final bool? enabled;
+
   const CustomCheckbox({
     super.key,
     required this.value,
@@ -24,6 +31,7 @@ class CustomCheckbox extends StatelessWidget {
     this.checkedColor,
     this.disabledColor,
     this.uncheckedBorderColor,
+    this.enabled,
   });
 
   static const _defaultCheckedColor = Color(0xFF117BBD);
@@ -32,7 +40,7 @@ class CustomCheckbox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final enabled = onChanged != null;
+    final enabled = this.enabled ?? (onChanged != null);
 
     final effectiveCheckedColor = checkedColor ?? _defaultCheckedColor;
     final effectiveDisabledColor = disabledColor ?? _defaultDisabledColor;
@@ -52,7 +60,7 @@ class CustomCheckbox extends StatelessWidget {
         : effectiveDisabledColor;
 
     return GestureDetector(
-      onTap: enabled ? () => onChanged!(!value) : null,
+      onTap: onChanged != null ? () => onChanged!(!value) : null,
       child: Container(
         width: size.w,
         height: size.h,

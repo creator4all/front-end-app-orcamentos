@@ -45,6 +45,7 @@ abstract class _FileOpenerStoreBase with Store {
   @observable
   String? lastFilePath;
 
+  @observable
   FileOperation? currentOperation;
 
   @action
@@ -63,20 +64,22 @@ abstract class _FileOpenerStoreBase with Store {
 
       result.fold(
         (failure) {
-          _handleFailure(failure);
+          runInAction(() => _handleFailure(failure));
         },
         (filePath) {
-          lastFilePath = filePath;
+          runInAction(() => lastFilePath = filePath);
         },
       );
     } catch (e) {
-      errorMessage = 'Erro inesperado: $e';
+      runInAction(() => errorMessage = 'Erro inesperado: $e');
     } finally {
-      isDownloading = false;
-      isDirectDownload = false;
-      downloadProgress = 0.0;
-      currentItem = null;
-      currentOperation = null;
+      runInAction(() {
+        isDownloading = false;
+        isDirectDownload = false;
+        downloadProgress = 0.0;
+        currentItem = null;
+        currentOperation = null;
+      });
     }
   }
 

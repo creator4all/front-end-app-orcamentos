@@ -77,6 +77,7 @@ abstract class _BudgetEditStoreBase with Store {
   bool _originalIsArchived = false;
   DateTime? _originalValidityDate;
   final Map<int, double> _originalProductQuantities = {};
+  final Map<int, bool> _originalProductManualFlags = {};
   final Map<int, double> _originalProductValues = {};
   final Map<int, String?> _originalProductObservations = {};
   final Map<int, Map<int, bool>> _originalProductIndicators = {};
@@ -121,8 +122,12 @@ abstract class _BudgetEditStoreBase with Store {
     for (final cat in categories) {
       for (final sub in cat.subcategorias) {
         for (final prod in sub.produtos) {
-          if (_originalProductQuantities[prod.id] != prod.quantidade)
+          if (_originalProductQuantities[prod.id] != prod.quantidade) {
             return true;
+          }
+          if (_originalProductManualFlags[prod.id] != prod.quantidadeManual) {
+            return true;
+          }
           if (_originalProductValues[prod.id] != prod.valor) return true;
           if (_originalProductObservations[prod.id] != prod.observacoes)
             return true;
@@ -454,6 +459,11 @@ abstract class _BudgetEditStoreBase with Store {
     isLoadingCensus = false;
   }
 
+  @action
+  void clearError() {
+    error = null;
+  }
+
   void _clearBudgetStateForLoading() {
     budgetData = null;
     selectedProductIds.clear();
@@ -475,6 +485,7 @@ abstract class _BudgetEditStoreBase with Store {
     _originalIsArchived = false;
     _originalValidityDate = null;
     _originalProductQuantities.clear();
+    _originalProductManualFlags.clear();
     _originalProductValues.clear();
     _originalProductObservations.clear();
     _originalProductIndicators.clear();
@@ -709,6 +720,7 @@ abstract class _BudgetEditStoreBase with Store {
           );
 
           categories[i] = updatedCategory;
+          _recalcServicosDependentes({productId});
           return;
         }
       }
@@ -754,6 +766,7 @@ abstract class _BudgetEditStoreBase with Store {
           );
 
           categories[i] = updatedCategory;
+          _recalcServicosDependentes({productId});
           return;
         }
       }
@@ -807,6 +820,7 @@ abstract class _BudgetEditStoreBase with Store {
           );
 
           categories[i] = updatedCategory;
+          _recalcServicosDependentes({productId});
           return;
         }
       }
@@ -1026,6 +1040,7 @@ abstract class _BudgetEditStoreBase with Store {
     _originalValidityDate = validityDate;
 
     _originalProductQuantities.clear();
+    _originalProductManualFlags.clear();
     _originalProductValues.clear();
     _originalProductObservations.clear();
     _originalProductIndicators.clear();
@@ -1034,6 +1049,7 @@ abstract class _BudgetEditStoreBase with Store {
       for (final sub in cat.subcategorias) {
         for (final prod in sub.produtos) {
           _originalProductQuantities[prod.id] = prod.quantidade;
+          _originalProductManualFlags[prod.id] = prod.quantidadeManual;
           _originalProductValues[prod.id] = prod.valor;
           _originalProductObservations[prod.id] = prod.observacoes;
           final indicatorMap = <int, bool>{};

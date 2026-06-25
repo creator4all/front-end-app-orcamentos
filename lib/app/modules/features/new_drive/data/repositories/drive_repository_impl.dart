@@ -3,6 +3,7 @@ import 'package:multimidiaapp/app/shared/core/errors/http_exceptions.dart';
 import 'package:multimidiaapp/app/shared/core/http/http_response.dart';
 
 import '../../domain/entities/drive_item.dart';
+import '../../domain/helpers/download_cancel_token.dart';
 import '../../domain/repositories/drive_repository.dart';
 import '../../new_drive_failure.dart';
 import '../datasources/drive_remote_datasource.dart';
@@ -78,14 +79,20 @@ class DriveRepositoryImpl implements DriveRepository {
     String fileId,
     String savePath, {
     void Function(int received, int total)? onReceiveProgress,
-    CancelDownload? cancelToken,
+    DownloadCancelToken? cancelToken,
   }) async {
+    CancelDownload? httpCancelToken;
+    if (cancelToken != null) {
+      httpCancelToken = CancelDownload();
+      cancelToken.onCancel(httpCancelToken.cancel);
+    }
+
     try {
       await remoteDataSource.downloadFileToPath(
         fileId,
         savePath,
         onReceiveProgress: onReceiveProgress,
-        cancelToken: cancelToken,
+        cancelToken: httpCancelToken,
       );
       return Right(savePath);
     } on CancelledException {

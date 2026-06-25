@@ -28,6 +28,9 @@ class CensoTitleEntity extends Equatable {
   /// Fração da população aplicada (ex.: 0.005 = 0,5%). Null quando não aplicável.
   final double? percentualPopulacao;
 
+  /// Ordem do item dentro do grupo (vinda de `ind_ordem`).
+  final int ordem;
+
   const CensoTitleEntity({
     required this.id,
     required this.nomeEtapa,
@@ -36,6 +39,7 @@ class CensoTitleEntity extends Equatable {
     required this.isProfessores,
     required this.grupoId,
     this.percentualPopulacao,
+    this.ordem = 0,
   });
 
   /// Formata o valor para exibição
@@ -71,7 +75,8 @@ class CensoTitleEntity extends Equatable {
         valor,
         isProfessores,
         grupoId,
-        percentualPopulacao
+        percentualPopulacao,
+        ordem,
       ];
 
   @override

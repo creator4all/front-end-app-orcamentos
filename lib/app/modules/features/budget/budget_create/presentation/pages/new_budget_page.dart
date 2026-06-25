@@ -354,7 +354,9 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                               : null,
                           enabled: _store.hasPartners,
                           onChanged: (value) {
-                            if (value == null) return;
+                            if (value == null) {
+                              return;
+                            }
 
                             final partner = _findPartnerByLabel(value);
                             if (partner != null) {
@@ -387,7 +389,9 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                     items: estadosNomes,
                     value: _geo.estadoSelecionado?.nome,
                     onChanged: (value) async {
-                      if (value == null) return;
+                      if (value == null) {
+                        return;
+                      }
 
                       final matches =
                           _geo.estados.where((e) => e.nome == value);
@@ -424,7 +428,9 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                       items: cidadesNomes,
                       value: _geo.cidadeSelecionada?.nome,
                       onChanged: (value) {
-                        if (value == null) return;
+                        if (value == null) {
+                          return;
+                        }
 
                         final matches =
                             _geo.cidades.where((c) => c.nome == value);
@@ -651,15 +657,22 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                   behavior: HitTestBehavior.opaque,
                   onTap: () async {
                     final budgetName = await _showMultiCityBudgetNameModal();
-                    if (budgetName == null || budgetName.isEmpty) return;
+                    if (budgetName == null || budgetName.isEmpty) {
+                      return;
+                    }
 
-                    if (!mounted) return;
+                    if (!mounted) {
+                      return;
+                    }
                     final selectedCities =
                         await _showMultiCityCitySelectionModal();
-                    if (selectedCities == null || selectedCities.isEmpty)
+                    if (selectedCities == null || selectedCities.isEmpty) {
                       return;
+                    }
 
-                    if (!mounted) return;
+                    if (!mounted) {
+                      return;
+                    }
                     await Modular.to.pushNamed(
                       '/budget/multi-city/census',
                       arguments: {

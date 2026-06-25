@@ -1,8 +1,8 @@
 import 'package:dartz/dartz.dart';
-import 'package:multimidiaapp/app/shared/core/http/http_response.dart';
 
 import '../../new_drive_failure.dart';
 import '../entities/drive_item.dart';
+import '../helpers/download_cancel_token.dart';
 
 abstract class DriveRepository {
   Future<Either<NewDriveFailure, List<DriveItem>>> getRecentItems();
@@ -19,6 +19,6 @@ abstract class DriveRepository {
     String fileId,
     String savePath, {
     void Function(int received, int total)? onReceiveProgress,
-    CancelDownload? cancelToken,
+    DownloadCancelToken? cancelToken,
   });
 }

@@ -1,26 +1,29 @@
 import 'dart:io';
 
 import 'package:dartz/dartz.dart';
-import 'package:multimidiaapp/app/shared/core/http/http_response.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../../new_drive_failure.dart';
 import '../entities/drive_item.dart';
+import '../helpers/download_cancel_token.dart';
 import '../helpers/file_name_sanitizer.dart';
 import '../repositories/drive_repository.dart';
 import '../repositories/file_saver.dart';
+import '../repositories/temp_file_store.dart';
 
 class DownloadFileUsecase {
   final DriveRepository repository;
   final FileSaver fileSaver;
+  final TempFileStore tempFileStore;
 
-  CancelDownload? _currentCancelDownload;
+  DownloadCancelToken? _currentCancelDownload;
 
-  DownloadFileUsecase(this.repository, this.fileSaver);
+  DownloadFileUsecase(this.repository, this.fileSaver, this.tempFileStore);
 
   void cancelCurrentDownload() {
     final cancelDownload = _currentCancelDownload;
-    if (cancelDownload == null || cancelDownload.isCanceled) return;
+    if (cancelDownload == null || cancelDownload.isCanceled) {
+      return;
+    }
     cancelDownload.cancel();
   }
 
@@ -31,9 +34,8 @@ class DownloadFileUsecase {
     try {
       onProgress?.call(0.05);
       final sanitizedName = FileNameSanitizer.sanitize(item.name);
-      final tempDir = await getTemporaryDirectory();
-      final tempPath = '${tempDir.path}/$sanitizedName';
-      final cancelDownload = CancelDownload();
+      final tempPath = await tempFileStore.getTempFilePath(sanitizedName);
+      final cancelDownload = DownloadCancelToken();
       _currentCancelDownload = cancelDownload;
 
       final downloadResult = await repository.downloadFileToPath(
@@ -62,10 +64,7 @@ class DownloadFileUsecase {
               item.name,
             );
 
-            final tempFile = File(downloadedPath);
-            if (await tempFile.exists()) {
-              await tempFile.delete();
-            }
+            await tempFileStore.delete(downloadedPath);
 
             onProgress?.call(1.0);
             return right(savedPath);
@@ -98,10 +97,7 @@ class DownloadFileUsecase {
 
   Future<void> _cleanupTempFile(String tempPath) async {
     try {
-      final tempFile = File(tempPath);
-      if (await tempFile.exists()) {
-        await tempFile.delete();
-      }
+      await tempFileStore.delete(tempPath);
     } catch (_) {}
   }
 }

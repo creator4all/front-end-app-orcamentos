@@ -17,6 +17,7 @@ import 'interceptors/logger_interceptor.dart';
 class DioHttpClientImpl implements AppHttpClient {
   final HttpClientConfig config;
   late final Dio _dio;
+  final Map<Duration?, Dio> _dioCache = {};
 
   DioHttpClientImpl(this.config) {
     _initializeDio();
@@ -320,11 +321,12 @@ class DioHttpClientImpl implements AppHttpClient {
   Dio _dioFor(HttpRequestConfig? config) {
     if (config?.connectTimeout == null) return _dio;
 
-    final clone = Dio(
-      _dio.options.copyWith(connectTimeout: config!.connectTimeout),
-    );
-    clone.interceptors.addAll(_dio.interceptors);
-    return clone;
+    final timeout = config!.connectTimeout;
+    return _dioCache.putIfAbsent(timeout, () {
+      final clone = Dio(_dio.options.copyWith(connectTimeout: timeout));
+      clone.interceptors.addAll(_dio.interceptors);
+      return clone;
+    });
   }
 
   void _debugDownloadLog(String message) {

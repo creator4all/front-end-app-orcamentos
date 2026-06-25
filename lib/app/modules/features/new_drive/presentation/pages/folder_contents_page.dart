@@ -8,8 +8,8 @@ import '../../../auth/presentation/stores/auth_store.dart';
 import '../../domain/entities/drive_item.dart';
 import '../stores/file_opener_store.dart';
 import '../stores/new_drive_store.dart';
-import '../widgets/item_card_doc.dart';
 import '../widgets/drive_item_details.dart';
+import '../widgets/item_card_doc.dart';
 
 class FolderContentsPage extends StatefulWidget {
   final String folderId;
@@ -159,17 +159,17 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
                 _buildEmptyState()
               else
                 ...items.map((item) => Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 10.w),
-                  child: Column(
-                    children: [
-                      ItemCardDoc(
-                        item: item,
-                        onTap: () => _handleItemTap(item),
+                      padding: EdgeInsets.symmetric(horizontal: 10.w),
+                      child: Column(
+                        children: [
+                          ItemCardDoc(
+                            item: item,
+                            onTap: () => _handleItemTap(item),
+                          ),
+                          SizedBox(height: 12.h),
+                        ],
                       ),
-                      SizedBox(height: 12.h),
-                    ],
-                  ),
-                )),
+                    )),
             ],
           );
         },
@@ -364,7 +364,6 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
   }
 
   void _handleItemTap(DriveItem item) {
-
     DriveItemDetails.show(
       context: context,
       item: item,
@@ -373,35 +372,35 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
     );
   }
 
-Future<void> _openFileFromDetails(DriveItem item) async {
-  if(item.type == DriveItemType.folder) {
-    store.navigateToFolder(item.id, item.name);
-    Modular.to.pushNamed(
-      './folder',
-      arguments: {
-        'folderId': item.id,
-        'folderName': item.name,
-      },
-    );
-    return;
-  }
-  
-  if (item.type == DriveItemType.video) {
-    Modular.to.pushNamed(
-      './video-player',
-      arguments: item,
-    );
-    return;
-  }
+  Future<void> _openFileFromDetails(DriveItem item) async {
+    if (item.type == DriveItemType.folder) {
+      store.navigateToFolder(item.id, item.name);
+      Modular.to.pushNamed(
+        './folder',
+        arguments: {
+          'folderId': item.id,
+          'folderName': item.name,
+        },
+      );
+      return;
+    }
 
-  if (item.type == DriveItemType.image) {
-    Modular.to.pushNamed(
-      './image-viewer',
-      arguments: item,
-    );
-    return;
-  }
+    if (item.type == DriveItemType.video) {
+      Modular.to.pushNamed(
+        './video-player',
+        arguments: item,
+      );
+      return;
+    }
 
-  await fileOpenerStore.openFile(item);
-}
+    if (item.type == DriveItemType.image) {
+      Modular.to.pushNamed(
+        './image-viewer',
+        arguments: item,
+      );
+      return;
+    }
+
+    await fileOpenerStore.openFile(item);
+  }
 }
