@@ -568,7 +568,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
           onActionTap: () {
             _showProductsModal(currentCategory, currentSubcategory);
           },
-          splitTapZones: true,
         );
       },
     );
@@ -715,7 +714,6 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
           onActionTap: () {
             _showSubcategoriesModal(currentCategory);
           },
-          splitTapZones: true,
         );
       },
     );

@@ -757,7 +757,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
           onActionTap: () {
             _showProductsModal(currentCategory, currentSubcategory);
           },
-          splitTapZones: true,
         );
       },
     );
@@ -942,7 +941,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
           onActionTap: () {
             _showSubcategoriesModal(currentCategory);
           },
-          splitTapZones: true,
         );
       },
     );

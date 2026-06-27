@@ -20,6 +20,8 @@ class ProductItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isSelected = product.selecionado;
+    final toggleTap =
+        onToggle != null ? () => onToggle!(!product.selecionado) : null;
 
     final borderColor =
         isSelected ? const Color(0xFF117BBD) : const Color(0xFFD9D9D9);
@@ -34,71 +36,129 @@ class ProductItemCard extends StatelessWidget {
           width: 1.5,
         ),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: Stack(
         children: [
-          CustomCheckbox(
-            value: isSelected,
-            onChanged: onToggle,
+          _ProductItemCardContent(
+            product: product,
+            isSelected: isSelected,
+            isToggleEnabled: onToggle != null,
           ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
+          Positioned.fill(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  product.solucao,
-                  style: TextStyle(
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w400,
-                    color: const Color(0xFF484848),
+                Expanded(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: toggleTap,
+                    child: const SizedBox.expand(),
                   ),
                 ),
-                SizedBox(height: 4.h),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Qtde: ${product.formattedQuantidade}',
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w400,
-                        color: const Color(0xFF000000),
-                      ),
-                    ),
-                    Text(
-                      CurrencyUtils.formatBRL(product.valor),
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w400,
-                        color: const Color(0xFF000000),
-                      ),
-                    ),
-                    Text(
-                      CurrencyUtils.formatBRL(product.totalValue),
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w400,
-                        color: const Color(0xFF000000),
-                      ),
-                    ),
-                  ],
+                Expanded(
+                  flex: 2,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: onInfoTap,
+                    child: const SizedBox.expand(),
+                  ),
                 ),
               ],
             ),
           ),
-          SizedBox(width: 12.w),
-          GestureDetector(
-            onTap: onInfoTap,
-            child: Icon(
-              Icons.info_outline,
-              size: 28.sp,
-              color: const Color(0xFF117BBD),
-            ),
-          ),
         ],
       ),
+    );
+  }
+}
+
+class _ProductItemCardContent extends StatelessWidget {
+  final ProductEntity product;
+  final bool isSelected;
+  final bool isToggleEnabled;
+
+  const _ProductItemCardContent({
+    required this.product,
+    required this.isSelected,
+    required this.isToggleEnabled,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        CustomCheckbox(
+          value: isSelected,
+          enabled: isToggleEnabled,
+        ),
+        SizedBox(width: 12.w),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                product.solucao,
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w400,
+                  color: const Color(0xFF484848),
+                ),
+              ),
+              SizedBox(height: 4.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Qtde: ${product.formattedQuantidade}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w400,
+                        color: const Color(0xFF000000),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      CurrencyUtils.formatBRL(product.valor),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w400,
+                        color: const Color(0xFF000000),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      CurrencyUtils.formatBRL(product.totalValue),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.end,
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        fontWeight: FontWeight.w400,
+                        color: const Color(0xFF000000),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        SizedBox(width: 12.w),
+        Icon(
+          Icons.info_outline,
+          size: 28.sp,
+          color: const Color(0xFF117BBD),
+        ),
+      ],
     );
   }
 }

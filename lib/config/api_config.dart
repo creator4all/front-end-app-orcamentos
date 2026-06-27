@@ -1,4 +1,4 @@
-enum Environment { local, localCasa, test, production }
+enum Environment { local, localCasa, test, production, beta }
 
 class ApiConfig {
   static const String _localBaseUrl = 'http://192.168.10.128:8080';
@@ -7,8 +7,9 @@ class ApiConfig {
       'https://test-api.multimidiaeducacional.com.br';
   static const String _productionBaseUrl =
       'https://parceiro.multimidiaeducacional.com.br';
+  static const String _betaBaseUrl = 'https://parceiro-beta.multimidiaeducacional.com.br';
 
-  static Environment _currentEnvironment = Environment.localCasa;
+  static Environment _currentEnvironment = Environment.beta;
 
   static void init(Environment environment) {
     _currentEnvironment = environment;
@@ -26,6 +27,8 @@ class ApiConfig {
         return _testBaseUrl;
       case Environment.production:
         return _productionBaseUrl;
+      case Environment.beta:
+        return _betaBaseUrl;
     }
   }
 

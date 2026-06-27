@@ -193,6 +193,7 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
     String subcategoryName,
   ) {
     return Container(
+      width: double.infinity,
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         color: Colors.white,

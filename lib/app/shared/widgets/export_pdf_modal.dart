@@ -54,6 +54,8 @@ class _ExportPdfContent extends StatefulWidget {
 }
 
 class _ExportPdfContentState extends State<_ExportPdfContent> {
+  static const Color _pdfActionColor = Color(0xFF117BBD);
+
   final TextEditingController _nomeVendedorController = TextEditingController();
   final TextEditingController _cargoController = TextEditingController();
   final TextEditingController _telefoneController = TextEditingController();
@@ -177,17 +179,11 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
           height: 44.h,
         ),
         SizedBox(height: 16.h),
-        CustomTextField(
-          controller: _urlController,
-          label: 'URL',
-          hintText: 'Digite a URL',
-          keyboardType: TextInputType.url,
-          height: 44.h,
-        ),
-        SizedBox(height: 24.h),
+        _buildUrlSection(),
+        SizedBox(height: 20.h),
         _buildLogoSection(),
-        SizedBox(height: 24.h),
-        _buildCheckboxSection(),
+        SizedBox(height: 20.h),
+        _buildCensoSection(),
         SizedBox(height: 32.h),
         _buildShareButton(),
         SizedBox(height: 16.h),
@@ -195,73 +191,88 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
     );
   }
 
-  Widget _buildCheckboxSection() {
+  Widget _buildUrlSection() {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            CustomCheckbox(
-              value: _incluirLogoNoPdf,
-              onChanged: (value) {
-                setState(() => _incluirLogoNoPdf = value);
-              },
-              checkedColor: const Color(0xFF117BBD),
-            ),
-            SizedBox(width: 10.w),
-            Text(
-              'Incluir logo no PDF',
-              style: TextStyle(
-                fontSize: 14.sp,
-                color: Colors.black87,
-              ),
-            ),
-          ],
+        Opacity(
+          opacity: _incluirUrlNoPdf ? 1 : 0.55,
+          child: CustomTextField(
+            controller: _urlController,
+            label: 'URL',
+            hintText: 'Digite a URL',
+            keyboardType: TextInputType.url,
+            enabled: _incluirUrlNoPdf,
+            height: 44.h,
+          ),
         ),
-        SizedBox(height: 16.h),
-        Row(
-          children: [
-            CustomCheckbox(
-              value: _incluirCensoNoPdf,
-              onChanged: (value) {
-                setState(() => _incluirCensoNoPdf = value);
-              },
-              checkedColor: const Color(0xFF117BBD),
-            ),
-            SizedBox(width: 10.w),
-            Text(
-              'Incluir dados do censo escolar',
-              style: TextStyle(
-                fontSize: 14.sp,
-                color: Colors.black87,
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 16.h),
-        Row(
-          children: [
-            CustomCheckbox(
-              value: _incluirUrlNoPdf,
-              onChanged: (value) {
-                setState(() => _incluirUrlNoPdf = value);
-              },
-              checkedColor: const Color(0xFF117BBD),
-            ),
-            SizedBox(width: 10.w),
-            Text(
-              'Incluir URL no PDF',
-              style: TextStyle(
-                fontSize: 14.sp,
-                color: Colors.black87,
-              ),
-            ),
-          ],
+        SizedBox(height: 8.h),
+        _buildCheckboxRow(
+          value: _incluirUrlNoPdf,
+          label: 'Incluir URL no PDF',
+          onChanged: (value) {
+            setState(() => _incluirUrlNoPdf = value);
+          },
         ),
       ],
     );
   }
 
+  Widget _buildCensoSection() {
+    return _buildCheckboxRow(
+      value: _incluirCensoNoPdf,
+      label: 'Incluir dados do censo escolar',
+      onChanged: (value) {
+        setState(() => _incluirCensoNoPdf = value);
+      },
+    );
+  }
+
+  Widget _buildCheckboxRow({
+    required bool value,
+    required String label,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Semantics(
+      button: true,
+      checked: value,
+      label: label,
+      onTap: () => onChanged(!value),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => onChanged(!value),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: 44.h),
+          child: Row(
+            children: [
+              CustomCheckbox(
+                value: value,
+                onChanged: null,
+                checkedColor: _pdfActionColor,
+                enabled: true,
+              ),
+              SizedBox(width: 10.w),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    color: Colors.black87,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildLogoSection() {
+    final logoControlsEnabled = _incluirLogoNoPdf;
+    final logoAccentColor =
+        logoControlsEnabled ? _pdfActionColor : Colors.grey[400]!;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -274,64 +285,82 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
           ),
         ),
         SizedBox(height: 12.h),
-        Container(
-          width: double.infinity,
-          height: 120.h,
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey[300]!),
-            borderRadius: BorderRadius.circular(8.r),
-            color: Colors.grey[50],
+        Opacity(
+          opacity: logoControlsEnabled ? 1 : 0.55,
+          child: IgnorePointer(
+            ignoring: !logoControlsEnabled,
+            child: Container(
+              width: double.infinity,
+              height: 120.h,
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: logoControlsEnabled
+                      ? Colors.grey[300]!
+                      : Colors.grey.shade300,
+                ),
+                borderRadius: BorderRadius.circular(8.r),
+                color: logoControlsEnabled ? Colors.grey[50] : Colors.grey[100],
+              ),
+              child: _isLoadingPartnerLogo
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: _pdfActionColor,
+                      ),
+                    )
+                  : _logoImage != null
+                      ? _buildPreviewImage(file: _logoImage)
+                      : _partnerLogoBase64 != null
+                          ? _buildPreviewImage(base64: _partnerLogoBase64)
+                          : Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.image_outlined,
+                                  size: 40.sp,
+                                  color: Colors.grey[400],
+                                ),
+                                SizedBox(height: 8.h),
+                                Text(
+                                  'Nenhuma logo selecionada',
+                                  style: TextStyle(
+                                    fontSize: 12.sp,
+                                    color: Colors.grey[500],
+                                  ),
+                                ),
+                              ],
+                            ),
+            ),
           ),
-          child: _isLoadingPartnerLogo
-              ? const Center(
-                  child: CircularProgressIndicator(
-                    color: Color(0xFF117BBD),
-                  ),
-                )
-              : _logoImage != null
-                  ? _buildPreviewImage(file: _logoImage)
-                  : _partnerLogoBase64 != null
-                      ? _buildPreviewImage(base64: _partnerLogoBase64)
-                      : Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.image_outlined,
-                              size: 40.sp,
-                              color: Colors.grey[400],
-                            ),
-                            SizedBox(height: 8.h),
-                            Text(
-                              'Nenhuma logo selecionada',
-                              style: TextStyle(
-                                fontSize: 12.sp,
-                                color: Colors.grey[500],
-                              ),
-                            ),
-                          ],
-                        ),
+        ),
+        SizedBox(height: 8.h),
+        _buildCheckboxRow(
+          value: _incluirLogoNoPdf,
+          label: 'Incluir logo no PDF',
+          onChanged: (value) {
+            setState(() => _incluirLogoNoPdf = value);
+          },
         ),
         SizedBox(height: 12.h),
         SizedBox(
           width: double.infinity,
           height: 40.h,
           child: OutlinedButton.icon(
-            onPressed: _pickLogo,
+            onPressed: logoControlsEnabled ? _pickLogo : null,
             icon: Icon(
               Icons.upload_outlined,
               size: 18.sp,
-              color: const Color(0xFF117BBD),
+              color: logoAccentColor,
             ),
             label: Text(
               'Enviar logo',
               style: TextStyle(
                 fontSize: 14.sp,
-                color: const Color(0xFF117BBD),
+                color: logoAccentColor,
                 fontWeight: FontWeight.w500,
               ),
             ),
             style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: Color(0xFF117BBD)),
+              side: BorderSide(color: logoAccentColor),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8.r),
               ),
