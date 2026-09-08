@@ -18,7 +18,6 @@ import 'budget_config/domain/repositories/budget_detail_repository.dart';
 import 'budget_config/domain/repositories/census_repository.dart';
 import 'budget_config/domain/services/product_calculation_service.dart';
 import 'budget_config/domain/usecases/calculate_totals_usecase.dart';
-import 'budget_config/domain/usecases/finalize_budget_usecase.dart';
 import 'budget_config/domain/usecases/get_budget_census_usecase.dart';
 import 'budget_config/domain/usecases/get_budget_detail_usecase.dart';
 import 'budget_config/domain/usecases/get_category_products_usecase.dart';
@@ -156,9 +155,6 @@ class BudgetModuleNew extends Module {
             (i) => ToggleCategoryUseCase()),
         Bind.lazySingleton<CalculateTotalsUseCase>(
             (i) => CalculateTotalsUseCase()),
-        Bind.lazySingleton<FinalizeBudgetUseCase>(
-          (i) => FinalizeBudgetUseCase(i.get<BudgetDetailRepository>()),
-        ),
         Bind.lazySingleton<SaveBudgetUseCase>(
           (i) => SaveBudgetUseCase(i.get<BudgetDetailRepository>()),
         ),
@@ -175,7 +171,6 @@ class BudgetModuleNew extends Module {
             getCensusDataUseCase: i.get<GetCensusDataUseCase>(),
             toggleCategoryUseCase: i.get<ToggleCategoryUseCase>(),
             calculateTotalsUseCase: i.get<CalculateTotalsUseCase>(),
-            finalizeBudgetUseCase: i.get<FinalizeBudgetUseCase>(),
             saveBudgetUseCase: i.get<SaveBudgetUseCase>(),
             calculationService: i.get<ProductCalculationService>(),
           ),

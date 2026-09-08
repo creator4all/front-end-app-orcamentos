@@ -7,14 +7,14 @@ import '../../../../../shared/widgets/status_tag_widget.dart';
 
 enum ReportUserRole { admin, manager, seller }
 
-enum ReportBudgetStatus { pending, approved, notApproved, expired }
+enum ReportBudgetStatus { pending, approved, notApproved, expired, draft }
 
 class ReportBudgetCardWidget extends StatelessWidget {
   final String title;
   final String? partner;
   final String? seller;
   final String budgetCode;
-  final DateTime dueDate;
+  final DateTime? dueDate;
   final double totalValue;
   final int daysRemaining;
   final ReportBudgetStatus status;
@@ -68,7 +68,6 @@ class ReportBudgetCardWidget extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-
             if (_shouldShowPartnerAndSeller())
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -99,7 +98,6 @@ class ReportBudgetCardWidget extends StatelessWidget {
                     ),
                 ],
               ),
-
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -135,7 +133,6 @@ class ReportBudgetCardWidget extends StatelessWidget {
                     ],
                   ),
                 ),
-
                 Expanded(
                   flex: 1,
                   child: FittedBox(
@@ -154,19 +151,18 @@ class ReportBudgetCardWidget extends StatelessWidget {
                 ),
               ],
             ),
-
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 DaysRemainingWidget(
                   daysRemaining: daysRemaining,
                 ),
-
                 Row(
                   children: [
-                    StatusTagWidget(
-                      type: _mapStatusToTagType(status),
-                    ),
+                    if (status == ReportBudgetStatus.draft)
+                      const Text('Rascunho')
+                    else
+                      StatusTagWidget(type: _mapStatusToTagType(status)!),
                     if (isArchived) ...[
                       SizedBox(width: 8.w),
                       const StatusTagWidget(
@@ -194,8 +190,10 @@ class ReportBudgetCardWidget extends StatelessWidget {
     }
   }
 
-  TagType _mapStatusToTagType(ReportBudgetStatus status) {
+  TagType? _mapStatusToTagType(ReportBudgetStatus status) {
     switch (status) {
+      case ReportBudgetStatus.draft:
+        return null;
       case ReportBudgetStatus.pending:
         return TagType.pending;
       case ReportBudgetStatus.approved:
@@ -207,7 +205,8 @@ class ReportBudgetCardWidget extends StatelessWidget {
     }
   }
 
-  String _formatDate(DateTime date) {
+  String _formatDate(DateTime? date) {
+    if (date == null) return 'Sem validade';
     return '${date.day}/${date.month}/${date.year}';
   }
 }

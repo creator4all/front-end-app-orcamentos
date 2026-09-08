@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:multimidiaapp/app/modules/features/budget/budget_config/domain/entities/indicador_etapa_entity.dart';
 import 'package:multimidiaapp/app/modules/features/budget/budget_config/domain/entities/product_entity.dart';
 import 'package:multimidiaapp/app/modules/features/budget/shared/models/product_selection_update_dto.dart';
+import 'package:multimidiaapp/app/shared/domain/value_objects/fractional_order.dart';
 
 ProductEntity _createProduct({
   List<IndicadorEtapaEntity> indicadores = const [],
@@ -15,7 +16,7 @@ ProductEntity _createProduct({
     valor: 100.0,
     indicacao: '',
     tipoProduto: 'produto',
-    ordem: 0,
+    ordem: FractionalOrder.zero,
     subcategoriaId: 1,
     selecionado: true,
     quantidade: 10,

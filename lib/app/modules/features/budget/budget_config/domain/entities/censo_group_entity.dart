@@ -1,5 +1,6 @@
 import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:equatable/equatable.dart';
+import 'package:multimidiaapp/app/shared/domain/value_objects/fractional_order.dart';
 
 import 'censo_title_entity.dart';
 
@@ -19,13 +20,13 @@ class CensoGroupEntity extends Equatable {
   final List<CensoTitleEntity> titulos;
 
   /// Ordem do grupo (vinda de `grupo_ordem`).
-  final int ordem;
+  final FractionalOrder ordem;
 
   const CensoGroupEntity({
     required this.id,
     required this.nome,
     required this.titulos,
-    this.ordem = 0,
+    this.ordem = FractionalOrder.zero,
   });
 
   /// Valor total somando todos os títulos do grupo

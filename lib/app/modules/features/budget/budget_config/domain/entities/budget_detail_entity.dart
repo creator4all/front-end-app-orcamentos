@@ -35,6 +35,8 @@ class BudgetDetailEntity extends Equatable {
 
   final List<Map<String, dynamic>> citiesData;
 
+  final bool isArchived;
+
   final Map<String, double> censoAgregado;
 
   const BudgetDetailEntity({
@@ -52,6 +54,7 @@ class BudgetDetailEntity extends Equatable {
     required this.categoryStates,
     required this.categories,
     required this.citiesData,
+    this.isArchived = false,
     this.censoAgregado = const {},
   });
 
@@ -95,6 +98,7 @@ class BudgetDetailEntity extends Equatable {
         categoryStates,
         categories,
         citiesData,
+        isArchived,
         censoAgregado,
       ];
 }

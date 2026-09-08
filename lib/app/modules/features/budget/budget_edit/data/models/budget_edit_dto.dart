@@ -1,3 +1,5 @@
+import 'package:multimidiaapp/app/shared/domain/value_objects/fractional_order.dart';
+
 import '../../../budget_config/data/models/census_data_dto.dart';
 import '../../../budget_config/data/models/product_selection_dto.dart';
 import '../../domain/entities/budget_edit_entity.dart';
@@ -75,7 +77,7 @@ class BudgetEditDto {
         () => <String, dynamic>{
           'cat_categoriaId': catId,
           'cat_nome': categoria['cat_nome'],
-          'cat_ordem': _toInt(categoria['cat_ordem']),
+          'cat_ordem': FractionalOrder.parse(categoria['cat_ordem']).toJson(),
           'cat_expandido': categoria['cat_expandido'] ?? true,
           'subcategorias': <Map<String, dynamic>>[],
         },
@@ -86,7 +88,8 @@ class BudgetEditDto {
         final novaSub = <String, dynamic>{
           'sub_subcategoriasId': subId,
           'sub_name': subcategoria['sub_name'],
-          'sub_order': _toInt(subcategoria['sub_order']),
+          'sub_order':
+              FractionalOrder.parse(subcategoria['sub_order']).toJson(),
           'produtos': <Map<String, dynamic>>[],
         };
         (categorias[catId]!['subcategorias'] as List).add(novaSub);
@@ -97,17 +100,18 @@ class BudgetEditDto {
     }
 
     final lista = categorias.values.toList()
-      ..sort(
-          (a, b) => (a['cat_ordem'] as int).compareTo(b['cat_ordem'] as int));
+      ..sort((a, b) => FractionalOrder.parse(a['cat_ordem'])
+          .compareTo(FractionalOrder.parse(b['cat_ordem'])));
 
     for (final categoria in lista) {
       final subs = (categoria['subcategorias'] as List)
           .cast<Map<String, dynamic>>()
-        ..sort(
-            (a, b) => (a['sub_order'] as int).compareTo(b['sub_order'] as int));
+        ..sort((a, b) => FractionalOrder.parse(a['sub_order'])
+            .compareTo(FractionalOrder.parse(b['sub_order'])));
       for (final sub in subs) {
-        (sub['produtos'] as List).cast<Map<String, dynamic>>().sort(
-            (a, b) => _toInt(a['pro_ordem']).compareTo(_toInt(b['pro_ordem'])));
+        (sub['produtos'] as List).cast<Map<String, dynamic>>().sort((a, b) =>
+            FractionalOrder.parse(a['pro_ordem'])
+                .compareTo(FractionalOrder.parse(b['pro_ordem'])));
       }
     }
 
@@ -170,14 +174,15 @@ class BudgetEditDto {
     final etapasOrdenadas =
         mapaIndicadores.values.whereType<Map<String, dynamic>>().toList()
           ..sort((a, b) {
-            final ordemGrupoA =
-                _toInt((a['grupo'] as Map<String, dynamic>?)?['gru_ordem']);
-            final ordemGrupoB =
-                _toInt((b['grupo'] as Map<String, dynamic>?)?['gru_ordem']);
+            final ordemGrupoA = FractionalOrder.parse(
+                (a['grupo'] as Map<String, dynamic>?)?['gru_ordem']);
+            final ordemGrupoB = FractionalOrder.parse(
+                (b['grupo'] as Map<String, dynamic>?)?['gru_ordem']);
             if (ordemGrupoA != ordemGrupoB) {
               return ordemGrupoA.compareTo(ordemGrupoB);
             }
-            return _toInt(a['ine_ordem']).compareTo(_toInt(b['ine_ordem']));
+            return FractionalOrder.parse(a['ine_ordem'])
+                .compareTo(FractionalOrder.parse(b['ine_ordem']));
           });
 
     for (final produto in produtos) {

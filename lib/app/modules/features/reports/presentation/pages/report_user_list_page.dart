@@ -1,12 +1,13 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:intl/intl.dart';
 
 import '../../../../../shared/widgets/custom_top_bar.dart';
 import '../stores/report_filter_store.dart';
 import '../stores/report_user_list_store.dart';
+import '../widgets/report_date_filter.dart';
+import '../widgets/report_period_label.dart';
 import '../widgets/report_user_card.dart';
 
 class ReportUserListPage extends StatefulWidget {
@@ -27,7 +28,6 @@ class _ReportUserListPageState extends State<ReportUserListPage> {
   late final ReportUserListStore _store;
   late final ReportFilterStore _filterStore;
   final TextEditingController _searchController = TextEditingController();
-  final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
 
   @override
   void initState() {
@@ -42,7 +42,6 @@ class _ReportUserListPageState extends State<ReportUserListPage> {
 
   Future<void> _loadData() async {
     await _store.loadUsers(widget.partnerId, partnerName: widget.partnerName);
-    await _store.loadPartnerSales(widget.partnerId);
   }
 
   @override
@@ -66,6 +65,7 @@ class _ReportUserListPageState extends State<ReportUserListPage> {
   }
 
   void _onUserTap(int userId, String userName, String userCargo) {
+    _filterStore.clearStatusFilter();
     Modular.to.pushNamed(
       '/reports/user/$userId/budgets',
       arguments: {
@@ -74,28 +74,6 @@ class _ReportUserListPageState extends State<ReportUserListPage> {
         'partnerName': widget.partnerName,
       },
     );
-  }
-
-  Future<void> _selectDate(BuildContext context, bool isStartDate) async {
-    final initialDate = isStartDate
-        ? _filterStore.dataInicio ?? DateTime.now()
-        : _filterStore.dataFim ?? DateTime.now();
-
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: initialDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(DateTime.now().year + 5),
-    );
-
-    if (picked != null) {
-      if (isStartDate) {
-        _filterStore.setDataInicio(picked);
-      } else {
-        _filterStore.setDataFim(picked);
-      }
-      _onDateFilterApplied();
-    }
   }
 
   @override
@@ -152,9 +130,7 @@ class _ReportUserListPageState extends State<ReportUserListPage> {
                         ),
                       ],
                     ),
-
                     SizedBox(height: 8.h),
-
                     TextField(
                       controller: _searchController,
                       onChanged: _onSearchChanged,
@@ -185,34 +161,35 @@ class _ReportUserListPageState extends State<ReportUserListPage> {
                         color: const Color(0xFF484848),
                       ),
                     ),
-
                     SizedBox(height: 8.h),
-
                     Observer(
-                      builder: (_) => Row(
-                        children: [
-                          Expanded(
-                            child: _buildDateField(
-                              label: 'De:',
-                              date: _filterStore.dataInicio,
-                              onTap: () => _selectDate(context, true),
-                            ),
-                          ),
-                          SizedBox(width: 12.w),
-                          Expanded(
-                            child: _buildDateField(
-                              label: 'Até:',
-                              date: _filterStore.dataFim,
-                              onTap: () => _selectDate(context, false),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                        builder: (_) => Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                ReportDateFilter(
+                                  dataInicio: _filterStore.dataInicio,
+                                  dataFim: _filterStore.dataFim,
+                                  onDataInicioChanged: (date) {
+                                    _filterStore.setDataInicio(date);
+                                    _onDateFilterApplied();
+                                  },
+                                  onDataFimChanged: (date) {
+                                    _filterStore.setDataFim(date);
+                                    _onDateFilterApplied();
+                                  },
+                                  onClear: () {
+                                    _filterStore.clearDateFilter();
+                                    _onDateFilterApplied();
+                                  },
+                                ),
+                                ReportPeriodLabel(
+                                    start: _filterStore.dataInicio,
+                                    end: _filterStore.dataFim),
+                              ],
+                            )),
                   ],
                 ),
               ),
-
               Observer(
                 builder: (_) {
                   if (_store.isLoading) {
@@ -307,51 +284,6 @@ class _ReportUserListPageState extends State<ReportUserListPage> {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDateField({
-    required String label,
-    required DateTime? date,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF5F5F5),
-          borderRadius: BorderRadius.circular(8.r),
-        ),
-        child: Row(
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12.sp,
-                color: const Color(0xFF828282),
-              ),
-            ),
-            SizedBox(width: 4.w),
-            Expanded(
-              child: Text(
-                date != null ? _dateFormat.format(date) : 'dd/mm/aaaa',
-                style: TextStyle(
-                  fontSize: 12.sp,
-                  color: date != null
-                      ? const Color(0xFF484848)
-                      : const Color(0xFF828282),
-                ),
-              ),
-            ),
-            Icon(
-              Icons.calendar_today,
-              size: 16.w,
-              color: const Color(0xFF828282),
-            ),
-          ],
         ),
       ),
     );

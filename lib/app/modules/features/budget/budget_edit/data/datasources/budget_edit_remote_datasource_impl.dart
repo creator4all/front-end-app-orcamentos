@@ -35,32 +35,48 @@ class BudgetEditRemoteDataSourceImpl implements BudgetEditRemoteDataSource {
     List<int>? selectedProductIds,
   }) async {
     try {
-      final Map<String, dynamic> body = {};
-
-      if (name != null) body['nome'] = name;
-      if (validityDays != null) body['orc_dias_validade'] = validityDays;
-      if (validityDate != null) {
-        body['orc_data_validade'] = validityDate.toIso8601String();
-      }
-      if (status != null) body['orc_status'] = status;
-      if (selectedProductIds != null) {
-        body['produtos_selecionados'] = selectedProductIds;
-      }
+      // `PUT /api/orcamentos/{id}` valida atualização completa e responde sem
+      // corpo. O registro atual é relido para preencher os campos que esta
+      // operação não altera, e a estrutura de edição é buscada de novo depois
+      // da gravação.
+      final atual = await _buscarRegistro(id);
 
       final response = await _client.put(
         '/api/orcamentos/$id',
-        data: body,
+        data: {
+          'orc_nome': name ?? atual['orc_nome'],
+          'orc_dias_validade': validityDays ?? atual['orc_dias_validade'],
+          'orc_status': status ?? atual['orc_status'],
+          'orc_total': atual['orc_total'],
+          'orc_usuario_id': atual['orc_usuario_id'],
+          'orc_partner_destino_id': atual['orc_partner_destino_id'],
+          'isArchived': isArchived ?? atual['orc_is_archived'] ?? false,
+          'cidades': const <int>[],
+          'indicadores': const <Map<String, dynamic>>[],
+          // A sincronização de produtos exige quantidade e overrides por item,
+          // que esta operação não recebe; ela é feita pelo versionamento.
+          'produtos': const <Map<String, dynamic>>[],
+        },
       );
 
       if (response.isSuccess) {
-        final data = response.body['dados'] as Map<String, dynamic>;
-        return BudgetEditDto.fromJson(data);
+        return getBudgetForEdit(id);
       }
 
       throw Exception(response.body['error'] ?? 'Erro ao atualizar orçamento');
     } catch (e) {
       rethrow;
     }
+  }
+
+  Future<Map<String, dynamic>> _buscarRegistro(int budgetId) async {
+    final response = await _client.get('/api/orcamentos/$budgetId');
+
+    if (!response.isSuccess) {
+      throw Exception(response.body['error'] ?? 'Orçamento não encontrado');
+    }
+
+    return Map<String, dynamic>.from(response.body['dados'] as Map);
   }
 
   @override
@@ -76,9 +92,9 @@ class BudgetEditRemoteDataSourceImpl implements BudgetEditRemoteDataSource {
         data: body,
       );
 
+      // O `PUT` responde sem corpo; a estrutura de edição é relida.
       if (response.isSuccess) {
-        final data = response.body['dados'] as Map<String, dynamic>;
-        return BudgetEditDto.fromJson(data);
+        return getBudgetForEdit(budgetId);
       }
 
       throw Exception(response.body['error'] ?? 'Erro ao atualizar orçamento');

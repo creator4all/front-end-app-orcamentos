@@ -16,10 +16,10 @@ class PartnerManagementApiDatasource implements PartnerManagementDatasource {
     String sort = 'tradeName_asc',
   }) async {
     try {
-      final queryParameters = {
+      final queryParameters = <String, dynamic>{
         'page': page,
         'per_page': perPage,
-        'sort': sort,
+        ..._sortToQuery(sort),
       };
       final trimmedSearchQuery = searchQuery?.trim();
       if (trimmedSearchQuery != null && trimmedSearchQuery.isNotEmpty) {
@@ -41,5 +41,17 @@ class PartnerManagementApiDatasource implements PartnerManagementDatasource {
     } catch (e) {
       rethrow;
     }
+  }
+
+  /// Traduz o `sort` interno (`<campo>_<direcao>`) para os parâmetros
+  /// `order_by`/`order_direction` aceitos por `GET /api/partners`.
+  static Map<String, String> _sortToQuery(String sort) {
+    final separator = sort.lastIndexOf('_');
+    if (separator <= 0 || separator == sort.length - 1) return const {};
+
+    return {
+      'order_by': sort.substring(0, separator),
+      'order_direction': sort.substring(separator + 1),
+    };
   }
 }

@@ -1,11 +1,13 @@
-﻿import '../../domain/entities/category_entity.dart';
+import 'package:multimidiaapp/app/shared/domain/value_objects/fractional_order.dart';
+
+import '../../domain/entities/category_entity.dart';
 import 'statistics_dto.dart';
 import 'subcategory_dto.dart';
 
 class CategoryDTO {
   final int id;
   final String nome;
-  final int ordem;
+  final FractionalOrder ordem;
   final bool expandido;
   final List<SubcategoryDTO> subcategorias;
   final StatisticsDTO? estatisticas;
@@ -26,9 +28,8 @@ class CategoryDTO {
           0;
       final String nome =
           json['cat_nome'] as String? ?? json['nome'] as String? ?? '';
-      final int ordem = (json['cat_ordem'] as num?)?.toInt() ??
-          (json['ordem'] as num?)?.toInt() ??
-          0;
+      final FractionalOrder ordem =
+          FractionalOrder.parse(json['cat_ordem'] ?? json['ordem']);
       final bool expandido =
           json['cat_expandido'] as bool? ?? json['expandido'] as bool? ?? false;
 
@@ -81,7 +82,7 @@ class CategoryDTO {
     return {
       'id': id,
       'nome': nome,
-      'ordem': ordem,
+      'ordem': ordem.toJson(),
       'expandido': expandido,
       'subcategorias': subcategorias.map((s) => s.toJson()).toList(),
       if (estatisticas != null) 'estatisticas': estatisticas!.toJson(),

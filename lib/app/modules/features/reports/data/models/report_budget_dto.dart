@@ -4,7 +4,7 @@ class ReportBudgetDto {
   final int id;
   final String? nome;
   final String codigo;
-  final DateTime dataOrcamento;
+  final DateTime? dataOrcamento;
   final DateTime? dataValidade;
   final int diasRestantes;
   final double total;
@@ -29,37 +29,23 @@ class ReportBudgetDto {
 
   factory ReportBudgetDto.fromOrcamentoJson(Map<String, dynamic> json) {
     final dataValidade = _parseDate(json['data_validade']);
-    int diasRestantes = _parseInt(json['dias_validade']);
-    if (diasRestantes == 0 && dataValidade != null) {
-      diasRestantes = _calcularDiasRestantes(dataValidade);
-    }
+    final diasRestantes =
+        dataValidade == null ? 0 : _calcularDiasRestantes(dataValidade);
 
     final usuario = json['usuario'] as Map<String, dynamic>?;
 
     return ReportBudgetDto(
-      id: json['id'] ?? 0,
+      id: _parseInt(json['id']),
       nome: json['nome'],
       codigo: _gerarCodigo(json['id'] ?? 0),
-      dataOrcamento: _parseDate(json['data_validade']) ?? DateTime.now(),
+      dataOrcamento: _parseDate(json['created_at']),
       dataValidade: dataValidade,
       diasRestantes: diasRestantes,
       total: _parseDouble(json['total']),
       status: json['status'] ?? 'pendente',
-      isArchived: json['is_archived'] ?? false,
-      cidadesCount: _parseInt(json['cidades']),
+      isArchived: json['is_archived'] == true || json['is_archived'] == 1,
+      cidadesCount: (json['cidades'] as List?)?.length ?? 0,
       usuarioId: _parseInt(usuario?['id']),
-    );
-  }
-
-  factory ReportBudgetDto.fromVendasJson(Map<String, dynamic> json) {
-    return ReportBudgetDto(
-      id: json['orc_orcamentoId'] ?? 0,
-      nome: json['orc_nome'],
-      codigo: _gerarCodigo(json['orc_orcamentoId'] ?? 0),
-      dataOrcamento: _parseDate(json['created_at']) ?? DateTime.now(),
-      total: _parseDouble(json['orc_total']),
-      status: json['orc_status'] ?? 'pendente',
-      usuarioId: _parseInt(json['orc_usuario_id']),
     );
   }
 
@@ -86,8 +72,10 @@ class ReportBudgetDto {
 
   static int _calcularDiasRestantes(DateTime dataValidade) {
     final hoje = DateTime.now();
-    final hojeDate = DateTime(hoje.year, hoje.month, hoje.day);
-    final dias = dataValidade.difference(hojeDate).inDays;
+    final hojeDate = DateTime.utc(hoje.year, hoje.month, hoje.day);
+    final validadeDate =
+        DateTime.utc(dataValidade.year, dataValidade.month, dataValidade.day);
+    final dias = validadeDate.difference(hojeDate).inDays;
     return dias < 0 ? 0 : dias;
   }
 

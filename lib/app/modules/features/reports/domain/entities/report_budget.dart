@@ -4,7 +4,7 @@ class ReportBudget extends Equatable {
   final int id;
   final String? nome;
   final String codigo;
-  final DateTime dataOrcamento;
+  final DateTime? dataOrcamento;
   final DateTime? dataValidade;
   final int diasRestantes;
   final double total;

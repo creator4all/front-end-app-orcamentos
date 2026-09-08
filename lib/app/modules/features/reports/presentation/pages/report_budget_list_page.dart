@@ -3,11 +3,13 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../../../shared/utils/currency_utils.dart';
 import '../../../../../shared/widgets/custom_top_bar.dart';
 import '../stores/report_budget_list_store.dart';
 import '../stores/report_filter_store.dart';
 import '../widgets/report_budget_card_widget.dart';
 import '../widgets/report_filter_widget.dart';
+import '../widgets/report_period_label.dart';
 
 class ReportBudgetListPage extends StatefulWidget {
   final int userId;
@@ -31,9 +33,6 @@ class _ReportBudgetListPageState extends State<ReportBudgetListPage> {
   late final ReportBudgetListStore _store;
   late final ReportFilterStore _filterStore;
 
-  List<String> _selectedFilters = ['pendente'];
-  String _searchQuery = '';
-
   @override
   void initState() {
     super.initState();
@@ -42,12 +41,7 @@ class _ReportBudgetListPageState extends State<ReportBudgetListPage> {
 
     _filterStore.clearBudgetSearch();
 
-    if (_filterStore.selectedStatuses.isEmpty) {
-      _filterStore.toggleStatus('pendente');
-      _selectedFilters = ['pendente'];
-    } else {
-      _selectedFilters = _filterStore.selectedStatuses.toList();
-    }
+    _filterStore.clearStatusFilter();
 
     _store.loadBudgets(
       widget.userId,
@@ -58,17 +52,10 @@ class _ReportBudgetListPageState extends State<ReportBudgetListPage> {
   }
 
   void _handleSearchChanged(String query) {
-    setState(() {
-      _searchQuery = query;
-    });
     _filterStore.setBudgetSearchQuery(query);
   }
 
   void _handleFiltersChanged(List<String> filters) {
-    setState(() {
-      _selectedFilters = List.from(filters);
-    });
-
     _filterStore.clearStatusFilter();
     for (final filter in filters) {
       _filterStore.toggleStatus(filter.toLowerCase());
@@ -78,7 +65,6 @@ class _ReportBudgetListPageState extends State<ReportBudgetListPage> {
   void _handleReset() {
     _filterStore.clearBudgetSearch();
     _filterStore.clearStatusFilter();
-    _filterStore.toggleStatus('pendente');
   }
 
   void _onBudgetTap(int budgetId) {
@@ -95,7 +81,7 @@ class _ReportBudgetListPageState extends State<ReportBudgetListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: CustomTopBar(
-        title: 'Gestão admnistrativa',
+        title: 'Gestão administrativa',
         showBackButton: true,
         onBackPressed: () => Modular.to.pop(),
       ),
@@ -111,7 +97,6 @@ class _ReportBudgetListPageState extends State<ReportBudgetListPage> {
                 onReset: _handleReset,
               ),
             ),
-
             SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
@@ -127,18 +112,24 @@ class _ReportBudgetListPageState extends State<ReportBudgetListPage> {
                       ),
                     ),
                     SizedBox(height: 4.h),
+                    Observer(
+                        builder: (_) => ReportPeriodLabel(
+                            start: _filterStore.dataInicio,
+                            end: _filterStore.dataFim)),
                     Text(
                       widget.userName ?? 'Vendedor',
                       style: TextStyle(
-                        fontSize: 14.sp,
-                        color: const Color(0xFF828282),
-                      ),
+                          fontSize: 14.sp, color: const Color(0xFF828282)),
                     ),
+                    Observer(
+                        builder: (_) => _store.isLoading || _store.error != null
+                            ? const SizedBox.shrink()
+                            : Text(
+                                '${_store.filteredBudgets.length} orçamentos • Total: ${CurrencyUtils.formatBRL(_store.totalValue)}')),
                   ],
                 ),
               ),
             ),
-
             Observer(
               builder: (_) {
                 if (_store.isLoading && _store.allBudgets.isEmpty) {
@@ -205,6 +196,9 @@ class _ReportBudgetListPageState extends State<ReportBudgetListPage> {
                         case 'nao_aprovado':
                           status = ReportBudgetStatus.notApproved;
                           break;
+                        case 'rascunho':
+                          status = ReportBudgetStatus.draft;
+                          break;
                         case 'expirado':
                           status = ReportBudgetStatus.expired;
                           break;
@@ -212,21 +206,12 @@ class _ReportBudgetListPageState extends State<ReportBudgetListPage> {
                           status = ReportBudgetStatus.pending;
                       }
 
-                      int daysRemaining = 0;
-                      if (b.dataValidade != null) {
-                        final now = DateTime.now();
-                        final today = DateTime(now.year, now.month, now.day);
-                        final target = DateTime(b.dataValidade!.year, b.dataValidade!.month, b.dataValidade!.day);
-                        final difference = target.difference(today).inDays;
-                        daysRemaining = difference > 0 ? difference : 0;
-                      }
-
                       return ReportBudgetCardWidget(
                         title: b.nome ?? 'Orçamento #${b.id}',
                         budgetCode: b.codigo,
-                        dueDate: b.dataValidade ?? DateTime.now(),
+                        dueDate: b.dataValidade,
                         totalValue: b.total,
-                        daysRemaining: daysRemaining,
+                        daysRemaining: b.diasRestantes,
                         status: status,
                         isArchived: b.isArchived,
                         userRole: ReportUserRole.admin,

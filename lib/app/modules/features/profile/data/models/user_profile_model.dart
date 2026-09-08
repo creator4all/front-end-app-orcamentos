@@ -1,4 +1,5 @@
-﻿import '../../domain/entities/user_profile.dart';
+﻿import '../../../../../shared/utils/api_number_parser.dart';
+import '../../domain/entities/user_profile.dart';
 
 class UserProfileModel {
   final int id;
@@ -9,6 +10,7 @@ class UserProfileModel {
   final String? avatar;
   final String? avatarBase64;
   final String? roleName;
+  final int? partnerId;
   final String? partnerName;
   final bool status;
 
@@ -21,6 +23,7 @@ class UserProfileModel {
     this.avatar,
     this.avatarBase64,
     this.roleName,
+    this.partnerId,
     this.partnerName,
     required this.status,
   });
@@ -47,6 +50,7 @@ class UserProfileModel {
       avatar: json['usr_avatar'] as String?,
       avatarBase64: json['usr_avatar_base64'] as String?,
       roleName: roleName,
+      partnerId: ApiNumberParser.toIntOrNull(json['partners_par_partnerId']),
       partnerName: partnerName,
       status: json['usr_status'] as bool,
     );
@@ -62,22 +66,10 @@ class UserProfileModel {
       avatar: avatar,
       avatarBase64: avatarBase64,
       roleName: roleName,
+      partnerId: partnerId,
       partnerName: partnerName,
       status: status,
     );
   }
 
-  static Map<String, dynamic> toUpdateMap({
-    required String name,
-    required String email,
-    String? cargo,
-    String? phone,
-  }) {
-    return {
-      'usr_name': name,
-      'usr_email': email,
-      'usr_cargo': cargo,
-      'usr_phone': phone,
-    };
-  }
 }

@@ -1,10 +1,12 @@
 import 'package:equatable/equatable.dart';
 
+import '../../../../../shared/domain/value_objects/fractional_order.dart';
+
 class SubcategoryEntity extends Equatable {
   final int id;
   final String nome;
   final bool status;
-  final int ordem;
+  final FractionalOrder ordem;
   final int categoriaId;
 
   const SubcategoryEntity({

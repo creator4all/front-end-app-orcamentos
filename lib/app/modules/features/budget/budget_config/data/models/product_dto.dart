@@ -1,3 +1,6 @@
+import 'package:multimidiaapp/app/shared/domain/value_objects/fractional_order.dart';
+
+import '../../../../../../shared/utils/api_number_parser.dart';
 import '../../domain/entities/indicador_etapa_entity.dart';
 import '../../domain/entities/product_entity.dart';
 import 'indicador_etapa_dto.dart';
@@ -11,7 +14,7 @@ class ProductDTO {
   final double valor;
   final String indicacao;
   final String tipoProduto;
-  final int ordem;
+  final FractionalOrder ordem;
   final int subcategoriaId;
   final bool selecionado;
   final double quantidade;
@@ -66,23 +69,19 @@ class ProductDTO {
 
       final orcProduto = json['orcamento_produto'] as Map<String, dynamic>?;
 
-      final double valor = double.tryParse(
-              (orcProduto?['op_valor'] ?? json['pro_valor'] ?? json['valor'])
-                      ?.toString() ??
-                  '0') ??
-          0.0;
+      final double valor = ApiNumberParser.toDouble(
+        orcProduto?['op_valor'] ?? json['pro_valor'] ?? json['valor'],
+      );
       final String indicacao =
           (json['pro_indicacao'] ?? json['indicacao'] ?? '') as String;
       final String tipoProduto =
           (json['pro_tipo_produto'] ?? json['tipo_produto'] ?? '') as String;
 
-      final int ordem = (json['pro_ordem'] as num?)?.toInt() ??
-          (json['ordem'] as num?)?.toInt() ??
-          0;
+      final FractionalOrder ordem =
+          FractionalOrder.parse(json['pro_ordem'] ?? json['ordem']);
       final int subcategoriaId =
-          (json['pro_subcategoria_id'] as num?)?.toInt() ??
-              (json['subcategoria_id'] as num?)?.toInt() ??
-              0;
+          ApiNumberParser.toIntOrNull(json['pro_subcategoria_id']) ??
+              ApiNumberParser.toInt(json['subcategoria_id']);
 
       final bool selecionado = _parseBool(
         orcProduto?['op_selecionado'] ??
@@ -90,7 +89,7 @@ class ProductDTO {
             json['selecionado'] ??
             true,
       );
-      final double quantidade = _parseDouble(
+      final double quantidade = ApiNumberParser.toDouble(
         orcProduto?['op_quantidade'] ??
             orcProduto?['quantidade'] ??
             json['quantidade'],
@@ -107,7 +106,7 @@ class ProductDTO {
 
       // Valores originais com fallback para valores atuais
       final double valorOriginal =
-          (json['valor_original'] as num?)?.toDouble() ?? valor;
+          ApiNumberParser.toDoubleOrNull(json['valor_original']) ?? valor;
       final bool ativoOriginal = (json['ativo_original'] as bool?) ?? ativo;
 
       List<IndicadorEtapaEntity> indicadoresEtapa = [];
@@ -159,10 +158,10 @@ class ProductDTO {
 
       final double? percent = json['pro_percent'] == null
           ? null
-          : _parseDouble(json['pro_percent']);
+          : ApiNumberParser.toDouble(json['pro_percent']);
       final double? horasFixas = json['pro_horas_fixas'] == null
           ? null
-          : _parseDouble(json['pro_horas_fixas']);
+          : ApiNumberParser.toDouble(json['pro_horas_fixas']);
       final List<int> produtosRelacionadosIds =
           (json['produtos_relacionados'] as List?)
                   ?.whereType<Map>()
@@ -235,7 +234,7 @@ class ProductDTO {
       'valor': valor,
       'indicacao': indicacao,
       'tipo_produto': tipoProduto,
-      'ordem': ordem,
+      'ordem': ordem.toJson(),
       'subcategoria_id': subcategoriaId,
       'selecionado': selecionado,
       'quantidade': quantidade,
@@ -285,11 +284,5 @@ class ProductDTO {
     if (value is num) return value != 0;
     final normalized = value?.toString().toLowerCase();
     return normalized == 'true' || normalized == '1';
-  }
-
-  static double _parseDouble(dynamic value) {
-    if (value is double) return value;
-    if (value is num) return value.toDouble();
-    return double.tryParse(value?.toString() ?? '') ?? 0.0;
   }
 }

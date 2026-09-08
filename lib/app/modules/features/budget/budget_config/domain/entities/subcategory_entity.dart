@@ -1,5 +1,6 @@
-﻿import 'package:copy_with_extension/copy_with_extension.dart';
+import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:equatable/equatable.dart';
+import 'package:multimidiaapp/app/shared/domain/value_objects/fractional_order.dart';
 import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 
 import 'product_entity.dart';
@@ -11,7 +12,7 @@ part 'subcategory_entity.g.dart';
 class SubcategoryEntity extends Equatable {
   final int id;
   final String nome;
-  final int ordem;
+  final FractionalOrder ordem;
 
   final List<ProductEntity> produtos;
 

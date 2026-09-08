@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import '../../../../../shared/domain/value_objects/fractional_order.dart';
+
 class RelatedProductEntity extends Equatable {
   final int id;
   final String codigo;
@@ -25,9 +27,10 @@ class ProductConfigEntity extends Equatable {
   final String tipoProduto;
   final String? isbn;
   final double? percent;
+  final double? horasFixas;
   final bool ativo;
   final bool status;
-  final int ordem;
+  final FractionalOrder ordem;
   final int subcategoriaId;
   final String? categoriaNome;
   final String? subcategoriaNome;
@@ -46,6 +49,7 @@ class ProductConfigEntity extends Equatable {
     required this.tipoProduto,
     this.isbn,
     this.percent,
+    this.horasFixas,
     required this.ativo,
     required this.status,
     required this.ordem,
@@ -72,9 +76,10 @@ class ProductConfigEntity extends Equatable {
     String? tipoProduto,
     String? isbn,
     double? percent,
+    double? horasFixas,
     bool? ativo,
     bool? status,
-    int? ordem,
+    FractionalOrder? ordem,
     int? subcategoriaId,
     String? categoriaNome,
     String? subcategoriaNome,
@@ -91,6 +96,7 @@ class ProductConfigEntity extends Equatable {
       tipoProduto: tipoProduto ?? this.tipoProduto,
       isbn: isbn ?? this.isbn,
       percent: percent ?? this.percent,
+      horasFixas: horasFixas ?? this.horasFixas,
       ativo: ativo ?? this.ativo,
       status: status ?? this.status,
       ordem: ordem ?? this.ordem,
@@ -113,6 +119,7 @@ class ProductConfigEntity extends Equatable {
         tipoProduto,
         isbn,
         percent,
+        horasFixas,
         ativo,
         status,
         ordem,

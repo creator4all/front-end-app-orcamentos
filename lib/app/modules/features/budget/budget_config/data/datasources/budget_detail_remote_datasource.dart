@@ -9,16 +9,6 @@ abstract class BudgetDetailRemoteDataSource {
     required int categoryId,
   });
 
-  @Deprecated('Use updateBudgetWithDto')
-  Future<BudgetDetailDto> updateBudget({
-    required int id,
-    String? name,
-    String? status,
-    DateTime? validityDate,
-    Map<String, bool>? categoryStates,
-    List<int>? selectedProductIds,
-  });
-
   Future<BudgetDetailDto?> updateBudgetWithDto({
     required int budgetId,
     required BudgetUpdateDto updateData,

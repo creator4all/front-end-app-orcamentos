@@ -1,10 +1,12 @@
-﻿import '../../domain/entities/categoria_entity.dart';
+import 'package:multimidiaapp/app/shared/domain/value_objects/fractional_order.dart';
+
+import '../../domain/entities/categoria_entity.dart';
 
 class CategoriaDto {
   final int id;
   final String nome;
   final int status;
-  final int ordem;
+  final FractionalOrder ordem;
   final bool expandido;
 
   const CategoriaDto({
@@ -29,7 +31,7 @@ class CategoriaDto {
       id: (json['cat_categoriaId'] as num?)?.toInt() ?? 0,
       nome: json['cat_nome'] as String? ?? '',
       status: statusValue,
-      ordem: (json['cat_ordem'] as num?)?.toInt() ?? 0,
+      ordem: FractionalOrder.parse(json['cat_ordem']),
       expandido: json['cat_expandido'] as bool? ?? true,
     );
   }
@@ -48,7 +50,7 @@ class CategoriaDto {
       'cat_categoriaId': id,
       'cat_nome': nome,
       'cat_status': status,
-      'cat_ordem': ordem,
+      'cat_ordem': ordem.toJson(),
       'cat_expandido': expandido,
     };
   }

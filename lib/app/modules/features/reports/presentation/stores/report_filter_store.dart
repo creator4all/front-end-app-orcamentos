@@ -39,7 +39,18 @@ abstract class _ReportFilterStoreBase with Store {
 
   /// Verifica se deve manter os filtros de data ao navegar
   @computed
-  bool get shouldPreserveDateFilters => dataInicio != null && dataFim != null;
+  bool get shouldPreserveDateFilters => hasDateFilter;
+
+  @computed
+  String? get dateRangeError {
+    if (dataInicio == null || dataFim == null) return null;
+    final start =
+        DateTime(dataInicio!.year, dataInicio!.month, dataInicio!.day);
+    final end = DateTime(dataFim!.year, dataFim!.month, dataFim!.day);
+    return start.isAfter(end)
+        ? 'A data inicial deve ser anterior ou igual à data final.'
+        : null;
+  }
 
   /// Define o range de datas
   @action
@@ -102,13 +113,11 @@ abstract class _ReportFilterStoreBase with Store {
     dataFim = null;
   }
 
-  /// Limpa todos os filtros e define datas padrão (hoje até +7 dias)
+  /// Retorna ao conjunto completo de orçamentos, sem recorte por período.
   @action
   void resetFilters() {
-    final now = DateTime.now();
-    dataInicio = DateTime(now.year, now.month, now.day);
-    dataFim =
-        DateTime(now.year, now.month, now.day).add(const Duration(days: 7));
+    dataInicio = null;
+    dataFim = null;
     userSearchQuery = '';
     budgetSearchQuery = '';
     selectedStatuses.clear();

@@ -12,16 +12,6 @@ abstract class BudgetDetailRepository {
     required int budgetId,
     required int categoryId,
   });
-  @Deprecated('Use updateBudgetWithDto para maior flexibilidade')
-  Future<Either<BudgetFailure, BudgetDetailEntity>> updateBudget({
-    required int id,
-    String? name,
-    String? status,
-    DateTime? validityDate,
-    Map<String, bool>? categoryStates,
-    List<int>? selectedProductIds,
-  });
-
   Future<Either<BudgetFailure, BudgetDetailEntity?>> updateBudgetWithDto({
     required int budgetId,
     required BudgetUpdateDto updateData,

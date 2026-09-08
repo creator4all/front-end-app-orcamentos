@@ -2,6 +2,8 @@ import 'package:multimidiaapp/app/modules/features/budget/budget_config/domain/e
 import 'package:multimidiaapp/app/modules/features/budget/budget_config/domain/entities/censo_group_entity.dart';
 import 'package:multimidiaapp/app/modules/features/budget/budget_config/domain/entities/censo_title_entity.dart';
 import 'package:multimidiaapp/app/shared/core/http/app_http_client.dart';
+import 'package:multimidiaapp/app/shared/domain/value_objects/fractional_order.dart';
+import 'package:multimidiaapp/app/shared/utils/api_number_parser.dart';
 import 'package:multimidiaapp/config/api_config.dart';
 
 import 'multi_city_budget_remote_datasource.dart';
@@ -13,11 +15,7 @@ class MultiCityBudgetRemoteDataSourceImpl
 
   MultiCityBudgetRemoteDataSourceImpl(this._client);
 
-  int _toInt(dynamic value) {
-    if (value is int) return value;
-    if (value is num) return value.toInt();
-    return int.tryParse(value?.toString() ?? '') ?? 0;
-  }
+  int _toInt(dynamic value) => ApiNumberParser.toInt(value);
 
   int? _toNullableInt(dynamic value) {
     final parsed = _toInt(value);
@@ -120,12 +118,10 @@ class MultiCityBudgetRemoteDataSourceImpl
     final Map<String, double> valoresPorEtapa = {};
     final Map<int, List<CensoTitleEntity>> titlesPerGroup = {};
     final Map<int, String> groupNames = {};
-    final Map<int, int> groupOrders = {};
+    final Map<int, FractionalOrder> groupOrders = {};
 
     for (var item in indicesList) {
-      final int indiceId = item['indice_etapa_id'] is int
-          ? item['indice_etapa_id']
-          : int.tryParse('${item['indice_etapa_id']}') ?? 0;
+      final int indiceId = _toInt(item['indice_etapa_id']);
 
       final String nomeEtapa = (item['nome_etapa'] ?? '').toString();
       String tituloEtapa = (item['titulo_etapa'] ?? '').toString();
@@ -133,21 +129,17 @@ class MultiCityBudgetRemoteDataSourceImpl
         tituloEtapa = nomeEtapa;
       }
 
-      final double valor = item['valor'] is double
-          ? item['valor']
-          : double.tryParse('${item['valor']}') ?? 0.0;
+      final double valor = ApiNumberParser.toDouble(item['valor']);
 
       valoresPorEtapa[nomeEtapa] = valor;
 
       final groupJson = item['grupo'];
       if (groupJson != null) {
-        final int groupId = groupJson['grupo_id'] is int
-            ? groupJson['grupo_id']
-            : int.tryParse('${groupJson['grupo_id']}') ?? 0;
+        final int groupId = _toInt(groupJson['grupo_id']);
         final String groupName = (groupJson['nome_grupo'] ?? '').toString();
 
         groupNames[groupId] = groupName;
-        groupOrders[groupId] = (groupJson['grupo_ordem'] as num?)?.toInt() ?? 0;
+        groupOrders[groupId] = FractionalOrder.parse(groupJson['grupo_ordem']);
         titlesPerGroup.putIfAbsent(groupId, () => []);
 
         final bool isProfessores = nomeEtapa.endsWith('P');
@@ -159,8 +151,8 @@ class MultiCityBudgetRemoteDataSourceImpl
           isProfessores: isProfessores,
           grupoId: groupId,
           percentualPopulacao:
-              (item['percentual_populacao'] as num?)?.toDouble(),
-          ordem: (item['ind_ordem'] as num?)?.toInt() ?? 0,
+              ApiNumberParser.toDoubleOrNull(item['percentual_populacao']),
+          ordem: FractionalOrder.parse(item['ind_ordem']),
         );
 
         titlesPerGroup[groupId]!.add(title);
@@ -173,7 +165,7 @@ class MultiCityBudgetRemoteDataSourceImpl
         id: entry.key,
         nome: groupNames[entry.key] ?? '',
         titulos: titulos,
-        ordem: groupOrders[entry.key] ?? 0,
+        ordem: groupOrders[entry.key] ?? FractionalOrder.zero,
       );
     }).toList()
       ..sort((a, b) => a.ordem.compareTo(b.ordem));

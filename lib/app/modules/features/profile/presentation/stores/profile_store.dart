@@ -94,11 +94,16 @@ abstract class _ProfileStore with Store {
     isSaving = true;
     error = null;
 
+    // `PUT /api/perfil/me` valida atualização completa: todas as chaves do
+    // schema precisam estar presentes. `partners_par_partnerId` é reenviado
+    // como veio do perfil porque o backend só o descarta para quem não é
+    // administrador — omiti-lo desvincularia a empresa de um usuário admin.
     final dados = {
       'usr_name': name,
       'usr_email': email,
-      'usr_cargo': cargo.isEmpty ? null : cargo,
-      'usr_phone': phone.isEmpty ? null : phone,
+      'usr_cargo': cargo,
+      'usr_phone': phone,
+      'partners_par_partnerId': profile?.partnerId,
     };
 
     final result = await _repository.updateProfile(dados);

@@ -50,7 +50,7 @@ class ReportUserCard extends StatelessWidget {
             ),
             SizedBox(height: 12.h),
             Text(
-              'Total de vendas: ${CurrencyUtils.formatBRL(user.totalVendas)}',
+              'Total dos orçamentos: ${CurrencyUtils.formatBRL(user.totalVendas)}',
               style: TextStyle(
                 fontSize: 14.sp,
                 fontWeight: FontWeight.bold,
@@ -62,6 +62,7 @@ class ReportUserCard extends StatelessWidget {
               spacing: 8.w,
               runSpacing: 8.h,
               children: [
+                _buildStatusBadge('Rascunho', user.rascunhos),
                 _buildStatusBadge('Aprovado', user.aprovados),
                 _buildStatusBadge('Pendente', user.pendentes),
                 _buildStatusBadge('Expirado', user.expirados),

@@ -1,5 +1,6 @@
 import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:equatable/equatable.dart';
+import 'package:multimidiaapp/app/shared/domain/value_objects/fractional_order.dart';
 import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 
 import 'indicador_etapa_entity.dart';
@@ -20,7 +21,7 @@ class ProductEntity extends Equatable {
   final double valor;
   final String indicacao;
   final String tipoProduto;
-  final int ordem;
+  final FractionalOrder ordem;
   final int subcategoriaId;
 
   /// Estado do checkbox (true = marcado)

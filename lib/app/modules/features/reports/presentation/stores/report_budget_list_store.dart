@@ -1,4 +1,4 @@
-﻿import 'package:mobx/mobx.dart';
+import 'package:mobx/mobx.dart';
 
 import '../../domain/entities/report_budget.dart';
 import '../../domain/repositories/reports_repository.dart';
@@ -54,14 +54,13 @@ abstract class _ReportBudgetListStoreBase with Store {
 
     if (filterStore.budgetSearchQuery.isNotEmpty) {
       final query = filterStore.budgetSearchQuery.toLowerCase();
-      result =
-          result
-              .where(
-                (budget) =>
-                    (budget.nome?.toLowerCase().contains(query) ?? false) ||
-                    budget.codigo.toLowerCase().contains(query),
-              )
-              .toList();
+      result = result
+          .where(
+            (budget) =>
+                (budget.nome?.toLowerCase().contains(query) ?? false) ||
+                budget.codigo.toLowerCase().contains(query),
+          )
+          .toList();
     }
 
     if (filterStore.selectedStatuses.isNotEmpty) {
@@ -69,13 +68,11 @@ abstract class _ReportBudgetListStoreBase with Store {
           filterStore.selectedStatuses.where((s) => s != 'arquivado').toSet();
 
       if (statusFilters.isNotEmpty) {
-        result =
-            result
-                .where(
-                  (budget) =>
-                      statusFilters.contains(budget.status.toLowerCase()),
-                )
-                .toList();
+        result = result
+            .where(
+              (budget) => statusFilters.contains(budget.status.toLowerCase()),
+            )
+            .toList();
       }
     }
 
@@ -90,11 +87,12 @@ abstract class _ReportBudgetListStoreBase with Store {
       'expirado': 0,
       'nao_aprovado': 0,
       'arquivado': 0,
+      'rascunho': 0,
     };
 
     for (final budget in allBudgets) {
       final status = budget.status.toLowerCase();
-      if (counts.containsKey(status)) {
+      if (!budget.isArchived && counts.containsKey(status)) {
         counts[status] = counts[status]! + 1;
       }
       if (budget.isArchived) {
@@ -109,6 +107,9 @@ abstract class _ReportBudgetListStoreBase with Store {
   double get totalValue {
     return filteredBudgets.fold(0.0, (sum, budget) => sum + budget.total);
   }
+
+  int _loadGeneration = 0;
+
   @action
   Future<void> loadBudgets(
     int userId, {
@@ -116,30 +117,43 @@ abstract class _ReportBudgetListStoreBase with Store {
     String? userCargo,
     String? partnerName,
   }) async {
+    final generation = ++_loadGeneration;
     currentUserId = userId;
     currentUserName = userName;
     currentUserCargo = userCargo;
     currentPartnerName = partnerName;
-    isLoading = true;
-    error = null;
+    allBudgets.clear();
+    error = filterStore.dateRangeError;
+    isLoading = error == null;
+    if (error != null) return;
 
-    final result = await reportsRepository.getUserBudgets(
-      userId,
-      dataInicio: filterStore.dataInicio,
-      dataFim: filterStore.dataFim,
-    );
+    try {
+      final result = await reportsRepository.getUserBudgets(
+        userId,
+        dataInicio: filterStore.dataInicio,
+        dataFim: filterStore.dataFim,
+      );
 
-    result.fold(
-      (failure) {
-        error = failure.message;
-        isLoading = false;
-      },
-      (budgets) {
-        allBudgets.clear();
-        allBudgets.addAll(budgets);
-        isLoading = false;
-      },
-    );
+      if (generation != _loadGeneration) return;
+      result.fold(
+        (failure) {
+          error = failure.message;
+          isLoading = false;
+        },
+        (budgets) {
+          allBudgets.clear();
+          allBudgets
+              .addAll(budgets.where((budget) => budget.usuarioId == userId));
+          isLoading = false;
+        },
+      );
+    } catch (_) {
+      if (generation == _loadGeneration) {
+        error = 'Não foi possível carregar os orçamentos. Tente novamente.';
+      }
+    } finally {
+      if (generation == _loadGeneration) isLoading = false;
+    }
   }
 
   @action
@@ -157,6 +171,8 @@ abstract class _ReportBudgetListStoreBase with Store {
   /// Limpa a store
   @action
   void clear() {
+    _loadGeneration++;
+    isLoading = false;
     allBudgets.clear();
     error = null;
     currentUserId = null;

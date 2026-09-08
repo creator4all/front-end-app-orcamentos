@@ -1,5 +1,6 @@
 import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:equatable/equatable.dart';
+import 'package:multimidiaapp/app/shared/domain/value_objects/fractional_order.dart';
 
 part 'censo_title_entity.g.dart';
 
@@ -29,7 +30,7 @@ class CensoTitleEntity extends Equatable {
   final double? percentualPopulacao;
 
   /// Ordem do item dentro do grupo (vinda de `ind_ordem`).
-  final int ordem;
+  final FractionalOrder ordem;
 
   const CensoTitleEntity({
     required this.id,
@@ -39,7 +40,7 @@ class CensoTitleEntity extends Equatable {
     required this.isProfessores,
     required this.grupoId,
     this.percentualPopulacao,
-    this.ordem = 0,
+    this.ordem = FractionalOrder.zero,
   });
 
   /// Formata o valor para exibição

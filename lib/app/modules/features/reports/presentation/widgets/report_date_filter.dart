@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 
@@ -9,7 +9,7 @@ class ReportDateFilter extends StatelessWidget {
   final Function(DateTime?) onDataFimChanged;
   final VoidCallback? onClear;
 
-  ReportDateFilter({
+  const ReportDateFilter({
     super.key,
     this.dataInicio,
     this.dataFim,
@@ -30,11 +30,18 @@ class ReportDateFilter extends StatelessWidget {
     DateTime? lastDate,
   }) async {
     final now = DateTime.now();
+    final first = firstDate ?? DateTime(2020);
+    final last = lastDate ?? now.add(const Duration(days: 365));
+    final initial = currentDate ?? now;
     final selected = await showDatePicker(
       context: context,
-      initialDate: currentDate ?? now,
-      firstDate: firstDate ?? DateTime(2020),
-      lastDate: lastDate ?? now.add(const Duration(days: 365)),
+      initialDate: initial.isBefore(first)
+          ? first
+          : initial.isAfter(last)
+              ? last
+              : initial,
+      firstDate: first,
+      lastDate: last,
       locale: const Locale('pt', 'BR'),
       builder: (context, child) {
         return Theme(

@@ -1,11 +1,13 @@
-﻿import '../../domain/entities/subcategory_entity.dart';
+import 'package:multimidiaapp/app/shared/domain/value_objects/fractional_order.dart';
+
+import '../../domain/entities/subcategory_entity.dart';
 import 'product_dto.dart';
 import 'statistics_dto.dart';
 
 class SubcategoryDTO {
   final int id;
   final String nome;
-  final int ordem;
+  final FractionalOrder ordem;
   final List<ProductDTO> produtos;
   final StatisticsDTO? estatisticas;
 
@@ -24,9 +26,8 @@ class SubcategoryDTO {
           0;
       final String nome =
           json['sub_name'] as String? ?? json['nome'] as String? ?? '';
-      final int ordem = (json['sub_order'] as num?)?.toInt() ??
-          (json['ordem'] as num?)?.toInt() ??
-          0;
+      final FractionalOrder ordem =
+          FractionalOrder.parse(json['sub_order'] ?? json['ordem']);
 
       final List<ProductDTO> produtos = [];
       if (json['produtos'] != null && json['produtos'] is List) {
@@ -75,7 +76,7 @@ class SubcategoryDTO {
     return {
       'id': id,
       'nome': nome,
-      'ordem': ordem,
+      'ordem': ordem.toJson(),
       'produtos': produtos.map((p) => p.toJson()).toList(),
       if (estatisticas != null) 'estatisticas': estatisticas!.toJson(),
     };

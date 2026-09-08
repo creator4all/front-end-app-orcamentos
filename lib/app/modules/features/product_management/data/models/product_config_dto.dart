@@ -1,3 +1,5 @@
+import '../../../../../shared/domain/value_objects/fractional_order.dart';
+import '../../../../../shared/utils/api_number_parser.dart';
 import '../../domain/entities/product_config_entity.dart';
 
 class RelatedProductDto {
@@ -38,9 +40,10 @@ class ProductConfigDto {
   final String tipoProduto;
   final String? isbn;
   final double? percent;
+  final double? horasFixas;
   final bool ativo;
   final bool status;
-  final int ordem;
+  final FractionalOrder ordem;
   final int subcategoriaId;
   final String? categoriaNome;
   final String? subcategoriaNome;
@@ -57,6 +60,7 @@ class ProductConfigDto {
     required this.tipoProduto,
     this.isbn,
     this.percent,
+    this.horasFixas,
     required this.ativo,
     required this.status,
     required this.ordem,
@@ -77,13 +81,14 @@ class ProductConfigDto {
       solucao: json['pro_solucao'] as String? ?? '',
       indicacao: json['pro_indicacao'] as String? ?? '',
       tipo: json['pro_tipo'] as String? ?? '',
-      valor: _parseDouble(json['pro_valor']),
+      valor: ApiNumberParser.toDouble(json['pro_valor']),
       tipoProduto: json['pro_tipo_produto'] as String? ?? '',
       isbn: json['pro_isbn'] as String?,
-      percent: _parseDoubleNullable(json['pro_percent']),
+      percent: ApiNumberParser.toDoubleOrNull(json['pro_percent']),
+      horasFixas: ApiNumberParser.toDoubleOrNull(json['pro_horas_fixas']),
       ativo: ativo,
       status: status,
-      ordem: json['pro_ordem'] as int? ?? 0,
+      ordem: FractionalOrder.parse(json['pro_ordem']),
       subcategoriaId: json['pro_subcategoria_id'] as int? ?? 0,
       subcategoriaNome: (json['subcategoria']
           as Map<String, dynamic>?)?['sub_name'] as String?,
@@ -114,13 +119,16 @@ class ProductConfigDto {
       solucao: json['nome'] as String? ?? '',
       indicacao: json['indicacao'] as String? ?? '',
       tipo: json['tipo'] as String? ?? '',
-      valor: _parseDouble(json['valor']),
+      valor: ApiNumberParser.toDouble(json['valor']),
       tipoProduto: json['tipo_produto'] as String? ?? '',
       isbn: json['isbn'] as String?,
-      percent: _parseDoubleNullable(json['percent']),
+      percent: ApiNumberParser.toDoubleOrNull(json['percent']),
+      horasFixas: ApiNumberParser.toDoubleOrNull(
+        json['horas_fixas'] ?? json['pro_horas_fixas'],
+      ),
       ativo: ativo,
       status: status,
-      ordem: json['ordem'] as int? ?? 0,
+      ordem: FractionalOrder.parse(json['ordem']),
       subcategoriaId: subcategoriaJson?['id'] as int? ?? 0,
       categoriaNome: categoriaJson?['nome'] as String?,
       subcategoriaNome: subcategoriaJson?['nome'] as String?,
@@ -140,6 +148,7 @@ class ProductConfigDto {
       tipoProduto: tipoProduto,
       isbn: isbn,
       percent: percent,
+      horasFixas: horasFixas,
       ativo: ativo,
       status: status,
       ordem: ordem,
@@ -152,8 +161,18 @@ class ProductConfigDto {
     );
   }
 
+  /// Monta o corpo de `PUT /api/produtos/{id}`.
+  ///
+  /// O endpoint valida atualização completa: todas as chaves do schema
+  /// precisam estar presentes, mesmo quando o valor é nulo. Campos que não se
+  /// aplicam ao tipo do produto são enviados como `null` — o backend já os
+  /// ignora ou normaliza conforme `pro_tipo_produto`.
   static Map<String, dynamic> toUpdateJson(ProductConfigEntity entity) {
-    final json = <String, dynamic>{
+    final indicadores = entity.indicadores.entries
+        .map((e) => {'id': e.key, 'valor': e.value})
+        .toList();
+
+    return <String, dynamic>{
       'pro_ativo': entity.ativo,
       'pro_status': entity.status,
       'pro_codigo': entity.codigo,
@@ -162,43 +181,18 @@ class ProductConfigDto {
       'pro_valor': entity.valor,
       'pro_indicacao': entity.indicacao,
       'pro_tipo_produto': entity.tipoProduto,
+      'pro_subcategoria_id': entity.subcategoriaId,
+      'pro_isbn': entity.isLivro ? entity.isbn : null,
+      'indicadores': entity.isServico ? const [] : indicadores,
+      // O modal não edita vínculos; null preserva as relações existentes.
+      'pro_relacao': null,
+      'pro_percent': entity.isServico ? entity.percent : null,
+      // A edição não expõe horas fixas; reenviar o valor evita zerá-lo na API.
+      'pro_horas_fixas': entity.isServico ? entity.horasFixas : null,
     };
-
-    if (entity.isLivro) {
-      json['pro_isbn'] = entity.isbn;
-      json['indicadores'] = entity.indicadores.entries
-          .map((e) => {'id': e.key, 'valor': e.value})
-          .toList();
-    } else if (entity.isTecnologia) {
-      json['indicadores'] = entity.indicadores.entries
-          .map((e) => {'id': e.key, 'valor': e.value})
-          .toList();
-    } else if (entity.isServico) {
-      json['pro_percent'] = entity.percent;
-      json['pro_relacao'] =
-          entity.produtosRelacionados.map((e) => e.id).toList();
-    }
-
-    return json;
-  }
-
-  static double _parseDouble(dynamic value) {
-    if (value == null) return 0.0;
-    if (value is double) return value;
-    if (value is int) return value.toDouble();
-    if (value is String) return double.tryParse(value) ?? 0.0;
-    return 0.0;
   }
 
   static bool _parseApiBool(dynamic value) {
     return value == 1 || value == true;
-  }
-
-  static double? _parseDoubleNullable(dynamic value) {
-    if (value == null) return null;
-    if (value is double) return value;
-    if (value is int) return value.toDouble();
-    if (value is String) return double.tryParse(value);
-    return null;
   }
 }

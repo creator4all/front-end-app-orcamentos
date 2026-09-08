@@ -1,4 +1,5 @@
-﻿import '../../domain/entities/produto_entity.dart';
+﻿import '../../../../../../shared/utils/api_number_parser.dart';
+import '../../domain/entities/produto_entity.dart';
 import 'indicador_etapa_dto.dart';
 import 'subcategoria_dto.dart';
 
@@ -75,10 +76,7 @@ class ProdutoDto {
           (json['id'] as num?)?.toInt() ??
           0,
       status: json['pro_status'] as bool? ?? json['status'] as bool? ?? false,
-      valor: (json['pro_valor'] as num?)?.toDouble() ??
-          double.tryParse(json['pro_valor']?.toString() ?? '') ??
-          (json['valor'] as num?)?.toDouble() ??
-          0.0,
+      valor: ApiNumberParser.toDouble(json['pro_valor'] ?? json['valor']),
       subcategoriaId: (json['pro_subcategoria_id'] as num?)?.toInt() ?? 0,
       solucao:
           json['pro_solucao'] as String? ?? json['solucao'] as String? ?? '',

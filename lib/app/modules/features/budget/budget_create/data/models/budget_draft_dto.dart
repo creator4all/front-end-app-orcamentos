@@ -1,3 +1,5 @@
+import 'package:multimidiaapp/app/shared/domain/value_objects/fractional_order.dart';
+
 import '../../../../../../../app/shared/utils/date_utils.dart';
 import '../../../budget_config/data/models/category_dto.dart';
 import '../../../budget_config/data/models/product_dto.dart';
@@ -244,7 +246,7 @@ class BudgetDraftDto {
         () => _CategoryBucket(
           id: categoriaId,
           nome: _toString(categoriaJson['cat_nome']),
-          ordem: _toInt(categoriaJson['cat_ordem']),
+          ordem: FractionalOrder.parse(categoriaJson['cat_ordem']),
           expandido: _toBool(categoriaJson['cat_expandido']),
         ),
       );
@@ -254,7 +256,7 @@ class BudgetDraftDto {
         () => _SubcategoryBucket(
           id: subcategoriaId,
           nome: _toString(subcategoriaJson['sub_name']),
-          ordem: _toInt(subcategoriaJson['sub_order']),
+          ordem: FractionalOrder.parse(subcategoriaJson['sub_order']),
         ),
       );
 
@@ -311,12 +313,12 @@ class BudgetDraftDto {
       ..sort((a, b) {
         final grupoA = _asOptionalMap(a['grupo']);
         final grupoB = _asOptionalMap(b['grupo']);
-        final grupoOrdem = _toInt(grupoA?['gru_ordem'])
-            .compareTo(_toInt(grupoB?['gru_ordem']));
+        final grupoOrdem = FractionalOrder.parse(grupoA?['gru_ordem'])
+            .compareTo(FractionalOrder.parse(grupoB?['gru_ordem']));
         if (grupoOrdem != 0) return grupoOrdem;
 
-        final indicadorOrdem =
-            _toInt(a['ine_ordem']).compareTo(_toInt(b['ine_ordem']));
+        final indicadorOrdem = FractionalOrder.parse(a['ine_ordem'])
+            .compareTo(FractionalOrder.parse(b['ine_ordem']));
         if (indicadorOrdem != 0) return indicadorOrdem;
 
         return _toInt(a['ine_indicadoresId'])
@@ -373,7 +375,7 @@ class BudgetDraftDto {
 class _CategoryBucket {
   final int id;
   final String nome;
-  final int ordem;
+  final FractionalOrder ordem;
   final bool expandido;
   final Map<int, _SubcategoryBucket> subcategorias = {};
 
@@ -407,7 +409,7 @@ class _CategoryBucket {
 class _SubcategoryBucket {
   final int id;
   final String nome;
-  final int ordem;
+  final FractionalOrder ordem;
   final List<ProductDTO> produtos = [];
 
   _SubcategoryBucket({

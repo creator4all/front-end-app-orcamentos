@@ -10,6 +10,7 @@ class UserProfile extends Equatable {
   final String? avatar;
   final String? avatarBase64;
   final String? roleName;
+  final int? partnerId;
   final String? partnerName;
   final bool status;
 
@@ -22,6 +23,7 @@ class UserProfile extends Equatable {
     this.avatar,
     this.avatarBase64,
     this.roleName,
+    this.partnerId,
     this.partnerName,
     required this.status,
   });
@@ -36,6 +38,7 @@ class UserProfile extends Equatable {
         avatar,
         avatarBase64,
         roleName,
+        partnerId,
         partnerName,
         status,
       ];

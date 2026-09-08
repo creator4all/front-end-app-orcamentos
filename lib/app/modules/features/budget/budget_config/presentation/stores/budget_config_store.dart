@@ -17,7 +17,6 @@ import '../../domain/entities/product_entity.dart';
 import '../../domain/entities/subcategory_entity.dart';
 import '../../domain/services/product_calculation_service.dart';
 import '../../domain/usecases/calculate_totals_usecase.dart';
-import '../../domain/usecases/finalize_budget_usecase.dart';
 import '../../domain/usecases/get_budget_detail_usecase.dart';
 import '../../domain/usecases/get_category_products_usecase.dart';
 import '../../domain/usecases/get_census_data_usecase.dart';
@@ -34,7 +33,6 @@ abstract class _BudgetConfigStoreBase with Store {
   final GetCensusDataUseCase getCensusDataUseCase;
   final ToggleCategoryUseCase toggleCategoryUseCase;
   final CalculateTotalsUseCase calculateTotalsUseCase;
-  final FinalizeBudgetUseCase finalizeBudgetUseCase;
   final SaveBudgetUseCase saveBudgetUseCase;
   final ProductCalculationService calculationService;
 
@@ -44,7 +42,6 @@ abstract class _BudgetConfigStoreBase with Store {
     required this.getCensusDataUseCase,
     required this.toggleCategoryUseCase,
     required this.calculateTotalsUseCase,
-    required this.finalizeBudgetUseCase,
     required this.saveBudgetUseCase,
     required this.calculationService,
   });
@@ -936,43 +933,6 @@ abstract class _BudgetConfigStoreBase with Store {
   }
 
   @action
-  Future<Either<BudgetFailure, BudgetDetailEntity>> finalizeBudget() async {
-    if (budgetDetail == null) {
-      error = 'Orçamento não carregado';
-      return const Left(ValidationFailure('Orçamento não carregado'));
-    }
-
-    isSaving = true;
-    error = null;
-
-    try {
-      final result = await finalizeBudgetUseCase(
-        budgetId: budgetDetail!.id,
-        categoryStates: categoryStates,
-        validityDate: validityDate,
-        name: budgetName,
-      );
-
-      return result.fold(
-        (failure) {
-          error = failure.message;
-          isSaving = false;
-          return Left(failure);
-        },
-        (updatedBudget) {
-          budgetDetail = updatedBudget;
-          isSaving = false;
-          return Right(updatedBudget);
-        },
-      );
-    } catch (e) {
-      error = 'Erro ao finalizar orçamento: $e';
-      isSaving = false;
-      return Left(UnknownFailure(e.toString()));
-    }
-  }
-
-  @action
   void selectCategory(CategoryEntity? category) {
     selectedCategory = category;
   }
@@ -1786,6 +1746,10 @@ abstract class _BudgetConfigStoreBase with Store {
         diasValidade: diasValidade > 0 ? diasValidade : 1,
         status: 'pendente',
         total: totalCalculado,
+        usuarioId: budgetDetail!.userId,
+        partnerDestinoId: budgetDetail!.partnerId,
+        cidades: budgetDetail!.cityIds,
+        isArchived: budgetDetail!.isArchived,
         produtos: produtosParaSalvar,
       );
 

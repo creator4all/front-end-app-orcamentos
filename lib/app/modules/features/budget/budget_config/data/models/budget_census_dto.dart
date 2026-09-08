@@ -1,4 +1,7 @@
-﻿import '../../domain/entities/budget_census_entity.dart';
+import 'package:multimidiaapp/app/shared/domain/value_objects/fractional_order.dart';
+
+import '../../../../../../shared/utils/api_number_parser.dart';
+import '../../domain/entities/budget_census_entity.dart';
 import '../../domain/entities/censo_escolar_entity.dart';
 import '../../domain/entities/censo_group_entity.dart';
 import '../../domain/entities/censo_title_entity.dart';
@@ -21,12 +24,10 @@ class CidadeCensoDto {
   factory CidadeCensoDto.fromJson(Map<String, dynamic> json) {
     final indicesJson = json['indices'] as List<dynamic>? ?? [];
     return CidadeCensoDto(
-      id: json['id'] as int? ?? 0,
+      id: ApiNumberParser.toInt(json['id']),
       nome: json['nome'] as String? ?? '',
-      censoAno: (json['censo_ano'] as num?)?.toInt() ??
-          int.tryParse('${json['censo_ano']}'),
-      anoPopulacao: (json['ano_populacao'] as num?)?.toInt() ??
-          int.tryParse('${json['ano_populacao']}'),
+      censoAno: ApiNumberParser.toIntOrNull(json['censo_ano']),
+      anoPopulacao: ApiNumberParser.toIntOrNull(json['ano_populacao']),
       indices: indicesJson
           .map((e) => IndiceCensoDto.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -48,12 +49,12 @@ class CidadeCensoDto {
   CensoEscolarEntity toEntity() {
     final gruposMap = <int, List<CensoTitleEntity>>{};
     final grupoNomes = <int, String>{};
-    final grupoOrdens = <int, int>{};
+    final grupoOrdens = <int, FractionalOrder>{};
 
     for (final indice in indices) {
       final grupoId = indice.grupo?.id ?? 0;
       grupoNomes[grupoId] = indice.grupo?.nome ?? '';
-      grupoOrdens[grupoId] = indice.grupo?.ordem ?? 0;
+      grupoOrdens[grupoId] = indice.grupo?.ordem ?? FractionalOrder.zero;
 
       gruposMap.putIfAbsent(grupoId, () => []);
       gruposMap[grupoId]!.add(CensoTitleEntity(
@@ -74,7 +75,7 @@ class CidadeCensoDto {
         id: entry.key,
         nome: grupoNomes[entry.key] ?? '',
         titulos: titulos,
-        ordem: grupoOrdens[entry.key] ?? 0,
+        ordem: grupoOrdens[entry.key] ?? FractionalOrder.zero,
       );
     }).toList()
       ..sort((a, b) => a.ordem.compareTo(b.ordem));
@@ -101,7 +102,7 @@ class IndiceCensoDto {
   final String titulo;
   final double valor;
   final double? percentualPopulacao;
-  final int ordem;
+  final FractionalOrder ordem;
   final GrupoCensoDto? grupo;
 
   const IndiceCensoDto({
@@ -110,18 +111,19 @@ class IndiceCensoDto {
     required this.titulo,
     required this.valor,
     this.percentualPopulacao,
-    this.ordem = 0,
+    this.ordem = FractionalOrder.zero,
     this.grupo,
   });
 
   factory IndiceCensoDto.fromJson(Map<String, dynamic> json) {
     return IndiceCensoDto(
-      id: json['id'] as int? ?? 0,
+      id: ApiNumberParser.toInt(json['id']),
       nomeEtapa: json['nome_etapa'] as String? ?? '',
       titulo: json['titulo'] as String? ?? '',
-      valor: (json['valor'] as num?)?.toDouble() ?? 0.0,
-      percentualPopulacao: (json['percentual_populacao'] as num?)?.toDouble(),
-      ordem: (json['ind_ordem'] as num?)?.toInt() ?? 0,
+      valor: ApiNumberParser.toDouble(json['valor']),
+      percentualPopulacao:
+          ApiNumberParser.toDoubleOrNull(json['percentual_populacao']),
+      ordem: FractionalOrder.parse(json['ind_ordem']),
       grupo: json['grupo'] != null
           ? GrupoCensoDto.fromJson(json['grupo'] as Map<String, dynamic>)
           : null,
@@ -145,19 +147,19 @@ class IndiceCensoDto {
 class GrupoCensoDto {
   final int id;
   final String nome;
-  final int ordem;
+  final FractionalOrder ordem;
 
   const GrupoCensoDto({
     required this.id,
     required this.nome,
-    this.ordem = 0,
+    this.ordem = FractionalOrder.zero,
   });
 
   factory GrupoCensoDto.fromJson(Map<String, dynamic> json) {
     return GrupoCensoDto(
-      id: json['id'] as int? ?? 0,
+      id: ApiNumberParser.toInt(json['id']),
       nome: json['nome'] as String? ?? '',
-      ordem: (json['ordem'] as num?)?.toInt() ?? 0,
+      ordem: FractionalOrder.parse(json['ordem']),
     );
   }
 

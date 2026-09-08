@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:multimidiaapp/app/shared/core/http/app_http_client.dart';
 import 'package:multimidiaapp/app/shared/core/http/http_request_config.dart';
 import 'package:multimidiaapp/app/shared/core/utils/token_cache.dart';
+import 'package:multimidiaapp/app/shared/utils/api_number_parser.dart';
 import 'package:multimidiaapp/config/api_config.dart';
 
 import '../../domain/entities/censo_escolar_entity.dart';
@@ -22,11 +23,7 @@ class CensusRemoteDataSourceImpl implements CensusRemoteDataSource {
         token: TokenCache.instance.getTokenOrEmpty(),
       );
 
-  int _toInt(dynamic value) {
-    if (value is int) return value;
-    if (value is num) return value.toInt();
-    return int.tryParse(value?.toString() ?? '') ?? 0;
-  }
+  int _toInt(dynamic value) => ApiNumberParser.toInt(value);
 
   int? _toNullableInt(dynamic value) {
     final parsed = _toInt(value);
@@ -52,10 +49,11 @@ class CensusRemoteDataSourceImpl implements CensusRemoteDataSource {
   @override
   Future<List<CensusDataDto>> getMultipleCitiesCensusData(
       List<int> cityIds) async {
-    final queryParams = cityIds.map((id) => 'cidades[]=$id').join('&');
-    final endpoint = '${ApiConfig.baseUrl}/api/censo/agregado?$queryParams';
-
-    final response = await _client.get(endpoint, config: _config);
+    final response = await _client.post(
+      '${ApiConfig.baseUrl}/api/censo/agregado',
+      data: {'cidades': cityIds},
+      config: _config,
+    );
 
     if (response.isSuccess) {
       return [];
@@ -120,16 +118,16 @@ class CensusRemoteDataSourceImpl implements CensusRemoteDataSource {
     final Map<int, CensoGroupEntity> groupsMap = {};
 
     for (var item in indicesList) {
-      final int indiceId = item['indice_etapa_id'] as int? ?? 0;
+      final int indiceId = _toInt(item['indice_etapa_id']);
       final String nomeEtapa = (item['nome_etapa'] ?? '') as String;
       final String tituloEtapa = (item['titulo_etapa'] ?? '') as String;
-      final double valor = (item['valor'] as num? ?? 0).toDouble();
+      final double valor = ApiNumberParser.toDouble(item['valor']);
 
       valoresPorEtapa[nomeEtapa] = valor;
 
       final groupJson = item['grupo'];
       if (groupJson != null) {
-        final int groupId = groupJson['grupo_id'] as int? ?? 0;
+        final int groupId = _toInt(groupJson['grupo_id']);
         final String groupName = (groupJson['nome_grupo'] ?? '') as String;
 
         if (!groupsMap.containsKey(groupId)) {
@@ -148,9 +146,8 @@ class CensusRemoteDataSourceImpl implements CensusRemoteDataSource {
           valor: valor,
           isProfessores: isProfessores,
           grupoId: groupId,
-          percentualPopulacao: item['percentual_populacao'] != null
-              ? (item['percentual_populacao'] as num).toDouble()
-              : null,
+          percentualPopulacao:
+              ApiNumberParser.toDoubleOrNull(item['percentual_populacao']),
         );
 
         groupsMap[groupId]!.titulos.add(title);

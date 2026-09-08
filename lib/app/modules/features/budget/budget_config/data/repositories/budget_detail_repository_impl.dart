@@ -47,33 +47,6 @@ class BudgetDetailRepositoryImpl implements BudgetDetailRepository {
   }
 
   @override
-  Future<Either<BudgetFailure, BudgetDetailEntity>> updateBudget({
-    required int id,
-    String? name,
-    String? status,
-    DateTime? validityDate,
-    Map<String, bool>? categoryStates,
-    List<int>? selectedProductIds,
-  }) async {
-    try {
-      final dto = await remoteDataSource.updateBudget(
-        id: id,
-        name: name,
-        status: status,
-        validityDate: validityDate,
-        categoryStates: categoryStates,
-        selectedProductIds: selectedProductIds,
-      );
-
-      final entity = dto.toEntity();
-
-      return Right(entity);
-    } on Exception catch (e) {
-      return Left(_mapExceptionToFailure(e));
-    }
-  }
-
-  @override
   Future<Either<BudgetFailure, BudgetDetailEntity?>> updateBudgetWithDto({
     required int budgetId,
     required BudgetUpdateDto updateData,

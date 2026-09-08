@@ -1,5 +1,6 @@
-﻿import 'package:copy_with_extension/copy_with_extension.dart';
+import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:equatable/equatable.dart';
+import 'package:multimidiaapp/app/shared/domain/value_objects/fractional_order.dart';
 import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 
 import 'statistics_entity.dart';
@@ -13,7 +14,7 @@ class CategoryEntity extends Equatable {
 
   final String nome;
 
-  final int ordem;
+  final FractionalOrder ordem;
 
   final bool expandido;
 
