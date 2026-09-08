@@ -13,6 +13,7 @@ import 'budget_config/data/datasources/census_remote_datasource.dart';
 import 'budget_config/data/datasources/census_remote_datasource_impl.dart';
 import 'budget_config/data/repositories/budget_detail_repository_impl.dart';
 import 'budget_config/data/repositories/census_repository_impl.dart';
+import 'budget_config/domain/entities/budget_detail_entity.dart';
 import 'budget_config/domain/entities/censo_escolar_entity.dart';
 import 'budget_config/domain/repositories/budget_detail_repository.dart';
 import 'budget_config/domain/repositories/census_repository.dart';
@@ -306,10 +307,13 @@ class BudgetModuleNew extends Module {
             final budgetId = int.parse(args.params['budgetId']);
             final argsData = args.data as Map<String, dynamic>?;
             final initialTitle = argsData?['initialTitle'] as String?;
+            final initialConfiguredBudget =
+                argsData?['initialConfiguredBudget'] as BudgetDetailEntity?;
 
             return EditBudgetPage(
               budgetId: budgetId,
               initialTitle: initialTitle,
+              initialConfiguredBudget: initialConfiguredBudget,
             );
           },
         ),

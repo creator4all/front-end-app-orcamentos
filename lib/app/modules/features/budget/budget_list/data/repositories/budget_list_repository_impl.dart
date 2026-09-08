@@ -15,13 +15,18 @@ class BudgetListRepositoryImpl implements BudgetListRepository {
   BudgetListRepositoryImpl(this.remoteDataSource);
 
   @override
-  Future<Either<BudgetFailure, List<BudgetEntity>>> getBudgets({
+  Future<Either<BudgetFailure, PaginatedBudgets>> getBudgets({
     String? status,
+    int page = 1,
+    int perPage = 15,
   }) async {
     try {
-      final budgetsDto = await remoteDataSource.getBudgets(status: status);
-      final budgetsEntity = budgetsDto.map((dto) => dto.toEntity()).toList();
-      return Right(budgetsEntity);
+      final budgetsDto = await remoteDataSource.getBudgets(
+        status: status,
+        page: page,
+        perPage: perPage,
+      );
+      return Right(budgetsDto.toEntity());
     } on Exception catch (e) {
       return Left(_mapExceptionToFailure(e));
     }

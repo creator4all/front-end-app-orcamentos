@@ -19,6 +19,28 @@ class BudgetListPage extends StatefulWidget {
 class _BudgetListPageState extends State<BudgetListPage> {
   late final BudgetListStore _store;
   late final AuthStore _authStore;
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_handleScroll);
+  }
+
+  void _handleScroll() {
+    if (!_scrollController.hasClients) return;
+    if (_scrollController.position.extentAfter < 300) {
+      _store.loadMore();
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController
+      ..removeListener(_handleScroll)
+      ..dispose();
+    super.dispose();
+  }
 
   @override
   void didChangeDependencies() {
@@ -96,6 +118,7 @@ class _BudgetListPageState extends State<BudgetListPage> {
         body: RefreshIndicator(
           onRefresh: () => _store.refresh(),
           child: CustomScrollView(
+            controller: _scrollController,
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               // Componente de filtros
@@ -191,7 +214,7 @@ class _BudgetListPageState extends State<BudgetListPage> {
                       ),
                     );
                   }
-                  if (_store.items.isEmpty) {
+                  if (_store.items.isEmpty && !_store.hasMore) {
                     return SliverToBoxAdapter(
                       child: SizedBox(
                         height: MediaQuery.of(context).size.height * 0.6,
@@ -214,6 +237,15 @@ class _BudgetListPageState extends State<BudgetListPage> {
                     ),
                     sliver: SliverList(
                       delegate: SliverChildBuilderDelegate((context, index) {
+                        if (index == _store.items.length) {
+                          return Padding(
+                            padding: EdgeInsets.symmetric(vertical: 16.h),
+                            child: const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+                        }
+
                         final b = _store.items[index];
                         final budgetTitle = b.nome ?? 'Orçamento #${b.id}';
 
@@ -291,7 +323,9 @@ class _BudgetListPageState extends State<BudgetListPage> {
                             },
                           ),
                         );
-                      }, childCount: _store.items.length),
+                      },
+                          childCount:
+                              _store.items.length + (_store.hasMore ? 1 : 0)),
                     ),
                   );
                 },

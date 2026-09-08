@@ -15,6 +15,7 @@ import '../../../../../../shared/widgets/product_category.dart';
 import '../../../../../../shared/widgets/select_all_card.dart';
 import '../../../../../../shared/widgets/status_tag_widget.dart';
 import '../../../../auth/presentation/stores/auth_store.dart';
+import '../../../budget_config/domain/entities/budget_detail_entity.dart';
 import '../../../budget_config/domain/entities/category_entity.dart';
 import '../../../budget_config/domain/entities/product_entity.dart';
 import '../../../budget_config/domain/entities/subcategory_entity.dart';
@@ -28,11 +29,13 @@ import '../stores/budget_edit_store.dart';
 class EditBudgetPage extends StatefulWidget {
   final int budgetId;
   final String? initialTitle;
+  final BudgetDetailEntity? initialConfiguredBudget;
 
   const EditBudgetPage({
     super.key,
     required this.budgetId,
     this.initialTitle,
+    this.initialConfiguredBudget,
   });
 
   @override
@@ -269,7 +272,12 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
 
-      await store.initialize(widget.budgetId);
+      final initialConfiguredBudget = widget.initialConfiguredBudget;
+      if (initialConfiguredBudget != null) {
+        store.initializeWithConfiguredBudget(initialConfiguredBudget);
+      } else {
+        await store.initialize(widget.budgetId);
+      }
 
       if (!mounted) return;
 

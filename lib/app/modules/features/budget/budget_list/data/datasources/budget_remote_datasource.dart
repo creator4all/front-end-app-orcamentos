@@ -9,7 +9,11 @@ abstract class BudgetRemoteDataSource {
   /// [status] - Filtro opcional por status
   ///
   /// Throws [ServerException] em caso de erro
-  Future<List<BudgetDto>> getBudgets({String? status});
+  Future<PaginatedBudgetsDto> getBudgets({
+    String? status,
+    int page = 1,
+    int perPage = 15,
+  });
 
   /// Busca um orçamento específico por ID
   ///

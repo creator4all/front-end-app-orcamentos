@@ -1,6 +1,7 @@
 import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:equatable/equatable.dart';
 
+import '../../../budget_config/domain/entities/budget_detail_entity.dart';
 import '../../../budget_config/domain/entities/census_data_entity.dart';
 import '../../../budget_config/domain/entities/product_selection_entity.dart';
 
@@ -44,6 +45,28 @@ class BudgetEditEntity extends Equatable {
     this.isArchived = false,
     this.censoAgregado = const {},
   });
+
+  factory BudgetEditEntity.fromBudgetDetail(BudgetDetailEntity budget) {
+    return BudgetEditEntity(
+      id: budget.id,
+      name: budget.name,
+      validityDays: budget.validityDays,
+      validityDate: budget.validityDate,
+      creationDate: budget.creationDate,
+      status: budget.status,
+      total: budget.total,
+      userId: budget.userId,
+      partnerId: budget.partnerId,
+      cityIds: List<int>.from(budget.cityIds),
+      citiesDataRaw: budget.citiesData
+          .map((city) => Map<String, dynamic>.from(city))
+          .toList(),
+      products: List<ProductSelectionEntity>.from(budget.products),
+      categoriesData: List.unmodifiable(budget.categories),
+      isArchived: budget.isArchived,
+      censoAgregado: Map<String, double>.from(budget.censoAgregado),
+    );
+  }
 
   bool get canBeEdited => status.toLowerCase() != 'aprovado';
 

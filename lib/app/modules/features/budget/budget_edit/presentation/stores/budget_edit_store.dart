@@ -3,6 +3,7 @@ import 'package:mobx/mobx.dart';
 
 import '../../../../auth/presentation/stores/auth_store.dart';
 import '../../../budget_config/data/models/category_dto.dart';
+import '../../../budget_config/domain/entities/budget_detail_entity.dart';
 import '../../../budget_config/domain/entities/category_entity.dart';
 import '../../../budget_config/domain/entities/censo_escolar_entity.dart';
 import '../../../budget_config/domain/entities/censo_group_entity.dart';
@@ -231,26 +232,7 @@ abstract class _BudgetEditStoreBase with Store {
           isLoadingProducts = false;
         },
         (budget) {
-          budgetData = budget;
-
-          categories.clear();
-          categories.addAll(_parseCategoriesFromBudget(budget));
-
-          selectedStatus = budget.status;
-          isArchived = budget.isArchived;
-          validityDate = budget.validityDate;
-          budgetName = budget.name;
-          _originalValidityDays = budget.validityDays;
-          _validityDateChanged = false;
-
-          _updateSelectedProductIds();
-
-          _parseCensoEscolarFromCitiesData();
-          _recalculateProductQuantities();
-          _snapshotOriginalState();
-
-          isLoading = false;
-          isLoadingProducts = false;
+          _applyLoadedBudget(budget);
         },
       );
     } catch (e) {
@@ -261,6 +243,40 @@ abstract class _BudgetEditStoreBase with Store {
       isLoading = false;
       isLoadingProducts = false;
     }
+  }
+
+  void initializeWithConfiguredBudget(BudgetDetailEntity configuredBudget) {
+    _loadRequestVersion++;
+
+    runInAction(() {
+      _clearBudgetStateForLoading();
+      _applyLoadedBudget(
+        BudgetEditEntity.fromBudgetDetail(configuredBudget),
+      );
+    });
+  }
+
+  void _applyLoadedBudget(BudgetEditEntity budget) {
+    budgetData = budget;
+
+    categories.clear();
+    categories.addAll(_parseCategoriesFromBudget(budget));
+
+    selectedStatus = budget.status;
+    isArchived = budget.isArchived;
+    validityDate = budget.validityDate;
+    budgetName = budget.name;
+    _originalValidityDays = budget.validityDays;
+    _validityDateChanged = false;
+
+    _updateSelectedProductIds();
+
+    _parseCensoEscolarFromCitiesData();
+    _recalculateProductQuantities();
+    _snapshotOriginalState();
+
+    isLoading = false;
+    isLoadingProducts = false;
   }
 
   void _updateSelectedProductIds() {
@@ -289,7 +305,13 @@ abstract class _BudgetEditStoreBase with Store {
 
       for (var i = 0; i < categoriesList.length; i++) {
         try {
-          final categoryJson = categoriesList[i] as Map<String, dynamic>;
+          final rawCategory = categoriesList[i];
+          if (rawCategory is CategoryEntity) {
+            categories.add(rawCategory);
+            continue;
+          }
+
+          final categoryJson = rawCategory as Map<String, dynamic>;
 
           final categoryDto = CategoryDTO.fromJson(categoryJson);
           final categoryEntity = categoryDto.toEntity();

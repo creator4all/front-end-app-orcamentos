@@ -159,3 +159,69 @@ class BudgetDto {
     };
   }
 }
+
+class PaginatedBudgetsDto {
+  final List<BudgetDto> budgets;
+  final int currentPage;
+  final int perPage;
+  final int total;
+  final int lastPage;
+
+  const PaginatedBudgetsDto({
+    required this.budgets,
+    required this.currentPage,
+    required this.perPage,
+    required this.total,
+    required this.lastPage,
+  });
+
+  factory PaginatedBudgetsDto.fromJson(Map<String, dynamic> json) {
+    final dados = json['dados'];
+
+    if (dados is List) {
+      final budgets = _parseBudgets(dados);
+      return PaginatedBudgetsDto(
+        budgets: budgets,
+        currentPage: 1,
+        perPage: budgets.length,
+        total: budgets.length,
+        lastPage: 1,
+      );
+    }
+
+    if (dados is! Map || dados['data'] is! List) {
+      throw const FormatException(
+        'Contrato inválido: "dados" deve ser uma lista ou página',
+      );
+    }
+
+    return PaginatedBudgetsDto(
+      budgets: _parseBudgets(dados['data'] as List),
+      currentPage: ApiNumberParser.toInt(dados['current_page']),
+      perPage: ApiNumberParser.toInt(dados['per_page']),
+      total: ApiNumberParser.toInt(dados['total']),
+      lastPage: ApiNumberParser.toInt(dados['last_page']),
+    );
+  }
+
+  PaginatedBudgets toEntity() {
+    return PaginatedBudgets(
+      budgets: budgets.map((budget) => budget.toEntity()).toList(),
+      currentPage: currentPage,
+      perPage: perPage,
+      total: total,
+      lastPage: lastPage,
+    );
+  }
+
+  static List<BudgetDto> _parseBudgets(List<dynamic> data) {
+    return data.map((item) {
+      if (item is! Map) {
+        throw const FormatException(
+          'Contrato inválido: item de orçamento deve ser um objeto',
+        );
+      }
+      return BudgetDto.fromJson(Map<String, dynamic>.from(item));
+    }).toList();
+  }
+}
