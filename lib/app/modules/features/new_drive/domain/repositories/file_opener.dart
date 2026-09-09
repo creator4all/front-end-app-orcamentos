@@ -17,5 +17,9 @@ class FileOpenResult {
 }
 
 abstract class FileOpener {
-  Future<FileOpenResult> open(String path);
+  Future<FileOpenResult> open(
+    String path, {
+    String? mimeType,
+    String? uti,
+  });
 }

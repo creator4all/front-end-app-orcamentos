@@ -68,7 +68,7 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
 
   bool _incluirLogoNoPdf = true;
   bool _incluirCensoNoPdf = false;
-  bool _incluirUrlNoPdf = true;
+  bool _incluirUrlNoPdf = false;
 
   bool _isLoading = false;
   bool _isLoadingPartnerLogo = false;
@@ -87,16 +87,15 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
       final partnerService = Modular.get<PartnerService>();
       final partner = await partnerService.obterParceiro();
 
-      if (partner.logoBase64 != null && partner.logoBase64!.isNotEmpty) {
-        setState(() {
-          _partnerLogoBase64 = partner.logoBase64;
-        });
-      }
+      if (!mounted) return;
 
       final partnerUrl = partner.url?.trim() ?? '';
-      if (partnerUrl.isNotEmpty) {
+      setState(() {
+        _partnerLogoBase64 =
+            partner.logoBase64?.isNotEmpty == true ? partner.logoBase64 : null;
         _urlController.text = partnerUrl;
-      }
+        _incluirUrlNoPdf = partnerUrl.isNotEmpty;
+      });
     } catch (_) {
       _partnerLogoBase64 = null;
     } finally {

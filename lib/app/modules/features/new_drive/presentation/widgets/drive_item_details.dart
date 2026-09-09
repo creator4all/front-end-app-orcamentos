@@ -30,10 +30,11 @@ class DriveItemDetails {
         item: item,
         fileOpenerStore: fileOpenerStore,
       ),
-      onShare: () => _share(
+      onShare: (sharePositionOrigin) => _share(
         context: context,
         item: item,
         fileOpenerStore: fileOpenerStore,
+        sharePositionOrigin: sharePositionOrigin,
       ),
     );
   }
@@ -77,15 +78,27 @@ class DriveItemDetails {
     required BuildContext context,
     required DriveItem item,
     required FileOpenerStore fileOpenerStore,
+    required Rect sharePositionOrigin,
   }) async {
     final savedPath = await fileOpenerStore.downloadFileToCache(item);
     if (!context.mounted) return;
 
     if (savedPath != null) {
-      await Share.shareXFiles(
-        [XFile(savedPath)],
-        subject: item.name,
-      );
+      try {
+        await Share.shareXFiles(
+          [XFile(savedPath)],
+          subject: item.name,
+          sharePositionOrigin: sharePositionOrigin,
+        );
+      } catch (_) {
+        if (!context.mounted) return;
+        CustomInfoDialog.show(
+          context: context,
+          type: DialogType.error,
+          title: 'Erro ao compartilhar',
+          message: 'Não foi possível compartilhar o arquivo. Tente novamente.',
+        );
+      }
       return;
     }
 
