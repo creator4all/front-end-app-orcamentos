@@ -9,7 +9,7 @@ class ApiConfig {
       'https://parceiro.multimidiaeducacional.com.br';
   static const String _betaBaseUrl = 'https://parceiro-beta.multimidiaeducacional.com.br';
 
-  static Environment _currentEnvironment = Environment.local;
+  static Environment _currentEnvironment = Environment.beta;
 
   static void init(Environment environment) {
     _currentEnvironment = environment;
