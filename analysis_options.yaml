@@ -46,6 +46,9 @@ analyzer:
     - "**/*.g.dart"
     - "**/*.freezed.dart"
     - "**/*.mocks.dart"
+    - build/**
+    - android/**
+    - ios/**
   errors:
     avoid_print: true
 

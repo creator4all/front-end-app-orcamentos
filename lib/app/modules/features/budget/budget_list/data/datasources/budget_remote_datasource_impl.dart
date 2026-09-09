@@ -10,8 +10,15 @@ class BudgetRemoteDataSourceImpl implements BudgetRemoteDataSource {
   BudgetRemoteDataSourceImpl(this._client);
 
   @override
-  Future<List<BudgetDto>> getBudgets({String? status}) async {
-    final queryParams = <String, dynamic>{};
+  Future<PaginatedBudgetsDto> getBudgets({
+    String? status,
+    int page = 1,
+    int perPage = 15,
+  }) async {
+    final queryParams = <String, dynamic>{
+      'page': page,
+      'per_page': perPage,
+    };
     if (status != null) {
       queryParams['orc_status'] = status;
     }
@@ -22,12 +29,7 @@ class BudgetRemoteDataSourceImpl implements BudgetRemoteDataSource {
     );
 
     if (response.isSuccess) {
-      final List list =
-          response.body['dados'] is List ? response.body['dados'] as List : [];
-
-      return list
-          .map((e) => BudgetDto.fromJson(Map<String, dynamic>.from(e as Map)))
-          .toList();
+      return PaginatedBudgetsDto.fromJson(response.body);
     }
 
     throw Exception(response.body['error'] ?? 'Falha ao carregar orçamentos');

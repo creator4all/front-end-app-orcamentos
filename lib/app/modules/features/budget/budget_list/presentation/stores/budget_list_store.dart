@@ -21,6 +21,23 @@ abstract class _BudgetListStoreBase with Store {
   bool isLoading = false;
 
   @observable
+  bool isLoadingMore = false;
+
+  @observable
+  int currentPage = 1;
+
+  @observable
+  int lastPage = 1;
+
+  @observable
+  int total = 0;
+
+  String? _status;
+
+  @computed
+  bool get hasMore => currentPage < lastPage;
+
+  @observable
   bool needsRefresh = false;
 
   @observable
@@ -44,29 +61,29 @@ abstract class _BudgetListStoreBase with Store {
   Future<void> fetch({String? status}) async {
     isLoading = true;
     error = null;
+    _status = status;
 
     try {
-      final result = await budgetListRepository.getBudgets(status: status);
+      final result = await budgetListRepository.getBudgets(
+        status: status,
+        page: 1,
+      );
 
       result.fold(
         (failure) {
           error = failure.message;
           allItems.clear();
+          currentPage = 1;
+          lastPage = 1;
+          total = 0;
         },
-        (budgets) {
+        (page) {
           allItems.clear();
-          allItems.addAll(budgets);
-
-          allItems.sort((a, b) {
-            int idComparison = b.id.compareTo(a.id);
-            if (idComparison != 0) return idComparison;
-
-            if (a.dataValidade != null && b.dataValidade != null) {
-              return b.dataValidade!.compareTo(a.dataValidade!);
-            }
-
-            return 0;
-          });
+          allItems.addAll(page.budgets);
+          currentPage = page.currentPage;
+          lastPage = page.lastPage;
+          total = page.total;
+          _sortAllItems();
         },
       );
 
@@ -80,14 +97,48 @@ abstract class _BudgetListStoreBase with Store {
 
   @action
   Future<void> refresh() async {
-    await fetch();
+    await fetch(status: _status);
+  }
+
+  @action
+  Future<void> loadMore() async {
+    if (isLoading || isLoadingMore || !hasMore) return;
+
+    isLoadingMore = true;
+    error = null;
+
+    try {
+      final result = await budgetListRepository.getBudgets(
+        status: _status,
+        page: currentPage + 1,
+      );
+
+      result.fold(
+        (failure) => error = failure.message,
+        (page) {
+          final loadedIds = allItems.map((item) => item.id).toSet();
+          allItems.addAll(
+            page.budgets.where((budget) => !loadedIds.contains(budget.id)),
+          );
+          currentPage = page.currentPage;
+          lastPage = page.lastPage;
+          total = page.total;
+          _sortAllItems();
+          applyFilters();
+        },
+      );
+    } catch (e) {
+      error = 'Erro inesperado: $e';
+    } finally {
+      isLoadingMore = false;
+    }
   }
 
   @action
   Future<void> refreshWithLoadingState() async {
     items.clear();
     allItems.clear();
-    await fetch();
+    await fetch(status: _status);
   }
 
   @action
@@ -96,6 +147,11 @@ abstract class _BudgetListStoreBase with Store {
     items.clear();
     error = null;
     isLoading = false;
+    isLoadingMore = false;
+    currentPage = 1;
+    lastPage = 1;
+    total = 0;
+    _status = null;
     needsRefresh = false;
   }
 
@@ -202,6 +258,19 @@ abstract class _BudgetListStoreBase with Store {
     selectedFilters.clear();
     selectedFilters.add('pendente');
     applyFilters();
+  }
+
+  void _sortAllItems() {
+    allItems.sort((a, b) {
+      final idComparison = b.id.compareTo(a.id);
+      if (idComparison != 0) return idComparison;
+
+      if (a.dataValidade != null && b.dataValidade != null) {
+        return b.dataValidade!.compareTo(a.dataValidade!);
+      }
+
+      return 0;
+    });
   }
 
   @action

@@ -14,8 +14,10 @@ abstract class BudgetListRepository {
   ///
   /// Retorna [Right(List<BudgetEntity>)] em caso de sucesso
   /// Retorna [Left(BudgetFailure)] em caso de erro
-  Future<Either<BudgetFailure, List<BudgetEntity>>> getBudgets({
+  Future<Either<BudgetFailure, PaginatedBudgets>> getBudgets({
     String? status,
+    int page = 1,
+    int perPage = 15,
   });
 
   /// Busca um orçamento específico por ID

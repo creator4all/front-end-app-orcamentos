@@ -80,6 +80,7 @@ class ProductCategory extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(
+                  flex: 2,
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: selectionTap,
@@ -87,7 +88,7 @@ class ProductCategory extends StatelessWidget {
                   ),
                 ),
                 Expanded(
-                  flex: 2,
+                  flex: 9,
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: actionTap,

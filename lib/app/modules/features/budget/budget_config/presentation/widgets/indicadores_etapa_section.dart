@@ -57,12 +57,59 @@ class IndicadoresEtapaSection extends StatelessWidget {
                   ),
                 ),
               ),
+            _buildSelectAllItem(listaIndicadores),
             ...listaIndicadores
                 .map((indicador) => _buildCheckboxItem(indicador)),
             SizedBox(height: 8.h),
           ],
         );
       }).toList(),
+    );
+  }
+
+  Widget _buildSelectAllItem(
+    List<IndicadorEtapaEntity> listaIndicadores,
+  ) {
+    final isGroupFullySelected =
+        listaIndicadores.every((indicador) => indicador.selecionado);
+    final label =
+        isGroupFullySelected ? 'Deselecionar todos' : 'Selecionar todos';
+
+    void toggleAll() {
+      final targetValue = !isGroupFullySelected;
+      for (final indicador in listaIndicadores) {
+        if (indicador.selecionado != targetValue) {
+          onToggle?.call(indicador.indicadorId, targetValue);
+        }
+      }
+    }
+
+    final row = Row(
+      children: [
+        CustomCheckbox(
+          value: isGroupFullySelected,
+          onChanged: (!enabled || onToggle == null) ? null : (_) => toggleAll(),
+        ),
+        SizedBox(width: 12.w),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 14.sp,
+              color:
+                  enabled ? const Color(0xFF117BBD) : const Color(0xFFBFBFBF),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    );
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: 12.h),
+      child: !enabled && onBlockedTap != null
+          ? GestureDetector(onTap: onBlockedTap, child: row)
+          : GestureDetector(onTap: enabled ? toggleAll : null, child: row),
     );
   }
 

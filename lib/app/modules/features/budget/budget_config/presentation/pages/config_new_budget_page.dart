@@ -12,9 +12,10 @@ import '../../../../../../shared/widgets/product_category.dart';
 import '../../../../../../shared/widgets/select_all_card.dart';
 import '../../../../auth/presentation/stores/auth_store.dart';
 import '../../../budget_create/domain/entities/budget_draft_entity.dart';
-import '../../../budget_list/presentation/stores/budget_list_store.dart';
+import '../../domain/entities/budget_detail_entity.dart';
 import '../../domain/entities/category_entity.dart';
 import '../../domain/entities/product_entity.dart';
+import '../../domain/entities/product_selection_entity.dart';
 import '../../domain/entities/subcategory_entity.dart';
 import '../stores/budget_config_store.dart';
 import '../widgets/budget_skeleton.dart';
@@ -118,12 +119,55 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
     return 'Configurar Orçamento';
   }
 
+  BudgetDetailEntity _buildConfiguredBudget(BudgetDetailEntity budget) {
+    final configuredCategories = store.categories.toList();
+    final configuredProducts = <ProductSelectionEntity>[];
+
+    for (final category in configuredCategories) {
+      for (final subcategory in category.subcategorias) {
+        for (final product in subcategory.produtos) {
+          configuredProducts.add(
+            ProductSelectionEntity(
+              productId: product.id,
+              name: product.solucao,
+              category: subcategory.id.toString(),
+              price: product.valor,
+              isSelected: product.selecionado,
+              quantity: product.quantidade,
+            ),
+          );
+        }
+      }
+    }
+
+    final validityDate = store.validityDate ?? budget.validityDate;
+    final today = DateTime.now();
+    final normalizedToday = DateTime(today.year, today.month, today.day);
+    final normalizedValidity = validityDate == null
+        ? null
+        : DateTime(validityDate.year, validityDate.month, validityDate.day);
+    final validityDays = normalizedValidity == null
+        ? budget.validityDays
+        : normalizedValidity.difference(normalizedToday).inDays;
+
+    return budget.copyWith(
+      name: store.budgetName,
+      validityDays: validityDays > 0 ? validityDays : 1,
+      validityDate: validityDate,
+      status: 'pendente',
+      total: store.totalValue,
+      products: configuredProducts,
+      categories: configuredCategories,
+      censoAgregado: store.censoEscolar?.valoresPorEtapa,
+    );
+  }
+
   Future<void> _handleSave() async {
     final result = await store.saveBudget();
 
-    result.fold(
-      (failure) {
-        CustomInfoDialog.show(
+    await result.fold<Future<void>>(
+      (failure) async {
+        await CustomInfoDialog.show(
           context: context,
           type: DialogType.error,
           title: 'Erro ao salvar',
@@ -131,6 +175,8 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
         );
       },
       (budget) async {
+        final configuredBudget = _buildConfiguredBudget(budget);
+
         await CustomInfoDialog.show(
           context: context,
           type: DialogType.success,
@@ -138,9 +184,16 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
           message: 'Orçamento salvo com sucesso!',
         );
 
-        final listStore = Modular.get<BudgetListStore>();
-        await listStore.refresh();
-        Modular.to.navigate('/budget/');
+        if (!mounted) return;
+
+        await Modular.to.pushNamedAndRemoveUntil<Object?>(
+          '/budget/edit/${configuredBudget.id}',
+          ModalRoute.withName('/budget/'),
+          arguments: {
+            'initialTitle': configuredBudget.name,
+            'initialConfiguredBudget': configuredBudget,
+          },
+        );
       },
     );
   }
