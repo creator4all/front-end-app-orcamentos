@@ -180,31 +180,50 @@ abstract class _PartnerStoreBase with Store {
 
   @action
   Future<void> viewContract() async {
-    if (partner == null) {
+    final currentPartner = partner;
+    if (currentPartner == null) {
       return;
     }
 
     isViewingContract = true;
     error = null;
     try {
-      final bytes = await _viewContractUseCase(partner!.id);
+      final bytes = await _viewContractUseCase(currentPartner.id);
+      if (!_hasPdfSignature(bytes)) {
+        error = 'O contrato recebido não é um arquivo PDF válido.';
+        return;
+      }
 
-      final fileName = partner!.contractFileName ?? 'contrato.pdf';
+      final fileName = currentPartner.contractFileName ?? 'contrato.pdf';
       final filePath = await _tempFileStore.getTempFilePath(fileName);
 
       await _tempFileStore.writeBytes(filePath, bytes);
 
-      final result = await _fileOpener.open(filePath);
+      final result = await _fileOpener.open(
+        filePath,
+        mimeType: 'application/pdf',
+        uti: 'com.adobe.pdf',
+      );
 
       if (result.type != FileOpenResultType.done) {
         error =
             'Não foi possível abrir o contrato. Verifique se há um aplicativo de PDF instalado.';
       }
-    } catch (e) {
+    } catch (_) {
       error = 'Não foi possível abrir o contrato. Tente novamente.';
     } finally {
       isViewingContract = false;
     }
+  }
+
+  bool _hasPdfSignature(List<int> bytes) {
+    const signature = [0x25, 0x50, 0x44, 0x46, 0x2D];
+    if (bytes.length < signature.length) return false;
+
+    for (var index = 0; index < signature.length; index++) {
+      if (bytes[index] != signature[index]) return false;
+    }
+    return true;
   }
 
   @action

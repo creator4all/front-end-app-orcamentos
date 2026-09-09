@@ -16,7 +16,7 @@ class FileDetailsModal {
     required FileOpenerStore fileOpenerStore,
     required Future<void> Function() onOpen,
     required Future<void> Function() onDownload,
-    required Future<void> Function() onShare,
+    required Future<void> Function(Rect sharePositionOrigin) onShare,
   }) {
     return CustomModal.show(
       context: context,
@@ -37,7 +37,7 @@ class _FileDetailsContent extends StatefulWidget {
   final FileOpenerStore fileOpenerStore;
   final Future<void> Function() onOpen;
   final Future<void> Function() onDownload;
-  final Future<void> Function() onShare;
+  final Future<void> Function(Rect sharePositionOrigin) onShare;
 
   const _FileDetailsContent({
     required this.item,
@@ -105,13 +105,26 @@ class _FileDetailsContentState extends State<_FileDetailsContent> {
     widget.fileOpenerStore.cancelDownload();
   }
 
-  Future<void> _handleShare() async {
+  Future<void> _handleShare(BuildContext shareContext) async {
     if (_isOpening || _isSharing || widget.fileOpenerStore.isDownloading) {
       return;
     }
+
+    final renderObject = shareContext.findRenderObject();
+    final screenSize = MediaQuery.sizeOf(context);
+    final sharePositionOrigin = renderObject is RenderBox &&
+            renderObject.hasSize &&
+            !renderObject.size.isEmpty
+        ? renderObject.localToGlobal(Offset.zero) & renderObject.size
+        : Rect.fromCenter(
+            center: Offset(screenSize.width / 2, screenSize.height / 2),
+            width: 1,
+            height: 1,
+          );
+
     setState(() => _isSharing = true);
     try {
-      await widget.onShare();
+      await widget.onShare(sharePositionOrigin);
     } finally {
       if (mounted) setState(() => _isSharing = false);
     }
@@ -286,12 +299,14 @@ class _FileDetailsContentState extends State<_FileDetailsContent> {
               );
               final isBusy = widget.fileOpenerStore.isDownloading;
 
-              return _buildActionButton(
-                icon: Icons.share_outlined,
-                label: 'Compartilhar',
-                isLoading: _isSharing || isSharingActive,
-                isDisabled: _isOpening || (isBusy && !isSharingActive),
-                onTap: _handleShare,
+              return Builder(
+                builder: (shareContext) => _buildActionButton(
+                  icon: Icons.share_outlined,
+                  label: 'Compartilhar',
+                  isLoading: _isSharing || isSharingActive,
+                  isDisabled: _isOpening || (isBusy && !isSharingActive),
+                  onTap: () => _handleShare(shareContext),
+                ),
               );
             },
           ),
