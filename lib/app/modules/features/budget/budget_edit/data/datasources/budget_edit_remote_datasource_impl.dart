@@ -25,61 +25,6 @@ class BudgetEditRemoteDataSourceImpl implements BudgetEditRemoteDataSource {
   }
 
   @override
-  Future<BudgetEditDto> updateBudget({
-    required int id,
-    String? name,
-    int? validityDays,
-    DateTime? validityDate,
-    String? status,
-    bool? isArchived,
-    List<int>? selectedProductIds,
-  }) async {
-    try {
-      // `PUT /api/orcamentos/{id}` valida atualização completa e responde sem
-      // corpo. O registro atual é relido para preencher os campos que esta
-      // operação não altera, e a estrutura de edição é buscada de novo depois
-      // da gravação.
-      final atual = await _buscarRegistro(id);
-
-      final response = await _client.put(
-        '/api/orcamentos/$id',
-        data: {
-          'orc_nome': name ?? atual['orc_nome'],
-          'orc_dias_validade': validityDays ?? atual['orc_dias_validade'],
-          'orc_status': status ?? atual['orc_status'],
-          'orc_total': atual['orc_total'],
-          'orc_usuario_id': atual['orc_usuario_id'],
-          'orc_partner_destino_id': atual['orc_partner_destino_id'],
-          'isArchived': isArchived ?? atual['orc_is_archived'] ?? false,
-          'cidades': const <int>[],
-          'indicadores': const <Map<String, dynamic>>[],
-          // A sincronização de produtos exige quantidade e overrides por item,
-          // que esta operação não recebe; ela é feita pelo versionamento.
-          'produtos': const <Map<String, dynamic>>[],
-        },
-      );
-
-      if (response.isSuccess) {
-        return getBudgetForEdit(id);
-      }
-
-      throw Exception(response.body['error'] ?? 'Erro ao atualizar orçamento');
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  Future<Map<String, dynamic>> _buscarRegistro(int budgetId) async {
-    final response = await _client.get('/api/orcamentos/$budgetId');
-
-    if (!response.isSuccess) {
-      throw Exception(response.body['error'] ?? 'Orçamento não encontrado');
-    }
-
-    return Map<String, dynamic>.from(response.body['dados'] as Map);
-  }
-
-  @override
   Future<BudgetEditDto> updateBudgetWithDto({
     required int budgetId,
     required BudgetUpdateDto updateData,

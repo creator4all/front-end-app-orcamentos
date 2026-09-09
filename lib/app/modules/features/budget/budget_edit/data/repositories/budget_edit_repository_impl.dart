@@ -29,35 +29,6 @@ class BudgetEditRepositoryImpl implements BudgetEditRepository {
   }
 
   @override
-  Future<Either<BudgetFailure, BudgetEditEntity>> updateBudget({
-    required int id,
-    String? name,
-    int? validityDays,
-    DateTime? validityDate,
-    String? status,
-    bool? isArchived,
-    List<int>? selectedProductIds,
-  }) async {
-    try {
-      final dto = await remoteDataSource.updateBudget(
-        id: id,
-        name: name,
-        validityDays: validityDays,
-        validityDate: validityDate,
-        status: status,
-        isArchived: isArchived,
-        selectedProductIds: selectedProductIds,
-      );
-
-      final entity = dto.toEntity();
-
-      return Right(entity);
-    } on Exception catch (e) {
-      return Left(_mapExceptionToFailure(e));
-    }
-  }
-
-  @override
   Future<Either<BudgetFailure, BudgetEditEntity>> updateBudgetWithDto({
     required int budgetId,
     required BudgetUpdateDto updateData,

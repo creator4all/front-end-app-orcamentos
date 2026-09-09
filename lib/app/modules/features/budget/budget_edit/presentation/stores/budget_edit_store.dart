@@ -394,57 +394,6 @@ abstract class _BudgetEditStoreBase with Store {
   }
 
   @action
-  Future<Either<BudgetFailure, BudgetEditEntity>> updateBudget() async {
-    if (budgetData == null) {
-      error = 'Orçamento não carregado';
-      return const Left(ValidationFailure('Orçamento não carregado'));
-    }
-
-    isSaving = true;
-    error = null;
-
-    try {
-      int? validityDays;
-      if (_validityDateChanged && validityDate != null) {
-        final hoje = DateTime.now();
-        final hojeDate = DateTime(hoje.year, hoje.month, hoje.day);
-        final validade = validityDate!;
-        final validadeDate =
-            DateTime(validade.year, validade.month, validade.day);
-        validityDays = validadeDate.difference(hojeDate).inDays;
-      } else {
-        validityDays = _originalValidityDays;
-      }
-
-      final result = await updateBudgetUseCase(
-        budgetId: budgetData!.id,
-        validityDays: validityDays,
-        validityDate: validityDate,
-        status: selectedStatus,
-        isArchived: isArchived,
-        selectedProductIds: selectedProductIds.toList(),
-      );
-
-      return result.fold(
-        (failure) {
-          error = failure.message;
-          isSaving = false;
-          return Left(failure);
-        },
-        (updatedBudget) {
-          budgetData = updatedBudget;
-          isSaving = false;
-          return Right(updatedBudget);
-        },
-      );
-    } catch (e) {
-      error = 'Erro ao salvar: $e';
-      isSaving = false;
-      return Left(UnknownFailure(e.toString()));
-    }
-  }
-
-  @action
   Future<Either<BudgetFailure, BudgetEditEntity>> saveBudget() async {
     return saveBudgetWithDto();
   }

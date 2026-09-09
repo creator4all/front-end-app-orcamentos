@@ -7,17 +7,6 @@ import '../entities/budget_edit_entity.dart';
 abstract class BudgetEditRepository {
   Future<Either<BudgetFailure, BudgetEditEntity>> getBudgetForEdit(int id);
 
-  @Deprecated('Use updateBudgetWithDto')
-  Future<Either<BudgetFailure, BudgetEditEntity>> updateBudget({
-    required int id,
-    String? name,
-    int? validityDays,
-    DateTime? validityDate,
-    String? status,
-    bool? isArchived,
-    List<int>? selectedProductIds,
-  });
-
   Future<Either<BudgetFailure, BudgetEditEntity>> updateBudgetWithDto({
     required int budgetId,
     required BudgetUpdateDto updateData,
