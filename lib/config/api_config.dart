@@ -2,7 +2,7 @@ enum Environment { local, localCasa, test, production, beta }
 
 class ApiConfig {
   static const String _localBaseUrl = 'http://192.168.10.175:8080';
-  static const String _localBaseUrlCasa = 'http://192.168.1.10:8080';
+  static const String _localBaseUrlCasa = 'http://192.168.1.12:8080';
   static const String _testBaseUrl =
       'https://test-api.multimidiaeducacional.com.br';
   static const String _productionBaseUrl =
