@@ -2,7 +2,11 @@
 
 import 'package:mobx/mobx.dart';
 
+import '../../../../../shared/core/errors/api_error_message.dart';
+import '../../../../../shared/utils/brazilian_phone_input_formatter.dart';
 import '../../../../../shared/utils/document_validators.dart';
+import '../../../../../shared/utils/email_validator.dart';
+import '../../../../../shared/utils/website_url_validator.dart';
 import '../../../new_drive/domain/repositories/file_opener.dart';
 import '../../../new_drive/domain/repositories/temp_file_store.dart';
 import '../../domain/models/partner_profile.dart';
@@ -95,7 +99,33 @@ abstract class _PartnerStoreBase with Store {
 
   @action
   void setUrl(String value) {
-    url = value;
+    url = WebsiteUrlValidator.normalize(value) ?? '';
+  }
+
+  String? validate() {
+    if (tradeName.trim().isEmpty) {
+      return 'Informe o nome fantasia da empresa.';
+    }
+
+    if (legalName.trim().isEmpty) {
+      return 'Informe a razão social da empresa.';
+    }
+
+    final documentError = DocumentValidators.getDocumentError(cnpj);
+    if (documentError != null) {
+      return documentError;
+    }
+
+    if (!BrazilianPhoneInputFormatter.isValid(phone)) {
+      return 'Informe um telefone completo, com DDD.';
+    }
+
+    final trimmedEmail = email.trim();
+    if (trimmedEmail.isNotEmpty && !EmailValidator.isValid(trimmedEmail)) {
+      return 'Informe um e-mail válido.';
+    }
+
+    return WebsiteUrlValidator.getError(url);
   }
 
   @action
@@ -148,7 +178,10 @@ abstract class _PartnerStoreBase with Store {
 
       return true;
     } catch (e) {
-      error = 'Não foi possível salvar os dados. Tente novamente.';
+      error = ApiErrorMessage.from(
+        e,
+        fallback: 'Não foi possível salvar os dados. Tente novamente.',
+      );
       return false;
     } finally {
       isSaving = false;
@@ -170,7 +203,10 @@ abstract class _PartnerStoreBase with Store {
 
       return true;
     } catch (e) {
-      error = 'Não foi possível enviar o logo. Tente novamente.';
+      error = ApiErrorMessage.from(
+        e,
+        fallback: 'Não foi possível enviar o logo. Tente novamente.',
+      );
       selectedLogo = null;
       return false;
     } finally {

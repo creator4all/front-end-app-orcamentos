@@ -25,6 +25,12 @@ class BudgetEditEntity extends Equatable {
   final CensusDataEntity? censusData;
   final bool isArchived;
 
+  /// Classificação de multi-cidade declarada pelo backend (`multi_cidade`).
+  ///
+  /// Decide o endpoint de versionamento. Quando a chave não vem no payload,
+  /// [isMultiCity] volta a derivar pela quantidade de cidades.
+  final bool? multiCity;
+
   final Map<String, double> censoAgregado;
 
   const BudgetEditEntity({
@@ -43,6 +49,7 @@ class BudgetEditEntity extends Equatable {
     required this.categoriesData,
     this.censusData,
     this.isArchived = false,
+    this.multiCity,
     this.censoAgregado = const {},
   });
 
@@ -64,6 +71,7 @@ class BudgetEditEntity extends Equatable {
       products: List<ProductSelectionEntity>.from(budget.products),
       categoriesData: List.unmodifiable(budget.categories),
       isArchived: budget.isArchived,
+      multiCity: budget.multiCity,
       censoAgregado: Map<String, double>.from(budget.censoAgregado),
     );
   }
@@ -81,7 +89,7 @@ class BudgetEditEntity extends Equatable {
       .where((p) => p.isSelected)
       .fold(0.0, (sum, p) => sum + p.totalPrice);
 
-  bool get isMultiCity => cityIds.length > 1;
+  bool get isMultiCity => multiCity ?? cityIds.length > 1;
 
   @override
   List<Object?> get props => [
@@ -100,6 +108,7 @@ class BudgetEditEntity extends Equatable {
         categoriesData,
         censusData,
         isArchived,
+        multiCity,
         censoAgregado,
       ];
 }

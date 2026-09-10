@@ -13,6 +13,7 @@ import '../../../budget_config/domain/entities/indicador_etapa_entity.dart';
 import '../../../budget_config/domain/entities/product_entity.dart';
 import '../../../budget_config/domain/entities/subcategory_entity.dart';
 import '../../../budget_config/domain/services/product_calculation_service.dart';
+import '../../../budget_config/domain/services/product_quantity_rules.dart';
 import '../../../budget_config/domain/usecases/get_census_data_usecase.dart';
 import '../../../shared/errors/budget_failure.dart';
 import '../../../shared/models/budget_update_dto.dart';
@@ -658,7 +659,9 @@ abstract class _BudgetEditStoreBase with Store {
   }
 
   @action
-  void updateProductQuantity(int productId, double quantity) {
+  void updateProductQuantity(int productId, double rawQuantity) {
+    final quantity = ProductQuantityRules.clamp(rawQuantity);
+
     for (var i = 0; i < categories.length; i++) {
       final category = categories[i];
 
@@ -701,7 +704,9 @@ abstract class _BudgetEditStoreBase with Store {
   /// Define a quantidade manualmente para um produto, ativando o modo manual
   /// (a quantidade passa a ignorar os indicadores).
   @action
-  void setProductManualQuantity(int productId, double quantity) {
+  void setProductManualQuantity(int productId, double rawQuantity) {
+    final quantity = ProductQuantityRules.clamp(rawQuantity);
+
     for (var i = 0; i < categories.length; i++) {
       final category = categories[i];
 
@@ -926,6 +931,16 @@ abstract class _BudgetEditStoreBase with Store {
     if (validityDate == null) {
       error = 'Data de validade não definida';
       return const Left(ValidationFailure('Data de validade obrigatória'));
+    }
+
+    // Sem cidades hidratadas não há como classificar o orçamento, e o
+    // versionamento cairia no endpoint de cidade única sem `orc_cidade_id`.
+    if (budgetData!.cityIds.isEmpty) {
+      const failure = ValidationFailure(
+        'O orçamento não possui cidades carregadas. Recarregue os dados antes de versionar.',
+      );
+      error = failure.message;
+      return const Left(failure);
     }
 
     isSaving = true;

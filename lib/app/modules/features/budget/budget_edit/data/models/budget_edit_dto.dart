@@ -2,6 +2,7 @@ import 'package:multimidiaapp/app/shared/domain/value_objects/fractional_order.d
 
 import '../../../budget_config/data/models/census_data_dto.dart';
 import '../../../budget_config/data/models/product_selection_dto.dart';
+import '../../../shared/models/budget_city_context_dto.dart';
 import '../../domain/entities/budget_edit_entity.dart';
 
 class BudgetEditDto {
@@ -21,6 +22,9 @@ class BudgetEditDto {
   final CensusDataDto? censusData;
   final bool isArchived;
 
+  /// Classificação de multi-cidade declarada pelo backend (`multi_cidade`).
+  final bool? multiCity;
+
   final Map<String, double> censoAgregado;
 
   BudgetEditDto({
@@ -39,6 +43,7 @@ class BudgetEditDto {
     required this.categoriesData,
     this.censusData,
     this.isArchived = false,
+    this.multiCity,
     this.censoAgregado = const {},
   });
 
@@ -222,13 +227,7 @@ class BudgetEditDto {
       _mergeIndicadores(produtos, mapaIndicadores);
     }
 
-    final cities = <int>[];
-    final citiesData = <Map<String, dynamic>>[];
-    final cidade = json['cidade'];
-    if (cidade is Map<String, dynamic>) {
-      cities.add(_toInt(cidade['idCidades']));
-      citiesData.add(cidade);
-    }
+    final cityContext = BudgetCityContextDto.fromJson(json);
 
     return BudgetEditDto(
       id: _toInt(json['orc_orcamentoId']),
@@ -244,13 +243,14 @@ class BudgetEditDto {
       partnerId: json['orc_partner_destino_id'] != null
           ? _toInt(json['orc_partner_destino_id'])
           : null,
-      cityIds: cities,
-      citiesDataRaw: citiesData,
+      cityIds: cityContext.cityIds,
+      citiesDataRaw: cityContext.citiesData,
       products: _buildSelectedProducts(produtos),
       categoriesData: _buildCategoriesData(produtos),
       censusData: null,
-      isArchived: false,
-      censoAgregado: const {},
+      isArchived: json['orc_is_archived'] as bool? ?? false,
+      multiCity: cityContext.multiCity,
+      censoAgregado: cityContext.censoAgregado,
     );
   }
 
@@ -288,6 +288,7 @@ class BudgetEditDto {
       censusData: censusData?.toEntity(),
       censoAgregado: censoAgregado,
       isArchived: isArchived,
+      multiCity: multiCity,
     );
   }
 }

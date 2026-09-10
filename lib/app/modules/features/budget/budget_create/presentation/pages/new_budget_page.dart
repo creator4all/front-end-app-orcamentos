@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:multimidiaapp/app/shared/utils/brazilian_phone_input_formatter.dart';
 import 'package:multimidiaapp/app/shared/widgets/city_selection_modal.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_modal.dart';
 import 'package:multimidiaapp/app/shared/widgets/searchable_dropdown_widget.dart';
@@ -551,41 +551,7 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                 child: TextFormField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
-                  inputFormatters: [
-                    TextInputFormatter.withFunction((oldValue, newValue) {
-                      String text =
-                          newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
-
-                      if (text.length > 11) {
-                        text = text.substring(0, 11);
-                      }
-
-                      String formatted = '';
-                      if (text.isNotEmpty) {
-                        formatted = '($text';
-                        if (text.length >= 2) {
-                          formatted = '(${text.substring(0, 2)}';
-                          if (text.length > 2) {
-                            formatted += ') ';
-                            if (text.length <= 7) {
-                              formatted += text.substring(2);
-                            } else {
-                              formatted += '${text.substring(2, 7)}-';
-                              if (text.length > 7) {
-                                formatted += text.substring(7);
-                              }
-                            }
-                          }
-                        }
-                      }
-
-                      return TextEditingValue(
-                        text: formatted,
-                        selection:
-                            TextSelection.collapsed(offset: formatted.length),
-                      );
-                    }),
-                  ],
+                  inputFormatters: [BrazilianPhoneInputFormatter()],
                   decoration: InputDecoration(
                     hintText: '(00) 00000-0000',
                     hintStyle: TextStyle(

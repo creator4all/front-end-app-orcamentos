@@ -16,6 +16,7 @@ import '../../domain/entities/indicador_etapa_entity.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../domain/entities/subcategory_entity.dart';
 import '../../domain/services/product_calculation_service.dart';
+import '../../domain/services/product_quantity_rules.dart';
 import '../../domain/usecases/calculate_totals_usecase.dart';
 import '../../domain/usecases/get_budget_detail_usecase.dart';
 import '../../domain/usecases/get_category_products_usecase.dart';
@@ -803,7 +804,10 @@ abstract class _BudgetConfigStoreBase with Store {
           _originalValidityDays = budget.validityDays;
           _validityDateChanged = false;
 
-          if (budget.censoAgregado.isNotEmpty) {
+          // A visão agregada só substitui a cidade quando há mais de uma:
+          // um orçamento de cidade única também recebe `censo_agregado`, e
+          // agregá-lo apagaria nome, ID e ano de população da cidade.
+          if (budget.isMultiCity && budget.censoAgregado.isNotEmpty) {
             censoEscolar = _buildAggregatedCenso(
               censoAgregado: budget.censoAgregado,
               citiesData: budget.citiesData,
@@ -1107,11 +1111,13 @@ abstract class _BudgetConfigStoreBase with Store {
   }
 
   @action
-  void updateProductQuantity(int productId, double quantity) {
+  void updateProductQuantity(int productId, double rawQuantity) {
     _ensureSnapshot();
-    if (quantity < 1.0) {
+    if (rawQuantity < 1.0) {
       return;
     }
+
+    final quantity = ProductQuantityRules.clamp(rawQuantity);
 
     for (var i = 0; i < categories.length; i++) {
       final category = categories[i];
@@ -1151,9 +1157,11 @@ abstract class _BudgetConfigStoreBase with Store {
   }
 
   @action
-  void setProductManualQuantity(int productId, double quantity) {
+  void setProductManualQuantity(int productId, double rawQuantity) {
     _ensureSnapshot();
-    if (quantity < 1.0) return;
+    if (rawQuantity < 1.0) return;
+
+    final quantity = ProductQuantityRules.clamp(rawQuantity);
 
     for (var i = 0; i < categories.length; i++) {
       final category = categories[i];
@@ -1507,7 +1515,7 @@ abstract class _BudgetConfigStoreBase with Store {
     _ensureSnapshot();
     if (budgetDetail == null) return;
 
-    if (budgetDetail!.censoAgregado.isNotEmpty) {
+    if (budgetDetail!.isMultiCity && budgetDetail!.censoAgregado.isNotEmpty) {
       censoEscolar = _buildAggregatedCenso(
         censoAgregado: budgetDetail!.censoAgregado,
         citiesData: budgetDetail!.citiesData,

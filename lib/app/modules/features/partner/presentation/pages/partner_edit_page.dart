@@ -19,6 +19,7 @@ import '../../../../../shared/utils/logo_crop_source_preparer.dart';
 import '../../../../../shared/widgets/custom_info_dialog.dart';
 import '../../../../../shared/widgets/custom_top_bar.dart';
 import '../../../auth/presentation/stores/auth_store.dart';
+import '../../domain/models/partner_profile.dart';
 import '../stores/partner_store.dart';
 
 class PartnerEditPage extends StatefulWidget {
@@ -31,6 +32,7 @@ class PartnerEditPage extends StatefulWidget {
 class _PartnerEditPageState extends State<PartnerEditPage> {
   late final PartnerStore _store;
   late final AuthStore _authStore;
+  late final ReactionDisposer _partnerReactionDisposer;
   final ImagePicker _imagePicker = ImagePicker();
 
   final TextEditingController _tradeNameController = TextEditingController();
@@ -41,33 +43,33 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
   final TextEditingController _urlController = TextEditingController();
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
+  void initState() {
+    super.initState();
     _store = Modular.get<PartnerStore>();
     _authStore = Modular.get<AuthStore>();
 
-    reaction(
+    _partnerReactionDisposer = reaction(
       (_) => _store.partner,
-      (partner) {
-        if (partner != null) {
-          _tradeNameController.text = partner.tradeName;
-          _emailController.text = partner.email ?? '';
-          _phoneController.text = BrazilianPhoneInputFormatter.format(
-            partner.phone,
-          );
-          _legalNameController.text = partner.legalName;
-          _cnpjController.text =
-              DocumentValidators.formatDocument(partner.cnpj);
-          _urlController.text = partner.url ?? '';
-        }
-      },
+      _fillFormWithPartner,
     );
 
     _store.fetch();
   }
 
+  void _fillFormWithPartner(PartnerProfile? partner) {
+    if (partner == null) return;
+
+    _tradeNameController.text = partner.tradeName;
+    _emailController.text = partner.email ?? '';
+    _phoneController.text = BrazilianPhoneInputFormatter.format(partner.phone);
+    _legalNameController.text = partner.legalName;
+    _cnpjController.text = DocumentValidators.formatDocument(partner.cnpj);
+    _urlController.text = partner.url ?? '';
+  }
+
   @override
   void dispose() {
+    _partnerReactionDisposer();
     _tradeNameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
@@ -231,6 +233,19 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
       _phoneController.text,
     ));
     _store.setUrl(_urlController.text);
+
+    final validationError = _store.validate();
+    if (validationError != null) {
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.warning,
+        title: 'Verifique os dados',
+        message: validationError,
+      );
+      return;
+    }
+
+    _urlController.text = _store.url;
 
     final success = await _store.save();
 
@@ -605,14 +620,6 @@ class _PartnerEditPageState extends State<PartnerEditPage> {
                 ),
               ),
             ),
-            if (_store.error != null && _store.isViewingContract == false)
-              Padding(
-                padding: EdgeInsets.only(top: 4.h),
-                child: Text(
-                  _store.error!,
-                  style: TextStyle(fontSize: 12.sp, color: Colors.red),
-                ),
-              ),
           ],
         );
       },

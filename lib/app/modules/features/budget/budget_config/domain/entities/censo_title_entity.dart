@@ -1,6 +1,7 @@
 import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:equatable/equatable.dart';
 import 'package:multimidiaapp/app/shared/domain/value_objects/fractional_order.dart';
+import 'package:multimidiaapp/app/shared/utils/quantity_utils.dart';
 
 part 'censo_title_entity.g.dart';
 
@@ -43,13 +44,8 @@ class CensoTitleEntity extends Equatable {
     this.ordem = FractionalOrder.zero,
   });
 
-  /// Formata o valor para exibição
-  String get valorFormatado {
-    return valor.toStringAsFixed(0).replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-          (Match m) => '${m[1]}.',
-        );
-  }
+  /// Formata o valor para exibição, arredondando a fração de aluno.
+  String get valorFormatado => QuantityUtils.format(valor.round());
 
   /// Label de exibição com percentual quando aplicável
   String get labelComPercentual {

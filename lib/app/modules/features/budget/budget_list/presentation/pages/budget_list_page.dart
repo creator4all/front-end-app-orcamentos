@@ -3,6 +3,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../../../../shared/core/navigation/app_route_observer.dart';
 import '../../../../../../shared/utils/user_role_mapper.dart';
 import '../../../../../../shared/widgets/rename_budget_modal.dart';
 import '../../../../../../shared/widgets/widgets.dart';
@@ -16,7 +17,7 @@ class BudgetListPage extends StatefulWidget {
   State<BudgetListPage> createState() => _BudgetListPageState();
 }
 
-class _BudgetListPageState extends State<BudgetListPage> {
+class _BudgetListPageState extends State<BudgetListPage> with RouteAware {
   late final BudgetListStore _store;
   late final AuthStore _authStore;
   final ScrollController _scrollController = ScrollController();
@@ -36,6 +37,7 @@ class _BudgetListPageState extends State<BudgetListPage> {
 
   @override
   void dispose() {
+    appRouteObserver.unsubscribe(this);
     _scrollController
       ..removeListener(_handleScroll)
       ..dispose();
@@ -48,9 +50,19 @@ class _BudgetListPageState extends State<BudgetListPage> {
     _store = Modular.get<BudgetListStore>();
     _authStore = Modular.get<AuthStore>();
 
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      appRouteObserver.subscribe(this, route);
+    }
+
     if (_store.allItems.isEmpty) {
       _store.fetch();
     }
+  }
+
+  @override
+  void didPopNext() {
+    _handleEditBudgetReturn();
   }
 
   void _handleSearchChanged(String query) {
@@ -151,14 +163,7 @@ class _BudgetListPageState extends State<BudgetListPage> {
                           ),
                         ),
                         ElevatedButton.icon(
-                          onPressed: () async {
-                            final result = await Modular.to.pushNamed(
-                              '/budget/new',
-                            );
-                            if (result == true) {
-                              _store.refresh();
-                            }
-                          },
+                          onPressed: () => Modular.to.pushNamed('/budget/new'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF117BBD),
                             foregroundColor: const Color(0xFFFFFFFF),
@@ -314,13 +319,10 @@ class _BudgetListPageState extends State<BudgetListPage> {
                                           'Por isso ele aparece na sua lista.',
                                     )
                                 : null,
-                            onTap: () async {
-                              await Modular.to.pushNamed(
-                                '/budget/edit/${b.id}',
-                                arguments: {'initialTitle': budgetTitle},
-                              );
-                              await _handleEditBudgetReturn();
-                            },
+                            onTap: () => Modular.to.pushNamed(
+                              '/budget/edit/${b.id}',
+                              arguments: {'initialTitle': budgetTitle},
+                            ),
                           ),
                         );
                       },

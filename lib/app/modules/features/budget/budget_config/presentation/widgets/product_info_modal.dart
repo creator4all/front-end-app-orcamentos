@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:multimidiaapp/app/shared/utils/brl_currency_input_formatter.dart';
 import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
+import 'package:multimidiaapp/app/shared/utils/quantity_input_formatter.dart';
+import 'package:multimidiaapp/app/shared/utils/quantity_utils.dart';
 
 import '../../../../../../shared/widgets/custom_info_dialog.dart';
 import '../../../../../../shared/widgets/custom_modal.dart';
 import '../../domain/entities/product_entity.dart';
+import '../../domain/services/product_quantity_rules.dart';
 import 'indicadores_etapa_section.dart';
 
 class ProductInfoModal extends StatefulWidget {
@@ -128,6 +132,12 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
     _horasFocus.dispose();
     super.dispose();
   }
+
+  static const List<TextInputFormatter> _quantityInputFormatters = [
+    QuantityInputFormatter(
+      maxDigits: ProductQuantityRules.maxQuantityDigits,
+    ),
+  ];
 
   bool _isServico(ProductEntity product) {
     final tipo = product.tipoProduto.toLowerCase();
@@ -304,10 +314,13 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
           controller: _horasController,
           focusNode: _horasFocus,
           keyboardType: TextInputType.number,
+          inputFormatters: _quantityInputFormatters,
           onChanged: (value) {
-            final horas = int.tryParse(value) ?? 0;
+            final horas = ProductQuantityRules.clamp(
+              QuantityUtils.parseToInt(value).toDouble(),
+            );
             if (horas > 0) {
-              widget.onQuantityChanged?.call(horas.toDouble());
+              widget.onQuantityChanged?.call(horas);
             }
           },
           decoration: InputDecoration(
@@ -403,9 +416,12 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
           controller: _quantidadeController,
           focusNode: _quantidadeFocus,
           keyboardType: TextInputType.number,
+          inputFormatters: _quantityInputFormatters,
           readOnly: isReadOnly,
           onChanged: (value) {
-            final qtd = double.tryParse(value) ?? 0;
+            final qtd = ProductQuantityRules.clamp(
+              QuantityUtils.parseToInt(value).toDouble(),
+            );
             if (qtd > 0) {
               widget.onManualQuantityChanged?.call(qtd);
             }

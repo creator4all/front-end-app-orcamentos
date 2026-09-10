@@ -1,6 +1,7 @@
 import 'package:multimidiaapp/app/shared/domain/value_objects/fractional_order.dart';
 
 import '../../../../../../shared/utils/api_number_parser.dart';
+import '../../../shared/models/budget_city_context_dto.dart';
 import '../../domain/entities/budget_detail_entity.dart';
 import 'category_dto.dart';
 import 'product_dto.dart';
@@ -24,11 +25,13 @@ class BudgetDetailDto {
   final List<Map<String, dynamic>> citiesData;
   final bool isArchived;
 
-  /// Censo agregado do orçamento.
+  /// Classificação declarada pelo backend em `multi_cidade`.
   ///
-  /// `GET /api/orcamentos/{id}` não devolve esse mapa — ele vem de
-  /// `GET /api/orcamentos/{id}/censo`. Aqui fica vazio e a store monta o
-  /// agregado a partir de [citiesData].
+  /// Nula em respostas que ainda não trazem a chave; nesse caso a entidade
+  /// deriva a classificação pela quantidade de cidades.
+  final bool? multiCity;
+
+  /// Censo agregado do orçamento, vindo de `censo_agregado`.
   final Map<String, double> censoAgregado;
 
   BudgetDetailDto({
@@ -47,42 +50,21 @@ class BudgetDetailDto {
     required this.categories,
     required this.citiesData,
     this.isArchived = false,
+    this.multiCity,
     this.censoAgregado = const {},
   });
 
   /// Constrói o DTO a partir do registro de `GET /api/orcamentos/{id}`.
   ///
-  /// A resposta é o orçamento cru (`orc_*`), com a cidade principal em
-  /// `cidade` e a árvore de produtos em `orcamento_produtos`.
+  /// A resposta é o orçamento cru (`orc_*`), com o contexto de cidades em
+  /// `multi_cidade`/`cidades`/`censo_agregado` e a árvore de produtos em
+  /// `orcamento_produtos`.
   factory BudgetDetailDto.fromJson(Map<String, dynamic> json) {
     final List<ProductSelectionDto> productsList = [];
 
     final Map<String, bool> categoryStates = {};
 
-    final List<int> cities = [];
-    final List<Map<String, dynamic>> citiesDataList = [];
-
-    final cidadeJson = json['cidade'];
-    if (cidadeJson is Map<String, dynamic>) {
-      final cidadeId = ApiNumberParser.toInt(cidadeJson['idCidades']);
-      final indicadores =
-          (cidadeJson['cidades_has_indice_etapa'] as List?) ?? const [];
-      cities.add(cidadeId);
-      citiesDataList.add({
-        'id': cidadeId,
-        'nome': cidadeJson['nome_cidade'] ?? 'Cidade $cidadeId',
-        'indices': indicadores,
-        'indicadores': indicadores,
-      });
-    } else if (json['orc_cidade_id'] != null) {
-      final cidadeId = ApiNumberParser.toInt(json['orc_cidade_id']);
-      cities.add(cidadeId);
-      citiesDataList.add({
-        'id': cidadeId,
-        'nome': 'Cidade $cidadeId',
-        'indicadores': [],
-      });
-    }
+    final cityContext = BudgetCityContextDto.fromJson(json);
 
     final List<CategoryDTO> categoriesList = [];
     final orcamentoProdutos = json['orcamento_produtos'];
@@ -132,12 +114,14 @@ class BudgetDetailDto {
       total: ApiNumberParser.toDouble(json['orc_total']),
       userId: userId,
       partnerId: ApiNumberParser.toIntOrNull(json['orc_partner_destino_id']),
-      cityIds: cities,
+      cityIds: cityContext.cityIds,
       products: productsList,
       categoryStates: categoryStates,
       categories: categoriesList,
-      citiesData: citiesDataList,
+      citiesData: cityContext.citiesData,
       isArchived: json['orc_is_archived'] as bool? ?? false,
+      multiCity: cityContext.multiCity,
+      censoAgregado: cityContext.censoAgregado,
     );
   }
 
@@ -184,6 +168,7 @@ class BudgetDetailDto {
       categories: categories.map((c) => c.toEntity()).toList(),
       citiesData: citiesData,
       isArchived: isArchived,
+      multiCity: multiCity,
       censoAgregado: censoAgregado,
     );
   }
@@ -288,6 +273,7 @@ class BudgetDetailDto {
       categories:
           entity.categories.map((c) => CategoryDTO.fromEntity(c)).toList(),
       citiesData: [],
+      multiCity: entity.multiCity,
       censoAgregado: entity.censoAgregado,
     );
   }

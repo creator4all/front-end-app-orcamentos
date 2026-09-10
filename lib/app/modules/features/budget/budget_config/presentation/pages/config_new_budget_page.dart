@@ -314,9 +314,7 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                     Padding(
                       padding: EdgeInsets.only(bottom: 12.h),
                       child: SchoolCensusCard(
-                        numberOfCities: store.budgetDetail?.citiesData.length ??
-                            store.budgetDetail?.cityIds.length ??
-                            0,
+                        numberOfCities: store.budgetDetail?.cityIds.length ?? 0,
                         citiesData: _extractCitiesData(),
                         censoAgregado: store.censoEscolar?.valoresPorEtapa,
                         onTap: () async {
