@@ -30,9 +30,19 @@ class _BudgetListPageState extends State<BudgetListPage> with RouteAware {
 
   void _handleScroll() {
     if (!_scrollController.hasClients) return;
+    if (_store.isLoading || _store.isLoadingMore || !_store.hasMore) return;
     if (_scrollController.position.extentAfter < 300) {
-      _store.loadMore();
+      _store.loadMore().then((_) => _checkLoadMore());
     }
+  }
+
+  void _checkLoadMore() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) return;
+      if (_store.isLoading || _store.isLoadingMore || !_store.hasMore) return;
+      if (_scrollController.position.extentAfter >= 300) return;
+      _store.loadMore().then((_) => _checkLoadMore());
+    });
   }
 
   @override
@@ -56,7 +66,7 @@ class _BudgetListPageState extends State<BudgetListPage> with RouteAware {
     }
 
     if (_store.allItems.isEmpty) {
-      _store.fetch();
+      _store.fetch().then((_) => _checkLoadMore());
     }
   }
 
@@ -89,6 +99,7 @@ class _BudgetListPageState extends State<BudgetListPage> with RouteAware {
 
   Future<void> _handleEditBudgetReturn() async {
     await _store.refreshWithLoadingState();
+    _checkLoadMore();
   }
 
   Future<void> _handleRenameBudget(int budgetId, String currentName) async {
@@ -128,7 +139,7 @@ class _BudgetListPageState extends State<BudgetListPage> with RouteAware {
           authStore: _authStore,
         ),
         body: RefreshIndicator(
-          onRefresh: () => _store.refresh(),
+          onRefresh: () => _store.refresh().then((_) => _checkLoadMore()),
           child: CustomScrollView(
             controller: _scrollController,
             physics: const AlwaysScrollableScrollPhysics(),
