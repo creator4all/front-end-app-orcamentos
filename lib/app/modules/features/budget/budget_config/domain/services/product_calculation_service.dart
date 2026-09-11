@@ -102,24 +102,35 @@ class ProductCalculationService {
       return servico.quantidade.toDouble();
     }
 
-    // Sem censo não há como calcular os vinculados: mantém a quantidade atual.
-    if (censo == null && servico.produtosRelacionadosIds.isNotEmpty) {
-      return servico.quantidade.toDouble();
-    }
-
     // Só vinculados marcados entram; vinculado manual contribui com a quantidade digitada.
-    final soma = todosProdutos
+    final vinculadosSelecionados = todosProdutos
         .where((p) =>
             servico.produtosRelacionadosIds.contains(p.id) && p.selecionado)
-        .fold<double>(
-          0.0,
-          (total, vinculado) => total + calcularQuantidade(vinculado, censo),
-        );
+        .toList();
 
     final percent = servico.percent ?? 0.08;
     final horasFixas = servico.horasFixas ?? 0.0;
 
-    // floor(total × % + horas fixas): mesma fórmula de CalculosProdutos::calcularHorasServico.
+    // Sem vinculados marcados: floor(horasFixas), inclusive sem censo.
+    if (vinculadosSelecionados.isEmpty) {
+      return horasFixas.floorToDouble();
+    }
+
+    // Vinculados automáticos dependem de censo; sem ele, não inventa valores
+    // nem calcula um total parcial silenciosamente — mantém a quantidade atual.
+    // Vinculados manuais contribuem com a quantidade digitada mesmo sem censo.
+    if (censo == null &&
+        vinculadosSelecionados.any((p) => !p.quantidadeManual)) {
+      return servico.quantidade.toDouble();
+    }
+
+    final soma = vinculadosSelecionados.fold<double>(
+      0.0,
+      (total, vinculado) => total + calcularQuantidade(vinculado, censo),
+    );
+
+    // floor(somaVinculados × percentual + horasFixas), incluindo percent == 0.
+    // Mesma fórmula de CalculosProdutos::calcularHorasServico.
     return ((soma * percent) + horasFixas).floorToDouble();
   }
 
