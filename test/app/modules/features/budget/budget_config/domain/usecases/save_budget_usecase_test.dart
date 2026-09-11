@@ -3,6 +3,7 @@ import 'package:multimidiaapp/app/modules/features/budget/budget_config/data/dat
 import 'package:multimidiaapp/app/modules/features/budget/budget_config/data/repositories/budget_detail_repository_impl.dart';
 import 'package:multimidiaapp/app/modules/features/budget/budget_config/domain/usecases/save_budget_usecase.dart';
 import 'package:multimidiaapp/app/modules/features/budget/shared/models/budget_update_dto.dart';
+import 'package:multimidiaapp/app/shared/core/errors/api_error_message.dart';
 import 'package:multimidiaapp/app/shared/core/errors/http_exceptions.dart';
 import 'package:multimidiaapp/app/shared/core/http/app_http_client.dart';
 import 'package:multimidiaapp/app/shared/core/http/http_request_config.dart';
@@ -10,8 +11,9 @@ import 'package:multimidiaapp/app/shared/core/http/http_response.dart';
 
 class _BudgetClient implements AppHttpClient {
   final bool rejectUpdate;
+  final Exception? failWith;
   Map<String, dynamic>? sent;
-  _BudgetClient({this.rejectUpdate = false});
+  _BudgetClient({this.rejectUpdate = false, this.failWith});
 
   @override
   Future<HttpResponse> put(String url,
@@ -21,6 +23,8 @@ class _BudgetClient implements AppHttpClient {
     if (rejectUpdate) {
       throw const UnprocessableEntityException(message: 'Produto inválido');
     }
+    final failure = failWith;
+    if (failure != null) throw failure;
     // O cliente HTTP normaliza o array vazio retornado pelo PHP como data: [].
     return HttpResponse(body: {'data': []}, headers: {}, statusCode: 200);
   }
@@ -75,6 +79,23 @@ void main() {
 
     expect(result.isLeft(), isTrue);
     result.fold((failure) => expect(failure.message, 'Produto inválido'),
+        (_) => fail('Sucesso indevido'));
+  });
+
+  test('fluxo ativo não expõe o SQL quando o servidor responde 500', () async {
+    final client = _BudgetClient(
+      failWith: const InternalServerException(
+        message: 'SQLSTATE[22003]: Numeric value out of range: 1264 Out of '
+            "range value for column 'orc_total' at row 1",
+      ),
+    );
+    final useCase = SaveBudgetUseCase(BudgetDetailRepositoryImpl(
+      BudgetDetailRemoteDataSourceImpl(client),
+    ));
+    final result = await useCase(budgetId: 42, updateData: update);
+
+    result.fold(
+        (failure) => expect(failure.message, ApiErrorMessage.serverFailure),
         (_) => fail('Sucesso indevido'));
   });
 }

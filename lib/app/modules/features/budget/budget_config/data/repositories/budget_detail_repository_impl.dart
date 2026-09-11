@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 
 import '../../../../../../shared/core/constants/http_constants.dart';
+import '../../../../../../shared/core/errors/api_error_message.dart';
 import '../../../../../../shared/core/errors/http_exceptions.dart' as core_http;
 import '../../../shared/errors/budget_failure.dart';
 import '../../../shared/models/budget_update_dto.dart';
@@ -61,11 +62,16 @@ class BudgetDetailRepositoryImpl implements BudgetDetailRepository {
       // nesse caso não há entidade atualizada para retornar.
       return Right(dto?.toEntity());
     } on Exception catch (e) {
-      return Left(_mapExceptionToFailure(e));
+      return Left(
+        _mapExceptionToFailure(e, fallbackMessage: budgetSaveErrorMessage),
+      );
     }
   }
 
-  BudgetFailure _mapExceptionToFailure(Exception exception) {
+  BudgetFailure _mapExceptionToFailure(
+    Exception exception, {
+    String fallbackMessage = ApiErrorMessage.serverFailure,
+  }) {
     if (exception is core_http.UnprocessableEntityException) {
       final message = _extractValidationMessage(
         exception.validationErrors,
@@ -93,8 +99,12 @@ class BudgetDetailRepositoryImpl implements BudgetDetailRepository {
         return const UnauthorizedFailure('Acesso negado');
       }
 
-      if (statusCode != null && statusCode >= 500) {
-        return ServerFailure(exception.message);
+      if (statusCode != null) {
+        final message =
+            ApiErrorMessage.from(exception, fallback: fallbackMessage);
+        return statusCode >= 500
+            ? ServerFailure(message)
+            : UnknownFailure(message);
       }
     }
 
@@ -119,7 +129,7 @@ class BudgetDetailRepositoryImpl implements BudgetDetailRepository {
       return ConnectionFailure(message);
     }
 
-    return UnknownFailure(message);
+    return UnknownFailure(fallbackMessage);
   }
 
   String _extractValidationMessage(

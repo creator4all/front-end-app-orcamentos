@@ -10,6 +10,7 @@ import 'package:multimidiaapp/app/shared/utils/quantity_utils.dart';
 import '../../../../../../shared/widgets/custom_info_dialog.dart';
 import '../../../../../../shared/widgets/custom_modal.dart';
 import '../../domain/entities/product_entity.dart';
+import '../../domain/services/budget_value_rules.dart';
 import '../../domain/services/product_quantity_rules.dart';
 import 'indicadores_etapa_section.dart';
 
@@ -500,7 +501,11 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
           controller: _valueController,
           focusNode: _valueFocus,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: [BrlCurrencyInputFormatter()],
+          inputFormatters: [
+            BrlCurrencyInputFormatter(
+              maxDigits: BudgetValueRules.maxUnitValueDigits,
+            ),
+          ],
           decoration: InputDecoration(
             hintText: 'Insira o novo valor',
             hintStyle: TextStyle(

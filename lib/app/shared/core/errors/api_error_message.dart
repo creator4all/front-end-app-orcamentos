@@ -30,12 +30,18 @@ class ApiErrorMessage {
 
       final apiMessage = payload['mensagem'] ?? payload['message'];
       if (apiMessage is String && apiMessage.trim().isNotEmpty) {
-        return apiMessage.trim();
+        return _hideDatabaseDetails(apiMessage.trim());
       }
     }
 
     final message = error.message.trim();
-    return message.isEmpty ? fallback : message;
+    return message.isEmpty ? fallback : _hideDatabaseDetails(message);
+  }
+
+  /// O webservice também responde 4xx para alguns erros de banco (ex.: dado
+  /// longo demais), repassando o SQL na mensagem.
+  static String _hideDatabaseDetails(String message) {
+    return message.contains('SQLSTATE') ? serverFailure : message;
   }
 
   /// O webservice aninha os erros como `{campo: {rotulo: mensagem}}`, então a

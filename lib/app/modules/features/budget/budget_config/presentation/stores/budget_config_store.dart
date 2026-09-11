@@ -15,6 +15,7 @@ import '../../domain/entities/census_data_entity.dart';
 import '../../domain/entities/indicador_etapa_entity.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../domain/entities/subcategory_entity.dart';
+import '../../domain/services/budget_value_rules.dart';
 import '../../domain/services/product_calculation_service.dart';
 import '../../domain/services/product_quantity_rules.dart';
 import '../../domain/usecases/calculate_totals_usecase.dart';
@@ -1269,7 +1270,9 @@ abstract class _BudgetConfigStoreBase with Store {
         if (productIndex != -1) {
           final product = subcategory.produtos[productIndex];
 
-          final updatedProduct = product.copyWith(valor: value);
+          final updatedProduct = product.copyWith(
+            valor: BudgetValueRules.clampUnitValue(value),
+          );
 
           final updatedProducts =
               List<ProductEntity>.from(subcategory.produtos);
@@ -1707,6 +1710,12 @@ abstract class _BudgetConfigStoreBase with Store {
       return const Left(ValidationFailure('Data de validade obrigatória'));
     }
 
+    if (BudgetValueRules.exceedsMaxTotal(totalValue)) {
+      const failure = ValidationFailure(BudgetValueRules.totalExceededMessage);
+      error = failure.message;
+      return const Left(failure);
+    }
+
     isSaving = true;
     error = null;
 
@@ -1782,10 +1791,10 @@ abstract class _BudgetConfigStoreBase with Store {
           return Right(budgetDetail!);
         },
       );
-    } catch (e) {
-      error = 'Erro ao salvar orçamento: $e';
+    } catch (_) {
+      error = budgetSaveErrorMessage;
       isSaving = false;
-      return Left(UnknownFailure(e.toString()));
+      return const Left(UnknownFailure(budgetSaveErrorMessage));
     }
   }
 }

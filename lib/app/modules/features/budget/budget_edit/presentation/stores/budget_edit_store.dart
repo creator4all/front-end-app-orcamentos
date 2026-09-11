@@ -12,6 +12,7 @@ import '../../../budget_config/domain/entities/census_data_entity.dart';
 import '../../../budget_config/domain/entities/indicador_etapa_entity.dart';
 import '../../../budget_config/domain/entities/product_entity.dart';
 import '../../../budget_config/domain/entities/subcategory_entity.dart';
+import '../../../budget_config/domain/services/budget_value_rules.dart';
 import '../../../budget_config/domain/services/product_calculation_service.dart';
 import '../../../budget_config/domain/services/product_quantity_rules.dart';
 import '../../../budget_config/domain/usecases/get_census_data_usecase.dart';
@@ -631,7 +632,9 @@ abstract class _BudgetEditStoreBase with Store {
         if (prodIndex != -1) {
           final product = subcategory.produtos[prodIndex];
 
-          final updatedProduct = product.copyWith(valor: value);
+          final updatedProduct = product.copyWith(
+            valor: BudgetValueRules.clampUnitValue(value),
+          );
 
           final updatedProducts = List<ProductEntity>.from(
             subcategory.produtos,
@@ -943,6 +946,12 @@ abstract class _BudgetEditStoreBase with Store {
       return const Left(failure);
     }
 
+    if (BudgetValueRules.exceedsMaxTotal(totalValue)) {
+      const failure = ValidationFailure(BudgetValueRules.totalExceededMessage);
+      error = failure.message;
+      return const Left(failure);
+    }
+
     isSaving = true;
     error = null;
 
@@ -1012,10 +1021,10 @@ abstract class _BudgetEditStoreBase with Store {
           return Right(updatedBudget);
         },
       );
-    } catch (e) {
-      error = 'Erro ao salvar orçamento: $e';
+    } catch (_) {
+      error = budgetSaveErrorMessage;
       isSaving = false;
-      return Left(UnknownFailure(e.toString()));
+      return const Left(UnknownFailure(budgetSaveErrorMessage));
     }
   }
 

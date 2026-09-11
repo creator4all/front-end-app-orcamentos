@@ -5,6 +5,7 @@ import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 
 import '../../domain/entities/indicador_etapa_entity.dart';
 import '../../domain/entities/product_entity.dart';
+import '../../domain/services/budget_value_rules.dart';
 
 class ProductEditModal extends StatefulWidget {
   final ProductEntity product;
@@ -204,7 +205,11 @@ class _ProductEditModalState extends State<ProductEditModal> {
                         controller: _valorController,
                         keyboardType: const TextInputType.numberWithOptions(
                             decimal: true),
-                        inputFormatters: [BrlCurrencyInputFormatter()],
+                        inputFormatters: [
+                          BrlCurrencyInputFormatter(
+                            maxDigits: BudgetValueRules.maxUnitValueDigits,
+                          ),
+                        ],
                         decoration: InputDecoration(
                           prefixText: 'R\$ ',
                           border: OutlineInputBorder(
