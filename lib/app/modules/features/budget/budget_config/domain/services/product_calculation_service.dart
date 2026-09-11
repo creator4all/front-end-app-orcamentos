@@ -102,27 +102,24 @@ class ProductCalculationService {
       return servico.quantidade.toDouble();
     }
 
-    if (servico.produtosRelacionadosIds.isEmpty || censo == null) {
+    // Sem censo não há como calcular os vinculados: mantém a quantidade atual.
+    if (censo == null && servico.produtosRelacionadosIds.isNotEmpty) {
       return servico.quantidade.toDouble();
     }
 
-    final vinculadosSelecionados = todosProdutos
+    // Só vinculados marcados entram; vinculado manual contribui com a quantidade digitada.
+    final soma = todosProdutos
         .where((p) =>
             servico.produtosRelacionadosIds.contains(p.id) && p.selecionado)
-        .toList();
-
-    if (vinculadosSelecionados.isEmpty) {
-      return 0.0;
-    }
-
-    double soma = 0.0;
-    for (final vinculado in vinculadosSelecionados) {
-      soma += calcularQuantidade(vinculado, censo);
-    }
+        .fold<double>(
+          0.0,
+          (total, vinculado) => total + calcularQuantidade(vinculado, censo),
+        );
 
     final percent = servico.percent ?? 0.08;
     final horasFixas = servico.horasFixas ?? 0.0;
 
+    // floor(total × % + horas fixas): mesma fórmula de CalculosProdutos::calcularHorasServico.
     return ((soma * percent) + horasFixas).floorToDouble();
   }
 
@@ -247,5 +244,61 @@ class ProductCalculationService {
     }
 
     return result;
+  }
+
+  /// Recalcula os serviços marcados e não manuais que dependem de
+  /// [produtosAlteradosIds]. Devolve [categories] intacta quando nenhum
+  /// serviço depende dos produtos alterados.
+  List<CategoryEntity> recalcularServicosDependentes(
+    List<CategoryEntity> categories,
+    CensoEscolarEntity censo,
+    Set<int> produtosAlteradosIds,
+  ) {
+    final todosProdutos = categories
+        .expand((c) => c.subcategorias.expand((s) => s.produtos))
+        .toList();
+
+    final servicosAfetadosIds = todosProdutos
+        .where(
+            (p) => p.produtosRelacionadosIds.any(produtosAlteradosIds.contains))
+        .map((p) => p.id)
+        .toSet();
+
+    if (servicosAfetadosIds.isEmpty) {
+      return categories;
+    }
+
+    return categories.map((category) {
+      var categoryChanged = false;
+      final subcategorias = category.subcategorias.map((sub) {
+        var subChanged = false;
+        final produtos = sub.produtos.map((prod) {
+          if (!servicosAfetadosIds.contains(prod.id) ||
+              !prod.selecionado ||
+              prod.quantidadeManual) {
+            return prod;
+          }
+
+          final novaQtd = calcularQuantidadeServico(prod, todosProdutos, censo);
+          if (novaQtd == prod.quantidade) {
+            return prod;
+          }
+
+          subChanged = true;
+          return prod.copyWith(quantidade: novaQtd);
+        }).toList();
+
+        if (!subChanged) {
+          return sub;
+        }
+
+        categoryChanged = true;
+        return sub.copyWith(produtos: produtos);
+      }).toList();
+
+      return categoryChanged
+          ? category.copyWith(subcategorias: subcategorias)
+          : category;
+    }).toList();
   }
 }

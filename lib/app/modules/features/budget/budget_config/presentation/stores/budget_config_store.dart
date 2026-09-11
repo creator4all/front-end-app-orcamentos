@@ -731,6 +731,15 @@ abstract class _BudgetConfigStoreBase with Store {
         citiesData: updatedCities,
         censoAgregado: updatedCensoAgregado,
       );
+
+      // Em multi-cidade a tela de censo devolve só a cidade editada; o
+      // orçamento continua calculando com o censo agregado de todas as cidades.
+      if (budgetDetail!.isMultiCity) {
+        censoEscolar = _buildAggregatedCenso(
+          censoAgregado: updatedCensoAgregado,
+          citiesData: updatedCities,
+        );
+      }
     }
   }
 
@@ -1105,6 +1114,7 @@ abstract class _BudgetConfigStoreBase with Store {
           categories[i] =
               category.copyWith(subcategorias: updatedSubcategories);
 
+          _recalcServicosDependentes({updatedProduct.id});
           return;
         }
       }
@@ -1543,71 +1553,17 @@ abstract class _BudgetConfigStoreBase with Store {
     }
   }
 
-  Map<int, List<int>> _buildServiceDependencyIndex() {
-    final index = <int, List<int>>{};
-    for (final cat in categories) {
-      for (final sub in cat.subcategorias) {
-        for (final prod in sub.produtos) {
-          if (prod.produtosRelacionadosIds.isNotEmpty) {
-            for (final linkedId in prod.produtosRelacionadosIds) {
-              index.putIfAbsent(linkedId, () => []).add(prod.id);
-            }
-          }
-        }
-      }
-    }
-    return index;
-  }
-
   void _recalcServicosDependentes(Set<int> changedProductIds) {
     if (censoEscolar == null) return;
 
-    final depIndex = _buildServiceDependencyIndex();
-    final affectedServiceIds = <int>{};
-    for (final pid in changedProductIds) {
-      affectedServiceIds.addAll(depIndex[pid] ?? []);
-    }
-    if (affectedServiceIds.isEmpty) return;
-
-    final todosProdutos = categories
-        .expand((c) => c.subcategorias.expand((s) => s.produtos))
-        .toList();
-
-    for (var i = 0; i < categories.length; i++) {
-      final category = categories[i];
-      var categoryChanged = false;
-      final updatedSubs = List<SubcategoryEntity>.from(category.subcategorias);
-
-      for (var j = 0; j < updatedSubs.length; j++) {
-        final sub = updatedSubs[j];
-        var subChanged = false;
-        final updatedProds = List<ProductEntity>.from(sub.produtos);
-
-        for (var k = 0; k < updatedProds.length; k++) {
-          final prod = updatedProds[k];
-          if (!affectedServiceIds.contains(prod.id)) continue;
-          if (!prod.selecionado) continue;
-          if (prod.quantidadeManual) continue;
-
-          final novaQtd = calculationService.calcularQuantidadeServico(
-            prod,
-            todosProdutos,
-            censoEscolar!,
-          );
-          if (novaQtd != prod.quantidade) {
-            updatedProds[k] = prod.copyWith(quantidade: novaQtd);
-            subChanged = true;
-          }
-        }
-
-        if (subChanged) {
-          updatedSubs[j] = sub.copyWith(produtos: updatedProds);
-          categoryChanged = true;
-        }
-      }
-
-      if (categoryChanged) {
-        categories[i] = category.copyWith(subcategorias: updatedSubs);
+    final updated = calculationService.recalcularServicosDependentes(
+      categories.toList(),
+      censoEscolar!,
+      changedProductIds,
+    );
+    for (var i = 0; i < updated.length; i++) {
+      if (!identical(updated[i], categories[i])) {
+        categories[i] = updated[i];
       }
     }
   }
