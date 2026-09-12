@@ -1,18 +1,18 @@
 import 'package:dartz/dartz.dart';
 import 'package:mobx/mobx.dart';
 
+import '../../../../../../shared/utils/api_number_parser.dart';
 import '../../../../auth/presentation/stores/auth_store.dart';
 import '../../../budget_config/data/models/category_dto.dart';
 import '../../../budget_config/domain/entities/budget_detail_entity.dart';
 import '../../../budget_config/domain/entities/category_entity.dart';
 import '../../../budget_config/domain/entities/censo_escolar_entity.dart';
-import '../../../budget_config/domain/entities/censo_group_entity.dart';
-import '../../../budget_config/domain/entities/censo_title_entity.dart';
 import '../../../budget_config/domain/entities/census_data_entity.dart';
 import '../../../budget_config/domain/entities/indicador_etapa_entity.dart';
 import '../../../budget_config/domain/entities/product_entity.dart';
 import '../../../budget_config/domain/entities/subcategory_entity.dart';
 import '../../../budget_config/domain/services/budget_value_rules.dart';
+import '../../../budget_config/domain/services/censo_escolar_mapper.dart';
 import '../../../budget_config/domain/services/product_calculation_service.dart';
 import '../../../budget_config/domain/services/product_quantity_rules.dart';
 import '../../../budget_config/domain/usecases/get_census_data_usecase.dart';
@@ -33,6 +33,7 @@ abstract class _BudgetEditStoreBase with Store {
   final GetCensusDataUseCase getCensusDataUseCase;
   final AuthStore authStore;
   final ProductCalculationService calculationService;
+  final CensoEscolarMapper censoEscolarMapper;
 
   _BudgetEditStoreBase({
     required this.getBudgetForEditUseCase,
@@ -40,6 +41,7 @@ abstract class _BudgetEditStoreBase with Store {
     required this.getCensusDataUseCase,
     required this.authStore,
     required this.calculationService,
+    required this.censoEscolarMapper,
   });
 
   @observable
@@ -1076,7 +1078,7 @@ abstract class _BudgetEditStoreBase with Store {
     }
 
     if (budgetData!.censoAgregado.isNotEmpty) {
-      censoEscolar = _buildAggregatedCenso(
+      censoEscolar = censoEscolarMapper.buildAggregatedCenso(
         censoAgregado: budgetData!.censoAgregado,
         citiesData: budgetData!.citiesDataRaw,
       );
@@ -1090,7 +1092,7 @@ abstract class _BudgetEditStoreBase with Store {
 
     try {
       final cityData = budgetData!.citiesDataRaw.first;
-      censoEscolar = _buildCensoFromCityData(cityData);
+      censoEscolar = censoEscolarMapper.buildCensoFromCityData(cityData);
     } catch (e) {
       censoEscolar = null;
     }
@@ -1103,21 +1105,25 @@ abstract class _BudgetEditStoreBase with Store {
     if (budgetData != null && budgetData!.citiesDataRaw.isNotEmpty) {
       var cityUpdated = false;
       final updatedCitiesData = budgetData!.citiesDataRaw.map((cityData) {
-        final cityId = _toInt(cityData['idCidades'] ?? cityData['id']);
+        final cityId =
+            ApiNumberParser.toInt(cityData['idCidades'] ?? cityData['id']);
         if (cityId == updatedCenso.cidadeId && updatedCenso.cidadeId > 0) {
           cityUpdated = true;
-          return _updateCityDataWithCenso(cityData, updatedCenso);
+          return censoEscolarMapper.updateCityDataWithCenso(
+              cityData, updatedCenso);
         }
         return cityData;
       }).toList();
 
       if (!cityUpdated && updatedCenso.cidadeId > 0) {
         updatedCitiesData.add(
-          _updateCityDataWithCenso(<String, dynamic>{}, updatedCenso),
+          censoEscolarMapper
+              .updateCityDataWithCenso(<String, dynamic>{}, updatedCenso),
         );
       }
 
-      final updatedCensoAgregado = _calculateAggregatedCensoFromCities(
+      final updatedCensoAgregado =
+          censoEscolarMapper.calculateAggregatedCensoFromCities(
         updatedCitiesData,
         budgetData!.censoAgregado,
       );
@@ -1130,14 +1136,14 @@ abstract class _BudgetEditStoreBase with Store {
       // Em multi-cidade a tela de censo devolve só a cidade editada; o
       // orçamento continua calculando com o censo agregado de todas as cidades.
       if (budgetData!.isMultiCity) {
-        censoEscolar = _buildAggregatedCenso(
+        censoEscolar = censoEscolarMapper.buildAggregatedCenso(
           censoAgregado: updatedCensoAgregado,
           citiesData: updatedCitiesData,
         );
       }
     } else if (budgetData != null && updatedCenso.cidadeId > 0) {
-      final newCityData =
-          _updateCityDataWithCenso(<String, dynamic>{}, updatedCenso);
+      final newCityData = censoEscolarMapper
+          .updateCityDataWithCenso(<String, dynamic>{}, updatedCenso);
       budgetData = budgetData!.copyWith(
         citiesDataRaw: [newCityData],
         censoAgregado: Map<String, double>.from(updatedCenso.valoresPorEtapa),
@@ -1236,328 +1242,5 @@ abstract class _BudgetEditStoreBase with Store {
     if (productsNeedingRemark.isEmpty) return;
 
     productsNeedingRemark.clear();
-  }
-
-  Map<String, dynamic> _updateCityDataWithCenso(
-    Map<String, dynamic> cityData,
-    CensoEscolarEntity updatedCenso,
-  ) {
-    final indices = _buildIndicesFromCenso(updatedCenso);
-    final existingName = cityData['nome'] ?? cityData['nome_cidade'];
-    final cityName = existingName == null || existingName.toString().isEmpty
-        ? updatedCenso.cidadeNome
-        : existingName.toString();
-
-    return {
-      ...cityData,
-      'id': _toInt(cityData['id'] ?? cityData['idCidades']) > 0
-          ? _toInt(cityData['id'] ?? cityData['idCidades'])
-          : updatedCenso.cidadeId,
-      'nome': cityName,
-      'indices': indices,
-      'indicadores': _buildIndicadoresFromIndices(indices),
-      'cidades_has_indice_etapa':
-          _buildLegacyIndicesFromIndices(indices, updatedCenso.cidadeId),
-    };
-  }
-
-  int _toInt(dynamic value) {
-    if (value is int) return value;
-    if (value is num) return value.toInt();
-    return int.tryParse(value?.toString() ?? '') ?? 0;
-  }
-
-  double _toDouble(dynamic value) {
-    if (value is double) return value;
-    if (value is num) return value.toDouble();
-    return double.tryParse(value?.toString() ?? '') ?? 0.0;
-  }
-
-  List<Map<String, dynamic>> _extractIndicesFromCityData(
-    Map<String, dynamic> cityData,
-  ) {
-    final rawIndices = cityData['indices'] as List? ??
-        cityData['indicadores'] as List? ??
-        cityData['cidades_has_indice_etapa'] as List? ??
-        const [];
-
-    return rawIndices
-        .whereType<Map>()
-        .map((item) => _normalizeCityIndice(Map<String, dynamic>.from(item)))
-        .where((item) => item['nome_etapa'].toString().isNotEmpty)
-        .toList();
-  }
-
-  Map<String, dynamic> _normalizeCityIndice(Map<String, dynamic> item) {
-    final group = item['grupo'] as Map<String, dynamic>?;
-    final pivot = item['pivot'] as Map<String, dynamic>?;
-
-    final groupId = _toInt(
-      item['grupo_id'] ??
-          item['grupos_grupo_id'] ??
-          group?['id'] ??
-          group?['grupo_id'],
-    );
-    final groupName =
-        (item['grupo_nome'] ?? group?['nome'] ?? group?['nome_grupo'] ?? '')
-            .toString();
-    final nomeEtapa = (item['nome_etapa'] ?? item['nome'] ?? '').toString();
-    final titulo = (item['titulo'] ??
-            item['titulo_etapa'] ??
-            item['nome'] ??
-            item['nome_etapa'] ??
-            '')
-        .toString();
-    final valor = _toDouble(
-      item['valor'] ?? item['etapa_valor'] ?? pivot?['etapa_valor'],
-    );
-
-    return <String, dynamic>{
-      'id': _toInt(
-        item['id'] ??
-            item['idindice_etapa'] ??
-            item['indice_etapa_id'] ??
-            item['indice_etapa_idindice_etapa'],
-      ),
-      'nome_etapa': nomeEtapa,
-      'titulo': titulo,
-      'valor': valor,
-      'percentual_populacao': item['percentual_populacao'],
-      'grupo': {
-        'id': groupId,
-        'nome': groupName,
-      },
-    };
-  }
-
-  CensoEscolarEntity? _buildCensoFromCityData(Map<String, dynamic> cityData) {
-    final normalizedIndices = _extractIndicesFromCityData(cityData);
-    if (normalizedIndices.isEmpty) return null;
-
-    final valoresPorEtapa = <String, double>{};
-    final gruposMap = <int, List<CensoTitleEntity>>{};
-    final grupoNomes = <int, String>{};
-
-    for (final indice in normalizedIndices) {
-      final nomeEtapa = indice['nome_etapa'].toString();
-      final titulo = indice['titulo'].toString();
-      final valor = _toDouble(indice['valor']);
-      final group = indice['grupo'] as Map<String, dynamic>? ?? const {};
-      final grupoId = _toInt(group['id']);
-      final grupoNome = (group['nome'] ?? '').toString();
-      final id = _toInt(indice['id']);
-
-      valoresPorEtapa[nomeEtapa] = valor;
-      grupoNomes[grupoId] = grupoNome;
-      gruposMap.putIfAbsent(grupoId, () => []);
-      gruposMap[grupoId]!.add(
-        CensoTitleEntity(
-          id: id,
-          nomeEtapa: nomeEtapa,
-          tituloExibicao: titulo,
-          valor: valor,
-          isProfessores: nomeEtapa.endsWith('P'),
-          grupoId: grupoId,
-          percentualPopulacao: indice['percentual_populacao'] != null
-              ? _toDouble(indice['percentual_populacao'])
-              : null,
-        ),
-      );
-    }
-
-    final grupos = gruposMap.entries
-        .map(
-          (entry) => CensoGroupEntity(
-            id: entry.key,
-            nome: grupoNomes[entry.key] ?? '',
-            titulos: entry.value,
-          ),
-        )
-        .toList();
-
-    return CensoEscolarEntity(
-      cidadeId: _toInt(cityData['id'] ?? cityData['idCidades']),
-      cidadeNome:
-          (cityData['nome'] ?? cityData['nome_cidade'] ?? '').toString(),
-      censoAno: _toInt(cityData['censo_ano']) == 0
-          ? null
-          : _toInt(cityData['censo_ano']),
-      anoPopulacao: _toInt(cityData['ano_populacao']) == 0
-          ? null
-          : _toInt(cityData['ano_populacao']),
-      grupos: grupos,
-      valoresPorEtapa: valoresPorEtapa,
-    );
-  }
-
-  CensoEscolarEntity _buildAggregatedCenso({
-    required Map<String, double> censoAgregado,
-    required List<Map<String, dynamic>> citiesData,
-  }) {
-    if (citiesData.isEmpty) {
-      final grupos = <CensoGroupEntity>[
-        CensoGroupEntity(
-          id: 0,
-          nome: 'Agregado',
-          titulos: censoAgregado.entries
-              .map(
-                (e) => CensoTitleEntity(
-                  id: 0,
-                  nomeEtapa: e.key,
-                  tituloExibicao: e.key,
-                  valor: e.value,
-                  isProfessores: e.key.endsWith('P'),
-                  grupoId: 0,
-                ),
-              )
-              .toList(),
-        ),
-      ];
-
-      return CensoEscolarEntity(
-        cidadeId: 0,
-        cidadeNome: 'Agregado',
-        anoPopulacao: null,
-        grupos: grupos,
-        valoresPorEtapa: censoAgregado,
-      );
-    }
-
-    final gruposMap = <int, List<CensoTitleEntity>>{};
-    final grupoNomes = <int, String>{};
-
-    for (final cityData in citiesData) {
-      final indices = _extractIndicesFromCityData(cityData);
-      for (final indice in indices) {
-        final nomeEtapa = indice['nome_etapa'].toString();
-        final titulo = indice['titulo'].toString();
-        final group = indice['grupo'] as Map<String, dynamic>? ?? const {};
-        final grupoId = _toInt(group['id']);
-        final grupoNome = (group['nome'] ?? '').toString();
-        final id = _toInt(indice['id']);
-        final valorAgregado = censoAgregado[nomeEtapa] ?? 0.0;
-
-        grupoNomes[grupoId] = grupoNome;
-        gruposMap.putIfAbsent(grupoId, () => []);
-
-        final jaExiste =
-            gruposMap[grupoId]!.any((titulo) => titulo.nomeEtapa == nomeEtapa);
-        if (jaExiste) continue;
-
-        gruposMap[grupoId]!.add(
-          CensoTitleEntity(
-            id: id,
-            nomeEtapa: nomeEtapa,
-            tituloExibicao: titulo,
-            valor: valorAgregado,
-            isProfessores: nomeEtapa.endsWith('P'),
-            grupoId: grupoId,
-            percentualPopulacao: indice['percentual_populacao'] != null
-                ? _toDouble(indice['percentual_populacao'])
-                : null,
-          ),
-        );
-      }
-    }
-
-    final grupos = gruposMap.entries
-        .map(
-          (entry) => CensoGroupEntity(
-            id: entry.key,
-            nome: grupoNomes[entry.key] ?? 'Agregado',
-            titulos: entry.value,
-          ),
-        )
-        .toList();
-
-    return CensoEscolarEntity(
-      cidadeId: 0,
-      cidadeNome: 'Agregado',
-      anoPopulacao: null,
-      grupos: grupos,
-      valoresPorEtapa: censoAgregado,
-    );
-  }
-
-  List<Map<String, dynamic>> _buildIndicesFromCenso(CensoEscolarEntity censo) {
-    final indices = <Map<String, dynamic>>[];
-    for (final grupo in censo.grupos) {
-      for (final titulo in grupo.titulos) {
-        indices.add({
-          'id': titulo.id,
-          'nome_etapa': titulo.nomeEtapa,
-          'titulo': titulo.tituloExibicao,
-          'valor': titulo.valor,
-          'grupo': {
-            'id': grupo.id,
-            'nome': grupo.nome,
-          },
-        });
-      }
-    }
-    return indices;
-  }
-
-  List<Map<String, dynamic>> _buildIndicadoresFromIndices(
-    List<Map<String, dynamic>> indices,
-  ) {
-    return indices.map((item) {
-      final grupo = item['grupo'] as Map<String, dynamic>? ?? const {};
-      return <String, dynamic>{
-        'id': item['id'],
-        'nome': item['nome_etapa'],
-        'titulo': item['titulo'],
-        'valor': item['valor'],
-        'grupo_id': _toInt(grupo['id']),
-        'grupo_nome': (grupo['nome'] ?? '').toString(),
-      };
-    }).toList();
-  }
-
-  List<Map<String, dynamic>> _buildLegacyIndicesFromIndices(
-    List<Map<String, dynamic>> indices,
-    int cidadeId,
-  ) {
-    return indices.map((item) {
-      final grupo = item['grupo'] as Map<String, dynamic>? ?? const {};
-      final grupoId = _toInt(grupo['id']);
-      final grupoNome = (grupo['nome'] ?? '').toString();
-
-      return <String, dynamic>{
-        'idindice_etapa': _toInt(item['id']),
-        'nome_etapa': item['nome_etapa'],
-        'titulo_etapa': item['titulo'],
-        'grupos_grupo_id': grupoId,
-        'grupo': {
-          'grupo_id': grupoId,
-          'nome_grupo': grupoNome,
-        },
-        'pivot': {
-          'cidades_idCidades': cidadeId,
-          'indice_etapa_idindice_etapa': _toInt(item['id']),
-          'etapa_valor': _toDouble(item['valor']),
-        },
-      };
-    }).toList();
-  }
-
-  Map<String, double> _calculateAggregatedCensoFromCities(
-    List<Map<String, dynamic>> citiesData,
-    Map<String, double> fallback,
-  ) {
-    final aggregated = <String, double>{};
-
-    for (final city in citiesData) {
-      final indices = _extractIndicesFromCityData(city);
-      for (final indice in indices) {
-        final nomeEtapa = indice['nome_etapa'].toString();
-        if (nomeEtapa.isEmpty) continue;
-        aggregated[nomeEtapa] =
-            (aggregated[nomeEtapa] ?? 0) + _toDouble(indice['valor']);
-      }
-    }
-
-    if (aggregated.isNotEmpty) return aggregated;
-    return Map<String, double>.from(fallback);
   }
 }

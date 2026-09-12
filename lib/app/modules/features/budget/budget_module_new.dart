@@ -17,6 +17,7 @@ import 'budget_config/domain/entities/budget_detail_entity.dart';
 import 'budget_config/domain/entities/censo_escolar_entity.dart';
 import 'budget_config/domain/repositories/budget_detail_repository.dart';
 import 'budget_config/domain/repositories/census_repository.dart';
+import 'budget_config/domain/services/censo_escolar_mapper.dart';
 import 'budget_config/domain/services/product_calculation_service.dart';
 import 'budget_config/domain/usecases/calculate_totals_usecase.dart';
 import 'budget_config/domain/usecases/get_budget_census_usecase.dart';
@@ -165,6 +166,9 @@ class BudgetModuleNew extends Module {
         Bind.lazySingleton<ProductCalculationService>(
           (i) => const ProductCalculationService(),
         ),
+        Bind.lazySingleton<CensoEscolarMapper>(
+          (i) => const CensoEscolarMapper(),
+        ),
         Bind.lazySingleton<BudgetConfigStore>(
           (i) => BudgetConfigStore(
             getBudgetDetailUseCase: i.get<GetBudgetDetailUseCase>(),
@@ -174,6 +178,7 @@ class BudgetModuleNew extends Module {
             calculateTotalsUseCase: i.get<CalculateTotalsUseCase>(),
             saveBudgetUseCase: i.get<SaveBudgetUseCase>(),
             calculationService: i.get<ProductCalculationService>(),
+            censoEscolarMapper: i.get<CensoEscolarMapper>(),
           ),
         ),
         Bind.lazySingleton(
@@ -219,6 +224,7 @@ class BudgetModuleNew extends Module {
             getCensusDataUseCase: i.get<GetCensusDataUseCase>(),
             authStore: Modular.get<AuthStore>(),
             calculationService: i.get<ProductCalculationService>(),
+            censoEscolarMapper: i.get<CensoEscolarMapper>(),
           ),
         ),
         Bind.lazySingleton<MultiCityBudgetRemoteDataSource>(

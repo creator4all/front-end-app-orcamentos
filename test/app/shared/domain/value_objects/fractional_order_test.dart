@@ -56,4 +56,24 @@ void main() {
       expect(() => FractionalOrder.parse(value), throwsFormatException);
     }
   });
+
+  group('tryParse', () {
+    test('devolve zero para valores inválidos em vez de lançar', () {
+      for (final value in ['inválido', '', true, double.nan, double.infinity]) {
+        expect(FractionalOrder.tryParse(value), FractionalOrder.zero);
+      }
+    });
+
+    test('devolve zero para nulo', () {
+      expect(FractionalOrder.tryParse(null), FractionalOrder.zero);
+    });
+
+    test('preserva valores válidos como parse', () {
+      expect(FractionalOrder.tryParse('2.00000000'),
+          FractionalOrder.parse('2.00000000'));
+      expect(
+          FractionalOrder.tryParse(1.25), FractionalOrder.parse('+001.2500'));
+      expect(FractionalOrder.tryParse('1.25e2').toJson(), '125');
+    });
+  });
 }

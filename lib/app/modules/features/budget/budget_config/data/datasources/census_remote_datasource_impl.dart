@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:multimidiaapp/app/shared/core/http/app_http_client.dart';
 import 'package:multimidiaapp/app/shared/core/http/http_request_config.dart';
 import 'package:multimidiaapp/app/shared/core/utils/token_cache.dart';
+import 'package:multimidiaapp/app/shared/domain/value_objects/fractional_order.dart';
 import 'package:multimidiaapp/app/shared/utils/api_number_parser.dart';
 import 'package:multimidiaapp/config/api_config.dart';
 
@@ -115,7 +116,9 @@ class CensusRemoteDataSourceImpl implements CensusRemoteDataSource {
     final List<dynamic> indicesList = json['indices_etapa'] ?? [];
 
     final Map<String, double> valoresPorEtapa = {};
-    final Map<int, CensoGroupEntity> groupsMap = {};
+    final Map<int, List<CensoTitleEntity>> titlesPerGroup = {};
+    final Map<int, String> groupNames = {};
+    final Map<int, FractionalOrder> groupOrders = {};
 
     for (var item in indicesList) {
       final int indiceId = _toInt(item['indice_etapa_id']);
@@ -130,13 +133,10 @@ class CensusRemoteDataSourceImpl implements CensusRemoteDataSource {
         final int groupId = _toInt(groupJson['grupo_id']);
         final String groupName = (groupJson['nome_grupo'] ?? '') as String;
 
-        if (!groupsMap.containsKey(groupId)) {
-          groupsMap[groupId] = CensoGroupEntity(
-            id: groupId,
-            nome: groupName,
-            titulos: const [],
-          );
-        }
+        groupNames[groupId] = groupName;
+        groupOrders[groupId] =
+            FractionalOrder.tryParse(groupJson['grupo_ordem']);
+        titlesPerGroup.putIfAbsent(groupId, () => []);
 
         final bool isProfessores = nomeEtapa.endsWith('P');
         final title = CensoTitleEntity(
@@ -148,18 +148,30 @@ class CensusRemoteDataSourceImpl implements CensusRemoteDataSource {
           grupoId: groupId,
           percentualPopulacao:
               ApiNumberParser.toDoubleOrNull(item['percentual_populacao']),
+          ordem: FractionalOrder.tryParse(item['ind_ordem']),
         );
 
-        groupsMap[groupId]!.titulos.add(title);
+        titlesPerGroup[groupId]!.add(title);
       }
     }
+
+    final List<CensoGroupEntity> grupos = titlesPerGroup.entries.map((entry) {
+      final titulos = entry.value..sort((a, b) => a.ordem.compareTo(b.ordem));
+      return CensoGroupEntity(
+        id: entry.key,
+        nome: groupNames[entry.key] ?? '',
+        titulos: titulos,
+        ordem: groupOrders[entry.key] ?? FractionalOrder.zero,
+      );
+    }).toList()
+      ..sort((a, b) => a.ordem.compareTo(b.ordem));
 
     return CensoEscolarEntity(
       cidadeId: cidadeId,
       cidadeNome: cidadeNome,
       censoAno: _toNullableInt(json['censo_ano']),
       anoPopulacao: _toNullableInt(json['ano_populacao']),
-      grupos: groupsMap.values.toList(),
+      grupos: grupos,
       valoresPorEtapa: valoresPorEtapa,
     );
   }

@@ -51,6 +51,16 @@ class FractionalOrder implements Comparable<FractionalOrder> {
     return FractionalOrder._(integer, fraction, match[1] == '-');
   }
 
+  /// Como [parse], mas devolve [zero] em vez de lançar para valores inválidos
+  /// ou vazios — retorno realista de colunas DECIMAL legadas em PHP.
+  static FractionalOrder tryParse(Object? value) {
+    try {
+      return FractionalOrder.parse(value);
+    } on FormatException catch (_) {
+      return zero;
+    }
+  }
+
   @override
   int compareTo(FractionalOrder other) {
     if (_negative != other._negative) return _negative ? -1 : 1;

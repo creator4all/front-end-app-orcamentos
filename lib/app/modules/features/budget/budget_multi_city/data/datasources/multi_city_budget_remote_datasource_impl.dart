@@ -139,7 +139,8 @@ class MultiCityBudgetRemoteDataSourceImpl
         final String groupName = (groupJson['nome_grupo'] ?? '').toString();
 
         groupNames[groupId] = groupName;
-        groupOrders[groupId] = FractionalOrder.parse(groupJson['grupo_ordem']);
+        groupOrders[groupId] =
+            FractionalOrder.tryParse(groupJson['grupo_ordem']);
         titlesPerGroup.putIfAbsent(groupId, () => []);
 
         final bool isProfessores = nomeEtapa.endsWith('P');
@@ -152,7 +153,7 @@ class MultiCityBudgetRemoteDataSourceImpl
           grupoId: groupId,
           percentualPopulacao:
               ApiNumberParser.toDoubleOrNull(item['percentual_populacao']),
-          ordem: FractionalOrder.parse(item['ind_ordem']),
+          ordem: FractionalOrder.tryParse(item['ind_ordem']),
         );
 
         titlesPerGroup[groupId]!.add(title);

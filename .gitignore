@@ -52,3 +52,4 @@ app.*.map.json
 *.g.dart
 .agent/
 android/app
+/test/*
