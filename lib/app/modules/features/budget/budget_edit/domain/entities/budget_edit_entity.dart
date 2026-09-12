@@ -76,8 +76,6 @@ class BudgetEditEntity extends Equatable {
     );
   }
 
-  bool get canBeEdited => status.toLowerCase() != 'aprovado';
-
   bool get isExpired {
     if (validityDate == null) return false;
     return validityDate!.isBefore(DateTime.now());
