@@ -1,8 +1,4 @@
-// Testes Patrol — Domínio PRO (Prospecção)
-//
-// Casos automatizados: PRO-001, 003, 004, 005
-// Casos skipados (requerem app externo WhatsApp/e-mail):
-//   PRO-006
+// Patrol — prospecção (PRO).
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -88,17 +84,4 @@ void main() {
     },
   );
 
-  patrolTest(
-    'CT-MOB-PRO-006 — Abrir contato externo por WhatsApp/e-mail',
-    config: patrolConfig,
-    skip:
-        true, // Requer apps externos instalados (WhatsApp, cliente de e-mail) e intenção de abrir links externos — patrol não interage com apps externos de forma determinística.
-    ($) async {
-      await loginAsAdmin($);
-      await openProfileMenu($);
-      await $('Prospecção de parceiros').tap();
-      await $.pumpAndSettle();
-      expect($('Prospecção de parceiros'), findsOneWidget);
-    },
-  );
 }

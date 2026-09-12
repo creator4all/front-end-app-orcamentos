@@ -1,7 +1,4 @@
-// Testes Patrol — Domínio EXP (Geração e compartilhamento)
-//
-// Caso automatizado: EXP-001
-// Caso skipado: EXP-008 (PDF renova validade em 60 dias)
+// Patrol — exportação e compartilhamento (EXP).
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:multimidiaapp/app/shared/widgets/budget_card_widget.dart';
@@ -27,14 +24,4 @@ void main() {
     },
   );
 
-  patrolTest(
-    'CT-MOB-EXP-008 — Gerar PDF renova validade para 60 dias',
-    config: patrolConfig,
-    skip:
-        true, // Requer gerar/compartilhar PDF e reler a validade no orçamento (válido e expirado).
-    ($) async {
-      await loginAsSeller($);
-      expect($('Novo Orç.'), findsOneWidget);
-    },
-  );
 }

@@ -1,8 +1,4 @@
-// Testes Patrol — Domínio NFR (Compatibilidade e exploração)
-//
-// Casos automatizados: NFR-002, 003, 004, 005, 006, 009, 012
-// Casos skipados (requerem múltiplos emuladores/dispositivos):
-//   NFR-007, 008
+// Patrol — resiliência e exploração (NFR).
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -111,28 +107,6 @@ void main() {
       await $.platform.mobile.disableAirplaneMode();
       await $.pumpAndSettle();
       // Esperado: recuperação sem reiniciar o dispositivo.
-      expect($('Novo Orç.'), findsOneWidget);
-    },
-  );
-
-  patrolTest(
-    'CT-MOB-NFR-007 — Persistência isolada entre usuários/emuladores',
-    config: patrolConfig,
-    skip:
-        true, // Requer dois emuladores/dispositivos com usuários diferentes para verificar isolamento de dados, permissões e estado sensível — patrol roda em um único emulador.
-    ($) async {
-      await loginAsSeller($);
-      expect($('Novo Orç.'), findsOneWidget);
-    },
-  );
-
-  patrolTest(
-    'CT-MOB-NFR-008 — Atualização entre dispositivos',
-    config: patrolConfig,
-    skip:
-        true, // Requer dois dispositivos observando o mesmo orçamento: mutação em um e refresh no outro — patrol roda em um único emulador.
-    ($) async {
-      await loginAsSeller($);
       expect($('Novo Orç.'), findsOneWidget);
     },
   );

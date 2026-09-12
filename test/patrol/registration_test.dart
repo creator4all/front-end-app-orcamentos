@@ -1,14 +1,4 @@
-// Testes Patrol — Domínio REG (Cadastro e solicitação de parceria)
-//
-// Cobrem os casos automatizados desta suíte:
-//   CT-MOB-REG-001, 002, 003, 004, 005, 006, 007, 008, 009, 010, 011, 012, 013, 014, 015
-//
-// Pré-requisitos:
-//   - Emulador Android online com o app instalado.
-//   - Backend acessível em http://10.0.2.2:8088 (proxy socat).
-//   - Usuário-fonte do fixture vinculado a uma empresa ativa.
-//   - Limpar dados do app antes da suíte:
-//       adb shell pm clear br.com.multimidiaeducacional.parceiro
+// Patrol — cadastro e parceria (REG).
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

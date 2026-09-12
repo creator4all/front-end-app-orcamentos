@@ -1,8 +1,4 @@
-// Testes Patrol — Domínio DRV (Drive)
-//
-// Casos automatizados: DRV-001, 004, 005, 006, 007, 008, 009, 010, 013, 015
-// Casos skipados (requerem infra não disponível em patrol):
-//   DRV-011, 012, 014
+// Patrol — Drive (DRV).
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -154,34 +150,6 @@ void main() {
   );
 
   patrolTest(
-    'CT-MOB-DRV-011 — Nenhum aplicativo disponível para abrir documento',
-    config: patrolConfig,
-    skip:
-        true, // Requer arquivo com tipo sem handler instalado no emulador — não é possível garantir esta condição de forma determinística.
-    ($) async {
-      await loginAsSeller($);
-      await openProfileMenu($);
-      await $('Drive').tap();
-      await $.pumpAndSettle();
-      expect($('Multi Drive'), findsOneWidget);
-    },
-  );
-
-  patrolTest(
-    'CT-MOB-DRV-012 — Arquivo removido ou indisponível',
-    config: patrolConfig,
-    skip:
-        true, // Requer arquivo que deixe de existir no backend entre a listagem e a abertura — não é possível simular esta condição em patrol.
-    ($) async {
-      await loginAsSeller($);
-      await openProfileMenu($);
-      await $('Drive').tap();
-      await $.pumpAndSettle();
-      expect($('Multi Drive'), findsOneWidget);
-    },
-  );
-
-  patrolTest(
     'CT-MOB-DRV-013 — Falha de conexão durante download',
     config: patrolConfig,
     ($) async {
@@ -203,17 +171,4 @@ void main() {
     },
   );
 
-  patrolTest(
-    'CT-MOB-DRV-014 — Compartilhar arquivo pelo sistema',
-    config: patrolConfig,
-    skip:
-        true, // Requer folha de compartilhamento nativa do Android (Share.shareXFiles) — patrol não interage com diálogos nativos do sistema.
-    ($) async {
-      await loginAsSeller($);
-      await openProfileMenu($);
-      await $('Drive').tap();
-      await $.pumpAndSettle();
-      expect($('Multi Drive'), findsOneWidget);
-    },
-  );
 }

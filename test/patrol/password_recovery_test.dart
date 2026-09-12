@@ -1,21 +1,4 @@
-// Testes Patrol — Domínio RPS (Recuperação de senha)
-//
-// Cobrem os casos automatizados desta suíte:
-//   CT-MOB-RPS-001, 002, 003, 005, 007, 009, 010, 011
-// Casos skipados: RPS-006 (várias tentativas + OTP correto), RPS-008 (cooldown 60s).
-//
-// Pré-requisitos:
-//   - Emulador Android online com o app instalado.
-//   - Backend acessível em http://10.0.2.2:8088 (proxy socat).
-//   - Mailpit acessível a partir do emulador (configurar `mailpitUrl` abaixo).
-//     Por padrão assume-se `http://10.0.2.2:8025` (Mailpit exposto no host).
-//     Se o Mailpit estiver em outro host (ex.: `asus`), exponha-o via proxy
-//     `socat` na porta 8025 do host do emulador.
-//   - API de fixtures habilitada para os casos de OTP com usuário descartável.
-//   - PATROL_MOBILE_FIXTURE_API_KEY e PATROL_MOBILE_FIXTURE_PASSWORD
-//     fornecidos via --dart-define.
-//   - Limpar dados do app antes da suíte:
-//       adb shell pm clear br.com.multimidiaeducacional.parceiro
+// Patrol — recuperação de senha (RPS).
 
 import 'dart:convert';
 import 'dart:io';
@@ -110,28 +93,6 @@ void main() {
           await deleteMobileFixture(fixture.id);
         }
       }
-    },
-  );
-
-  patrolTest(
-    'CT-MOB-RPS-006 — OTPs incorretos não bloqueiam a recuperação',
-    config: patrolConfig,
-    skip:
-        true, // Precisa do OTP correto após várias tentativas inválidas; o código válido vem do Mailpit e o fluxo completo já é coberto por RPS-005/011.
-    ($) async {
-      await startApp($);
-      expect($('Acessar'), findsOneWidget);
-    },
-  );
-
-  patrolTest(
-    'CT-MOB-RPS-008 — Reenviar OTP após cooldown de 60 segundos',
-    config: patrolConfig,
-    skip:
-        true, // O cooldown de 60s torna o caso lento e depende do botão "Reenviar código" habilitar após o timer.
-    ($) async {
-      await startApp($);
-      expect($('Acessar'), findsOneWidget);
     },
   );
 

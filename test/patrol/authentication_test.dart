@@ -1,14 +1,4 @@
-// Testes Patrol — Domínio AUT (Autenticação e sessão)
-//
-// Cobrem os 16 casos do domínio AUT definidos em docs/testes/casos-de-teste.md:
-//   CT-MOB-AUT-001 a 016 (015 e 016 exigem 401 controlado e ficam skipados).
-//
-// Pré-requisitos:
-//   - Emulador Android online com o app instalado.
-//   - Backend acessível em http://10.0.2.2:8088 (proxy socat).
-//   - Credenciais de administrador, vendedor e API de fixtures via --dart-define.
-//   - Limpar dados do app antes da suíte:
-//       adb shell pm clear br.com.multimidiaeducacional.parceiro
+// Patrol — autenticação e sessão (AUT).
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -265,25 +255,6 @@ void main() {
     },
   );
 
-  patrolTest(
-    'CT-MOB-AUT-015 — 401 do webservice principal encerra a sessão',
-    config: patrolConfig,
-    skip: true, // Exige interceptar 401 do webservice principal sem substituir a UI.
-    ($) async {
-      await startApp($);
-      expect($('Acessar'), findsOneWidget);
-    },
-  );
-
-  patrolTest(
-    'CT-MOB-AUT-016 — 401 do File Manager não encerra a sessão',
-    config: patrolConfig,
-    skip: true, // Exige 401 isolado do File Manager sem derrubar o token principal.
-    ($) async {
-      await startApp($);
-      expect($('Acessar'), findsOneWidget);
-    },
-  );
 }
 
 /// Realiza o login preenchendo e-mail, senha e tocando em "Acessar".

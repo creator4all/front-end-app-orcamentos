@@ -1,6 +1,4 @@
-// Testes Patrol — Domínio ADM (Empresas e relatórios)
-//
-// Casos automatizados: ADM-001, 003, 004, 005, 006
+// Patrol — empresas e relatórios (ADM).
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

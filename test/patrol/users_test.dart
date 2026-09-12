@@ -1,7 +1,4 @@
-// Testes Patrol — Domínio USR (Gestão de usuários)
-//
-// Cobrem os casos automatizados desta suíte:
-//   CT-MOB-USR-001, USR-002, USR-008
+// Patrol — gestão de usuários (USR).
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

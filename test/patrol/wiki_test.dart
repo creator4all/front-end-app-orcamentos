@@ -1,11 +1,4 @@
-// Testes Patrol — Domínio WIK (Wiki e links)
-//
-// Cobrem os 3 casos aprovados do relatório docs/testes/casos-de-teste.md:
-//   CT-MOB-WIK-001, 003, 004
-//
-// Pré-requisitos:
-//   - Emulador Android online com o app instalado.
-//   - Backend acessível em http://10.0.2.2:8088 (proxy socat).
+// Patrol — wiki e links (WIK).
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patrol/patrol.dart';

@@ -1,7 +1,4 @@
-// Testes Patrol — Domínio CAL (Cálculos e edição)
-//
-// Cobrem os casos automatizados desta suíte:
-//   CT-MOB-CAL-001 a 013 (013 skipado: serviço com 0% e horas fixas conhecidas)
+// Patrol — cálculos e edição (CAL).
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:multimidiaapp/app/shared/widgets/budget_card_widget.dart';
@@ -240,14 +237,4 @@ void main() {
     },
   );
 
-  patrolTest(
-    'CT-MOB-CAL-013 — Serviço aceita percentual zero',
-    config: patrolConfig,
-    skip:
-        true, // Requer serviço de catálogo com percentual 0% e horas fixas conhecidas (ex.: 40).
-    ($) async {
-      await loginAsSeller($);
-      expect($('Novo Orç.'), findsOneWidget);
-    },
-  );
 }

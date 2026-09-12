@@ -1,12 +1,4 @@
-// Testes Patrol — Domínio NAV (Navegação e permissões)
-//
-// Cobrem os casos automatizados desta suíte:
-//   CT-MOB-NAV-002, NAV-003, NAV-004
-//
-// Pré-requisitos:
-//   - Emulador Android online com o app instalado.
-//   - Backend acessível em http://10.0.2.2:8088 (proxy socat).
-//   - Credenciais de vendedor e administrador fornecidas via --dart-define.
+// Patrol — navegação e permissões (NAV).
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

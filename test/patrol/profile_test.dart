@@ -1,8 +1,4 @@
-// Testes Patrol — Domínio PRF (Perfil e conta)
-//
-// Casos automatizados: PRF-001, 002, 008, 010
-// Casos skipados (requerem image picker nativo):
-//   PRF-005, 007
+// Patrol — perfil e conta (PRF).
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -37,34 +33,6 @@ void main() {
       await $.pumpAndSettle();
       // Esperado: campos editáveis com botão "Salvar Alterações".
       expect($('Salvar Alterações'), findsOneWidget);
-    },
-  );
-
-  patrolTest(
-    'CT-MOB-PRF-005 — Atualizar avatar válido',
-    config: patrolConfig,
-    skip:
-        true, // Requer image_picker e image_cropper nativos (galeria + UI de recorte) — patrol não interage com diálogos nativos de seleção/recorte de imagem.
-    ($) async {
-      await loginAsSeller($);
-      await openProfileMenu($);
-      await $('Editar perfil').tap();
-      await $.pumpAndSettle();
-      expect($('Meu Perfil'), findsOneWidget);
-    },
-  );
-
-  patrolTest(
-    'CT-MOB-PRF-007 — Rejeitar avatar inválido ou acima de 5 MiB',
-    config: patrolConfig,
-    skip:
-        true, // Requer image_picker com arquivo inválido/grande — patrol não controla a galeria nativa nem o conteúdo selecionado.
-    ($) async {
-      await loginAsSeller($);
-      await openProfileMenu($);
-      await $('Editar perfil').tap();
-      await $.pumpAndSettle();
-      expect($('Meu Perfil'), findsOneWidget);
     },
   );
 

@@ -1,9 +1,4 @@
-// Testes Patrol — Domínio ORC (Lista e ações de orçamento)
-//
-// Casos automatizados: ORC-001, 003, 004, 005, 006, 007, 008, 009, 010, 012,
-//   014, 015, 017, 020
-// Casos skipados (requerem infra não disponível em patrol):
-//   ORC-013, 018, 019, 021, 022
+// Patrol — lista de orçamentos (ORC).
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -133,17 +128,6 @@ void main() {
   );
 
   patrolTest(
-    'CT-MOB-ORC-013 — Aceitar nomes nos limites válidos ao renomear',
-    config: patrolConfig,
-    skip:
-        true, // Renomear com 1 e 255 caracteres altera dado persistido; precisa restaurar o nome original após o cenário.
-    ($) async {
-      await loginAsSeller($);
-      expect($('Novo Orç.'), findsOneWidget);
-    },
-  );
-
-  patrolTest(
     'CT-MOB-ORC-014 — Rejeitar nome vazio ao renomear',
     config: patrolConfig,
     ($) async {
@@ -210,28 +194,6 @@ void main() {
   );
 
   patrolTest(
-    'CT-MOB-ORC-018 — Versionar orçamento preservando versão anterior e censo',
-    config: patrolConfig,
-    skip:
-        true, // O app não possui ação explícita de "versionar". A versionação ocorre automaticamente ao salvar alterações (o orçamento antigo é arquivado). Não há botão "Nova versão" na UI.
-    ($) async {
-      await loginAsSeller($);
-      expect($('Novo Orç.'), findsOneWidget);
-    },
-  );
-
-  patrolTest(
-    'CT-MOB-ORC-019 — Bloquear operações em orçamento sem permissão',
-    config: patrolConfig,
-    skip:
-        true, // Requer acesso a orçamento de outro usuário via rota controlada — não é possível preparar esta condição em patrol sem conhecer o ID de um orçamento alheio e navegar diretamente para a rota.
-    ($) async {
-      await loginAsSeller($);
-      expect($('Novo Orç.'), findsOneWidget);
-    },
-  );
-
-  patrolTest(
     'CT-MOB-ORC-020 — Orçamento finalizado/somente leitura',
     config: patrolConfig,
     ($) async {
@@ -256,25 +218,4 @@ void main() {
     },
   );
 
-  patrolTest(
-    'CT-MOB-ORC-021 — Renomear usando exatamente o nome atual',
-    config: patrolConfig,
-    skip:
-        true, // Precisa ler o nome atual do card e confirmar o diálogo de rename sem fixture estável do texto.
-    ($) async {
-      await loginAsSeller($);
-      expect($('Novo Orç.'), findsOneWidget);
-    },
-  );
-
-  patrolTest(
-    'CT-MOB-ORC-022 — Histórico de parceiro inativo continua acessível',
-    config: patrolConfig,
-    skip:
-        true, // Requer parceiro inativo com orçamento histórico preparado no ambiente.
-    ($) async {
-      await loginAsSeller($);
-      expect($('Novo Orç.'), findsOneWidget);
-    },
-  );
 }
