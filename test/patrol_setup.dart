@@ -19,3 +19,15 @@ const String sellerEmail = String.fromEnvironment('PATROL_SELLER_EMAIL');
 const String sellerPassword = String.fromEnvironment('PATROL_SELLER_PASSWORD');
 const String adminEmail = String.fromEnvironment('PATROL_ADMIN_EMAIL');
 const String adminPassword = String.fromEnvironment('PATROL_ADMIN_PASSWORD');
+const String mobileFixtureApiUrl = String.fromEnvironment(
+  'PATROL_MOBILE_FIXTURE_API_URL',
+  defaultValue: 'http://10.0.2.2:8088/api/test/mobile-fixtures',
+);
+const String mobileFixtureApiKey =
+    String.fromEnvironment('PATROL_MOBILE_FIXTURE_API_KEY');
+const String mobileFixturePassword =
+    String.fromEnvironment('PATROL_MOBILE_FIXTURE_PASSWORD');
+const int mobileFixtureSourceUserId = int.fromEnvironment(
+  'PATROL_MOBILE_FIXTURE_SOURCE_USER_ID',
+  defaultValue: 6,
+);

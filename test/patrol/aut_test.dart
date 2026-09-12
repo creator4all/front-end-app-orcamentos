@@ -1,7 +1,7 @@
 // Testes Patrol — Domínio AUT (Autenticação e sessão)
 //
-// Cobrem os 12 casos aprovados do relatório MOBILE-RELATORIO-CONSOLIDADO.md:
-//   CT-MOB-AUT-001, 002, 003, 005, 006, 007, 008, 009, 010, 011, 012, 014
+// Cobrem os 14 casos aprovados do relatório MOBILE-RELATORIO-CONSOLIDADO.md:
+//   CT-MOB-AUT-001, 002, 003, 004, 005, 006, 007, 008, 009, 010, 011, 012, 013, 014
 //
 // Pré-requisitos:
 //   - Emulador Android online com o app instalado.
@@ -17,6 +17,7 @@ import 'package:patrol/patrol.dart';
 
 import '../patrol_setup.dart';
 import 'app_starter.dart';
+import 'helpers.dart';
 
 void main() {
   patrolTest(
@@ -52,6 +53,29 @@ void main() {
       // Esperado: mesma mensagem de erro sem revelar existência da conta.
       await $('Login ou senha incorretos, tente novamente!').waitUntilVisible();
       expect($('Login ou senha incorretos, tente novamente!'), findsOneWidget);
+    },
+  );
+
+  patrolTest(
+    'CT-MOB-AUT-004 — Login de usuário inativo',
+    config: patrolConfig,
+    ($) async {
+      MobileFixture? fixture;
+      try {
+        fixture = await createMobileFixture('inactive');
+        await startAppClean($);
+        await _login($, fixture.email, mobileFixturePassword);
+        await $('Usuário desativado. Entre em contato com o administrador.')
+            .waitUntilVisible();
+        expect(
+          $('Usuário desativado. Entre em contato com o administrador.'),
+          findsOneWidget,
+        );
+      } finally {
+        if (fixture != null) {
+          await deleteMobileFixture(fixture.id);
+        }
+      }
     },
   );
 
@@ -179,6 +203,30 @@ void main() {
       // Esperado: área autenticada exibida diretamente.
       await $('Novo Orç.').waitUntilVisible();
       expect($('Novo Orç.'), findsOneWidget);
+    },
+  );
+
+  patrolTest(
+    'CT-MOB-AUT-013 — Sessão expirada ao reabrir o App',
+    config: patrolConfig,
+    ($) async {
+      MobileFixture? fixture;
+      try {
+        fixture = await createMobileFixture('active');
+        await startAppClean($);
+        await _login($, fixture.email, mobileFixturePassword);
+        await $('Novo Orç.').waitUntilVisible();
+        await expireMobileFixtureSession(fixture.id);
+        await $.platform.mobile.pressHome();
+        await $.platform.mobile.openApp(appId: appPackageName);
+        await $.pumpAndSettle();
+        await $('Acessar').waitUntilVisible();
+        expect($('Acessar'), findsOneWidget);
+      } finally {
+        if (fixture != null) {
+          await deleteMobileFixture(fixture.id);
+        }
+      }
     },
   );
 
