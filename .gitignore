@@ -48,6 +48,7 @@ app.*.map.json
 /windows/
 /linux/
 /docs
+/docs/CASOS-TESTE.md
 /android/.gradle/
 *.g.dart
 .agent/
