@@ -25,6 +25,8 @@ class _BudgetListPageState extends State<BudgetListPage> with RouteAware {
   @override
   void initState() {
     super.initState();
+    _store = Modular.get<BudgetListStore>();
+    _authStore = Modular.get<AuthStore>();
     _scrollController.addListener(_handleScroll);
   }
 
@@ -57,8 +59,6 @@ class _BudgetListPageState extends State<BudgetListPage> with RouteAware {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _store = Modular.get<BudgetListStore>();
-    _authStore = Modular.get<AuthStore>();
 
     final route = ModalRoute.of(context);
     if (route is PageRoute) {
