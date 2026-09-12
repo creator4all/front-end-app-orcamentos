@@ -337,16 +337,6 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
       return;
     }
 
-    if (store.budgetData != null && !store.budgetData!.canBeEdited) {
-      CustomInfoDialog.show(
-        context: context,
-        type: DialogType.error,
-        title: 'Ação não permitida',
-        message: 'Este orçamento não pode mais ser editado',
-      );
-      return;
-    }
-
     await _handleSaveChanges();
   }
 
