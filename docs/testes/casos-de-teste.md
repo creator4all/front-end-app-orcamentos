@@ -1,6 +1,6 @@
 # Casos de Teste do Aplicativo Mobile — Multimídia: Parceiro
 
-> **Fonte funcional:** `docs/documento-funcional-consolidado.md`
+> **Fonte funcional:** `docs/regras-de-negocios.md`
 > **Fonte técnica:** telas, rotas e componentes do aplicativo Flutter em `lib/`
 > **Escopo:** somente comportamentos observáveis ou acionáveis pela interface do aplicativo Android/iOS. Não inclui casos exclusivos do painel web, chamadas diretas de API, jobs, banco de dados ou regras internas sem efeito observável no App.
 > **Convenção:** `CT-MOB-<DOMÍNIO>-NNN`.
