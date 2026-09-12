@@ -1,8 +1,10 @@
 // Testes Patrol — Domínio PRO (Prospecção)
 //
-// Cobrem os 3 casos aprovados do relatório MOBILE-RELATORIO-CONSOLIDADO.md:
-//   CT-MOB-PRO-001, 004, 005
+// Casos automatizados: PRO-001, 003, 004, 005
+// Casos skipados (requerem app externo WhatsApp/e-mail):
+//   PRO-006
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patrol/patrol.dart';
 
@@ -32,17 +34,13 @@ void main() {
       await openProfileMenu($);
       await $('Prospecção de parceiros').tap();
       await $.pumpAndSettle();
-      // Esperado: botão "Já entrei em contato" visível.
-      try {
-        await $('Já entrei em contato').tap();
-        await $.pumpAndSettle();
-        // Esperado: "Possível parceiro marcado como contatado com sucesso!".
-        expect($('Possível parceiro marcado como contatado com sucesso!'),
-            findsOneWidget);
-      } catch (_) {
-        // Se não houver prospecção, valida estabilidade.
-        expect($('Prospecção de parceiros'), findsOneWidget);
-      }
+      // Esperado: botão "Já entrei em contato" visível no primeiro card.
+      await $('Já entrei em contato').waitUntilVisible();
+      await $('Já entrei em contato').tap();
+      await $.pumpAndSettle();
+      // Esperado: "Possível parceiro marcado como contatado com sucesso!".
+      expect($('Possível parceiro marcado como contatado com sucesso!'),
+          findsOneWidget);
     },
   );
 
@@ -55,12 +53,52 @@ void main() {
       await $('Prospecção de parceiros').tap();
       await $.pumpAndSettle();
       // Esperado: banner "Empresas já contactadas" visível.
-      try {
-        await $('Empresas já contactadas').tap();
+      expect($('Empresas já contactadas'), findsOneWidget);
+      // Toca no banner para navegar à lista de contatadas.
+      await $('Empresas já contactadas').tap();
+      await $.pumpAndSettle();
+      // Esperado: navegou para a página de contatadas (sem crash).
+      // Volta para validar que a navegação foi bem-sucedida.
+      await $.platformAutomator.android.pressBack();
+      await $.pumpAndSettle();
+      expect($('Prospecção de parceiros'), findsOneWidget);
+    },
+  );
+
+  patrolTest(
+    'CT-MOB-PRO-003 — Paginar e atualizar prospecções',
+    config: patrolConfig,
+    ($) async {
+      await loginAsAdmin($);
+      await openProfileMenu($);
+      await $('Prospecção de parceiros').tap();
+      await $.pumpAndSettle();
+      // Esperado: lista de prospecções carregada.
+      expect($('Prospecção de parceiros'), findsOneWidget);
+      // Rola a lista para baixo para disparar paginação, se houver mais
+      // de uma página. Usa drag direto para não depender de um finder
+      // específico no final da lista.
+      for (var i = 0; i < 5; i++) {
+        await $.tester
+            .drag(find.byType(Scrollable).first, const Offset(0, -400));
         await $.pumpAndSettle();
-      } catch (_) {
-        expect($('Prospecção de parceiros'), findsOneWidget);
       }
+      // Esperado: lista estável, sem crash ou duplicações.
+      expect($('Prospecção de parceiros'), findsOneWidget);
+    },
+  );
+
+  patrolTest(
+    'CT-MOB-PRO-006 — Abrir contato externo por WhatsApp/e-mail',
+    config: patrolConfig,
+    skip:
+        true, // Requer apps externos instalados (WhatsApp, cliente de e-mail) e intenção de abrir links externos — patrol não interage com apps externos de forma determinística.
+    ($) async {
+      await loginAsAdmin($);
+      await openProfileMenu($);
+      await $('Prospecção de parceiros').tap();
+      await $.pumpAndSettle();
+      expect($('Prospecção de parceiros'), findsOneWidget);
     },
   );
 }

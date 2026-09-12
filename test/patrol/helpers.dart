@@ -39,16 +39,28 @@ Future<void> openProfileMenu(PatrolIntegrationTester $) async {
 }
 
 final class MobileFixture {
-  const MobileFixture({required this.id, required this.email});
+  const MobileFixture({
+    required this.id,
+    required this.email,
+    required this.name,
+    this.companyName,
+    this.companyCnpj,
+  });
 
   final int id;
   final String email;
+  final String name;
+  final String? companyName;
+  final String? companyCnpj;
 
   factory MobileFixture.fromResponse(Map<String, dynamic> response) {
     final data = response['dados'] as Map<String, dynamic>;
     return MobileFixture(
       id: (data['fixture_id'] as num).toInt(),
       email: data['email'] as String,
+      name: data['name'] as String,
+      companyName: data['company_name'] as String?,
+      companyCnpj: data['company_cnpj'] as String?,
     );
   }
 }
@@ -62,10 +74,7 @@ Future<MobileFixture> createMobileFixture(String scenario) async {
   final response = await _fixtureRequest(
     'POST',
     '/users',
-    body: {
-      'scenario': scenario,
-      'source_user_id': mobileFixtureSourceUserId,
-    },
+    body: {'scenario': scenario},
   );
   return MobileFixture.fromResponse(response);
 }
@@ -73,6 +82,11 @@ Future<MobileFixture> createMobileFixture(String scenario) async {
 Future<void> expireMobileFixtureSession(int fixtureId) async {
   _requireFixtureApiKey();
   await _fixtureRequest('POST', '/users/$fixtureId/expire_session');
+}
+
+Future<void> expireMobileFixtureOtp(int fixtureId) async {
+  _requireFixtureApiKey();
+  await _fixtureRequest('POST', '/users/$fixtureId/expire_otp');
 }
 
 Future<void> deleteMobileFixture(int fixtureId) async {
@@ -85,19 +99,24 @@ Future<Map<String, dynamic>> _fixtureRequest(
   String path, {
   Map<String, dynamic>? body,
 }) async {
-  final client = HttpClient();
+  final client = HttpClient()..connectionTimeout = const Duration(seconds: 3);
   try {
-    final request = await client.openUrl(
-      method,
-      Uri.parse('$mobileFixtureApiUrl$path'),
-    );
+    final request = await client
+        .openUrl(
+          method,
+          Uri.parse('$mobileFixtureApiUrl$path'),
+        )
+        .timeout(const Duration(seconds: 10));
     request.headers.set('X-Mobile-Fixture-Key', mobileFixtureApiKey);
     if (body != null) {
       request.headers.contentType = ContentType.json;
       request.write(jsonEncode(body));
     }
-    final response = await request.close();
-    final responseBody = await response.transform(utf8.decoder).join();
+    final response = await request.close().timeout(const Duration(seconds: 10));
+    final responseBody = await response
+        .transform(utf8.decoder)
+        .join()
+        .timeout(const Duration(seconds: 10));
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw StateError('Fixture API retornou HTTP ${response.statusCode}.');
     }

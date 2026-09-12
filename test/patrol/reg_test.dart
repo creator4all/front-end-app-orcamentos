@@ -1,12 +1,12 @@
 // Testes Patrol — Domínio REG (Cadastro e solicitação de parceria)
 //
-// Cobrem os 10 casos aprovados do relatório MOBILE-RELATORIO-CONSOLIDADO.md:
-//   CT-MOB-REG-001, 002, 003, 004, 005, 006, 007, 008, 009, 013
+// Cobrem os casos automatizados desta suíte:
+//   CT-MOB-REG-001, 002, 003, 004, 005, 006, 007, 008, 009, 010, 011, 012, 013, 014, 015
 //
 // Pré-requisitos:
 //   - Emulador Android online com o app instalado.
 //   - Backend acessível em http://10.0.2.2:8088 (proxy socat).
-//   - Empresa ativa cadastrada: Apple (CNPJ 32.348.769/0001-91).
+//   - Usuário-fonte do fixture vinculado a uma empresa ativa.
 //   - Limpar dados do app antes da suíte:
 //       adb shell pm clear br.com.multimidiaeducacional.parceiro
 
@@ -16,6 +16,7 @@ import 'package:patrol/patrol.dart';
 
 import '../patrol_setup.dart';
 import 'app_starter.dart';
+import 'helpers.dart';
 
 void main() {
   patrolTest(
@@ -206,6 +207,213 @@ void main() {
       // Esperado: tela "Seja parceiro" com vídeo e formulário.
       expect($('Seja parceiro'), findsOneWidget);
       expect($('Seja nosso parceiro!'), findsOneWidget);
+    },
+  );
+
+  patrolTest(
+    'CT-MOB-REG-010 — Rejeitar e-mail duplicado no autocadastro',
+    config: patrolConfig,
+    ($) async {
+      MobileFixture? fixture;
+      try {
+        fixture = await createMobileFixture('active');
+        final companyCnpj = fixture.companyCnpj;
+        final companyName = fixture.companyName;
+        if (companyCnpj == null || companyName == null) {
+          throw StateError('O fixture não possui empresa vinculada.');
+        }
+
+        await startApp($);
+        await $('Cadastrar').tap();
+        await $.pumpAndSettle();
+        await $(TextField).enterText(companyCnpj);
+        await $('Próximo').tap();
+        await $('A empresa $companyName está correta?').waitUntilVisible();
+        await $('Sim').tap();
+        await $.pumpAndSettle();
+
+        final fields = $(TextFormField);
+        await fields.at(0).enterText(fixture.email);
+        await fields.at(1).enterText(fixture.email);
+        await fields.at(2).enterText('Cadastro duplicado');
+        await fields.at(3).enterText('11999999999');
+        await fields.at(4).enterText('SenhaForte@123');
+        await fields.at(5).enterText('SenhaForte@123');
+        await $.scrollUntilVisible(finder: $('Cadastrar'));
+        await $('Cadastrar').tap();
+
+        await $('Este e-mail já está cadastrado no sistema.')
+            .waitUntilVisible();
+        expect($('Este e-mail já está cadastrado no sistema.'), findsOneWidget);
+      } finally {
+        if (fixture != null) {
+          await deleteMobileFixture(fixture.id);
+        }
+      }
+    },
+  );
+
+  patrolTest(
+    'CT-MOB-REG-014 — Validar obrigatórios da solicitação de parceria',
+    config: patrolConfig,
+    ($) async {
+      await startApp($);
+      await $('Cadastrar').tap();
+      await $.pumpAndSettle();
+      await $('Quero me tornar um parceiro').tap();
+      await $.pumpAndSettle();
+      await $.scrollUntilVisible(finder: $('Quero ser parceiro'));
+      await $('Quero ser parceiro').tap();
+
+      await $('Campos obrigatórios').waitUntilVisible();
+      expect($('Campos obrigatórios'), findsOneWidget);
+      expect($(find.textContaining('• Nome')), findsOneWidget);
+      expect($(find.textContaining('• E-mail')), findsOneWidget);
+      expect($(find.textContaining('• Telefone')), findsOneWidget);
+      expect($(find.textContaining('• Empresa')), findsOneWidget);
+      expect($(find.textContaining('• CPF/CNPJ')), findsOneWidget);
+    },
+  );
+
+  patrolTest(
+    'CT-MOB-REG-011 — Concluir autocadastro de vendedor',
+    config: patrolConfig,
+    ($) async {
+      MobileFixture? fixture;
+      try {
+        fixture = await createMobileFixture('active');
+        final companyCnpj = fixture.companyCnpj;
+        final companyName = fixture.companyName;
+        if (companyCnpj == null || companyName == null) {
+          throw StateError('O fixture não possui empresa vinculada.');
+        }
+
+        // Usa um e-mail novo derivado do fixture para o autocadastro.
+        final newEmail =
+            'auto_${DateTime.now().millisecondsSinceEpoch}@test.com';
+
+        await startApp($);
+        await $('Cadastrar').tap();
+        await $.pumpAndSettle();
+        await $(TextField).enterText(companyCnpj);
+        await $('Próximo').tap();
+        await $('A empresa $companyName está correta?').waitUntilVisible();
+        await $('Sim').tap();
+        await $.pumpAndSettle();
+
+        final fields = $(TextFormField);
+        await fields.at(0).enterText(newEmail);
+        await fields.at(1).enterText(newEmail);
+        await fields.at(2).enterText('Vendedor Teste');
+        await fields.at(3).enterText('11999999999');
+        await fields.at(4).enterText('SenhaForte@123');
+        await fields.at(5).enterText('SenhaForte@123');
+        await $.scrollUntilVisible(finder: $('Cadastrar'));
+        await $('Cadastrar').tap();
+
+        // Esperado: confirmação de cadastro realizado.
+        await $('Cadastro realizado!').waitUntilVisible();
+        expect($('Cadastro realizado!'), findsOneWidget);
+        expect(
+          'Seu cadastro foi realizado com sucesso. Aguarde a ativação pelo gestor da empresa para acessar o sistema.',
+          findsOneWidget,
+        );
+        await $('Ir para Login').tap();
+        await $.pumpAndSettle();
+        expect($('Acessar'), findsOneWidget);
+      } finally {
+        if (fixture != null) {
+          await deleteMobileFixture(fixture.id);
+        }
+      }
+    },
+  );
+
+  patrolTest(
+    'CT-MOB-REG-012 — Usuário recém-cadastrado pendente não autentica',
+    config: patrolConfig,
+    ($) async {
+      MobileFixture? fixture;
+      try {
+        fixture = await createMobileFixture('active');
+        final companyCnpj = fixture.companyCnpj;
+        final companyName = fixture.companyName;
+        if (companyCnpj == null || companyName == null) {
+          throw StateError('O fixture não possui empresa vinculada.');
+        }
+
+        final newEmail =
+            'pend_${DateTime.now().millisecondsSinceEpoch}@test.com';
+
+        await startApp($);
+        await $('Cadastrar').tap();
+        await $.pumpAndSettle();
+        await $(TextField).enterText(companyCnpj);
+        await $('Próximo').tap();
+        await $('A empresa $companyName está correta?').waitUntilVisible();
+        await $('Sim').tap();
+        await $.pumpAndSettle();
+
+        final fields = $(TextFormField);
+        await fields.at(0).enterText(newEmail);
+        await fields.at(1).enterText(newEmail);
+        await fields.at(2).enterText('Vendedor Pendente');
+        await fields.at(3).enterText('11999999999');
+        await fields.at(4).enterText('SenhaForte@123');
+        await fields.at(5).enterText('SenhaForte@123');
+        await $.scrollUntilVisible(finder: $('Cadastrar'));
+        await $('Cadastrar').tap();
+
+        await $('Cadastro realizado!').waitUntilVisible();
+        await $('Ir para Login').tap();
+        await $.pumpAndSettle();
+
+        // Tenta logar com as credenciais recém-cadastradas.
+        await $(TextField).at(0).enterText(newEmail);
+        await $(TextField).at(1).enterText('SenhaForte@123');
+        await $('Acessar').tap();
+        // Esperado: login rejeitado enquanto a conta estiver pendente/inativa.
+        await $('Login ou senha incorretos, tente novamente!')
+            .waitUntilVisible();
+        expect(
+            $('Login ou senha incorretos, tente novamente!'), findsOneWidget);
+      } finally {
+        if (fixture != null) {
+          await deleteMobileFixture(fixture.id);
+        }
+      }
+    },
+  );
+
+  patrolTest(
+    'CT-MOB-REG-015 — Enviar solicitação de parceria válida',
+    config: patrolConfig,
+    ($) async {
+      await startApp($);
+      await $('Cadastrar').tap();
+      await $.pumpAndSettle();
+      await $('Quero me tornar um parceiro').tap();
+      await $.pumpAndSettle();
+      await $.scrollUntilVisible(finder: $('Quero ser parceiro'));
+
+      // Preenche os campos obrigatórios.
+      final fields = $(TextFormField);
+      await fields.at(0).enterText('Parceiro Teste');
+      await fields.at(1).enterText(
+          'parceiro_${DateTime.now().millisecondsSinceEpoch}@test.com');
+      await fields.at(2).enterText('11999999999');
+      await fields.at(3).enterText('Empresa Teste');
+      await fields.at(4).enterText('12345678901');
+
+      await $('Quero ser parceiro').tap();
+
+      // Esperado: confirmação de envio sem autenticar.
+      await $('Solicitação enviada!').waitUntilVisible();
+      expect($('Solicitação enviada!'), findsOneWidget);
+      await $('Entendi').tap();
+      await $.pumpAndSettle();
+      // Esperado: tela de login exibida (não autenticou).
+      expect($('Acessar'), findsOneWidget);
     },
   );
 }

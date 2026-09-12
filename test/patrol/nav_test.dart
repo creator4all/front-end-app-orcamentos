@@ -1,7 +1,7 @@
 // Testes Patrol — Domínio NAV (Navegação e permissões)
 //
-// Cobrem os 2 casos aprovados do relatório MOBILE-RELATORIO-CONSOLIDADO.md:
-//   CT-MOB-NAV-002, NAV-004
+// Cobrem os casos automatizados desta suíte:
+//   CT-MOB-NAV-002, NAV-003, NAV-004
 //
 // Pré-requisitos:
 //   - Emulador Android online com o app instalado.
@@ -15,6 +15,7 @@ import 'package:patrol/patrol.dart';
 
 import '../patrol_setup.dart';
 import 'app_starter.dart';
+import 'helpers.dart';
 
 void main() {
   patrolTest(
@@ -66,6 +67,34 @@ void main() {
       expect($('Gestão administrativa'), findsOneWidget);
       expect($('Wiki'), findsOneWidget);
       expect($('Drive'), findsOneWidget);
+    },
+  );
+
+  patrolTest(
+    'CT-MOB-NAV-003 — Menu de gestor',
+    config: patrolConfig,
+    ($) async {
+      MobileFixture? fixture;
+      try {
+        fixture = await createMobileFixture('manager');
+        await login($, email: fixture.email, password: mobileFixturePassword);
+        await openProfileMenu($);
+
+        expect($('Editar perfil'), findsOneWidget);
+        expect($('Editar empresa'), findsOneWidget);
+        expect($('Gestão administrativa'), findsOneWidget);
+        expect($('Wiki'), findsOneWidget);
+        expect($('Drive'), findsOneWidget);
+        expect($('Sair'), findsOneWidget);
+        expect($('Deletar conta'), findsOneWidget);
+        expect($('Configurar produtos'), findsNothing);
+        expect($('Prospecção de parceiros'), findsNothing);
+        expect($('Relatórios'), findsNothing);
+      } finally {
+        if (fixture != null) {
+          await deleteMobileFixture(fixture.id);
+        }
+      }
     },
   );
 }

@@ -1,12 +1,12 @@
 // Testes Patrol — Domínio AUT (Autenticação e sessão)
 //
-// Cobrem os 14 casos aprovados do relatório MOBILE-RELATORIO-CONSOLIDADO.md:
-//   CT-MOB-AUT-001, 002, 003, 004, 005, 006, 007, 008, 009, 010, 011, 012, 013, 014
+// Cobrem os 16 casos do domínio AUT definidos em docs/testes/casos-de-teste.md:
+//   CT-MOB-AUT-001 a 016 (015 e 016 exigem 401 controlado e ficam skipados).
 //
 // Pré-requisitos:
 //   - Emulador Android online com o app instalado.
 //   - Backend acessível em http://10.0.2.2:8088 (proxy socat).
-//   - Credenciais de vendedor fornecidas via --dart-define.
+//   - Credenciais de administrador, vendedor e API de fixtures via --dart-define.
 //   - Limpar dados do app antes da suíte:
 //       adb shell pm clear br.com.multimidiaeducacional.parceiro
 
@@ -21,14 +21,34 @@ import 'helpers.dart';
 
 void main() {
   patrolTest(
-    'CT-MOB-AUT-001 — Login mobile válido sem OTP',
+    'CT-MOB-AUT-001 — Login mobile válido sem OTP para todos os perfis',
     config: patrolConfig,
     ($) async {
       await startApp($);
-      await _login($, sellerEmail, sellerPassword);
-      // Esperado: lista de orçamentos exibida (botão "Novo Orç.").
+      await _login($, adminEmail, adminPassword);
       await $('Novo Orç.').waitUntilVisible();
       expect($('Novo Orç.'), findsOneWidget);
+      expect($('Digite o código'), findsNothing);
+      await _logoutToLogin($);
+
+      MobileFixture? manager;
+      try {
+        manager = await createMobileFixture('manager');
+        await _login($, manager.email, mobileFixturePassword);
+        await $('Novo Orç.').waitUntilVisible();
+        expect($('Novo Orç.'), findsOneWidget);
+        expect($('Digite o código'), findsNothing);
+        await _logoutToLogin($);
+      } finally {
+        if (manager != null) {
+          await deleteMobileFixture(manager.id);
+        }
+      }
+
+      await _login($, sellerEmail, sellerPassword);
+      await $('Novo Orç.').waitUntilVisible();
+      expect($('Novo Orç.'), findsOneWidget);
+      expect($('Digite o código'), findsNothing);
     },
   );
 
@@ -65,10 +85,10 @@ void main() {
         fixture = await createMobileFixture('inactive');
         await startAppClean($);
         await _login($, fixture.email, mobileFixturePassword);
-        await $('Usuário desativado. Entre em contato com o administrador.')
+        await $('Login ou senha incorretos, tente novamente!')
             .waitUntilVisible();
         expect(
-          $('Usuário desativado. Entre em contato com o administrador.'),
+          $('Login ou senha incorretos, tente novamente!'),
           findsOneWidget,
         );
       } finally {
@@ -244,6 +264,26 @@ void main() {
       expect($('Novo Orç.'), findsOneWidget);
     },
   );
+
+  patrolTest(
+    'CT-MOB-AUT-015 — 401 do webservice principal encerra a sessão',
+    config: patrolConfig,
+    skip: true, // Exige interceptar 401 do webservice principal sem substituir a UI.
+    ($) async {
+      await startApp($);
+      expect($('Acessar'), findsOneWidget);
+    },
+  );
+
+  patrolTest(
+    'CT-MOB-AUT-016 — 401 do File Manager não encerra a sessão',
+    config: patrolConfig,
+    skip: true, // Exige 401 isolado do File Manager sem derrubar o token principal.
+    ($) async {
+      await startApp($);
+      expect($('Acessar'), findsOneWidget);
+    },
+  );
 }
 
 /// Realiza o login preenchendo e-mail, senha e tocando em "Acessar".
@@ -261,4 +301,12 @@ Future<void> _login(
 Future<void> _openProfileMenu(PatrolIntegrationTester $) async {
   await $(UserAvatarWidget).tap();
   await $.pumpAndSettle();
+}
+
+Future<void> _logoutToLogin(PatrolIntegrationTester $) async {
+  await _openProfileMenu($);
+  await $('Sair').tap();
+  await $.pumpAndSettle();
+  await $('Sair').tap();
+  await $('Acessar').waitUntilVisible();
 }

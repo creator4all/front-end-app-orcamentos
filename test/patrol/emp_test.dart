@@ -1,7 +1,8 @@
 // Testes Patrol — Domínio EMP (Empresa)
 //
-// Cobrem os 3 casos aprovados do relatório MOBILE-RELATORIO-CONSOLIDADO.md:
-//   CT-MOB-EMP-001, 002, 005
+// Casos automatizados: EMP-001, 002, 005
+// Casos skipados (requerem image picker/cropper nativo):
+//   EMP-007, 008
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patrol/patrol.dart';
@@ -49,6 +50,34 @@ void main() {
       // O campo de email está no formulário de edição da empresa.
       await $.pumpAndSettle();
       // Esperado: ao tentar salvar com email inválido, exibe erro.
+      expect($('Editar Empresa'), findsOneWidget);
+    },
+  );
+
+  patrolTest(
+    'CT-MOB-EMP-007 — Cancelar recorte da logo',
+    config: patrolConfig,
+    skip:
+        true, // Requer image_picker e image_cropper nativos (galeria + UI de recorte) — patrol não interage com diálogos nativos de seleção/recorte de imagem.
+    ($) async {
+      await loginAsAdmin($);
+      await openProfileMenu($);
+      await $('Editar empresa').tap();
+      await $.pumpAndSettle();
+      expect($('Editar Empresa'), findsOneWidget);
+    },
+  );
+
+  patrolTest(
+    'CT-MOB-EMP-008 — Rejeitar formato/proporção inválida de logo',
+    config: patrolConfig,
+    skip:
+        true, // Requer image_picker com arquivo de proporção inválida e image_cropper nativo — patrol não controla a galeria nem o recorte nativo.
+    ($) async {
+      await loginAsAdmin($);
+      await openProfileMenu($);
+      await $('Editar empresa').tap();
+      await $.pumpAndSettle();
       expect($('Editar Empresa'), findsOneWidget);
     },
   );

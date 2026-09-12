@@ -27,7 +27,3 @@ const String mobileFixtureApiKey =
     String.fromEnvironment('PATROL_MOBILE_FIXTURE_API_KEY');
 const String mobileFixturePassword =
     String.fromEnvironment('PATROL_MOBILE_FIXTURE_PASSWORD');
-const int mobileFixtureSourceUserId = int.fromEnvironment(
-  'PATROL_MOBILE_FIXTURE_SOURCE_USER_ID',
-  defaultValue: 6,
-);

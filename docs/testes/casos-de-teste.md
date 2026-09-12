@@ -5,6 +5,7 @@
 > **Escopo:** somente comportamentos observáveis ou acionáveis pela interface do aplicativo Android/iOS. Não inclui casos exclusivos do painel web, chamadas diretas de API, jobs, banco de dados ou regras internas sem efeito observável no App.
 > **Convenção:** `CT-MOB-<DOMÍNIO>-NNN`.
 > **Execução:** interação real pela interface, preferencialmente via mobile-MCP em emulador Android.
+> **Atualização v2:** 12 casos existentes revisados e 6 casos novos (AUT-015/016, ORC-021/022, CAL-013, EXP-008). Total **196**. Nenhum ID anterior foi removido.
 
 ## 1. Regras da execução
 
@@ -31,11 +32,20 @@ Para cada execução, registrar: **resultado esperado**, **resultado obtido**, *
 
 ## 3. Autenticação e sessão (AUT)
 
-### CT-MOB-AUT-001 — Login mobile válido sem OTP
-**Pré-condição:** Usuário ativo com credenciais válidas.
-**Passos:** Abrir o App; informar e-mail e senha; tocar em **Acessar**.
-**Esperado:** Login concluído sem tela de OTP e lista de orçamentos exibida.
-**Rastreabilidade:** RF-AUT-001; RN-AUT-001.
+### CT-MOB-AUT-001 — Login mobile válido sem OTP para todos os perfis
+**Pré-condição:** Contas ativas de Administrador, Gestor e Vendedor com credenciais válidas.
+**Passos:**
+1. Executar o cenário como Administrador.
+2. Informar e-mail e senha válidos.
+3. Tocar em **Acessar**.
+4. Repetir como Gestor.
+5. Repetir como Vendedor.
+**Esperado:**
+- Os três perfis autenticam com e-mail e senha.
+- Nenhum deles recebe tela de OTP no login mobile.
+- O token de sessão é criado diretamente.
+- A área autenticada correspondente ao perfil é exibida.
+**Rastreabilidade:** RF-AUT-001; RN-AUT-001; CA-AUT-005.
 
 ### CT-MOB-AUT-002 — Login com senha incorreta
 **Pré-condição:** Usuário ativo.
@@ -109,6 +119,35 @@ Para cada execução, registrar: **resultado esperado**, **resultado obtido**, *
 **Esperado:** Botão fica desabilitado/carregando e não gera múltiplas navegações ou sessões.
 **Rastreabilidade:** Tela `login_page.dart`.
 
+### CT-MOB-AUT-015 — 401 do webservice principal encerra a sessão
+**Pré-condição:** Usuário autenticado e condição controlada para que uma operação no webservice principal responda `401`.
+**Passos:**
+1. Permanecer autenticado no App.
+2. Executar uma operação que use o webservice principal.
+3. Fazer a operação retornar `401`.
+**Esperado:**
+- A sessão é considerada inválida.
+- Dados locais de autenticação são limpos.
+- O usuário é direcionado ao login.
+- Conteúdo autenticado deixa de ficar acessível.
+**Rastreabilidade:** RF-AUT-004; RN-AUT-008.
+
+### CT-MOB-AUT-016 — 401 do File Manager não encerra a sessão
+**Pré-condição:**
+- Sessão válida no webservice principal.
+- Condição controlada para uma operação do Drive/File Manager retornar `401`.
+**Passos:**
+1. Abrir o Drive.
+2. Provocar `401` somente na operação relacionada ao File Manager.
+3. Fechar/tratar o erro.
+4. Navegar para outro módulo autenticado do App.
+**Esperado:**
+- A operação do Drive apresenta erro.
+- O usuário permanece autenticado.
+- O App não redireciona automaticamente ao login.
+- Demais operações autenticadas continuam funcionando.
+**Rastreabilidade:** RN-AUT-008; RF-DRV-001/RF-DRV-004.
+
 ---
 
 ## 4. Recuperação de senha (RPS)
@@ -140,11 +179,18 @@ Para cada execução, registrar: **resultado esperado**, **resultado obtido**, *
 **Esperado:** Tela de definição da nova senha exibida.
 **Rastreabilidade:** RF-AUT-003; RN-AUT-007.
 
-### CT-MOB-RPS-006 — Rejeitar OTP incorreto
-**Pré-condição:** Solicitação de recuperação ativa.
-**Passos:** Informar código incorreto.
-**Esperado:** Código rejeitado sem avançar para nova senha.
-**Rastreabilidade:** RF-AUT-003.
+### CT-MOB-RPS-006 — OTPs incorretos não bloqueiam a recuperação
+**Pré-condição:** Solicitação de recuperação ativa e OTP ainda dentro do prazo de validade.
+**Passos:**
+1. Informar um OTP incorreto.
+2. Repetir com outros códigos incorretos várias vezes.
+3. Ainda dentro da validade do OTP, informar o código correto.
+**Esperado:**
+- Cada código incorreto é rejeitado.
+- A conta não é bloqueada.
+- O fluxo de recuperação não é encerrado por quantidade de tentativas.
+- O OTP correto continua sendo aceito enquanto não tiver expirado.
+**Rastreabilidade:** RF-AUT-003; RN-AUT-003.
 
 ### CT-MOB-RPS-007 — Rejeitar OTP expirado
 **Pré-condição:** OTP expirado preparado no ambiente.
@@ -152,11 +198,21 @@ Para cada execução, registrar: **resultado esperado**, **resultado obtido**, *
 **Esperado:** Mensagem de código inválido/expirado e opção de solicitar novo código.
 **Rastreabilidade:** RF-AUT-003.
 
-### CT-MOB-RPS-008 — Reenviar OTP
-**Pré-condição:** Usuário na tela de OTP.
-**Passos:** Acionar reenvio; usar o novo código.
-**Esperado:** Novo código aceito; código anterior deixa de ser utilizável conforme regra vigente.
-**Rastreabilidade:** RF-AUT-003.
+### CT-MOB-RPS-008 — Reenviar OTP após cooldown de 60 segundos
+**Pré-condição:** Usuário na tela de OTP da recuperação de senha.
+**Passos:**
+1. Tentar solicitar novo OTP imediatamente.
+2. Verificar o estado do botão/contador de reenvio.
+3. Aguardar o término dos 60 segundos.
+4. Solicitar novo OTP.
+5. Informar o OTP válido recebido.
+**Esperado:**
+- O reenvio fica indisponível durante os 60 segundos.
+- O App apresenta o cooldown de forma coerente.
+- Após os 60 segundos, uma nova solicitação pode ser realizada.
+- Um OTP válido permite continuar a recuperação.
+- A v2 não exige que o código anterior deixe de ser utilizável.
+**Rastreabilidade:** RF-AUT-003; RN-AUT-002; RN-AUT-003.
 
 ### CT-MOB-RPS-009 — Rejeitar nova senha fora da política
 **Pré-condição:** OTP validado.
@@ -282,8 +338,15 @@ Para cada execução, registrar: **resultado esperado**, **resultado obtido**, *
 ### CT-MOB-NAV-003 — Menu de gestor
 **Pré-condição:** Gestor autenticado com empresa.
 **Passos:** Abrir menu.
-**Esperado:** Além das opções comuns, exibe Editar empresa e Gestão administrativa; não exibe Configurar produtos ou Prospecção.
-**Rastreabilidade:** Matriz de papéis; `profile_modal.dart`.
+**Esperado:**
+- Exibe as opções comuns do Gestor.
+- Exibe **Editar empresa**.
+- Exibe o acesso à gestão dos usuários/vendedores da própria empresa.
+- Não exibe **Configurar produtos**.
+- Não exibe **Prospecção**.
+- Não oferece acesso a relatórios de vendas/orçamentos.
+- Não oferece funcionalidades administrativas exclusivas do Administrador.
+**Rastreabilidade:** Matriz de papéis; RF-USR-001; matriz de permissões da v2; `profile_modal.dart`.
 
 ### CT-MOB-NAV-004 — Menu de administrador
 **Pré-condição:** Administrador autenticado.
@@ -377,10 +440,17 @@ Para cada execução, registrar: **resultado esperado**, **resultado obtido**, *
 **Esperado:** Tela de edição carrega censo, produtos, quantidades, validade e total corretos.
 **Rastreabilidade:** RF-ORC-004.
 
-### CT-MOB-ORC-013 — Renomear orçamento com nome válido
-**Pré-condição:** Orçamento permitido.
-**Passos:** Abrir ação de renomear; informar novo nome; confirmar.
-**Esperado:** Sucesso informado e novo nome refletido na lista após atualização.
+### CT-MOB-ORC-013 — Aceitar nomes nos limites válidos ao renomear
+**Pré-condição:** Orçamento permitido para edição.
+**Passos:**
+1. Renomear o orçamento utilizando um nome com exatamente 1 caractere.
+2. Confirmar.
+3. Repetir utilizando um nome com exatamente 255 caracteres.
+**Esperado:**
+- Nome com 1 caractere é aceito.
+- Nome com 255 caracteres é aceito.
+- O novo nome é persistido.
+- O valor correto aparece após recarregar a lista/detalhe.
 **Rastreabilidade:** RF-ORC-007; RN-ORC-010.
 
 ### CT-MOB-ORC-014 — Rejeitar nome vazio ao renomear
@@ -405,23 +475,85 @@ Para cada execução, registrar: **resultado esperado**, **resultado obtido**, *
 **Esperado:** Registro retorna à listagem ativa sem mudança indevida do status.
 **Rastreabilidade:** RF-ORC-006; RN-ORC-009.
 
-### CT-MOB-ORC-018 — Versionar orçamento
-**Pré-condição:** Orçamento permitido com produtos.
-**Passos:** Solicitar nova versão; concluir o fluxo.
-**Esperado:** Nova versão ativa criada com dados herdados e original arquivado; não há edição destrutiva do original.
-**Rastreabilidade:** RF-ORC-005; RN-ORC-007.
+### CT-MOB-ORC-018 — Versionar orçamento preservando versão anterior e censo
+**Pré-condição:**
+- Orçamento permitido com produtos, quantidades e censo conhecidos.
+- Ter cenário de cidade única e cenário multi-cidade preparados.
+**Passos:**
+1. Registrar valores da versão atual.
+2. Solicitar nova versão.
+3. Alterar uma quantidade/produto na nova versão.
+4. Concluir o versionamento.
+5. Abrir a nova versão.
+6. Consultar novamente a versão anterior.
+7. Repetir o fluxo com orçamento multi-cidade.
+**Esperado:**
+- A versão original fica arquivada.
+- A versão original permanece com seus valores anteriores.
+- A alteração aparece somente na nova versão.
+- A nova versão fica vinculada à anterior.
+- O censo utilizado pela versão anterior é preservado na nova versão.
+- O censo não é silenciosamente substituído pelo censo oficial mais recente.
+- Cidade única e multi-cidade seguem a mesma regra de versionamento.
+**Rastreabilidade:** RF-ORC-005; RN-ORC-007; RN-ORC-008; CA-ORC-012.
 
-### CT-MOB-ORC-019 — Bloquear edição sem permissão
-**Pré-condição:** Usuário sem direito sobre o orçamento; acesso preparado por estado/rota controlada.
-**Passos:** Tentar abrir ou salvar alterações.
-**Esperado:** Acesso negado sem exposição ou persistência de dados não autorizados.
-**Rastreabilidade:** RF-ORC-004; regras de papéis.
+### CT-MOB-ORC-019 — Bloquear operações em orçamento sem permissão
+**Pré-condição:**
+- Vendedor autenticado.
+- Existe orçamento pertencente a outro vendedor.
+- Quando necessário, acesso preparado por rota/estado controlado sem substituir a interação real pela interface.
+**Passos:**
+Tentar, conforme as ações existentes no App:
+1. Abrir o orçamento.
+2. Editar.
+3. Gerar PDF.
+4. Exportar CSV.
+5. Visualizar censo.
+6. Arquivar/desarquivar.
+7. Versionar.
+**Esperado:**
+- Nenhuma operação não autorizada é concluída.
+- O usuário não recebe dados protegidos do orçamento.
+- Nenhuma alteração é persistida.
+- A autorização não depende apenas do orçamento estar oculto na listagem.
+**Rastreabilidade:** RN-ORC-005; CA-PER-003; RF-ORC-004; RF-ORC-005; RF-ORC-006; RF-ORC-009; RF-ORC-010.
 
 ### CT-MOB-ORC-020 — Orçamento finalizado/somente leitura
 **Pré-condição:** Orçamento em estado não editável conforme regra vigente.
 **Passos:** Abrir e tentar alterar.
 **Esperado:** Campos/ações bloqueados ou mensagem de ação não permitida; nenhum dado alterado.
 **Rastreabilidade:** Ciclo de vida do orçamento.
+
+### CT-MOB-ORC-021 — Renomear usando exatamente o nome atual
+**Pré-condição:** Orçamento permitido com nome conhecido.
+**Passos:**
+1. Abrir a ação de renomear.
+2. Informar exatamente o mesmo nome atualmente salvo.
+3. Confirmar.
+**Esperado:**
+- A operação não é rejeitada por “nome igual”.
+- O sistema retorna sucesso/controla a operação normalmente.
+- O orçamento continua com o mesmo nome.
+- Nenhum dado adicional é alterado.
+**Rastreabilidade:** RF-ORC-007; RN-ORC-010.
+
+### CT-MOB-ORC-022 — Histórico de parceiro inativo continua acessível
+**Pré-condição:**
+- Parceiro atualmente inativo.
+- Parceiro possui orçamento criado antes da inativação.
+- Usuário autenticado com permissão para consultar esse orçamento.
+**Passos:**
+1. Abrir a lista de orçamentos.
+2. Localizar o orçamento histórico do parceiro inativo.
+3. Abrir o orçamento.
+4. Gerar PDF, quando permitido.
+5. Exportar o censo, quando permitido.
+**Esperado:**
+- A inativação do parceiro não apaga nem oculta automaticamente seu histórico.
+- O orçamento anterior continua consultável conforme as permissões normais.
+- Operações de leitura/exportação permitidas continuam disponíveis.
+- A restrição do parceiro inativo aplica-se à criação de **novos** orçamentos, e não ao histórico.
+**Rastreabilidade:** RN-PAR-001; RN-ORC-015.
 
 ---
 
@@ -439,11 +571,24 @@ Para cada execução, registrar: **resultado esperado**, **resultado obtido**, *
 **Esperado:** Seleção “Gerar orçamento para” aparece apenas para administrador; demais criam no próprio parceiro.
 **Rastreabilidade:** RF-ORC-001; matriz de papéis.
 
-### CT-MOB-CRI-003 — Selecionar parceiro de destino como administrador
-**Pré-condição:** Administrador e ao menos dois parceiros ativos.
-**Passos:** Buscar e selecionar parceiro; prosseguir com orçamento.
-**Esperado:** Parceiro correto associado; nomes duplicados são desambiguados por CNPJ quando disponível.
-**Rastreabilidade:** RF-ORC-001; `new_budget_page.dart`.
+### CT-MOB-CRI-003 — Selecionar somente parceiro ativo como destino
+**Pré-condição:**
+- Administrador autenticado.
+- Ao menos um parceiro ativo.
+- Ao menos um parceiro inativo.
+**Passos:**
+1. Abrir novo orçamento.
+2. Abrir **Gerar orçamento para**.
+3. Buscar o parceiro ativo.
+4. Buscar o parceiro inativo.
+5. Selecionar o parceiro ativo.
+6. Prosseguir com a criação.
+**Esperado:**
+- Parceiro ativo pode ser selecionado.
+- Parceiro inativo não pode ser utilizado como destino de um novo orçamento.
+- O orçamento criado fica associado ao parceiro ativo selecionado.
+- Nomes duplicados continuam sendo desambiguados por CNPJ quando disponível.
+**Rastreabilidade:** RF-ORC-001; RN-PAR-001.
 
 ### CT-MOB-CRI-004 — Validar estado e cidade obrigatórios
 **Passos:** Tentar criar orçamento de cidade única sem selecionar localização.
@@ -461,11 +606,21 @@ Para cada execução, registrar: **resultado esperado**, **resultado obtido**, *
 **Esperado:** Orçamento salvo, status final esperado exibido e snapshot do censo associado à cidade.
 **Rastreabilidade:** RF-ORC-001; CA-ORC-001.
 
-### CT-MOB-CRI-007 — Cancelar criação após rascunho
+### CT-MOB-CRI-007 — Abandonar rascunho não cria orçamento recuperável
 **Pré-condição:** Rascunho criado e tela de configuração aberta.
-**Passos:** Voltar antes de salvar a configuração.
-**Esperado:** App solicita confirmação quando necessário e não deixa navegação inconsistente; eventual rascunho segue a regra documentada.
-**Rastreabilidade:** Ciclo de vida do orçamento; PV-001.
+**Passos:**
+1. Voltar antes de finalizar a configuração.
+2. Confirmar a saída quando solicitado.
+3. Voltar à lista de orçamentos.
+4. Atualizar a lista.
+5. Encerrar e reabrir o App.
+6. Procurar o orçamento abandonado.
+**Esperado:**
+- O fluxo é abandonado sem navegação inconsistente.
+- O rascunho abandonado não aparece na lista de orçamentos.
+- O rascunho não é oferecido para retomada.
+- Reabrir o App não recupera o rascunho como orçamento do usuário.
+**Rastreabilidade:** ciclo de vida do orçamento; estado `rascunho`; RN-ORC-015.
 
 ### CT-MOB-CRI-008 — Exigir nome no multi-cidade
 **Passos:** Selecionar fluxo multi-cidade; deixar nome vazio; tentar avançar.
@@ -534,10 +689,18 @@ Para cada execução, registrar: **resultado esperado**, **resultado obtido**, *
 **Esperado:** Produto entra no orçamento com quantidade e subtotal coerentes; demais permanecem desmarcados.
 **Rastreabilidade:** RF-ORC-001.
 
-### CT-MOB-CRI-020 — Salvar orçamento sem produtos
-**Passos:** Deixar todos os produtos desmarcados; salvar.
-**Esperado:** Alerta “Orçamento sem produtos” com **Cancelar** e **Salvar mesmo assim**; cada ação respeita a escolha.
-**Rastreabilidade:** `config_new_budget_page.dart`; PV-020.
+### CT-MOB-CRI-020 — Impedir finalização com total menor ou igual a zero
+**Pré-condição:** Fluxo de criação na tela de configuração.
+**Passos:**
+1. Deixar todos os produtos desmarcados ou preparar configuração cujo total seja zero.
+2. Tocar em salvar.
+3. Caso o App apresente o diálogo **Orçamento sem produtos**, acionar também a opção que tenta continuar o salvamento.
+**Esperado:**
+- O orçamento não é finalizado enquanto o total for menor ou igual a zero.
+- O registro não deve chegar ao estado final `pendente` com total zero.
+- O usuário permanece no fluxo para corrigir a configuração.
+- Não deve ser considerado sucesso apenas porque existe uma opção visual **Salvar mesmo assim**.
+**Rastreabilidade:** RF-ORC-001; seção 9.4 da v2.
 
 ### CT-MOB-CRI-021 — Validade mínima válida
 **Passos:** Definir validade em 1 dia e salvar orçamento válido.
@@ -591,10 +754,19 @@ Para cada execução, registrar: **resultado esperado**, **resultado obtido**, *
 **Esperado:** Quantidade e subtotal seguem `(soma relacionada × percentual) + horas fixas`; divergência de arredondamento, se observada, é registrada como falha/achado.
 **Rastreabilidade:** Seção 12.5; CA-CAL-004.
 
-### CT-MOB-CAL-005 — Total do orçamento
-**Passos:** Selecionar múltiplos produtos com quantidades conhecidas.
-**Esperado:** Total exibido é a soma dos subtotais, com formatação monetária pt-BR.
-**Rastreabilidade:** Seção 12.8.
+### CT-MOB-CAL-005 — Total preserva precisão e apresenta valor monetário corretamente
+**Pré-condição:** Produtos/quantidades preparados de forma que os cálculos intermediários possuam precisão superior a duas casas decimais.
+**Passos:**
+1. Selecionar os produtos.
+2. Executar o cálculo.
+3. Comparar os subtotais e total esperado utilizando a precisão completa dos valores.
+4. Verificar a exibição monetária na interface.
+**Esperado:**
+- O cálculo utiliza a precisão dos valores intermediários sem truncamento/arredondamento antecipado.
+- O total corresponde à soma matemática dos subtotais.
+- A apresentação monetária ao usuário utiliza o formato pt-BR adequado.
+- A formatação visual não altera o valor utilizado nos cálculos seguintes.
+**Rastreabilidade:** seção 12.8 da v2; RN-ORC-006.
 
 ### CT-MOB-CAL-006 — Ativar quantidade manual
 **Pré-condição:** Produto selecionado com quantidade automática.
@@ -637,6 +809,22 @@ Para cada execução, registrar: **resultado esperado**, **resultado obtido**, *
 **Esperado:** Edição salva e status resultante segue a regra de retorno a pendente.
 **Rastreabilidade:** Ciclo de vida, seção 10.1.
 
+### CT-MOB-CAL-013 — Serviço aceita percentual zero
+**Pré-condição:**
+- Serviço com pelo menos um produto relacionado válido.
+- Percentual configurado como `0%`.
+- Horas fixas conhecidas, por exemplo `40`.
+**Passos:**
+1. Selecionar o produto relacionado.
+2. Selecionar o serviço configurado com percentual `0%`.
+3. Verificar quantidade e subtotal.
+**Esperado:**
+- Percentual `0%` é aceito.
+- O serviço não é rejeitado por percentual zero.
+- A quantidade é determinada pelas horas fixas.
+- Exemplo: percentual `0%` + `40` horas fixas resulta em quantidade `40`.
+**Rastreabilidade:** RN-CAT-005; regra de cálculo de serviços.
+
 ---
 
 ## 10. Geração e compartilhamento (EXP)
@@ -678,6 +866,31 @@ Para cada execução, registrar: **resultado esperado**, **resultado obtido**, *
 **Passos:** Acionar exportação do censo.
 **Esperado:** Arquivo CSV gerado e oferecido ao compartilhamento; indicadores e valores possuem estrutura legível.
 **Rastreabilidade:** RF-ORC-010; CA-ORC-009.
+
+### CT-MOB-EXP-008 — Gerar PDF renova validade para 60 dias
+**Pré-condição:**
+- Orçamento com dados obrigatórios do vendedor preenchidos.
+- Data de validade conhecida.
+
+**Cenário A — orçamento ainda válido**
+**Passos:**
+1. Registrar a validade atual.
+2. Gerar/compartilhar o PDF.
+3. Atualizar/reabrir o orçamento.
+**Esperado:**
+- A validade passa a corresponder a **60 dias contados da operação**.
+- O prazo anterior não é simplesmente reutilizado.
+
+**Cenário B — orçamento expirado**
+**Passos:**
+1. Usar orçamento em status expirado.
+2. Gerar/compartilhar o PDF.
+3. Atualizar/reabrir o orçamento.
+**Esperado:**
+- A geração é capaz de renovar a validade.
+- A nova validade corresponde a **60 dias a partir da operação**.
+- A renovação não depende do antigo número de dias configurado no orçamento.
+**Rastreabilidade:** RF-ORC-009; RN-ORC-013; CA-ORC-010.
 
 ---
 
@@ -874,11 +1087,26 @@ Para cada execução, registrar: **resultado esperado**, **resultado obtido**, *
 **Esperado:** Lista de vendedores/orçamentos referente ao parceiro selecionado.
 **Rastreabilidade:** RF-REL-001/RF-REL-002; rota `/reports/partner/:partnerId`.
 
-### CT-MOB-ADM-006 — Relatório por vendedor e período
-**Pré-condição:** Vendedor com orçamentos em estados conhecidos.
-**Passos:** Abrir vendedor; aplicar datas inicial/final válidas.
-**Esperado:** Totais e contagens por status correspondem ao período e vendedor selecionados.
-**Rastreabilidade:** RF-REL-002.
+### CT-MOB-ADM-006 — Relatório de orçamentos por vendedor com filtros
+**Pré-condição:**
+- Administrador autenticado.
+- Vendedor com orçamentos em diferentes status, datas, cidades/estados e situações de arquivamento.
+**Passos:**
+1. Abrir relatórios da empresa.
+2. Selecionar vendedor.
+3. Filtrar por período.
+4. Filtrar por status.
+5. Filtrar por arquivado/não arquivado.
+6. Filtrar por localização disponível no App.
+7. Combinar filtros.
+8. Limpar os filtros.
+**Esperado:**
+- Somente orçamentos do vendedor selecionado são exibidos.
+- Cada filtro restringe corretamente os resultados.
+- A combinação de filtros é coerente.
+- Limpar filtros restaura os resultados esperados.
+- Totais e contagens correspondem ao conjunto filtrado.
+**Rastreabilidade:** RF-REL-002; RN-REL-002.
 
 ### CT-MOB-ADM-007 — Validar intervalo de datas do relatório
 **Passos:** Definir data inicial posterior à final.
@@ -1169,14 +1397,14 @@ Para cada execução, registrar: **resultado esperado**, **resultado obtido**, *
 
 | Domínio | Quantidade |
 |---|---:|
-| Autenticação e sessão (AUT) | 14 |
+| Autenticação e sessão (AUT) | 16 |
 | Recuperação de senha (RPS) | 11 |
 | Cadastro e parceria (REG) | 15 |
 | Navegação e permissões (NAV) | 6 |
-| Lista e ações de orçamento (ORC) | 20 |
+| Lista e ações de orçamento (ORC) | 22 |
 | Criação/configuração (CRI) | 25 |
-| Cálculos e edição (CAL) | 12 |
-| Geração/compartilhamento (EXP) | 7 |
+| Cálculos e edição (CAL) | 13 |
+| Geração/compartilhamento (EXP) | 8 |
 | Perfil e conta (PRF) | 10 |
 | Empresa (EMP) | 8 |
 | Gestão de usuários (USR) | 9 |
@@ -1186,13 +1414,21 @@ Para cada execução, registrar: **resultado esperado**, **resultado obtido**, *
 | Drive (DRV) | 15 |
 | Wiki e links (WIK) | 4 |
 | Compatibilidade e exploração (NFR) | 12 |
-| **Total** | **190** |
+| **Total** | **196** |
 
 ## 21. Fora do escopo desta suíte
 
 Não pertencem a esta suíte mobile:
 
 - login OTP exclusivo do painel web;
+- Gestor/Vendedor bloqueados no painel mesmo com token obtido pelo App;
+- middleware de autorização do painel e tema claro/escuro do painel;
+- decisão interna de autorização por capacidade `all` (não criar `CT-MOB-*` baseado só em `roleId` ou nome literal);
+- preservação de produtos na API ao enviar `produtos: []`, `null` ou omitir o campo, sem ação observável no App;
+- histórico de versões incluindo a versão atual, enquanto não existir tela mobile de histórico;
+- dashboard com agrupamento diário/mensal (quando a tela não existir no App);
+- carta senha / PDF de credenciais sem tela mobile;
+- exportação completa do orçamento em Excel/CSV (adiada; ausência não é defeito da versão atual);
 - criação/edição de papéis e capacidades sem tela correspondente no App;
 - CRUD completo de categorias/subcategorias pelo painel;
 - criação de parceiro e geração administrativa de PDF de credenciais/acessos quando não houver tela mobile;

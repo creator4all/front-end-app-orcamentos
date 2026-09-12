@@ -1,7 +1,7 @@
 // Testes Patrol — Domínio USR (Gestão de usuários)
 //
-// Cobrem os 2 casos aprovados do relatório MOBILE-RELATORIO-CONSOLIDADO.md:
-//   CT-MOB-USR-002, USR-008
+// Cobrem os casos automatizados desta suíte:
+//   CT-MOB-USR-001, USR-002, USR-008
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -40,16 +40,39 @@ void main() {
       await $('Gestão de Empresas').waitUntilVisible();
       await $('Usuários').at(0).tap();
       await $('Gestão de Usuários').waitUntilVisible();
-      // Esperado: botão "Salvar Alterações" visível.
+      // Esperado: botão "Salvar Alterações" visível na gestão de usuários.
+      expect($('Gestão de Usuários'), findsOneWidget);
       // Toca em "Salvar Alterações" sem mudanças.
+      await $('Salvar Alterações').tap();
+      await $.pumpAndSettle();
+      // Esperado: "Nenhuma alteração para salvar".
+      expect($('Nenhuma alteração para salvar'), findsOneWidget);
+    },
+  );
+
+  patrolTest(
+    'CT-MOB-USR-001 — Gestor lista usuários da própria empresa',
+    config: patrolConfig,
+    ($) async {
+      MobileFixture? manager;
+      MobileFixture? subordinate;
       try {
-        await $('Salvar Alterações').tap();
-        await $.pumpAndSettle();
-        // Esperado: "Nenhuma alteração para salvar".
-        expect($('Nenhuma alteração para salvar'), findsOneWidget);
-      } catch (_) {
-        // Se não houver usuário selecionado, valida estabilidade.
-        expect($('Gestão de Usuários'), findsOneWidget);
+        manager = await createMobileFixture('manager');
+        subordinate = await createMobileFixture('subordinate');
+        await login($, email: manager.email, password: mobileFixturePassword);
+        await openProfileMenu($);
+        await $('Gestão administrativa').tap();
+        await $('Gestão de Usuários').waitUntilVisible();
+        await $(find.text(subordinate.name)).waitUntilVisible();
+        expect($(find.text(subordinate.name)), findsOneWidget);
+        expect($(find.text(subordinate.email)), findsOneWidget);
+      } finally {
+        if (subordinate != null) {
+          await deleteMobileFixture(subordinate.id);
+        }
+        if (manager != null) {
+          await deleteMobileFixture(manager.id);
+        }
       }
     },
   );
