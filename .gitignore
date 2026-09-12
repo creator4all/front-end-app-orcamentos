@@ -47,9 +47,10 @@ app.*.map.json
 /macos/
 /windows/
 /linux/
-/docs
-/docs/CASOS-TESTE.md
+
 /android/.gradle/
-*.g.dart
 .agent/
 android/app
+/tmp/
+/patrol_test/
+/test/patrol/test_bundle.dart
