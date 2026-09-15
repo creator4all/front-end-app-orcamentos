@@ -40,8 +40,8 @@ class BudgetDetailEntity extends Equatable {
   /// Classificação de multi-cidade declarada pelo backend (`multi_cidade`).
   ///
   /// O backend define multi-cidade por `orc_cidade_id === null`, o que admite
-  /// um orçamento multi-cidade com uma só cidade. Quando a chave não vem no
-  /// payload, [isMultiCity] volta a derivar pela quantidade de cidades.
+  /// um orçamento multi-cidade com uma só cidade. A quantidade de cidades não
+  /// classifica o orçamento; sem classificação, [isMultiCity] é falso.
   final bool? multiCity;
 
   final Map<String, double> censoAgregado;
@@ -74,7 +74,7 @@ class BudgetDetailEntity extends Equatable {
 
   bool get isPending => status.toLowerCase() == 'pendente';
 
-  bool get isMultiCity => multiCity ?? cityIds.length > 1;
+  bool get isMultiCity => multiCity ?? false;
 
   int get totalActiveProducts {
     return categories.fold(0, (sum, c) => sum + c.totalActiveProducts);

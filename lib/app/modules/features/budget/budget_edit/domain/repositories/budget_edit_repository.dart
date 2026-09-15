@@ -1,4 +1,4 @@
-﻿import 'package:dartz/dartz.dart';
+import 'package:dartz/dartz.dart';
 
 import '../../../shared/errors/budget_failure.dart';
 import '../../../shared/models/budget_update_dto.dart';
@@ -16,7 +16,8 @@ abstract class BudgetEditRepository {
     required int budgetId,
     required BudgetUpdateDto updateData,
   });
-  Future<Either<BudgetFailure, BudgetEditEntity>> versionMultiCityBudgetWithDto({
+  Future<Either<BudgetFailure, BudgetEditEntity>>
+      versionMultiCityBudgetWithDto({
     required int budgetId,
     required BudgetUpdateDto updateData,
   });

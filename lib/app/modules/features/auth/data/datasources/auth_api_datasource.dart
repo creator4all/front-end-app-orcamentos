@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../../../../config/api_config.dart';
+import '../../../../../shared/core/auth/session_expiration_handler.dart';
 import '../../../../../shared/core/constants/http_constants.dart';
 import '../../../../../shared/core/errors/http_exceptions.dart';
 import '../../../../../shared/core/http/app_http_client.dart';
@@ -62,6 +63,7 @@ class AuthApiDatasource implements AuthDatasource {
         );
 
         TokenCache.instance.setToken(token);
+        SessionExpirationHandler.arm();
       } else {
         throw Exception('Token não retornado pela API de login');
       }
@@ -159,9 +161,7 @@ class AuthApiDatasource implements AuthDatasource {
         throw Exception('Falha ao obter dados do usuário');
       }
     } on UnauthorizedException {
-      await secureStorage.delete(key: _tokenKey);
-      await secureStorage.delete(key: _userKey);
-      throw Exception('Sessão expirada. Faça login novamente.');
+      rethrow;
     } catch (e) {
       throw Exception('Erro inesperado ao obter usuário: $e');
     }

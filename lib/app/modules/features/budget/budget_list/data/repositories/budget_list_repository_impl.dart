@@ -57,16 +57,6 @@ class BudgetListRepositoryImpl implements BudgetListRepository {
     }
   }
 
-  @override
-  Future<Either<BudgetFailure, Unit>> deleteBudget(int budgetId) async {
-    try {
-      await remoteDataSource.deleteBudget(budgetId);
-      return const Right(unit);
-    } on Exception catch (e) {
-      return Left(_mapExceptionToFailure(e));
-    }
-  }
-
   /// Mapeia exceções para Failures apropriados
   BudgetFailure _mapExceptionToFailure(Exception exception) {
     final message = exception.toString();

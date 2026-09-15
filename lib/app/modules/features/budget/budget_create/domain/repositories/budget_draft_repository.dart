@@ -47,12 +47,13 @@ class CreateBudgetDraftParams {
 
     final Map<String, dynamic> data = {
       'orc_partner_destino_id': partnerId,
-      'orc_usuario_id': userId,
       'orc_cidade_id': cityId,
       'orc_status': 'rascunho',
       'orc_total': total,
       'orc_dias_validade': diasValidade.clamp(1, 365),
-      'orc_nome': stateUf.trim().isNotEmpty ? '$cityName - ${stateUf.trim()}' : cityName,
+      'orc_nome': stateUf.trim().isNotEmpty
+          ? '$cityName - ${stateUf.trim()}'
+          : cityName,
     };
 
     if (responsibleName != null && responsibleName!.isNotEmpty) {

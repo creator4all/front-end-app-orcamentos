@@ -43,10 +43,9 @@ class CidadeIndiceEtapaDto {
           (indiceEtapaJson['id'] as num?)?.toInt() ??
           (indiceEtapaJson['indice_etapa_id'] as num?)?.toInt() ??
           0,
-      nomeEtapa:
-          indiceEtapaJson['nome_etapa'] as String? ??
-              indiceEtapaJson['nome'] as String? ??
-              '',
+      nomeEtapa: indiceEtapaJson['nome_etapa'] as String? ??
+          indiceEtapaJson['nome'] as String? ??
+          '',
       tituloEtapa: indiceEtapaJson['titulo'] as String? ??
           indiceEtapaJson['titulo_etapa'] as String? ??
           indiceEtapaJson['nome'] as String? ??

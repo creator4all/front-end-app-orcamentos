@@ -27,8 +27,8 @@ class BudgetEditEntity extends Equatable {
 
   /// Classificação de multi-cidade declarada pelo backend (`multi_cidade`).
   ///
-  /// Decide o endpoint de versionamento. Quando a chave não vem no payload,
-  /// [isMultiCity] volta a derivar pela quantidade de cidades.
+  /// Decide o endpoint de versionamento. A quantidade de cidades não
+  /// classifica o orçamento; sem classificação, [isMultiCity] é falso.
   final bool? multiCity;
 
   final Map<String, double> censoAgregado;
@@ -87,7 +87,7 @@ class BudgetEditEntity extends Equatable {
       .where((p) => p.isSelected)
       .fold(0.0, (sum, p) => sum + p.totalPrice);
 
-  bool get isMultiCity => multiCity ?? cityIds.length > 1;
+  bool get isMultiCity => multiCity ?? false;
 
   @override
   List<Object?> get props => [

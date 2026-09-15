@@ -208,7 +208,7 @@ class _ReportCensusPageState extends State<ReportCensusPage> {
         ),
         SizedBox(height: 4.h),
         Text(
-          'Ano do Censo Escolar: ${_store.censoEscolar?.censoAno?.toString() ?? _mockYear}',
+          'Ano do Censo Escolar: ${_store.censoEscolar?.censoAnoLabel ?? _mockYear}',
           style: TextStyle(
             fontSize: 14.sp,
             fontWeight: FontWeight.w400,

@@ -23,6 +23,7 @@ abstract class _NewDriveStoreBase with Store {
   final GetOwnFilesUseCase getOwnFilesUseCase;
   final GetFolderContentsUseCase getFolderContentsUseCase;
   final DriveRepository driveRepository;
+  int _folderRequestVersion = 0;
 
   _NewDriveStoreBase({
     required this.getRecentItemsUseCase,
@@ -215,12 +216,15 @@ abstract class _NewDriveStoreBase with Store {
 
   @action
   Future<void> loadFolderContents(String folderId) async {
+    final requestVersion = ++_folderRequestVersion;
     isLoadingFolder = true;
     errorMessage = null;
     activeFolderId = folderId;
+    currentFolder = folderCache[folderId];
 
     try {
       final result = await getFolderContentsUseCase(folderId);
+      if (requestVersion != _folderRequestVersion) return;
 
       result.fold(
         (failure) => errorMessage = failure.message,
@@ -230,9 +234,13 @@ abstract class _NewDriveStoreBase with Store {
         },
       );
     } catch (e) {
-      errorMessage = 'Erro ao carregar conteúdo da pasta';
+      if (requestVersion == _folderRequestVersion) {
+        errorMessage = 'Erro ao carregar conteúdo da pasta';
+      }
     } finally {
-      isLoadingFolder = false;
+      if (requestVersion == _folderRequestVersion) {
+        isLoadingFolder = false;
+      }
     }
   }
 
@@ -395,33 +403,18 @@ abstract class _NewDriveStoreBase with Store {
       return;
     }
     folderStack.add(FolderBreadcrumb(id: folderId, name: folderName));
+    _activateFolder(folderId);
   }
 
   @action
   void navigateBack() {
-    if (folderStack.isNotEmpty) {
-      folderStack.removeLast();
-
-      if (folderStack.isNotEmpty) {
-        final previousFolderId = folderStack.last.id;
-        activeFolderId = previousFolderId;
-
-        // Restaurar do cache para evitar condição de corrida com chamada async
-        final cachedFolder = folderCache[previousFolderId];
-        if (cachedFolder != null) {
-          currentFolder = cachedFolder;
-        } else {
-          loadFolderContents(previousFolderId);
-        }
-      } else {
-        currentFolder = null;
-        activeFolderId = null;
-      }
-    }
+    if (folderStack.isEmpty) return;
+    navigateToStackIndex(folderStack.length - 2);
   }
 
   @action
   void navigateToStackIndex(int index) {
+    if (index == folderStack.length - 1 && index >= 0) return;
     if (index >= 0 && index < folderStack.length) {
       final itemsToRemove = folderStack.length - 1 - index;
       for (var i = 0; i < itemsToRemove; i++) {
@@ -429,12 +422,8 @@ abstract class _NewDriveStoreBase with Store {
       }
 
       final targetFolderId = folderStack.last.id;
-      activeFolderId = targetFolderId;
-
-      final cachedFolder = folderCache[targetFolderId];
-      if (cachedFolder != null) {
-        currentFolder = cachedFolder;
-      } else {
+      _activateFolder(targetFolderId);
+      if (currentFolder == null) {
         loadFolderContents(targetFolderId);
       }
     } else if (index == -1) {
@@ -442,12 +431,22 @@ abstract class _NewDriveStoreBase with Store {
     }
   }
 
+  // As transições invalidam respostas de pastas abandonadas, inclusive após
+  // sair e entrar novamente na mesma pasta antes de uma resposta chegar.
+  void _activateFolder(String? folderId) {
+    _folderRequestVersion++;
+    activeFolderId = folderId;
+    currentFolder = folderCache[folderId];
+    isLoadingFolder = false;
+    errorMessage = null;
+    searchQuery = '';
+  }
+
   /// Limpa todo o estado de navegação de pastas (stack, cache, currentFolder).
   @action
   void clearFolderNavigation() {
     folderStack.clear();
     folderCache.clear();
-    currentFolder = null;
-    activeFolderId = null;
+    _activateFolder(null);
   }
 }

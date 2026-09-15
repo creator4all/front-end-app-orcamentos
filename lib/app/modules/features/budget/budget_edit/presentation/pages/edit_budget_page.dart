@@ -48,6 +48,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
   bool _shouldRefreshBudgetList = false;
   String? _lastShownLoadErrorMessage;
   Map<String, dynamic>? _budgetListPatch;
+  bool _isClosing = false;
 
   final TextEditingController _dataOrcamentoController =
       TextEditingController();
@@ -62,8 +63,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
         final dias = nonNegativeDaysUntil(store.validityDate!);
         _validadeOrcamentoController.text = dias.toString();
       } else {
-        _validadeOrcamentoController.text = '60';
-        _updateValidityDate(60);
+        _validadeOrcamentoController.clear();
       }
     } finally {
       _validadeOrcamentoController.addListener(_onValidityDaysChanged);
@@ -101,6 +101,45 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     }
 
     return store.hasChanges ? '$title *' : title;
+  }
+
+  Future<void> _requestClosePage() async {
+    if (_isClosing || store.isSaving) return;
+    _isClosing = true;
+
+    if (store.hasChanges) {
+      final discard = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Descartar alterações?'),
+          content: const Text(
+            'As alterações não salvas serão perdidas. Deseja sair da edição?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFE55353),
+              ),
+              child: const Text('Descartar'),
+            ),
+          ],
+        ),
+      );
+
+      if (!mounted) return;
+      if (discard != true) {
+        _isClosing = false;
+        return;
+      }
+    }
+
+    if (!mounted) return;
+    _closePage();
   }
 
   void _closePage({Map<String, dynamic>? budgetListPatch}) {
@@ -342,9 +381,10 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
 
   Future<void> _handleSaveChanges() async {
     final result = await store.saveBudgetWithDto();
+    if (!mounted) return;
 
-    result.fold((failure) {
-      CustomInfoDialog.show(
+    await result.fold<Future<void>>((failure) async {
+      await CustomInfoDialog.show(
         context: context,
         type: DialogType.error,
         title: 'Erro ao salvar',
@@ -356,6 +396,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
       _capturePersistedBudgetListPatchFromStore();
 
       await store.loadBudgetForEdit(budget.id);
+      if (!mounted) return;
 
       if (store.error != null) {
         final reloadError = store.error;
@@ -390,7 +431,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) {
-          _closePage();
+          _requestClosePage();
         }
       },
       child: Scaffold(
@@ -400,7 +441,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
             builder: (_) => CustomTopBar(
               title: _buildHeaderTitle(),
               showBackButton: true,
-              onBackPressed: _closePage,
+              onBackPressed: _requestClosePage,
               authStore: _authStore,
             ),
           ),
@@ -443,7 +484,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                           censoAgregado: store.censoEscolar?.valoresPorEtapa,
                           onTap: () async {
                             final isMultiCity =
-                                (store.budgetData?.cityIds.length ?? 0) > 1;
+                                store.budgetData?.isMultiCity ?? false;
                             final cityId =
                                 store.budgetData?.cityIds.firstOrNull ?? 0;
 
@@ -463,9 +504,16 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                               },
                             );
 
+                            if (!mounted) return;
                             if (censusSaved == true) {
                               _shouldRefreshBudgetList = true;
-                              _capturePersistedBudgetListPatchFromStore();
+                              // A lista recarrega o censo salvo sem receber
+                              // totais que ainda incluem edições locais.
+                              if (store.hasChanges) {
+                                _budgetListPatch = null;
+                              } else {
+                                _capturePersistedBudgetListPatchFromStore();
+                              }
                             }
                           },
                         ),
@@ -1138,10 +1186,23 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
   Future<void> _handleShare() async {
     if (store.budgetData == null) return;
 
+    final budgetId = store.budgetData!.id;
+    var generated = false;
     await ExportPdfModal.show(
       context: context,
-      orcamentoId: store.budgetData!.id,
+      orcamentoId: budgetId,
+      onGenerated: () {
+        generated = true;
+        _shouldRefreshBudgetList = true;
+        _budgetListPatch = null;
+      },
     );
+
+    if (!mounted || !generated || store.hasChanges) return;
+    await store.loadBudgetForEdit(budgetId);
+    if (!mounted || !store.hasData) return;
+    _syncValidityFieldWithStore();
+    _capturePersistedBudgetListPatchFromStore();
   }
 
   void _handleShareBlocked() {

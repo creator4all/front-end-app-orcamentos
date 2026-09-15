@@ -88,6 +88,9 @@ class _FileDetailsContentState extends State<_FileDetailsContent> {
     }
     setState(() => _isOpening = true);
     try {
+      if (widget.item.type == DriveItemType.folder) {
+        Navigator.of(context).pop();
+      }
       await widget.onOpen();
     } finally {
       if (mounted) setState(() => _isOpening = false);

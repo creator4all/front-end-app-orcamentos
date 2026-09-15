@@ -4,170 +4,82 @@ import 'package:multimidiaapp/app/modules/features/budget/budget_config/domain/e
 import 'package:multimidiaapp/app/modules/features/budget/shared/models/product_selection_update_dto.dart';
 import 'package:multimidiaapp/app/shared/domain/value_objects/fractional_order.dart';
 
-ProductEntity _createProduct({
-  List<IndicadorEtapaEntity> indicadores = const [],
+ProductEntity _produto({
+  String? observacoes,
+  bool indicadoresSelecionados = true,
 }) {
   return ProductEntity(
-    id: 1,
-    codigo: 'P001',
-    solucao: 'Produto Teste',
-    tipo: 'tipo',
+    id: 10,
+    codigo: 'P10',
+    solucao: 'Produto',
+    tipo: 'tecnologia',
     ativo: true,
-    valor: 100.0,
+    valor: 12,
     indicacao: '',
-    tipoProduto: 'produto',
+    tipoProduto: 'tecnologia',
     ordem: FractionalOrder.zero,
     subcategoriaId: 1,
     selecionado: true,
-    quantidade: 10,
+    quantidade: 2,
     quantidadeManual: false,
     temOverride: false,
-    valorOriginal: 100.0,
+    observacoes: observacoes,
+    valorOriginal: 10,
     ativoOriginal: true,
-    indicadoresEtapa: indicadores,
-  );
-}
-
-IndicadorEtapaEntity _createIndicador({
-  required int produtoIndicadorId,
-  bool selecionado = false,
-}) {
-  return IndicadorEtapaEntity(
-    produtoIndicadorId: produtoIndicadorId,
-    indicadorId: 1,
-    indicadorNome: 'Indicador',
-    nomeEtapa: 'etapa',
-    grupoId: 1,
-    grupoNome: 'Grupo',
-    selecionado: selecionado,
+    indicadoresEtapa: [
+      IndicadorEtapaEntity(
+        produtoIndicadorId: 1,
+        indicadorId: 1,
+        indicadorNome: 'ef1ano',
+        nomeEtapa: 'ef1ano',
+        grupoId: 1,
+        grupoNome: 'Etapas',
+        selecionado: indicadoresSelecionados,
+      ),
+    ],
   );
 }
 
 void main() {
-  group('ProductSelectionUpdateDto.fromEntity', () {
-    test('filtra indicadores com produtoIndicadorId <= 0', () {
-      final product = _createProduct(
-        indicadores: [
-          _createIndicador(produtoIndicadorId: 0, selecionado: true),
-          _createIndicador(produtoIndicadorId: 5, selecionado: true),
-          _createIndicador(produtoIndicadorId: 0, selecionado: false),
-          _createIndicador(produtoIndicadorId: 10, selecionado: false),
-        ],
-      );
+  group('ProductSelectionUpdateDto', () {
+    test('serializa observações e valor alterado', () {
+      final json = ProductSelectionUpdateDto.fromEntity(
+        _produto(observacoes: 'nota do cliente'),
+      ).toJson();
 
-      final dto = ProductSelectionUpdateDto.fromEntity(product);
+      expect(json['observacoes'], 'nota do cliente');
+      expect(json['valor'], 12);
+    });
 
-      expect(dto.indicadores, isNotNull);
-      expect(dto.indicadores!.length, 2);
+    test('envia o preço mesmo quando é igual ao catálogo atual', () {
+      final produto = _produto().copyWith(valor: 10);
+
+      expect(produto.valorOriginal, 10);
       expect(
-        dto.indicadores!.every((i) => i.produtoIndicadorId > 0),
-        isTrue,
+          ProductSelectionUpdateDto.fromEntity(produto).toJson()['valor'], 10);
+      expect(
+        ProductSelectionUpdateDto.fromEntity(produto)
+            .toJsonForMultiCity()['valor'],
+        10,
       );
     });
 
-    test('retorna indicadores null quando todos tem id 0', () {
-      final product = _createProduct(
-        indicadores: [
-          _createIndicador(produtoIndicadorId: 0, selecionado: true),
-          _createIndicador(produtoIndicadorId: 0, selecionado: false),
-        ],
-      );
+    test('envia indicadores_etapa vazio quando todos foram desmarcados', () {
+      final json = ProductSelectionUpdateDto.fromEntity(
+        _produto(indicadoresSelecionados: false),
+      ).toJson();
 
-      final dto = ProductSelectionUpdateDto.fromEntity(product);
-
-      expect(dto.indicadores, isNull);
+      expect(json['indicadores_etapa'], [
+        {'produto_indicador_id': 1, 'selecionado': false},
+      ]);
     });
 
-    test('toJson não emite indicadores_etapa quando lista é null', () {
-      final product = _createProduct(
-        indicadores: [
-          _createIndicador(produtoIndicadorId: 0),
-        ],
-      );
+    test('multi-cidade também envia observações', () {
+      final json = ProductSelectionUpdateDto.fromEntity(
+        _produto(observacoes: 'obs'),
+      ).toJsonForMultiCity();
 
-      final dto = ProductSelectionUpdateDto.fromEntity(product);
-      final json = dto.toJson();
-
-      expect(json.containsKey('indicadores_etapa'), isFalse);
-    });
-
-    test('toJson emite indicadores_etapa quando há indicadores válidos', () {
-      final product = _createProduct(
-        indicadores: [
-          _createIndicador(produtoIndicadorId: 5, selecionado: true),
-        ],
-      );
-
-      final dto = ProductSelectionUpdateDto.fromEntity(product);
-      final json = dto.toJson();
-
-      expect(json.containsKey('indicadores_etapa'), isTrue);
-      expect((json['indicadores_etapa'] as List).length, 1);
-    });
-  });
-
-  group('ProductSelectionUpdateDto.delta', () {
-    test(
-        'filtra indicadores com id 0 mesmo quando estão em changedIndicatorIds',
-        () {
-      final product = _createProduct(
-        indicadores: [
-          _createIndicador(produtoIndicadorId: 0, selecionado: true),
-          _createIndicador(produtoIndicadorId: 3, selecionado: true),
-        ],
-      );
-
-      final dto = ProductSelectionUpdateDto.delta(
-        entity: product,
-        selecionadoChanged: false,
-        quantidadeChanged: false,
-        valorChanged: false,
-        changedIndicatorIds: const {0, 3},
-      );
-
-      expect(dto.indicadores, isNotNull);
-      expect(dto.indicadores!.length, 1);
-      expect(dto.indicadores!.first.produtoIndicadorId, 3);
-    });
-
-    test('retorna indicadores null quando apenas id 0 mudou', () {
-      final product = _createProduct(
-        indicadores: [
-          _createIndicador(produtoIndicadorId: 0, selecionado: true),
-        ],
-      );
-
-      final dto = ProductSelectionUpdateDto.delta(
-        entity: product,
-        selecionadoChanged: false,
-        quantidadeChanged: false,
-        valorChanged: false,
-        changedIndicatorIds: const {0},
-      );
-
-      expect(dto.indicadores, isNull);
-    });
-
-    test(
-        'toJsonDelta não emite indicadores_etapa quando filtragem remove todos',
-        () {
-      final product = _createProduct(
-        indicadores: [
-          _createIndicador(produtoIndicadorId: 0, selecionado: true),
-        ],
-      );
-
-      final dto = ProductSelectionUpdateDto.delta(
-        entity: product,
-        selecionadoChanged: false,
-        quantidadeChanged: false,
-        valorChanged: false,
-        changedIndicatorIds: const {0},
-      );
-
-      final json = dto.toJsonDelta();
-
-      expect(json.containsKey('indicadores_etapa'), isFalse);
+      expect(json['observacoes'], 'obs');
     });
   });
 }

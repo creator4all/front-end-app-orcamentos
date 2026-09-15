@@ -1,4 +1,4 @@
-﻿import '../../domain/entities/subcategoria_entity.dart';
+import '../../domain/entities/subcategoria_entity.dart';
 import 'categoria_dto.dart';
 
 class SubcategoriaDto {
@@ -16,7 +16,7 @@ class SubcategoriaDto {
 
   factory SubcategoriaDto.fromJson(Map<String, dynamic> json) {
     final categoriaJson = json['categoria'] as Map<String, dynamic>? ?? {};
-    
+
     return SubcategoriaDto(
       id: (json['sub_subcategoriasId'] as num?)?.toInt() ?? 0,
       nome: json['sub_name'] as String? ?? '',

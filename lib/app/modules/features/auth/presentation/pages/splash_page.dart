@@ -23,7 +23,7 @@ class _SplashPageState extends State<SplashPage> {
     final authStore = Modular.get<AuthStore>();
 
     try {
-      await authStore.loadCurrentUser();
+      await authStore.restoreSession();
 
       if (authStore.isLoggedIn && authStore.currentUser != null) {
         Modular.to.pushReplacementNamed('/budget/');

@@ -1,6 +1,8 @@
 // Patrol — cálculos e edição (CAL).
 
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:multimidiaapp/app/modules/features/budget/budget_edit/presentation/stores/budget_edit_store.dart';
 import 'package:multimidiaapp/app/shared/widgets/budget_card_widget.dart';
 import 'package:patrol/patrol.dart';
 
@@ -181,20 +183,31 @@ void main() {
     config: patrolConfig,
     ($) async {
       await loginAsSeller($);
-      try {
-        final budgetCard = $(BudgetCardWidget).at(0);
-        await budgetCard.waitUntilVisible();
-        await budgetCard.tap();
-        await $.pumpAndSettle();
-        // Aciona voltar — o app usa PopScope(canPop: false) e fecha sem
-        // diálogo de confirmação. O título mostra " *" quando há alterações.
-        await $.platformAutomator.android.pressBack();
-        await $.pumpAndSettle();
-        // Esperado: retorna à lista de orçamentos.
-        expect($('Novo Orç.'), findsOneWidget);
-      } catch (_) {
-        expect($('Orçamentos'), findsWidgets);
-      }
+      final budgetCard = $(BudgetCardWidget).at(0);
+      await budgetCard.waitUntilVisible();
+      await budgetCard.tap();
+      await $.pumpAndSettle();
+
+      // Altera somente estado local; este caso não salva o orçamento.
+      // O resultado histórico anterior não comprovava alterações pendentes.
+      final store = Modular.get<BudgetEditStore>();
+      final archived = store.isArchived;
+      store.setArchived(!archived);
+      expect(store.hasChanges, isTrue);
+
+      await $.platformAutomator.android.pressBack();
+      await $.pumpAndSettle();
+      expect($('Descartar alterações?'), findsOneWidget);
+      await $('Cancelar').tap();
+      expect(store.isArchived, !archived);
+      expect(store.hasChanges, isTrue);
+      expect($('Salvar Alterações'), findsOneWidget);
+
+      await $.platformAutomator.android.pressBack();
+      await $.pumpAndSettle();
+      await $('Descartar').tap();
+      await $.pumpAndSettle();
+      expect($('Novo Orç.'), findsOneWidget);
     },
   );
 
@@ -236,5 +249,4 @@ void main() {
       }
     },
   );
-
 }

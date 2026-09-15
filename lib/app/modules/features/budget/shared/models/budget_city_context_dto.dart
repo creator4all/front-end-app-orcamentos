@@ -17,8 +17,9 @@ import '../../../../../shared/utils/api_number_parser.dart';
 class BudgetCityContextDto extends Equatable {
   /// Classificação declarada pelo backend (`orc_cidade_id === null`).
   ///
-  /// Fica nula quando o payload não traz `multi_cidade`, e nesse caso a
-  /// entidade deriva a classificação pela quantidade de cidades.
+  /// Sem `multi_cidade`, deriva de `orc_cidade_id` nulo. Fica nula apenas
+  /// quando o payload não traz nenhuma das duas chaves; a quantidade de
+  /// cidades não classifica o orçamento.
   final bool? multiCity;
 
   final List<int> cityIds;
@@ -80,9 +81,14 @@ class BudgetCityContextDto extends Equatable {
     }
 
     final explicitMultiCity = json['multi_cidade'];
+    final bool? multiCity = explicitMultiCity is bool
+        ? explicitMultiCity
+        : json.containsKey('orc_cidade_id')
+            ? json['orc_cidade_id'] == null
+            : null;
 
     return BudgetCityContextDto(
-      multiCity: explicitMultiCity is bool ? explicitMultiCity : null,
+      multiCity: multiCity,
       cityIds: List.unmodifiable(cityIds),
       citiesData: List.unmodifiable(citiesData),
       censoAgregado: Map.unmodifiable(_parseCensoAgregado(json)),

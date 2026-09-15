@@ -518,11 +518,11 @@ Tentar, conforme as ações existentes no App:
 - A autorização não depende apenas do orçamento estar oculto na listagem.
 **Rastreabilidade:** RN-ORC-005; CA-PER-003; RF-ORC-004; RF-ORC-005; RF-ORC-006; RF-ORC-009; RF-ORC-010.
 
-### CT-MOB-ORC-020 — Orçamento finalizado/somente leitura
-**Pré-condição:** Orçamento em estado não editável conforme regra vigente.
-**Passos:** Abrir e tentar alterar.
-**Esperado:** Campos/ações bloqueados ou mensagem de ação não permitida; nenhum dado alterado.
-**Rastreabilidade:** Ciclo de vida do orçamento.
+### CT-MOB-ORC-020 — Orçamento aprovado permanece editável
+**Pré-condição:** Orçamento com status `aprovado` e usuário autorizado a editá-lo.
+**Passos:** Abrir, alterar um dado permitido, salvar e reabrir o orçamento.
+**Esperado:** A edição é permitida e persistida normalmente; o status `aprovado` não ativa modo somente leitura.
+**Rastreabilidade:** RF-ORC-004; RN-ORC-005.
 
 ### CT-MOB-ORC-021 — Renomear usando exatamente o nome atual
 **Pré-condição:** Orçamento permitido com nome conhecido.
@@ -645,11 +645,13 @@ Tentar, conforme as ações existentes no App:
 **Rastreabilidade:** RF-ORC-002.
 
 ### CT-MOB-CRI-012 — Criar orçamento personalizado
+**Status:** **PLANEJADO** — executar somente a partir da versão que disponibilizar o fluxo personalizado.
 **Passos:** Selecionar fluxo personalizado; informar indicadores manuais; configurar produtos e validade; salvar.
 **Esperado:** Orçamento criado sem município, usando valores manuais.
 **Rastreabilidade:** RF-ORC-003; CA-ORC-003.
 
 ### CT-MOB-CRI-013 — Rejeitar valor inválido no censo personalizado
+**Status:** **PLANEJADO** — executar somente a partir da versão que disponibilizar o fluxo personalizado.
 **Passos:** Informar valor negativo, não numérico ou fora do formato aceito; continuar.
 **Esperado:** Validação impede conclusão ou normaliza de forma explícita sem salvar valor inválido.
 **Rastreabilidade:** RF-ORC-003.
@@ -792,9 +794,10 @@ Tentar, conforme as ações existentes no App:
 **Rastreabilidade:** RF-ORC-004; CA-ORC-004.
 
 ### CT-MOB-CAL-010 — Sair com alterações pendentes
-**Pré-condição:** Orçamento editável com alteração não salva.
-**Passos:** Acionar voltar.
-**Esperado:** Diálogo de alterações pendentes; cancelar mantém a edição; descartar retorna sem persistir.
+**Classificação atualizada em 12/09/2026:** melhoria solicitada; resultados históricos permanecem históricos.
+**Pré-condição:** Orçamento comum ou multi-cidade com alteração local efetiva não salva.
+**Passos:** Alterar quantidade/preço/seleção/metadado; voltar pelo cabeçalho e pelo sistema; cancelar; repetir e descartar. Repetir sem alterações e após editar/desfazer. Salvar censo com quantidade local manual pendente e repetir.
+**Esperado:** Um diálogo Cancelar/Descartar; cancelar preserva edição; descartar fecha uma vez sem gravar alterações locais. Sem mudança efetiva, sai diretamente. Censo já salvo permanece salvo e a lista recebe atualização. Sucesso no salvar sai normalmente; falha mantém alterações. Verificar gesto nativo Android/iOS separadamente dos widgets.
 **Rastreabilidade:** `edit_budget_page.dart`.
 
 ### CT-MOB-CAL-011 — Bloquear compartilhamento com alterações pendentes
@@ -867,10 +870,11 @@ Tentar, conforme as ações existentes no App:
 **Esperado:** Arquivo CSV gerado e oferecido ao compartilhamento; indicadores e valores possuem estrutura legível.
 **Rastreabilidade:** RF-ORC-010; CA-ORC-009.
 
-### CT-MOB-EXP-008 — Gerar PDF renova validade para 60 dias
+### CT-MOB-EXP-008 — Gerar PDF renova pelo prazo salvo e recupera status expirado
+**Regra atualizada em 12/09/2026:** a premissa de prazo fixo foi substituída pelo prazo configurado. Os resultados anteriores não são novos PASS.
 **Pré-condição:**
 - Orçamento com dados obrigatórios do vendedor preenchidos.
-- Data de validade conhecida.
+- Data de validade e prazo salvo conhecidos; executar matriz 15/60/90 dias e pendente/aprovado/não aprovado/expirado, com e sem arquivamento.
 
 **Cenário A — orçamento ainda válido**
 **Passos:**
@@ -878,8 +882,8 @@ Tentar, conforme as ações existentes no App:
 2. Gerar/compartilhar o PDF.
 3. Atualizar/reabrir o orçamento.
 **Esperado:**
-- A validade passa a corresponder a **60 dias contados da operação**.
-- O prazo anterior não é simplesmente reutilizado.
+- A validade passa a corresponder ao momento da operação mais `orc_dias_validade`.
+- Prazo salvo, status não expirado, ID, versões, arquivamento, produtos e valores permanecem intactos.
 
 **Cenário B — orçamento expirado**
 **Passos:**
@@ -888,8 +892,9 @@ Tentar, conforme as ações existentes no App:
 3. Atualizar/reabrir o orçamento.
 **Esperado:**
 - A geração é capaz de renovar a validade.
-- A nova validade corresponde a **60 dias a partir da operação**.
-- A renovação não depende do antigo número de dias configurado no orçamento.
+- A nova validade corresponde ao momento da operação mais o prazo salvo; não soma à validade anterior.
+- Somente `expirado` muda para `pendente`, na mesma atualização da data.
+- Repetir a geração conta o prazo a partir do novo momento. Geração negada/falha não renova; falha de renovação não entrega sucesso. Ao retornar/recarregar, a interface mostra data/status persistidos.
 **Rastreabilidade:** RF-ORC-009; RN-ORC-013; CA-ORC-010.
 
 ---
@@ -929,9 +934,9 @@ Tentar, conforme as ações existentes no App:
 **Rastreabilidade:** RF-PRF-002.
 
 ### CT-MOB-PRF-007 — Rejeitar avatar inválido ou acima de 5 MiB
-**Pré-condição:** Arquivo de teste inválido/grande disponível.
-**Passos:** Selecionar arquivo.
-**Esperado:** Erro legível; avatar anterior mantido.
+**Pré-condição:** Avatar atual e imagens de teste válidas, inválidas, vazias/corrompidas e de 5.242.880/5.242.881 bytes.
+**Passos:** Selecionar original sem redução; repetir no limite, acima do limite e com conteúdo inválido; cancelar seletor/recorte e tentar novamente após falha.
+**Esperado:** Validar tamanho e conteúdo antes do recorte; limite inclusivo de 5.242.880 bytes. Rejeição não abre recorte nem faz upload, informa motivo e preserva avatar/formulário. Imagem válida segue recorte quadrado/JPEG/upload; somente sucesso atualiza avatar. Registrar validação do original no dispositivo Android/iOS separadamente dos testes com fakes.
 **Rastreabilidade:** RF-PRF-002; RN-PRF-002.
 
 ### CT-MOB-PRF-008 — Remover avatar com confirmação
@@ -1247,9 +1252,9 @@ Tentar, conforme as ações existentes no App:
 **Rastreabilidade:** RF-DRV-001; rota `/drive/category`.
 
 ### CT-MOB-DRV-007 — Abrir pasta e navegar hierarquia
-**Pré-condição:** Pasta compartilhada com subpasta/arquivo.
-**Passos:** Abrir pasta; abrir subpasta; usar breadcrumb para voltar.
-**Esperado:** Conteúdo correto em cada nível, sem ciclos visuais ou mistura de pastas.
+**Pré-condição:** Três níveis de pastas com nomes e conteúdos distintos.
+**Passos:** Entrar por Pastas, Meus arquivos e Compartilhados; descer três níveis; tocar ancestral imediato/distante, pasta atual e raiz; voltar por cabeçalho/sistema; entrar em outra pasta. Repetir com cache e respostas atrasadas.
+**Esperado:** ID da página/rota, breadcrumb, pasta ativa e conteúdo coincidem; fecha exatamente as páginas necessárias. Pasta atual não muda contexto. Raiz limpa contexto e respostas antigas não substituem o destino; sem pops duplicados nem permissões adicionais.
 **Rastreabilidade:** RF-DRV-001; seção 17.1.
 
 ### CT-MOB-DRV-008 — Visualizar imagem

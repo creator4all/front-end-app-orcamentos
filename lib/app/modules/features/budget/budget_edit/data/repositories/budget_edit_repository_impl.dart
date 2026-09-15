@@ -2,8 +2,7 @@ import 'package:dartz/dartz.dart';
 
 import '../../../../../../shared/core/constants/http_constants.dart';
 import '../../../../../../shared/core/errors/api_error_message.dart';
-import '../../../../../../shared/core/errors/http_exceptions.dart'
-    as core_http;
+import '../../../../../../shared/core/errors/http_exceptions.dart' as core_http;
 import '../../../shared/errors/budget_failure.dart';
 import '../../../shared/models/budget_update_dto.dart';
 import '../../domain/entities/budget_edit_entity.dart';
@@ -187,13 +186,15 @@ class BudgetEditRepositoryImpl implements BudgetEditRepository {
       return firstError;
     }
 
-    final containsValidityKey = payload.toString().contains('orc_dias_validade') ||
-        payload.toString().contains('dias_validade');
+    final containsValidityKey =
+        payload.toString().contains('orc_dias_validade') ||
+            payload.toString().contains('dias_validade');
     if (containsValidityKey) {
       return 'Validade do orçamento deve estar entre 1 e 365 dias';
     }
 
-    final generic = payload['mensagem'] ?? payload['message'] ?? payload['error'];
+    final generic =
+        payload['mensagem'] ?? payload['message'] ?? payload['error'];
     if (generic is String && generic.trim().isNotEmpty) {
       return generic.trim();
     }

@@ -184,25 +184,6 @@ abstract class _BudgetListStoreBase with Store {
   }
 
   @action
-  Future<void> deleteBudget(int budgetId) async {
-    try {
-      final result = await budgetListRepository.deleteBudget(budgetId);
-
-      result.fold(
-        (failure) {
-          error = failure.message;
-        },
-        (_) {
-          allItems.removeWhere((b) => b.id == budgetId);
-          applyFilters();
-        },
-      );
-    } catch (e) {
-      error = 'Erro ao excluir orçamento: $e';
-    }
-  }
-
-  @action
   void applyBudgetPatch({
     required int budgetId,
     String? nome,

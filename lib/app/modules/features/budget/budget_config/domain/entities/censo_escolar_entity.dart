@@ -11,6 +11,15 @@ class CensoEscolarEntity extends Equatable {
 
   final int? anoPopulacao;
 
+  /// Maior ano de censo quando a visão agrega cidades com anos diferentes.
+  ///
+  /// Null quando todas as cidades compartilham o mesmo ano — nesse caso
+  /// [censoAno] sozinho já descreve o conjunto.
+  final int? censoAnoFinal;
+
+  /// Maior ano-base de população quando as cidades agregadas divergem.
+  final int? anoPopulacaoFinal;
+
   final List<CensoGroupEntity> grupos;
 
   final Map<String, double> valoresPorEtapa;
@@ -20,14 +29,54 @@ class CensoEscolarEntity extends Equatable {
     required this.cidadeNome,
     this.censoAno,
     this.anoPopulacao,
+    this.censoAnoFinal,
+    this.anoPopulacaoFinal,
     required this.grupos,
     required this.valoresPorEtapa,
   });
 
-  /// Grupos ordenados por `grupo_ordem`.
+  /// Ano do censo para exibição: `2025` quando único, `2025–2026` quando as
+  /// cidades agregadas divergem, `null` quando nenhuma cidade informou o ano.
+  String? get censoAnoLabel => _rotuloAno(censoAno, censoAnoFinal);
+
+  /// Ano-base da população para exibição, com a mesma regra de [censoAnoLabel].
+  String? get anoPopulacaoLabel => _rotuloAno(anoPopulacao, anoPopulacaoFinal);
+
+  static String? _rotuloAno(int? inicio, int? fim) {
+    if (inicio == null) return null;
+    if (fim == null || fim == inicio) return inicio.toString();
+    return '$inicio–$fim';
+  }
+
+  /// Deriva o par (menor, maior) de uma lista de anos, ignorando nulos.
+  ///
+  /// Devolve `(null, null)` quando nenhuma cidade informou o ano e
+  /// `(ano, null)` quando todas informaram o mesmo — assim o rótulo não vira
+  /// um intervalo degenerado do tipo `2025–2025`.
+  static (int?, int?) faixaDeAnos(Iterable<int?> anos) {
+    final validos = anos.whereType<int>().toList()..sort();
+    if (validos.isEmpty) return (null, null);
+    final menor = validos.first;
+    final maior = validos.last;
+    return (menor, menor == maior ? null : maior);
+  }
+
+  /// Grupos ordenados por `grupo_ordem`, com os índices de cada grupo
+  /// ordenados por `ind_ordem`.
+  ///
+  /// A ordenação é exclusivamente pelos campos de ordem vindos da API — nunca
+  /// pelo texto do título. Quando um contrato não envia a ordem, todos os
+  /// valores empatam em [FractionalOrder.zero] e o `sort` estável preserva a
+  /// ordem de chegada do payload.
   List<CensoGroupEntity> get gruposOrdenados {
     final ordenados = [...grupos]..sort((a, b) => a.ordem.compareTo(b.ordem));
-    return ordenados;
+    return [
+      for (final grupo in ordenados)
+        grupo.copyWith(
+          titulos: [...grupo.titulos]
+            ..sort((a, b) => a.ordem.compareTo(b.ordem)),
+        ),
+    ];
   }
 
   static String _normalizarNomeGrupo(String nome) => nome.trim().toLowerCase();
@@ -96,8 +145,16 @@ class CensoEscolarEntity extends Equatable {
   }
 
   @override
-  List<Object?> get props =>
-      [cidadeId, cidadeNome, censoAno, anoPopulacao, grupos, valoresPorEtapa];
+  List<Object?> get props => [
+        cidadeId,
+        cidadeNome,
+        censoAno,
+        anoPopulacao,
+        censoAnoFinal,
+        anoPopulacaoFinal,
+        grupos,
+        valoresPorEtapa,
+      ];
 
   @override
   String toString() {

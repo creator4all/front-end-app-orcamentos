@@ -56,8 +56,7 @@ class CitySelectorDropdown extends StatelessWidget {
         searchHint: 'Pesquisar cidade...',
         items: items,
         value: selectedValue,
-        sortItems:
-            false,
+        sortItems: false,
         onChanged: (value) {
           if (value == null) return;
 

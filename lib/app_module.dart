@@ -102,11 +102,23 @@ class AppModule extends Module {
         ),
 
         Bind.singleton<AuthStore>(
-          (i) => AuthStore(
-            loginUsecase: i.get<LoginUsecase>(),
-            authRepository: i.get<AuthRepository>(),
-            secureStorage: i.get<FlutterSecureStorage>(),
-          ),
+          (i) {
+            final store = AuthStore(
+              loginUsecase: i.get<LoginUsecase>(),
+              authRepository: i.get<AuthRepository>(),
+              secureStorage: i.get<FlutterSecureStorage>(),
+            );
+            SessionExpirationHandler.current = SessionExpirationHandler.createDefault(
+              storage: i.get<FlutterSecureStorage>(),
+              clearAuthenticatedState: () async {
+                store.reset();
+              },
+              navigateToLogin: () {
+                Modular.to.pushNamedAndRemoveUntil('/auth/login', (_) => false);
+              },
+            );
+            return store;
+          },
         ),
 
         Bind.singleton<ForgotPasswordStore>(

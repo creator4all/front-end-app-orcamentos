@@ -14,8 +14,6 @@ class BudgetUpdateDto extends Equatable {
 
   final double? total;
 
-  final int? usuarioId;
-
   final int? cidadeId;
 
   final List<int>? cidades;
@@ -32,7 +30,6 @@ class BudgetUpdateDto extends Equatable {
     this.status,
     this.isArchived,
     this.total,
-    this.usuarioId,
     this.cidadeId,
     this.cidades,
     this.indicadores,
@@ -53,7 +50,6 @@ class BudgetUpdateDto extends Equatable {
       'orc_dias_validade': diasValidade,
       'orc_status': status,
       'orc_total': total,
-      'orc_usuario_id': usuarioId,
       'orc_partner_destino_id': partnerDestinoId,
       'isArchived': isArchived ?? false,
       'cidades': cidades ?? const <int>[],
@@ -76,7 +72,6 @@ class BudgetUpdateDto extends Equatable {
     if (status != null) map['orc_status'] = status;
     if (isArchived != null) map['isArchived'] = isArchived;
     if (total != null) map['orc_total'] = total;
-    if (usuarioId != null) map['orc_usuario_id'] = usuarioId;
 
     if (cidades != null) {
       // `overrides` é opcional no contrato, mas quando presente precisa ser
@@ -102,7 +97,6 @@ class BudgetUpdateDto extends Equatable {
         status,
         isArchived,
         total,
-        usuarioId,
         cidadeId,
         cidades,
         indicadores,

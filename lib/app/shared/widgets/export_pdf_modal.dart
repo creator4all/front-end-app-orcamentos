@@ -28,6 +28,7 @@ abstract class ExportPdfModal {
     required BuildContext context,
     required int orcamentoId,
     GeneratePdfUseCase? generatePdfUseCase,
+    VoidCallback? onGenerated,
   }) {
     return CustomModal.show<T>(
       context: context,
@@ -35,6 +36,7 @@ abstract class ExportPdfModal {
       content: _ExportPdfContent(
         orcamentoId: orcamentoId,
         generatePdfUseCase: generatePdfUseCase,
+        onGenerated: onGenerated,
       ),
     );
   }
@@ -43,10 +45,12 @@ abstract class ExportPdfModal {
 class _ExportPdfContent extends StatefulWidget {
   final int orcamentoId;
   final GeneratePdfUseCase? generatePdfUseCase;
+  final VoidCallback? onGenerated;
 
   const _ExportPdfContent({
     required this.orcamentoId,
     this.generatePdfUseCase,
+    this.onGenerated,
   });
 
   @override
@@ -586,6 +590,7 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
   }
 
   Future<void> _handleSharePdf() async {
+    if (_isLoading) return;
     final sharePositionOrigin = _getSharePositionOrigin(context);
 
     if (_nomeVendedorController.text.trim().isEmpty) {
@@ -663,6 +668,10 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
         (success) => success,
       );
 
+      // A geração já renovou o orçamento, mesmo se o compartilhamento for cancelado.
+      widget.onGenerated?.call();
+      if (!mounted) return;
+
       final pdfBase64 = pdfResult.pdfBase64;
       final nomeArquivo = pdfResult.nomeArquivo ?? 'orcamento.pdf';
       final pdfBytes = base64Decode(pdfBase64);
@@ -694,6 +703,7 @@ class _ExportPdfContentState extends State<_ExportPdfContent> {
         );
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });

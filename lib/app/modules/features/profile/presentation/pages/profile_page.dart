@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -16,7 +17,10 @@ import '../../../auth/presentation/stores/auth_store.dart';
 import '../stores/profile_store.dart';
 
 class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key});
+  final ImagePicker? imagePicker;
+  final ImageCropper? imageCropper;
+
+  const ProfilePage({super.key, this.imagePicker, this.imageCropper});
 
   @override
   State<ProfilePage> createState() => _ProfilePageState();
@@ -25,7 +29,9 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   late final ProfileStore _store;
   late final AuthStore _authStore;
-  final ImagePicker _imagePicker = ImagePicker();
+  late final ImagePicker _imagePicker;
+  late final ImageCropper _imageCropper;
+  late final ReactionDisposer _profileReactionDisposer;
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
@@ -38,15 +44,22 @@ class _ProfilePageState extends State<ProfilePage> {
   String? _phoneError;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
+  void initState() {
+    super.initState();
     _store = Modular.get<ProfileStore>();
     _authStore = Modular.get<AuthStore>();
+    _imagePicker = widget.imagePicker ?? ImagePicker();
+    _imageCropper = widget.imageCropper ?? ImageCropper();
 
-    reaction(
-      (_) => _store.profile,
-      (profile) {
-        if (profile != null) {
+    _profileReactionDisposer = reaction(
+      (_) => (
+        _store.profile?.name,
+        _store.profile?.email,
+        _store.profile?.cargo,
+        _store.profile?.phone,
+      ),
+      (_) {
+        if (_store.profile != null) {
           _nameController.text = _store.name;
           _emailController.text = _store.email;
           _cargoController.text = _store.cargo;
@@ -62,6 +75,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   void dispose() {
+    _profileReactionDisposer();
     _nameController.dispose();
     _emailController.dispose();
     _cargoController.dispose();
@@ -70,77 +84,73 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _pickImage() async {
-    try {
-      final XFile? image = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1024,
-        maxHeight: 1024,
+    final success = await _store.uploadAvatar(
+      selectOriginal: _selectOriginal,
+      cropImage: _cropImage,
+      isActive: () => mounted,
+    );
+    if (!mounted) return;
+
+    if (success) {
+      await _authStore.loadCurrentUser(forceRefresh: true);
+      if (!mounted) return;
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.success,
+        title: 'Sucesso',
+        message: 'Avatar atualizado com sucesso!',
       );
-
-      if (image != null) {
-        final CroppedFile? croppedFile = await ImageCropper().cropImage(
-          sourcePath: image.path,
-          compressFormat: ImageCompressFormat.jpg,
-          compressQuality: 85,
-          aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
-          uiSettings: [
-            AndroidUiSettings(
-              toolbarTitle: 'Recortar Foto',
-              toolbarColor: const Color(0xFF117BBD),
-              statusBarLight: false,
-              navBarLight: false,
-              toolbarWidgetColor: Colors.white,
-              initAspectRatio: const CropPresetQuadrado(),
-              lockAspectRatio: true,
-            ),
-            IOSUiSettings(
-              title: 'Recortar Foto',
-              doneButtonTitle: 'Recortar',
-              cancelButtonTitle: 'Cancelar',
-              aspectRatioLockEnabled: true,
-              aspectRatioLockDimensionSwapEnabled: false,
-              aspectRatioPickerButtonHidden: true,
-              resetAspectRatioEnabled: false,
-              hidesNavigationBar: false,
-            ),
-          ],
-        );
-
-        if (croppedFile != null) {
-          _store.setSelectedAvatar(File(croppedFile.path));
-
-          final success = await _store.uploadAvatar();
-          if (success && mounted) {
-            await _authStore.loadCurrentUser(forceRefresh: true);
-
-            if (!mounted) return;
-
-            CustomInfoDialog.show(
-              context: context,
-              type: DialogType.success,
-              title: 'Sucesso',
-              message: 'Avatar atualizado com sucesso!',
-            );
-          } else if (!success && mounted && _store.error != null) {
-            CustomInfoDialog.show(
-              context: context,
-              type: DialogType.error,
-              title: 'Erro ao atualizar avatar',
-              message: _store.error!,
-            );
-          }
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        CustomInfoDialog.show(
-          context: context,
-          type: DialogType.error,
-          title: 'Erro de Seleção',
-          message: 'Erro ao selecionar imagem: $e',
-        );
-      }
+    } else if (_store.error != null) {
+      CustomInfoDialog.show(
+        context: context,
+        type: DialogType.error,
+        title: 'Erro ao atualizar avatar',
+        message: _store.error!,
+      );
     }
+  }
+
+  Future<String?> _selectOriginal() async {
+    // image_picker_ios 0.8.13 reencoda mesmo sem limites de tamanho/qualidade.
+    if (Platform.isIOS) {
+      return const MethodChannel('multimidia/profile_avatar_picker')
+          .invokeMethod<String>('pickOriginal');
+    }
+    final image = await _imagePicker.pickImage(source: ImageSource.gallery);
+    return image?.path;
+  }
+
+  Future<String?> _cropImage(String sourcePath) async {
+    final croppedFile = await _imageCropper.cropImage(
+      sourcePath: sourcePath,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      compressFormat: ImageCompressFormat.jpg,
+      compressQuality: 85,
+      aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+      uiSettings: [
+        AndroidUiSettings(
+          toolbarTitle: 'Recortar Foto',
+          toolbarColor: const Color(0xFF117BBD),
+          statusBarLight: false,
+          navBarLight: false,
+          toolbarWidgetColor: Colors.white,
+          initAspectRatio: const CropPresetQuadrado(),
+          lockAspectRatio: true,
+        ),
+        IOSUiSettings(
+          title: 'Recortar Foto',
+          doneButtonTitle: 'Recortar',
+          cancelButtonTitle: 'Cancelar',
+          aspectRatioLockEnabled: true,
+          aspectRatioLockDimensionSwapEnabled: false,
+          aspectRatioPickerButtonHidden: true,
+          resetAspectRatioEnabled: false,
+          hidesNavigationBar: false,
+        ),
+      ],
+    );
+    return croppedFile?.path;
   }
 
   Future<void> _confirmRemoveAvatar() async {
@@ -347,7 +357,8 @@ class _ProfilePageState extends State<ProfilePage> {
                           padding: EdgeInsets.symmetric(
                               horizontal: 16.w, vertical: 8.h),
                         ),
-                        icon: const Icon(Icons.camera_alt, size: 18, color: Colors.white),
+                        icon: const Icon(Icons.camera_alt,
+                            size: 18, color: Colors.white),
                         label: Text(
                           _store.profile!.avatar == null ||
                                   _store.profile!.avatar!.isEmpty
@@ -368,7 +379,8 @@ class _ProfilePageState extends State<ProfilePage> {
                             padding: EdgeInsets.symmetric(
                                 horizontal: 16.w, vertical: 8.h),
                           ),
-                          icon: const Icon(Icons.delete, size: 18, color: Colors.red),
+                          icon: const Icon(Icons.delete,
+                              size: 18, color: Colors.red),
                           label: Text('Remover',
                               style: TextStyle(fontSize: 13.sp)),
                         ),

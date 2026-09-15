@@ -256,7 +256,6 @@ abstract class _MultiCityCensusStoreBase with Store {
     final result = await _createBudgetUseCase(
       nome: budgetName,
       diasValidade: 60,
-      usuarioId: userId,
       cidadeIds: cidadeIds,
       overridesPorCidade: overrides,
     );

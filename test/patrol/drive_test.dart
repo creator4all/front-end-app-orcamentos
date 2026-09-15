@@ -1,7 +1,11 @@
 // Patrol — Drive (DRV).
 
 import 'package:flutter/material.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:multimidiaapp/app/modules/features/new_drive/presentation/pages/folder_contents_page.dart';
+import 'package:multimidiaapp/app/modules/features/new_drive/presentation/stores/new_drive_store.dart';
+import 'package:multimidiaapp/app/modules/features/new_drive/presentation/widgets/item_card_doc.dart';
 import 'package:patrol/patrol.dart';
 
 import '../patrol_setup.dart';
@@ -81,20 +85,84 @@ void main() {
   );
 
   patrolTest(
-    'CT-MOB-DRV-007 — Abrir pasta e navegar hierarquia',
+    'CT-MOB-DRV-007 — Navegar para ancestral e raiz pelo breadcrumb',
     config: patrolConfig,
     ($) async {
+      // IDs de fixtures já existentes e autorizadas; este teste não cria dados.
+      final folderIds = const String.fromEnvironment('PATROL_DRIVE_FOLDER_PATH')
+          .split(',')
+          .where((id) => id.isNotEmpty)
+          .toList();
+      final contentIds =
+          const String.fromEnvironment('PATROL_DRIVE_FOLDER_CONTENTS')
+              .split(',')
+              .where((id) => id.isNotEmpty)
+              .toList();
+      expect(folderIds.length, greaterThanOrEqualTo(3),
+          reason: 'Informe PATROL_DRIVE_FOLDER_PATH com IDs de ao menos três '
+              'pastas encadeadas e compartilhadas com o vendedor.');
+      expect(contentIds.length, folderIds.length,
+          reason: 'Informe PATROL_DRIVE_FOLDER_CONTENTS com um ID de conteúdo '
+              'distinto esperado em cada pasta, na mesma ordem.');
+
+      Finder itemCard(String id) => find.byWidgetPredicate(
+          (widget) => widget is ItemCardDoc && widget.item.id == id);
+
+      Future<void> openFolder(String id) async {
+        await $.tester.ensureVisible(itemCard(id));
+        await $(itemCard(id)).tap();
+        await $('Abrir').tap();
+        await $.pumpAndSettle();
+      }
+
+      void expectFolder(int index) {
+        final page = $.tester
+            .widget<FolderContentsPage>(find.byType(FolderContentsPage));
+        final route =
+            ModalRoute.of($.tester.element(find.byType(FolderContentsPage)))!;
+        final store = Modular.get<NewDriveStore>();
+        expect(route.isCurrent, isTrue);
+        expect(route.settings.name, '/drive/folder');
+        expect((route.settings.arguments as Map)['folderId'], folderIds[index]);
+        expect(page.folderId, folderIds[index]);
+        expect(store.activeFolderId, folderIds[index]);
+        expect(store.currentFolder?.id, folderIds[index]);
+        expect(store.folderStack.map((item) => item.id),
+            folderIds.take(index + 1));
+        expect(itemCard(contentIds[index]), findsOneWidget);
+        expect($('Detalhes do arquivo'), findsNothing);
+      }
+
       await loginAsSeller($);
       await openProfileMenu($);
       await $('Drive').tap();
       await $.pumpAndSettle();
       expect($('Multi Drive'), findsOneWidget);
-      // Abre a categoria "Pastas".
       await $('Pastas').tap();
       await $.pumpAndSettle();
-      // Esperado: página da categoria "Pastas" carregada.
-      expect($('Pastas'), findsOneWidget);
-      expect($('Arquivos compartilhados com você'), findsOneWidget);
+      for (var index = 0; index < folderIds.length; index++) {
+        await openFolder(folderIds[index]);
+        expectFolder(index);
+      }
+      final store = Modular.get<NewDriveStore>();
+      final currentName = store.folderStack.last.name;
+      await $(find.text(currentName).last).tap();
+      await $.pumpAndSettle();
+      expectFolder(folderIds.length - 1);
+
+      final ancestor = find.text(store.folderStack.first.name).last;
+      await $.tester.ensureVisible(ancestor);
+      await $(ancestor).tap();
+      await $.pumpAndSettle();
+      expectFolder(0);
+
+      await $('Drive').tap();
+      await $.pumpAndSettle();
+      expect($('Multi Drive'), findsOneWidget);
+      expect(Modular.to.path, '/drive/');
+      expect(store.folderStack, isEmpty);
+      expect(store.activeFolderId, isNull);
+      expect(store.currentFolder, isNull);
     },
   );
 
@@ -170,5 +238,4 @@ void main() {
       expect($('Multi Drive'), findsOneWidget);
     },
   );
-
 }

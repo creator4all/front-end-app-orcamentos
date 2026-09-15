@@ -108,7 +108,8 @@ class _NewDrivePageState extends State<NewDrivePage> {
                                   padding: EdgeInsets.symmetric(vertical: 48.h),
                                   child: Center(
                                     child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
                                         Icon(
                                           Icons.folder_open_outlined,
@@ -266,7 +267,7 @@ class _NewDrivePageState extends State<NewDrivePage> {
     );
   }
 
-  void _showFileDetails(DriveItem item){
+  void _showFileDetails(DriveItem item) {
     DriveItemDetails.show(
       context: context,
       item: item,
@@ -441,7 +442,6 @@ class _NewDrivePageState extends State<NewDrivePage> {
 
   Future<void> _handleFileOpen(DriveItem item) async {
     if (item.type == DriveItemType.folder) {
-      store.navigateToFolder(item.id, item.name);
       Modular.to.pushNamed(
         './folder',
         arguments: {

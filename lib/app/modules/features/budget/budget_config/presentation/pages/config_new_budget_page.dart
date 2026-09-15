@@ -319,7 +319,7 @@ class _ConfigNewBudgetPageState extends State<ConfigNewBudgetPage> {
                         censoAgregado: store.censoEscolar?.valoresPorEtapa,
                         onTap: () async {
                           final isMultiCity =
-                              (store.budgetDetail?.cityIds.length ?? 0) > 1;
+                              store.budgetDetail?.isMultiCity ?? false;
                           final cityId =
                               store.budgetDetail?.cityIds.firstOrNull ?? 0;
 

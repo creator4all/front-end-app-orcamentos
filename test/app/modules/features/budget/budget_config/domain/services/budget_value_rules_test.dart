@@ -42,9 +42,8 @@ void main() {
     });
 
     test('should reject six products at the maximum quantity and value', () {
-      const total = 6 *
-          ProductQuantityRules.maxQuantity *
-          BudgetValueRules.maxUnitValue;
+      const total =
+          6 * ProductQuantityRules.maxQuantity * BudgetValueRules.maxUnitValue;
 
       expect(BudgetValueRules.exceedsMaxTotal(total), isTrue);
     });

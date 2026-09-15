@@ -20,6 +20,7 @@ import '../../../shared/errors/budget_failure.dart';
 import '../../../shared/models/budget_update_dto.dart';
 import '../../../shared/models/product_selection_update_dto.dart';
 import '../../domain/entities/budget_edit_entity.dart';
+import '../../domain/services/budget_versioning_decision.dart';
 import '../../domain/usecases/get_budget_for_edit_usecase.dart';
 import '../../domain/usecases/update_budget_usecase.dart';
 
@@ -81,11 +82,9 @@ abstract class _BudgetEditStoreBase with Store {
   String _originalStatus = 'pendente';
   bool _originalIsArchived = false;
   DateTime? _originalValidityDate;
-  final Map<int, double> _originalProductQuantities = {};
-  final Map<int, bool> _originalProductManualFlags = {};
-  final Map<int, double> _originalProductValues = {};
-  final Map<int, String?> _originalProductObservations = {};
-  final Map<int, Map<int, bool>> _originalProductIndicators = {};
+
+  /// Referência única do estado original dos produtos, usada por [hasChanges].
+  Map<int, BudgetProductSnapshot> _originalProductSnapshots = {};
 
   int _loadRequestVersion = 0;
 
@@ -116,40 +115,22 @@ abstract class _BudgetEditStoreBase with Store {
 
   @computed
   bool get hasChanges {
-    if (selectedProductIds.length != _originalSelectedProductIds.length)
-      return true;
-    if (!selectedProductIds.containsAll(_originalSelectedProductIds))
-      return true;
     if (selectedStatus != _originalStatus) return true;
     if (isArchived != _originalIsArchived) return true;
     if (validityDate != _originalValidityDate) return true;
 
-    for (final cat in categories) {
-      for (final sub in cat.subcategorias) {
-        for (final prod in sub.produtos) {
-          if (_originalProductQuantities[prod.id] != prod.quantidade) {
-            return true;
-          }
-          if (_originalProductManualFlags[prod.id] != prod.quantidadeManual) {
-            return true;
-          }
-          if (_originalProductValues[prod.id] != prod.valor) return true;
-          if (_originalProductObservations[prod.id] != prod.observacoes)
-            return true;
+    return _hasProductChanges;
+  }
 
-          final origIndicators = _originalProductIndicators[prod.id];
-          if (origIndicators != null) {
-            for (final ind in prod.indicadoresEtapa) {
-              if (origIndicators[ind.produtoIndicadorId] != ind.selecionado) {
-                return true;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    return false;
+  /// Mudança de produto em relação ao estado original, usada só para indicar
+  /// alteração pendente na tela. A decisão de versionar é da API.
+  bool get _hasProductChanges {
+    return BudgetVersioningDecision.hasProductChanges(
+      selectedIds: selectedProductIds.toSet(),
+      originalSelectedIds: _originalSelectedProductIds,
+      current: BudgetVersioningDecision.snapshotsFromCategories(categories),
+      original: _originalProductSnapshots,
+    );
   }
 
   @computed
@@ -276,7 +257,6 @@ abstract class _BudgetEditStoreBase with Store {
     _updateSelectedProductIds();
 
     _parseCensoEscolarFromCitiesData();
-    _recalculateProductQuantities();
     _snapshotOriginalState();
 
     isLoading = false;
@@ -459,11 +439,7 @@ abstract class _BudgetEditStoreBase with Store {
     _originalStatus = 'pendente';
     _originalIsArchived = false;
     _originalValidityDate = null;
-    _originalProductQuantities.clear();
-    _originalProductManualFlags.clear();
-    _originalProductValues.clear();
-    _originalProductObservations.clear();
-    _originalProductIndicators.clear();
+    _originalProductSnapshots = {};
   }
 
   @action
@@ -928,6 +904,10 @@ abstract class _BudgetEditStoreBase with Store {
 
   @action
   Future<Either<BudgetFailure, BudgetEditEntity>> saveBudgetWithDto() async {
+    if (isSaving) {
+      return const Left(ValidationFailure('Salvamento em andamento'));
+    }
+
     if (budgetData == null) {
       error = 'Orçamento não carregado';
       return const Left(ValidationFailure('Orçamento não carregado'));
@@ -958,17 +938,14 @@ abstract class _BudgetEditStoreBase with Store {
     error = null;
 
     try {
-      final produtosParaSalvar = <ProductSelectionUpdateDto>[];
-
-      for (final category in categories) {
-        for (final subcategory in category.subcategorias) {
-          for (final product in subcategory.produtos) {
-            produtosParaSalvar.add(
+      // Envia sempre o estado completo dos produtos: a API compara com o
+      // orçamento persistido e decide se versiona, atualiza ou mantém.
+      final produtosParaSalvar = <ProductSelectionUpdateDto>[
+        for (final category in categories)
+          for (final subcategory in category.subcategorias)
+            for (final product in subcategory.produtos)
               ProductSelectionUpdateDto.fromEntity(product),
-            );
-          }
-        }
-      }
+      ];
 
       final totalCalculado = totalValue;
 
@@ -991,7 +968,6 @@ abstract class _BudgetEditStoreBase with Store {
         status: selectedStatus,
         isArchived: isArchived,
         total: totalCalculado,
-        usuarioId: authStore.currentUser?.id ?? budgetData!.userId,
         cidadeId: isMultiCity ? null : budgetData!.cityIds.firstOrNull,
         cidades: isMultiCity ? budgetData!.cityIds : null,
         produtos: produtosParaSalvar,
@@ -1018,8 +994,15 @@ abstract class _BudgetEditStoreBase with Store {
           return Left(failure);
         },
         (updatedBudget) {
-          budgetData = updatedBudget;
           isSaving = false;
+          budgetData = updatedBudget;
+          selectedStatus = updatedBudget.status;
+          isArchived = updatedBudget.isArchived;
+          validityDate = updatedBudget.validityDate;
+          budgetName = updatedBudget.name;
+          _originalValidityDays = updatedBudget.validityDays;
+          _validityDateChanged = false;
+          _snapshotOriginalState();
           return Right(updatedBudget);
         },
       );
@@ -1035,40 +1018,33 @@ abstract class _BudgetEditStoreBase with Store {
     _originalStatus = selectedStatus;
     _originalIsArchived = isArchived;
     _originalValidityDate = validityDate;
-
-    _originalProductQuantities.clear();
-    _originalProductManualFlags.clear();
-    _originalProductValues.clear();
-    _originalProductObservations.clear();
-    _originalProductIndicators.clear();
-
-    for (final cat in categories) {
-      for (final sub in cat.subcategorias) {
-        for (final prod in sub.produtos) {
-          _originalProductQuantities[prod.id] = prod.quantidade;
-          _originalProductManualFlags[prod.id] = prod.quantidadeManual;
-          _originalProductValues[prod.id] = prod.valor;
-          _originalProductObservations[prod.id] = prod.observacoes;
-          final indicatorMap = <int, bool>{};
-          for (final ind in prod.indicadoresEtapa) {
-            indicatorMap[ind.produtoIndicadorId] = ind.selecionado;
-          }
-          _originalProductIndicators[prod.id] = indicatorMap;
-        }
-      }
-    }
+    _originalProductSnapshots =
+        BudgetVersioningDecision.snapshotsFromCategories(categories);
   }
 
-  void _updateOriginalQuantitiesSnapshot() {
-    _originalProductQuantities.clear();
+  /// Incorpora ao estado original apenas as quantidades alteradas pelo
+  /// recálculo do censo salvo. Edições pendentes do usuário (seleção, preço,
+  /// indicador, modo manual, observação e quantidade manual) continuam sendo
+  /// mudanças de produto e seguem no próximo salvamento.
+  void _updateOriginalQuantitiesSnapshot(
+    Map<int, BudgetProductSnapshot> beforeRecalc,
+  ) {
+    final afterRecalc =
+        BudgetVersioningDecision.snapshotsFromCategories(categories);
+    final updated = Map<int, BudgetProductSnapshot>.from(
+      _originalProductSnapshots,
+    );
 
-    for (final cat in categories) {
-      for (final sub in cat.subcategorias) {
-        for (final prod in sub.produtos) {
-          _originalProductQuantities[prod.id] = prod.quantidade;
-        }
-      }
+    for (final entry in afterRecalc.entries) {
+      final original = updated[entry.key];
+      final before = beforeRecalc[entry.key];
+      if (original == null || before == null) continue;
+      if (before.quantidade == entry.value.quantidade) continue;
+
+      updated[entry.key] = original.withQuantidade(entry.value.quantidade);
     }
+
+    _originalProductSnapshots = updated;
   }
 
   void _parseCensoEscolarFromCitiesData() {
@@ -1156,8 +1132,10 @@ abstract class _BudgetEditStoreBase with Store {
     if (budgetData == null) return;
 
     _parseCensoEscolarFromCitiesData();
+    final beforeRecalc =
+        BudgetVersioningDecision.snapshotsFromCategories(categories);
     _recalculateProductQuantities();
-    _updateOriginalQuantitiesSnapshot();
+    _updateOriginalQuantitiesSnapshot(beforeRecalc);
     budgetData = budgetData?.copyWith(total: totalValue);
   }
 

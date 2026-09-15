@@ -39,12 +39,4 @@ abstract class BudgetListRepository {
     int budgetId,
     String newName,
   );
-
-  /// Exclui um orçamento
-  ///
-  /// [budgetId] - ID do orçamento
-  ///
-  /// Retorna [Right(unit)] em caso de sucesso
-  /// Retorna [Left(BudgetFailure)] em caso de erro
-  Future<Either<BudgetFailure, Unit>> deleteBudget(int budgetId);
 }

@@ -145,7 +145,7 @@ Status: **PASS** = App bateu a regra. **FAIL** = o passo rodou e o App fez outra
 | CT-MOB-ORC-017 | Desarquivar orçamento | **FAIL** |
 | CT-MOB-ORC-018 | Versionar orçamento | **PASS** |
 | CT-MOB-ORC-019 | Bloquear edição sem permissão | **FAIL** |
-| CT-MOB-ORC-020 | Orçamento finalizado/somente leitura | **FAIL** |
+| CT-MOB-ORC-020 | Orçamento aprovado permanece editável | **PASS — regra esclarecida** |
 | CT-MOB-ORC-021 | Renomear confirmando o nome atual | **FAIL** |
 | CT-MOB-ORC-022 | Histórico de orçamento de parceiro inativo | **PASS** |
 
@@ -164,8 +164,8 @@ Status: **PASS** = App bateu a regra. **FAIL** = o passo rodou e o App fez outra
 | CT-MOB-CRI-009 | Cancelar seleção multi-cidade | **PASS** |
 | CT-MOB-CRI-010 | Criar orçamento multi-cidade | **PASS** |
 | CT-MOB-CRI-011 | Remover cidade antes de concluir multi-cidade | **PASS** |
-| CT-MOB-CRI-012 | Criar orçamento personalizado | **FAIL** |
-| CT-MOB-CRI-013 | Rejeitar valor inválido no censo personalizado | **PASS** |
+| CT-MOB-CRI-012 | Criar orçamento personalizado | **PLANEJADO — próxima versão** |
+| CT-MOB-CRI-013 | Rejeitar valor inválido no censo personalizado | **PLANEJADO — próxima versão** |
 | CT-MOB-CRI-014 | Visualizar censo do orçamento | **PASS** |
 | CT-MOB-CRI-015 | Editar snapshot do censo | **PASS** |
 | CT-MOB-CRI-016 | Agregado multi-cidade após editar cidade | **PASS** |
@@ -337,9 +337,9 @@ Status: **PASS** = App bateu a regra. **FAIL** = o passo rodou e o App fez outra
 
 ---
 
-## 4. Erros e bugs encontrados (os 14 FAIL)
+## 4. Erros e bugs encontrados (12 FAIL após esclarecimento das regras)
 
-São **11 problemas** (alguns FAIL compartilham a mesma causa). Confirmados no App, no código Flutter e nas APIs que o App chama.
+São **9 problemas** (alguns FAIL compartilham a mesma causa). ORC-020 foi reclassificado como comportamento correto e CRI-012/013 como fluxo planejado para uma próxima versão.
 
 ### 4.1 Sessão inválida não leva ao login — AUT-013 e AUT-015
 
@@ -365,13 +365,13 @@ São **11 problemas** (alguns FAIL compartilham a mesma causa). Confirmados no A
 
 **Onde:** backend (autorização).
 
-### 4.4 Orçamento aprovado continua editável — ORC-020
+### 4.4 Orçamento aprovado continua editável — ORC-020 (reclassificado como correto)
 
-**Esperado (suíte):** aprovado em somente leitura.
+**Regra esclarecida em 12/09/2026:** orçamento aprovado pode ser editado normalmente por usuário autorizado; aprovação não implica somente leitura.
 
-**Atual:** `FX ORC-020 APROVADO` (118) mantém Deselecionar todos, catálogo e seletor de status. Confirmar se a regra de negócio vigente é mesmo “somente leitura”.
+**Atual:** `FX ORC-020 APROVADO` (118) mantém Deselecionar todos, catálogo e seletor de status, conforme a regra vigente.
 
-**Onde:** App.
+**Classificação:** **PASS**, não é bug.
 
 ### 4.5 Confirmar o mesmo nome no rename é rejeitado — ORC-021
 
@@ -381,13 +381,13 @@ São **11 problemas** (alguns FAIL compartilham a mesma causa). Confirmados no A
 
 **Onde:** App.
 
-### 4.6 Não existe orçamento personalizado sem município — CRI-012
+### 4.6 Orçamento personalizado sem município — CRI-012/013 (planejado)
 
-**Esperado:** terceiro fluxo de criação, sem cidade, censo na mão.
+**Regra esclarecida em 12/09/2026:** o fluxo personalizado será disponibilizado em uma próxima versão.
 
-**Atual:** Novo Orç. só tem cidade única e multi-cidade. Pode ser regra retirada no produto; como está, o caso canônico não executa.
+**Atual:** Novo Orç. oferece cidade única e multi-cidade, conforme o escopo da versão atual.
 
-**Onde:** App (fluxo ausente).
+**Classificação:** **PLANEJADO**, não é bug da versão atual.
 
 ### 4.7 Voltar com alteração não salva sai direto — CAL-010
 
@@ -466,11 +466,11 @@ Itens **Plataforma WEB** dos dois PDFs **não entram** na estatística do App. F
 |---|---|---|---|
 | Método | Exploratório | Exploratório | Suíte contra a documentação |
 | Itens de App no PDF | 4 bugs marcados CORRIGIDO | 1 ERRO (paginação) | 196 casos |
-| Resultado no App em 11/09 | 3 consertos confirmados (valores, empresa, telefone); 1 família ainda aberta na **permissão** (ORC-019), não no crash do save | Paginação **não reproduzida** (ORC-008 PASS) | 179 PASS, 14 FAIL, 3 IMPROVÁVEL |
+| Resultado no App em 11/09 | 3 consertos confirmados (valores, empresa, telefone); 1 família ainda aberta na **permissão** (ORC-019), não no crash do save | Paginação **não reproduzida** (ORC-008 PASS) | 179 PASS, 12 FAIL, 3 IMPROVÁVEL, 2 PLANEJADO |
 
 - **Pegos pelos dois lados:** nenhum FAIL da suíte está escrito nos PDFs dos estagiários.
 - **Pegos só pelos estagiários (App):** paginação infinita do Rodrigo — a suíte cobriu o tema (ORC-008) e **passou**.
-- **Pegos só pela suíte:** os 14 FAIL da seção 4 (sessão, arquivar, permissão, aprovado, rename, CRI-012, back sujo, PDF 60 dias, relatório, avatar, breadcrumb).
+- **Pegos só pela suíte:** os 12 FAIL da seção 4 (sessão, arquivar, permissão, rename, back sujo, PDF 60 dias, relatório, avatar e breadcrumb).
 - **Marcados CORRIGIDO pelo Lucca e confirmados no MCP:** valores inválidos, telefone, edição de empresa, save do multi-cidade (CRI-016).
 - **WEB nos dois PDFs:** contrato, Drive em lote, cadastro de produto/diferencial, filtros da gestão de parceiros — não são deste App.
 
@@ -488,11 +488,75 @@ Itens **Plataforma WEB** dos dois PDFs **não entram** na estatística do App. F
 
 ## 7. Conclusão
 
-A cadeia documentação → casos → teste na UI do App foi executada até o fim: **196/196**.
+A cadeia documentação → casos → teste na UI do App cobriu **194 casos aplicáveis**; CRI-012 e CRI-013 ficaram classificados como planejados para uma próxima versão.
 
-- **91% conforme.**
-- **14 divergências** para correção (11 problemas; sessão e arquivar e relatório agrupam dois IDs cada).
+- **92% conforme** entre os 194 casos aplicáveis.
+- **12 divergências** para correção (9 problemas; sessão, arquivar e relatório agrupam dois IDs cada).
+- **2 casos planejados** para a futura versão do fluxo personalizado.
 - **3 casos** só deste emulador, sem tratar como bug.
 - Os estagiários acharam regressões pontuais (e várias coisas de **WEB**). A suíte cobriu o App inteiro e achou falhas que o teste exploratório não listou.
 - Próximo passo do pipeline original: testes automatizados (Patrol já existe para parte dos casos).
+
+---
+
+## 8. Reteste dos três primeiros problemas — 12/09/2026
+
+**Ambiente:** emulador `mobile_mcp_test`, Android 15, App 1.1.0+30 debug, backend Docker local em `192.168.1.12:8080`.
+
+| Problema | Casos | Resultado do reteste |
+|---|---|---|
+| Sessão inválida não leva ao login | AUT-013 e AUT-015 | **PASS.** Após revogar o token persistido, uma atualização da lista redirecionou ao login. Após novo login, revogação, encerramento e reabertura do App, o splash também abriu o login sem exibir conteúdo autenticado. |
+| Arquivar/desarquivar cria outro orçamento | ORC-016 e ORC-017 | **FAIL.** Arquivar o orçamento 5 criou o orçamento 7, arquivou o 5 e mudou seu status de `pendente` para `nao_aprovado`. Desarquivar o 5 criou o orçamento 8 em vez de atualizar o mesmo registro. |
+| Vendedor acessa orçamento de outro usuário | ORC-019 | **PASS.** O vendedor Apple recebeu lista vazia diante de orçamentos sem destino pertencentes ao administrador. Como confirmação complementar, sem substituir a UI, `GET /api/orcamentos/5` com a sessão mobile do vendedor retornou HTTP 403. |
+
+Os orçamentos 7 e 8 criados pelo reteste foram removidos, e o orçamento 5 foi restaurado para `pendente`, não arquivado. As sessões de teste também foram removidas.
+
+---
+
+## 9. Reteste dos problemas 7 a 11 — 12/09/2026
+
+**Ambiente:** emulador `mobile_mcp_test`, Android 15, App 1.1.0+30 debug recompilado, backend Docker local em `192.168.1.12:8080`.
+
+| Problema | Casos | Resultado do reteste |
+|---|---|---|
+| Sair com alteração não salva | CAL-010 | **PASS no fluxo principal.** Após desmarcar produtos, o título recebeu `*`. Voltar pelo cabeçalho e pelo botão nativo do Android abriu **Cancelar / Descartar**. Cancelar preservou a edição e Descartar retornou uma única vez à lista sem persistir a mudança. Não foi repetida nesta rodada toda a matriz ampliada de censo, editar/desfazer e falha de salvamento. |
+| PDF renova a validade | EXP-008 | **PASS nos cenários de 60 dias executados.** No orçamento 5 pendente, a geração abriu a folha nativa com `projeto 2026.pdf` e mudou a validade de 09/11/2026 para 11/11/2026, preservando ID, status, arquivamento, total, origem e produtos. Preparado como expirado, o mesmo orçamento voltou a `pendente` e a 11/11/2026 após nova geração; a própria lista mostrou `60 dias rest.`. A matriz de 15/90 dias, demais status, arquivamento, repetição e falha controlada não foi executada integralmente nesta rodada. |
+| Total no detalhe administrativo | ADM-008 | **PASS.** O cartão do ORC-005 no relatório e o detalhe aberto pelo cartão exibiram o mesmo total, **R$ 136.010,00**, para o orçamento correto. |
+| Censo no detalhe administrativo | ADM-009 | **FAIL.** O cartão do detalhe resumiu **7.215 estudantes**, mas a tela de censo aberta por ele mostrou **7.212 estudantes**. A tela permaneceu somente leitura, porém os valores exibidos não correspondem entre si. |
+| Avatar inválido ou acima de 5 MiB | PRF-007 | **PASS no Android.** PNG válido de exatamente **5.242.880 bytes** abriu o recorte; o mesmo original com **5.242.881 bytes** foi recusado antes do recorte com a mensagem de limite de 5 MB. PNG corrompido de 100 bytes também foi recusado antes do recorte. Em ambos os erros, formulário e avatar foram preservados. |
+| Breadcrumb de pastas | DRV-007 | **PASS no fluxo de Meus arquivos.** Com três pastas temporárias, breadcrumb, título e conteúdo permaneceram sincronizados. Ancestral imediato e distante fecharam uma e duas páginas; tocar a pasta atual não mudou o contexto; Drive voltou à raiz; cabeçalho e botão nativo voltaram um nível. A matriz de Compartilhados/Pastas, respostas atrasadas e concorrência de cache não foi repetida integralmente. |
+
+**Evidências complementares:** antes e depois do PDF, o banco confirmou um único orçamento 5, prazo salvo 60, total `136010.00`, origem 4 e 276 linhas de produto, 258 selecionadas. A hierarquia temporária do Drive usou os itens 11 → 12 → 13.
+
+Ao final, o orçamento 5 voltou a `pendente`, não arquivado e com validade 09/11/2026; o telefone temporário, as pastas 11–13, as imagens de avatar e os tokens de teste foram removidos. O banco permaneceu com 6 orçamentos, ID máximo 6.
+
+---
+
+## 10. Reteste de arquivamento, itens 4 a 6 e censo administrativo — 12/09/2026
+
+**Ambiente:** emulador `mobile_mcp_test`, Android 15, App 1.1.0+30 debug recompilado após as correções mais recentes, backend Docker local em `192.168.1.12:8080`. Todos os fluxos foram executados pela interface real com o papel **Administrador**; consultas ao banco foram usadas apenas como evidência complementar.
+
+| Caso | Esperado | Obtido | Status |
+|---|---|---|---|
+| CT-MOB-ORC-016 — Arquivar orçamento | O mesmo registro sai dos realizados, aparece como arquivado e preserva o status comercial. | No ORC-005, selecionar `Arquivado: Sim` e salvar exibiu sucesso. O registro permaneceu com ID 5 e status `pendente`, passou para `orc_is_archived = 1` e não foi criada nova versão. | **PASS** |
+| CT-MOB-ORC-017 — Desarquivar orçamento | O mesmo registro retorna à listagem ativa sem mudança indevida do status. | No mesmo ORC-005, selecionar `Arquivado: Não` e salvar exibiu sucesso. O registro permaneceu com ID 5 e status `pendente`, voltou para `orc_is_archived = 0` e não foi criada nova versão. | **PASS** |
+| CT-MOB-ORC-020 — Orçamento aprovado permanece editável | Usuário autorizado pode editar normalmente; aprovação não implica somente leitura. | O ORC-005 foi preparado como `aprovado` e aberto pelo filtro Aprovados. Produtos e demais ações de edição permaneceram habilitados, conforme a regra esclarecida. | **PASS — regra reclassificada** |
+| CT-MOB-ORC-021 — Renomear usando exatamente o nome atual | A operação não é rejeitada, retorna sucesso normalmente e preserva nome e demais dados. | O toque longo no ORC-005 abriu o modal com `projeto 2026` já preenchido. Confirmar sem alterar o texto manteve o modal aberto e não exibiu sucesso. A implementação carregada ainda contém a rejeição `O novo nome deve ser diferente do atual`. | **FAIL** |
+| CT-MOB-CRI-012 — Criar orçamento personalizado | Funcionalidade será testada quando o fluxo for disponibilizado. | Em `Novo Orç.`, estavam disponíveis o fluxo comum e `Orçamento multi-cidades`, conforme o escopo da versão atual. | **PLANEJADO — próxima versão** |
+| CT-MOB-ADM-009 — Abrir censo pelo detalhe do relatório | O censo aberto corresponde ao orçamento e permanece sem edição administrativa indevida. | Em Gestão administrativa → Multimidia Educacional → Pedro Penha → ORC-005, o detalhe resumiu **7.212 estudantes**. A tela aberta pelo cartão também exibiu **Estudantes: 7212**, o mesmo orçamento e campos somente leitura. | **PASS** |
+
+**Evidências complementares:** durante ORC-016/017, o banco permaneceu com 6 orçamentos e ID máximo 6; o ORC-005 preservou total `136010.00`, origem 4 e status `pendente`. O orçamento aprovado usado em ORC-020 foi restaurado ao estado inicial, e a tentativa de CRI-012 não criou rascunho. Ao final, o ORC-005 ficou `pendente`, não arquivado, com validade 09/11/2026; os tokens de teste foram removidos e o App foi limpo para a tela de login.
+
+---
+
+## 11. Correção e reteste de edição aprovada e nome idêntico — 12/09/2026
+
+**Ambiente:** emulador `mobile_mcp_test`, Android 15, App 1.1.0+30 debug recompilado, backend Docker local em `192.168.1.12:8080`, papel **Administrador**.
+
+| Caso | Resultado |
+|---|---|
+| CT-MOB-ORC-020 — Orçamento aprovado permanece editável | **PASS.** Com o ORC-005 em `aprovado`, o nome foi alterado pela UI para `projeto 2026 teste aprovado`; o modal fechou e a lista exibiu o novo nome, preservando status, ID, total, validade, arquivamento, origem e produtos. O nome original foi restaurado depois. |
+| CT-MOB-ORC-021 — Renomear usando exatamente o nome atual | **PASS após correção.** Com `projeto 2026` preenchido no modal, tocar Renomear fechou o modal e concluiu a chamada normalmente. O banco confirmou o mesmo ID 5 e o mesmo nome, com `updated_at` renovado e sem criar versão ou alterar status, total, validade, arquivamento, origem ou produtos. |
+
+**Verificações automatizadas:** o teste widget do App para confirmar o nome atual passou; a suíte focada de atualização do backend passou com 38 testes e 85 assertions. O fluxo integrado pela UI confirmou que o backend já aceitava o valor igual; a rejeição estava na validação local do App. O limite do App também foi alinhado ao contrato vigente de 1 a 255 caracteres.
 

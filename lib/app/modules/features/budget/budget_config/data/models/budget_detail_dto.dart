@@ -27,8 +27,8 @@ class BudgetDetailDto {
 
   /// Classificação declarada pelo backend em `multi_cidade`.
   ///
-  /// Nula em respostas que ainda não trazem a chave; nesse caso a entidade
-  /// deriva a classificação pela quantidade de cidades.
+  /// Sem a chave, deriva de `orc_cidade_id` nulo; nula apenas quando nenhuma
+  /// das duas chaves vem no payload.
   final bool? multiCity;
 
   /// Censo agregado do orçamento, vindo de `censo_agregado`.

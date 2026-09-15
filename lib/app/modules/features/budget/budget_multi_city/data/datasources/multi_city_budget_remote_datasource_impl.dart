@@ -71,7 +71,6 @@ class MultiCityBudgetRemoteDataSourceImpl
   Future<Map<String, dynamic>> criarMultiCidade({
     required String nome,
     required int diasValidade,
-    required int usuarioId,
     required List<int> cidadeIds,
     required Map<int, Map<int, double>> overridesPorCidade,
     int? partnerDestinoId,
@@ -80,7 +79,6 @@ class MultiCityBudgetRemoteDataSourceImpl
     final payload = <String, dynamic>{
       'orc_nome': nome,
       'orc_dias_validade': diasValidade,
-      'orc_usuario_id': usuarioId,
       'cidades': cidades,
     };
 

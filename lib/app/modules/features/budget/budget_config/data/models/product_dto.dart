@@ -210,7 +210,7 @@ class ProductDTO {
       tipoProduto: tipoProduto,
       ordem: ordem,
       subcategoriaId: subcategoriaId,
-      selecionado: quantidade > 0 ? selecionado : false,
+      selecionado: selecionado,
       quantidade: quantidade,
       quantidadeManual: quantidadeManual,
       temOverride: temOverride,

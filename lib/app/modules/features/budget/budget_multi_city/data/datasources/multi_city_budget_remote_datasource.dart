@@ -12,7 +12,6 @@ abstract class MultiCityBudgetRemoteDataSource {
   Future<Map<String, dynamic>> criarMultiCidade({
     required String nome,
     required int diasValidade,
-    required int usuarioId,
     required List<int> cidadeIds,
     required Map<int, Map<int, double>> overridesPorCidade,
     int? partnerDestinoId,

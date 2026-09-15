@@ -197,6 +197,9 @@ class CensoEscolarMapper {
     final gruposMap = <int, List<CensoTitleEntity>>{};
     final grupoNomes = <int, String>{};
     final grupoOrdens = <int, FractionalOrder>{};
+    // Chave composta grupo+etapa: o mesmo `nome_etapa` pode existir em grupos
+    // distintos, e dedupar só por etapa apagaria o grupo inteiro da visão
+    // agregada quando ele não tivesse nenhuma etapa exclusiva.
     final vistos = <String>{};
 
     for (final cityData in citiesData) {
@@ -218,12 +221,11 @@ class CensoEscolarMapper {
         }
         if (grupoNome.isNotEmpty) grupoNomes[grupoId] = grupoNome;
 
-        // Dedup global por nomeEtapa: a primeira ocorrência define o grupo.
-        // Registrar o grupo só quando vamos efetivamente adicionar um título
-        // evita criar grupos vazios quando a mesma etapa aparece em grupos
-        // diferentes entre cidades.
-        if (vistos.contains(nomeEtapa)) continue;
-        vistos.add(nomeEtapa);
+        // Dedup por grupo+etapa. Registrar o grupo só quando vamos efetivamente
+        // adicionar um título evita criar grupos vazios.
+        final chave = '$grupoId::$nomeEtapa';
+        if (vistos.contains(chave)) continue;
+        vistos.add(chave);
 
         final titulo = indice['titulo'].toString();
         final id = ApiNumberParser.toInt(indice['id']);
@@ -251,10 +253,22 @@ class CensoEscolarMapper {
 
     final grupos = _buildSortedGroups(gruposMap, grupoNomes, grupoOrdens);
 
+    // Mesma regra da tela de censo: um único ano quando todas as cidades
+    // coincidem, intervalo quando divergem, null quando nenhuma informou.
+    final (censoAnoInicio, censoAnoFim) = CensoEscolarEntity.faixaDeAnos(
+      citiesData.map((c) => ApiNumberParser.toIntOrNull(c['censo_ano'])),
+    );
+    final (populacaoInicio, populacaoFim) = CensoEscolarEntity.faixaDeAnos(
+      citiesData.map((c) => ApiNumberParser.toIntOrNull(c['ano_populacao'])),
+    );
+
     return CensoEscolarEntity(
       cidadeId: 0,
       cidadeNome: 'Agregado',
-      anoPopulacao: null,
+      censoAno: censoAnoInicio,
+      anoPopulacao: populacaoInicio,
+      censoAnoFinal: censoAnoFim,
+      anoPopulacaoFinal: populacaoFim,
       grupos: grupos,
       valoresPorEtapa: censoAgregado,
     );

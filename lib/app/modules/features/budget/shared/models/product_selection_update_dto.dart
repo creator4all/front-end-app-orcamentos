@@ -11,6 +11,7 @@ class ProductSelectionUpdateDto extends Equatable {
   final String tipoProduto;
   final List<IndicadorProdutoUpdateDto>? indicadores;
   final double? valor;
+  final String? observacoes;
   final bool? selecionadoChanged;
   final bool? quantidadeChanged;
   final bool? valorChanged;
@@ -24,6 +25,7 @@ class ProductSelectionUpdateDto extends Equatable {
     required this.tipoProduto,
     this.indicadores,
     this.valor,
+    this.observacoes,
     this.selecionadoChanged,
     this.quantidadeChanged,
     this.valorChanged,
@@ -63,10 +65,9 @@ class ProductSelectionUpdateDto extends Equatable {
       quantidade: entity.quantidade,
       quantidadeManual: entity.quantidadeManual,
       tipoProduto: entity.tipoProduto,
-      indicadores: changedIndicadores != null && changedIndicadores.isEmpty
-          ? null
-          : changedIndicadores,
+      indicadores: changedIndicadores,
       valor: entity.valor,
+      observacoes: entity.observacoes,
       selecionadoChanged: selecionadoChanged,
       quantidadeChanged: quantidadeChanged,
       valorChanged: valorChanged,
@@ -83,16 +84,21 @@ class ProductSelectionUpdateDto extends Equatable {
         .map((ind) => IndicadorProdutoUpdateDto.fromEntity(ind))
         .toList();
 
-    final valorAlterado = entity.hasValueOverride ? entity.valor : null;
+    final temIndicadores =
+        entity.indicadoresEtapa.any((ind) => ind.produtoIndicadorId > 0);
 
+    // O preço efetivo vai sempre: comparar com `valorOriginal` (catálogo
+    // atual) omitiria um preço digitado igual ao catálogo, e a API manteria
+    // o valor da origem.
     return ProductSelectionUpdateDto(
       productId: entity.id,
       selecionado: entity.selecionado,
       quantidade: entity.quantidade,
       quantidadeManual: entity.quantidadeManual,
       tipoProduto: entity.tipoProduto,
-      indicadores: indicadoresDto.isNotEmpty ? indicadoresDto : null,
-      valor: valorAlterado,
+      indicadores: temIndicadores ? indicadoresDto : null,
+      valor: entity.valor,
+      observacoes: entity.observacoes,
     );
   }
 
@@ -105,9 +111,10 @@ class ProductSelectionUpdateDto extends Equatable {
         'selecionado': selecionado,
         'quantidade': quantidade,
         'quantidade_manual': quantidadeManual,
-        if (indicadores != null && indicadores!.isNotEmpty)
+        if (indicadores != null)
           'indicadores_etapa': indicadores!.map((i) => i.toJson()).toList(),
         if (valor != null) 'valor': valor,
+        if (observacoes != null) 'observacoes': observacoes,
       };
 
   Map<String, dynamic> toJson() => isDelta
@@ -117,9 +124,10 @@ class ProductSelectionUpdateDto extends Equatable {
           'selecionado': selecionado,
           if (isServico || quantidadeManual) 'quantidade': quantidade,
           'quantidade_manual': quantidadeManual,
-          if (indicadores != null && indicadores!.isNotEmpty)
+          if (indicadores != null)
             'indicadores_etapa': indicadores!.map((i) => i.toJson()).toList(),
           if (valor != null) 'valor': valor,
+          if (observacoes != null) 'observacoes': observacoes,
         };
 
   Map<String, dynamic> toJsonForMultiCity() => {
@@ -127,9 +135,10 @@ class ProductSelectionUpdateDto extends Equatable {
         'selecionado': selecionado,
         if (isServico || quantidadeManual) 'quantidade': quantidade,
         'quantidade_manual': quantidadeManual,
-        if (!isServico && indicadores != null && indicadores!.isNotEmpty)
+        if (!isServico && indicadores != null)
           'indicadores_etapa': indicadores!.map((i) => i.toJson()).toList(),
         if (valor != null) 'valor': valor,
+        if (observacoes != null) 'observacoes': observacoes,
       };
 
   @override
@@ -141,6 +150,7 @@ class ProductSelectionUpdateDto extends Equatable {
         tipoProduto,
         indicadores,
         valor,
+        observacoes,
       ];
 
   @override

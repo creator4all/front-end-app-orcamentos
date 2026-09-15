@@ -465,10 +465,15 @@ class _ReportBudgetDetailPageState extends State<ReportBudgetDetailPage> {
   }
 
   Future<void> _handleShare() async {
+    var generated = false;
     await ExportPdfModal.show(
       context: context,
       orcamentoId: widget.budgetId,
+      onGenerated: () => generated = true,
     );
+    if (mounted && generated) {
+      await _store.refresh();
+    }
   }
 
   /// Extrai dados das cidades para o SchoolCensusCard

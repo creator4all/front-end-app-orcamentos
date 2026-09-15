@@ -316,7 +316,7 @@ class _SchoolCensusPageState
         ),
         SizedBox(height: 4.h),
         Text(
-          'Ano do Censo Escolar: ${store.censoEscolar?.censoAno?.toString() ?? '-'}',
+          'Ano do Censo Escolar: ${store.censoEscolar?.censoAnoLabel ?? '-'}',
           style: TextStyle(
             fontSize: 14.sp,
             fontWeight: FontWeight.w400,
@@ -325,7 +325,7 @@ class _SchoolCensusPageState
         ),
         SizedBox(height: 4.h),
         Text(
-          'Ano base da população segundo IBGE: ${store.censoEscolar?.anoPopulacao?.toString() ?? '-'}',
+          'Ano base da população segundo IBGE: ${store.censoEscolar?.anoPopulacaoLabel ?? '-'}',
           style: TextStyle(
             fontSize: 14.sp,
             fontWeight: FontWeight.w400,

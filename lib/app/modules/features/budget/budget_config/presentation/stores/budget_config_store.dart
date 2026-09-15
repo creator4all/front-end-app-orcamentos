@@ -1428,7 +1428,6 @@ abstract class _BudgetConfigStoreBase with Store {
         diasValidade: diasValidade > 0 ? diasValidade : 1,
         status: 'pendente',
         total: totalCalculado,
-        usuarioId: budgetDetail!.userId,
         partnerDestinoId: budgetDetail!.partnerId,
         cidades: budgetDetail!.cityIds,
         isArchived: budgetDetail!.isArchived,

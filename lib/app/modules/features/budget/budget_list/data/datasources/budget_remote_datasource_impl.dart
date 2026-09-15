@@ -62,7 +62,6 @@ class BudgetRemoteDataSourceImpl implements BudgetRemoteDataSource {
         'orc_dias_validade': atual['orc_dias_validade'],
         'orc_status': atual['orc_status'],
         'orc_total': atual['orc_total'],
-        'orc_usuario_id': atual['orc_usuario_id'],
         'orc_partner_destino_id': atual['orc_partner_destino_id'],
         'isArchived': atual['orc_is_archived'] ?? false,
         'cidades': const <int>[],
@@ -86,14 +85,5 @@ class BudgetRemoteDataSourceImpl implements BudgetRemoteDataSource {
     }
 
     return Map<String, dynamic>.from(response.body['dados'] as Map);
-  }
-
-  @override
-  Future<void> deleteBudget(int budgetId) async {
-    final response = await _client.delete('/api/orcamentos/$budgetId');
-
-    if (!response.isSuccess) {
-      throw Exception(response.body['error'] ?? 'Falha ao excluir orçamento');
-    }
   }
 }

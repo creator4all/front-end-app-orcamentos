@@ -52,7 +52,7 @@ O vendedor atua em campo (atendimento a prefeituras) ou remotamente. O App mobil
 - Autenticação em duas etapas **no painel web** (e-mail + senha, seguida de OTP por e-mail); no App, todos os perfis — inclusive o Administrador — entram apenas com e-mail e senha (decidido em 10/09/2026);
 - Auto-cadastro de vendedores vinculados a uma empresa parceira existente, sujeito a aprovação do gestor;
 - Prospecção de novas parcerias;
-- Criação de orçamentos por cidade única, multi-cidade ou personalizado (sem município);
+- Criação de orçamentos por cidade única e multi-cidade; o fluxo personalizado (sem município) está planejado para uma próxima versão;
 - Cálculo automático de quantidades a partir do Censo Escolar;
 - Quantidade manual sobrescrevendo o cálculo automático;
 - Edição de orçamentos com versionamento e preservação de histórico;
@@ -80,7 +80,7 @@ O vendedor atua em campo (atendimento a prefeituras) ou remotamente. O App mobil
 - Auto-cadastro de vendedores vinculados a empresa parceira existente e ativa.
 - Prospecção de novas parcerias (registro público de interesse).
 - Criação, edição, versionamento, arquivamento e desarquivamento de orçamentos.
-- Orçamentos de cidade única, multi-cidade e personalizado.
+- Orçamentos de cidade única e multi-cidade. O personalizado está especificado como evolução futura e ainda não integra a versão atual do App.
 - Cálculo de quantidades a partir do Censo Escolar (livros, tecnologias, serviços).
 - Quantidade manual sobrescrevendo o cálculo automático.
 - Geração de PDF de orçamento com identidade visual do parceiro.
@@ -655,6 +655,8 @@ O sistema organiza-se nos seguintes domínios funcionais:
 
 ## RF-ORC-003 — Criar orçamento personalizado (sem município)
 
+**Status:** Planejado para uma próxima versão; fluxo ainda indisponível no App atual.
+
 **Descrição:** O vendedor/gestor deve poder criar um orçamento personalizado sem vinculação a um município específico, inserindo manualmente os valores do censo.
 
 **Atores:** Vendedor, Gestor, Administrador.
@@ -680,7 +682,7 @@ O sistema organiza-se nos seguintes domínios funcionais:
 
 **Atores:** Vendedor (próprio), Gestor (empresa), Administrador (qualquer).
 
-**Pré-condições:** Orçamento existe; usuário tem permissão.
+**Pré-condições:** Orçamento existe; usuário tem permissão. O status `aprovado` não torna o orçamento somente leitura e não bloqueia a edição.
 
 **Fluxo principal:**
 1. O usuário abre o orçamento para edição.
@@ -783,7 +785,7 @@ O sistema organiza-se nos seguintes domínios funcionais:
 1. O usuário solicita a geração do PDF.
 2. O sistema valida os dados do vendedor.
 3. O sistema gera o PDF com logo do parceiro, dados do vendedor, produtos, quantidades, valores e totais.
-4. O sistema renova a validade do orçamento para 60 dias a partir da operação (ver RN-ORC-013).
+4. O sistema renova a validade pelo prazo salvo em `orc_dias_validade`, contado a partir da operação; somente `expirado` passa a `pendente` (ver RN-ORC-013).
 
 **Pós-condições:** O PDF é gerado e disponibilizado.
 
@@ -1677,6 +1679,8 @@ O sistema organiza-se nos seguintes domínios funcionais:
 
 ## RN-ORC-004 — Orçamento personalizado sem município
 
+**Status:** Planejado para uma próxima versão; esta regra descreve o comportamento futuro.
+
 **Regra:** O orçamento personalizado não tem município vinculado; o usuário informa manualmente os valores do censo.
 
 **Aplicação:** Orçamento personalizado.
@@ -1795,17 +1799,17 @@ Esta regra é a mesma para orçamentos de cidade única e **multi-cidade** (deci
 
 **Requisitos relacionados:** RF-ORC-009.
 
-## RN-ORC-013 — Compartilhamento renova a validade em 60 dias
+## RN-ORC-013 — Compartilhamento renova a validade pelo prazo salvo
 
-**Regra:** Gerar ou compartilhar o PDF de um orçamento **renova sua validade para 60 dias contados da data da operação** (decidido em 10/09/2026), **inclusive quando o orçamento já estava expirado**. A renovação é automática e incondicional. Antes desta regra, era necessário atualizar manualmente um orçamento expirado para restaurar sua validade.
+**Regra esclarecida em 12/09/2026:** Gerar ou compartilhar o PDF renova a validade como **momento da operação + `orc_dias_validade` salvo**. O padrão de novos orçamentos é 60 dias, mas prazos como 15 e 90 dias são preservados. Somente `expirado` muda para `pendente`; pendente, aprovado e não aprovado mantêm seus status. ID, versões, arquivamento, produtos e valores permanecem intactos.
 
 **Aplicação:** Compartilhamento/PDF.
 
-**Exemplo:** Orçamento expirado há 10 dias; ao gerar o PDF, a validade passa a valer por mais 60 dias a partir de hoje.
+**Exemplo:** Orçamento expirado há 10 dias, configurado com 15 dias; gerar o PDF define validade para o momento da operação mais 15 dias e status pendente, sem criar versão nem desarquivar.
 
-**Exceções:** Nenhuma.
+**Falhas:** Geração negada ou falha não renova; falha na renovação não entrega resposta de sucesso. Cancelar o compartilhamento nativo após gerar não desfaz a renovação já persistida.
 
-**Divergência atual:** a implementação renova automaticamente, o que está correto, mas usa o valor armazenado `orc_dias_validade` (`nova validade = hoje + orc_dias_validade`), que pode ser diferente de 60. O prazo precisa ser confrontado e ajustado para a regra fixa de **+60 dias**.
+**Histórico:** A interpretação de prazo fixo de +60 dias, registrada em 10/09/2026, foi substituída por este esclarecimento. Relatórios daquela execução não representam o resultado dos testes atuais.
 
 **Requisitos relacionados:** RF-ORC-009.
 
@@ -2260,7 +2264,7 @@ O orçamento possui dois conceitos ortogonais:
 | `pendente` | Reprovar manualmente | `não aprovado` | Usuário com permissão |
 | `pendente` | Expirar (automático) | `expirado` | Data de validade passada |
 | `aprovado` | Reprovar manualmente | `não aprovado` | Usuário com permissão |
-| `aprovado` | Expirar (automático) | `expirado` | Data de validade passada (gerar/compartilhar PDF renova por 60 dias — ver RN-ORC-013) |
+| `aprovado` | Expirar (automático) | `expirado` | Data de validade passada (gerar/compartilhar PDF renova pelo prazo salvo — ver RN-ORC-013) |
 | `não aprovado` | Aprovar manualmente | `aprovado` | Usuário com permissão |
 | `expirado` | Renovar validade e salvar | `pendente` | Editar/versão: ao definir nova validade, `expirado` → `pendente` |
 | `expirado` | Versionar | `pendente` (nova versão) | Versão herda dados; nova validade |
@@ -2278,7 +2282,7 @@ O orçamento possui dois conceitos ortogonais:
 
 - **Versionar**: arquiva o original e cria uma nova versão vinculada (origem). O status da nova versão pode ser `pendente` (se o original estava expirado, a nova versão passa a `pendente`).
 - **Multi-cidade versionar**: segue a **mesma regra** do orçamento comum, sem comportamento próprio (ver RN-ORC-007).
-- **Compartilhar/gerar PDF**: renova a validade para 60 dias a partir da operação, inclusive se o orçamento estava expirado (ver RN-ORC-013).
+- **Compartilhar/gerar PDF**: renova pelo prazo salvo a partir da operação; somente expirado passa a pendente, preservando versões e arquivamento (ver RN-ORC-013).
 - **Edição preserva status**: a edição pelo App preserva o status selecionado, exceto ao definir nova validade, que reseta `expirado` → `pendente`.
 
 ---
@@ -2305,6 +2309,8 @@ O orçamento possui dois conceitos ortogonais:
 6. O usuário define validade e salva.
 
 ## 9.3 Personalizado (sem município)
+
+> **Disponibilidade:** fluxo planejado para uma próxima versão e ainda indisponível no App atual. Os passos abaixo descrevem o comportamento futuro.
 
 1. O usuário acessa a criação personalizada.
 2. O usuário informa manualmente os valores dos indicadores.
@@ -2333,6 +2339,7 @@ O orçamento possui dois conceitos ortogonais:
 ## 10.1 Edição
 
 - Pode editar: dono, admin, ou gestor da mesma empresa (ver RN-ORC-005).
+- Orçamentos com status `aprovado` continuam editáveis; aprovação não implica modo somente leitura.
 - O total é sempre recalculado pelo servidor.
 - Alterações de produtos, indicadores, quantidades manuais, validade e status são suportadas.
 - A atualização exige envio completo dos dados; o cliente relê o registro antes para preencher campos não alterados.
@@ -2764,7 +2771,7 @@ As seguintes regras eram descritas na documentação antiga de cálculos e **for
 - Gera PDF com identidade visual do parceiro (logo).
 - Dados do vendedor (nome, cargo, telefone, e-mail) são obrigatórios.
 - Contém produtos, quantidades, valores unitários, totais por subcategoria/categoria/geral.
-- Renova a validade do orçamento para 60 dias a partir da operação, inclusive se ele estava expirado (ver RN-ORC-013).
+- Renova a validade pelo prazo salvo a partir da operação; somente expirado passa a pendente (ver RN-ORC-013).
 - O conteúdo é escapado para segurança.
 
 ## 19.2 Exportação de censo (CSV)
@@ -3037,6 +3044,8 @@ As seguintes regras eram descritas na documentação antiga de cálculos e **for
 
 ### CA-ORC-003 — Criar personalizado
 
+**Status:** Planejado para uma próxima versão; não aplicável ao App atual.
+
 **Dado que** o usuário optou por orçamento personalizado
 **Quando** informar valores manuais e salvar
 **Então** o sistema deve criar o orçamento sem cidade vinculada, com os valores informados.
@@ -3077,11 +3086,11 @@ As seguintes regras eram descritas na documentação antiga de cálculos e **for
 **Quando** solicitar exportação
 **Então** o sistema deve gerar o CSV com indicadores e valores.
 
-### CA-ORC-010 — PDF renova a validade por 60 dias
+### CA-ORC-010 — PDF renova a validade pelo prazo salvo
 
 **Dado que** o orçamento está expirado
 **Quando** o usuário gerar ou compartilhar o PDF
-**Então** o sistema deve renovar a validade para 60 dias contados da data da operação.
+**Então** o sistema deve renovar a validade pelo prazo salvo em `orc_dias_validade`, contado da operação, e passar somente o status expirado para pendente, sem criar versão ou alterar arquivamento.
 
 ### CA-ORC-011 — Edição com lista de produtos vazia
 
@@ -3278,7 +3287,7 @@ Regra aplicável: §12 (cálculos sem arredondamento) e §12.8 (duas casas decim
 
 | Item | Regra | Comportamento atual |
 |---|---|---|
-| Prazo de renovação da validade | RN-ORC-013 | A renovação ao gerar/compartilhar PDF é automática e incondicional (correto), mas usa `orc_dias_validade` armazenado em vez do prazo fixo de **+60 dias**. |
+| Renovação da validade por PDF | RN-ORC-013 | Prazo salvo confirmado em 12/09/2026; corrigida transição somente de expirado para pendente. Evidências e limites de aceitação constam no relatório dos Itens 7/8/10/11, sem substituir resultados históricos. |
 | E-mail do vendedor no PDF | RN-ORC-012 | `email_vendedor` é **opcional** no schema; quando ausente, vira string vazia e o PDF é gerado sem o e-mail. |
 | Validações de criação | §9.4, §20.4 | Pela API, são aceitos `orc_total: 0`, ausência de `produtos_selecionados` (o service cria todos os ativos) e cidade sem confirmação de censo. O App bloqueia total ≤ 0; a API não. |
 | Arquivamento duplo | RN-ORC-009, §8 | Coexistem o booleano `orc_is_archived` e o valor `arquivado` no enum de `orc_status`, aceito por schemas, migration, OpenAPI e relatórios. Registrado como estado atual, para decisão futura. |

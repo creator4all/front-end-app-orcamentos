@@ -316,11 +316,23 @@ abstract class _SchoolCensusStoreBase with Store {
       return group.copyWith(titulos: updatedTitles);
     }).toList();
 
+    // Os anos vêm das cidades agregadas: um único valor quando todas
+    // coincidem, um intervalo quando divergem. Fixar `null` aqui fazia a tela
+    // exibir "-" mesmo com todas as cidades informando o mesmo ano.
+    final (censoAnoInicio, censoAnoFim) = CensoEscolarEntity.faixaDeAnos(
+      cidades.map((c) => c.censoAno),
+    );
+    final (populacaoInicio, populacaoFim) = CensoEscolarEntity.faixaDeAnos(
+      cidades.map((c) => c.anoPopulacao),
+    );
+
     censoEscolar = CensoEscolarEntity(
       cidadeId: 0,
       cidadeNome: 'Todas as cidades',
-      censoAno: null,
-      anoPopulacao: null,
+      censoAno: censoAnoInicio,
+      anoPopulacao: populacaoInicio,
+      censoAnoFinal: censoAnoFim,
+      anoPopulacaoFinal: populacaoFim,
       grupos: updatedGroups,
       valoresPorEtapa: Map<String, double>.from(censoAgregado),
     );
