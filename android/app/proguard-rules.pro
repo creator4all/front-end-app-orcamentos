@@ -32,3 +32,15 @@
 # kept. Suspend functions are wrapped in continuations where the type argument
 # is used.
 -keep,allowobfuscation,allowshrinking class kotlin.coroutines.Continuation
+
+# media_store_plus (salvar em Downloads no Drive)
+# SaveInfo/DocumentInfo são serializados com Gson 2.9.0 via reflexão e
+# @SerializedName; sem estas regras o R8 renomeia/remove campos e constantes
+# do enum SaveStatus, e o JSON devolvido ao Dart deixa de ter o formato esperado.
+-keep class com.snnafi.media_store_plus.** { *; }
+-keepattributes Signature
+-keepattributes *Annotation*
+-keepclassmembers,allowobfuscation class * {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
+-dontwarn sun.misc.**
