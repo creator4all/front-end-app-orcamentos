@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'custom_modal.dart';
 
@@ -199,18 +199,8 @@ class _RenameBudgetContentState extends State<_RenameBudgetContent> {
       return;
     }
 
-    if (newName == widget.currentName) {
-      _showErrorMessage('O novo nome deve ser diferente do atual');
-      return;
-    }
-
-    if (newName.length < 3) {
-      _showErrorMessage('O nome deve ter pelo menos 3 caracteres');
-      return;
-    }
-
-    if (newName.length > 100) {
-      _showErrorMessage('O nome deve ter no máximo 100 caracteres');
+    if (newName.length > 255) {
+      _showErrorMessage('O nome deve ter no máximo 255 caracteres');
       return;
     }
 
@@ -220,10 +210,10 @@ class _RenameBudgetContentState extends State<_RenameBudgetContent> {
 
     try {
       await widget.onRename(newName);
-      
+
       if (mounted) {
         Navigator.of(context).pop();
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Orçamento renomeado com sucesso!'),

@@ -11,6 +11,7 @@ class ReportUser extends Equatable {
   final int pendentes;
   final int expirados;
   final int naoAprovados;
+  final int rascunhos;
 
   const ReportUser({
     required this.id,
@@ -22,9 +23,11 @@ class ReportUser extends Equatable {
     required this.pendentes,
     required this.expirados,
     required this.naoAprovados,
+    this.rascunhos = 0,
   });
 
-  int get totalOrcamentos => aprovados + pendentes + expirados + naoAprovados;
+  int get totalOrcamentos =>
+      aprovados + pendentes + expirados + naoAprovados + rascunhos;
 
   bool get isVendedor => cargo.toLowerCase() == 'vendedor';
 
@@ -42,6 +45,7 @@ class ReportUser extends Equatable {
         pendentes,
         expirados,
         naoAprovados,
+        rascunhos,
       ];
 
   @override

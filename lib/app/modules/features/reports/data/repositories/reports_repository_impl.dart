@@ -69,8 +69,8 @@ class ReportsRepositoryImpl implements ReportsRepository {
       final entities = dtos.map((dto) => dto.toEntity()).toList();
       return Right(entities);
     } catch (e) {
-      return Left(
-          ServerFailure('Erro ao buscar vendas do parceiro: ${e.toString()}'));
+      return Left(ServerFailure(
+          'Erro ao buscar orçamentos do parceiro: ${e.toString()}'));
     }
   }
 }

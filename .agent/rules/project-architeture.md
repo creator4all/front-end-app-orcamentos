@@ -2,57 +2,146 @@
 trigger: always_on
 ---
 
-# Regras para Uso da Arquitetura Proposta
+# Arquitetura do Projeto
 
-## Estrutura de Pastas
+> Arquivo mantido com o nome legado `project-architeture.md` porque este nome já existe no repositório.
+> O conteúdo abaixo substitui a regra anterior e remove conflitos com padrões antigos.
 
-A estrutura de pastas deve seguir o padrão abaixo, com separação clara entre camadas de domínio, dados e apresentação:
+## Arquitetura adotada
 
-```
+Este projeto deve seguir uma organização **feature-first**, com separação por camadas dentro de cada feature.
+
+Estrutura preferencial para features novas ou refatoradas:
+
+```txt
 lib/
   app/
     modules/
       features/
         <nome_da_feature>/
-          domain/              # Regras de negócio abstratas
-            entities/          # Modelos puros de negócio
-            repositories/      # Interfaces abstratas (seu "logic")
-            usecases/          # Casos de uso / Lógica de negócio
-          data/               # Implementação concreta
-            datasources/      # Chamadas de API e storage local
-            models/           # DTOs para parsing JSON
-            repositories/     # Implementação dos contratos
-          presentation/       # Interface do usuário
-            pages/           # Telas completas
-            stores/          # MobX Stores (gerenciamento de estado)
-            widgets/         # Widgets específicos da feature
+          <nome_da_feature>_module.dart
+          domain/
+            entities/
+            repositories/
+            usecases/
+          data/
+            datasources/
+            models/
+            repositories/
+          external/
+            *_datasource_impl.dart
+          presentation/
+            pages/
+            stores/
+            widgets/
     shared/
-      widgets/               # Widgets compartilhados (ex: custom_top_bar)
+      core/
+      widgets/
       constants/
       utils/
-    core/
-      di/                    # Injeção de dependências
-      errors/                # Exceptions e Failures
+config/
+services/
+stores/
+theme/
+widgets/
 ```
 
-## Camadas e Responsabilidades
+## Responsabilidades por camada
 
-### Domain Layer (Camada de Domínio)
-- **entities/**: Modelos puros de negócio.
-- **repositories/**: Contratos abstratos que definem o que pode ser feito.
-- **usecases/**: Classes que encapsulam uma única ação de negócio.
+### Domain
 
-### Data Layer (Camada de Dados)
-- **models/**: DTOs para conversão de JSON e entidades.
-- **datasources/**: Implementação de chamadas de API e storage local.
-- **repositories/**: Implementação concreta dos contratos definidos na camada de domínio.
+Contém regra de negócio e contratos abstratos.
 
-### Presentation Layer (Camada de Apresentação)
-- **stores/**: MobX Stores para gerenciamento de estado.
-- **pages/**: Telas completas da aplicação.
-- **widgets/**: Componentes de UI específicos da feature.
+Permitido:
 
-## Fluxo de Dados
+- entities;
+- value objects;
+- repository contracts;
+- usecases;
+- failures abstratos, quando já existirem no domínio.
+
+Evitar:
+
+- imports de Flutter;
+- imports de Dio;
+- imports de Modular;
+- imports de Widgets;
+- implementação concreta de API;
+- acesso direto a storage;
+- parsing JSON específico de API.
+
+### Data
+
+Contém implementação de contratos e modelos de dados.
+
+Permitido:
+
+- DTOs/models;
+- conversão JSON;
+- implementação de repository contracts;
+- coordenação de datasources.
+
+Evitar:
+
+- Widgets;
+- Pages;
+- Stores;
+- navegação;
+- lógica visual.
+
+### External
+
+Contém implementações concretas que conversam com o mundo externo.
+
+Permitido:
+
+- datasource de API;
+- adaptação de plugins;
+- acesso a HTTP/storage quando isso já for padrão da feature.
+
+Evitar:
+
+- regra de negócio;
+- Widgets;
+- estado de UI.
+
+### Presentation
+
+Contém UI e estado de apresentação.
+
+Permitido:
+
+- pages;
+- widgets;
+- stores MobX;
+- formatação visual;
+- navegação de tela.
+
+Evitar:
+
+- chamada HTTP direta;
+- parsing JSON direto;
+- regra de negócio complexa;
+- duplicação de lógica de usecase.
+
+## Fluxo de dependência
+
+Fluxo preferencial:
+
+```txt
+Page/Widget -> Store -> UseCase -> Repository contract -> Repository impl -> DataSource -> API/Storage
+```
+
+Regras:
+
+- Domain não depende de Data nem Presentation.
+- Data não depende de Presentation.
+- Presentation pode depender de Domain.
+- UseCase chama contrato de Repository, não implementação concreta.
+- Repository concreto chama DataSource.
+- Store coordena estado e chama UseCase; quando a feature legada ainda chama Repository/Service direto, preferir não piorar e planejar migração gradual.
+
+## Fluxo de dados
 
 1. **Presentation Layer**: A interação do usuário inicia na camada de apresentação (ex.: clique em um botão).
 2. **Stores**: A Store chama um caso de uso da camada de domínio.
@@ -64,15 +153,6 @@ lib/
 8. **Atualização de Estado**: A Store atualiza o estado observável.
 9. **UI Reativa**: A interface do usuário é reconstruída automaticamente com base no novo estado.
 
-## Regras de Dependência
-
-- **Presentation → Domain ← Data**
-- A camada de domínio nunca depende das camadas de dados ou apresentação.
-- A camada de dados nunca depende da camada de apresentação.
-- Use Cases chamam apenas repositórios abstratos.
-- Stores chamam apenas Use Cases.
-- Repositórios concretos chamam apenas Data Sources.
-
 ## Tecnologias Utilizadas
 
 - **Dartz**: Para tratamento funcional de erros com `Either<Failure, Success>`.
@@ -82,6 +162,33 @@ lib/
 - **Equatable**: Para comparação de igualdade em entidades.
 - **MobX + flutter_mobx**: Para gerenciamento de estado reativo.
 
+## Regras para features novas
+
+Toda feature nova deve criar, no mínimo:
+
+```txt
+lib/app/modules/features/<feature>/
+  <feature>_module.dart
+  domain/
+  data/
+  external/
+  presentation/
+```
+
+A feature só deve criar subpastas que forem realmente usadas.
+
+## Regras para código legado
+
+O repositório ainda possui pastas globais como `services`, `stores`, `widgets`, `models`, `entities` e `screens`.
+
+Ao mexer nelas:
+
+- não mover tudo sem necessidade;
+- não fazer refactor gigante misturado com feature;
+- preferir migração incremental;
+- manter compatibilidade;
+- criar PR separado para migração arquitetural quando necessário.
+
 ## Comandos Importantes
 
 - Gerar arquivos MobX:
@@ -90,12 +197,13 @@ lib/
   flutter pub run build_runner watch --delete-conflicting-outputs
   ```
 
-## Benefícios da Arquitetura
+## Critério de aprovação
 
-- Separação clara de responsabilidades.
-- Testabilidade isolada de cada camada.
-- Manutenibilidade e escalabilidade.
-- Reutilização de código com Use Cases.
-- Tratamento explícito de erros com `Either`.
-- Código limpo e organizado.
+Uma alteração deve ser bloqueada se:
 
+- adiciona lógica de negócio em Widget/Page;
+- faz API call direta em Widget/Page;
+- adiciona dependência Flutter/Dio/Modular no Domain;
+- edita arquivo gerado manualmente;
+- duplica rota sem necessidade;
+- cria pasta fora do padrão sem justificar com exemplo real do repo.

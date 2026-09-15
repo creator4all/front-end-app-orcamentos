@@ -9,9 +9,18 @@ class ProductCalculationService {
 
   double calcularQuantidade(
     ProductEntity produto,
-    CensoEscolarEntity? censo,
-  ) {
+    CensoEscolarEntity? censo, {
+    List<ProductEntity>? todosProdutos,
+  }) {
+    // Quantidade manual tem prioridade: ignora indicadores/censo
+    if (produto.quantidadeManual) {
+      return produto.quantidade.toDouble();
+    }
+
     if (_isServico(produto.tipoProduto)) {
+      if (todosProdutos != null) {
+        return calcularQuantidadeServico(produto, todosProdutos, censo);
+      }
       return produto.quantidade.toDouble();
     }
 
@@ -35,9 +44,11 @@ class ProductCalculationService {
 
   double calcularValorProduto(
     ProductEntity produto,
-    CensoEscolarEntity? censo,
-  ) {
-    final quantidade = calcularQuantidade(produto, censo);
+    CensoEscolarEntity? censo, {
+    List<ProductEntity>? todosProdutos,
+  }) {
+    final quantidade =
+        calcularQuantidade(produto, censo, todosProdutos: todosProdutos);
     return produto.valor * quantidade;
   }
 
@@ -80,6 +91,47 @@ class ProductCalculationService {
         tipo.contains('software') ||
         tipo.contains('plataforma') ||
         tipo.contains('digital');
+  }
+
+  double calcularQuantidadeServico(
+    ProductEntity servico,
+    List<ProductEntity> todosProdutos,
+    CensoEscolarEntity? censo,
+  ) {
+    if (servico.quantidadeManual) {
+      return servico.quantidade.toDouble();
+    }
+
+    // Só vinculados marcados entram; vinculado manual contribui com a quantidade digitada.
+    final vinculadosSelecionados = todosProdutos
+        .where((p) =>
+            servico.produtosRelacionadosIds.contains(p.id) && p.selecionado)
+        .toList();
+
+    final percent = servico.percent ?? 0.08;
+    final horasFixas = servico.horasFixas ?? 0.0;
+
+    // Sem vinculados marcados: floor(horasFixas), inclusive sem censo.
+    if (vinculadosSelecionados.isEmpty) {
+      return horasFixas.floorToDouble();
+    }
+
+    // Vinculados automáticos dependem de censo; sem ele, não inventa valores
+    // nem calcula um total parcial silenciosamente — mantém a quantidade atual.
+    // Vinculados manuais contribuem com a quantidade digitada mesmo sem censo.
+    if (censo == null &&
+        vinculadosSelecionados.any((p) => !p.quantidadeManual)) {
+      return servico.quantidade.toDouble();
+    }
+
+    final soma = vinculadosSelecionados.fold<double>(
+      0.0,
+      (total, vinculado) => total + calcularQuantidade(vinculado, censo),
+    );
+
+    // floor(somaVinculados × percentual + horasFixas), incluindo percent == 0.
+    // Mesma fórmula de CalculosProdutos::calcularHorasServico.
+    return ((soma * percent) + horasFixas).floorToDouble();
   }
 
   bool _isServico(String tipoProduto) {
@@ -161,6 +213,10 @@ class ProductCalculationService {
     List<CategoryEntity> categories,
     CensoEscolarEntity censo,
   ) {
+    final todosProdutos = categories
+        .expand((c) => c.subcategorias.expand((s) => s.produtos))
+        .toList();
+
     final result = <CategoryEntity>[];
 
     for (final category in categories) {
@@ -176,7 +232,11 @@ class ProductCalculationService {
           final product = updatedProds[k];
           if (!product.selecionado) continue;
 
-          final novaQtd = calcularQuantidade(product, censo);
+          final novaQtd = calcularQuantidade(
+            product,
+            censo,
+            todosProdutos: todosProdutos,
+          );
           if (novaQtd != product.quantidade) {
             updatedProds[k] = product.copyWith(quantidade: novaQtd);
             subChanged = true;
@@ -195,5 +255,61 @@ class ProductCalculationService {
     }
 
     return result;
+  }
+
+  /// Recalcula os serviços marcados e não manuais que dependem de
+  /// [produtosAlteradosIds]. Devolve [categories] intacta quando nenhum
+  /// serviço depende dos produtos alterados.
+  List<CategoryEntity> recalcularServicosDependentes(
+    List<CategoryEntity> categories,
+    CensoEscolarEntity censo,
+    Set<int> produtosAlteradosIds,
+  ) {
+    final todosProdutos = categories
+        .expand((c) => c.subcategorias.expand((s) => s.produtos))
+        .toList();
+
+    final servicosAfetadosIds = todosProdutos
+        .where(
+            (p) => p.produtosRelacionadosIds.any(produtosAlteradosIds.contains))
+        .map((p) => p.id)
+        .toSet();
+
+    if (servicosAfetadosIds.isEmpty) {
+      return categories;
+    }
+
+    return categories.map((category) {
+      var categoryChanged = false;
+      final subcategorias = category.subcategorias.map((sub) {
+        var subChanged = false;
+        final produtos = sub.produtos.map((prod) {
+          if (!servicosAfetadosIds.contains(prod.id) ||
+              !prod.selecionado ||
+              prod.quantidadeManual) {
+            return prod;
+          }
+
+          final novaQtd = calcularQuantidadeServico(prod, todosProdutos, censo);
+          if (novaQtd == prod.quantidade) {
+            return prod;
+          }
+
+          subChanged = true;
+          return prod.copyWith(quantidade: novaQtd);
+        }).toList();
+
+        if (!subChanged) {
+          return sub;
+        }
+
+        categoryChanged = true;
+        return sub.copyWith(produtos: produtos);
+      }).toList();
+
+      return categoryChanged
+          ? category.copyWith(subcategorias: subcategorias)
+          : category;
+    }).toList();
   }
 }

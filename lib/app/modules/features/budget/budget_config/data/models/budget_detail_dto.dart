@@ -1,6 +1,12 @@
+import 'package:multimidiaapp/app/shared/domain/value_objects/fractional_order.dart';
+
+import '../../../../../../shared/utils/api_number_parser.dart';
+import '../../../shared/models/budget_city_context_dto.dart';
 import '../../domain/entities/budget_detail_entity.dart';
 import 'category_dto.dart';
+import 'product_dto.dart';
 import 'product_selection_dto.dart';
+import 'subcategory_dto.dart';
 
 class BudgetDetailDto {
   final int id;
@@ -17,6 +23,15 @@ class BudgetDetailDto {
   final Map<String, bool> categoryStates;
   final List<CategoryDTO> categories;
   final List<Map<String, dynamic>> citiesData;
+  final bool isArchived;
+
+  /// Classificação declarada pelo backend em `multi_cidade`.
+  ///
+  /// Sem a chave, deriva de `orc_cidade_id` nulo; nula apenas quando nenhuma
+  /// das duas chaves vem no payload.
+  final bool? multiCity;
+
+  /// Censo agregado do orçamento, vindo de `censo_agregado`.
   final Map<String, double> censoAgregado;
 
   BudgetDetailDto({
@@ -34,66 +49,28 @@ class BudgetDetailDto {
     required this.categoryStates,
     required this.categories,
     required this.citiesData,
+    this.isArchived = false,
+    this.multiCity,
     this.censoAgregado = const {},
   });
 
+  /// Constrói o DTO a partir do registro de `GET /api/orcamentos/{id}`.
+  ///
+  /// A resposta é o orçamento cru (`orc_*`), com o contexto de cidades em
+  /// `multi_cidade`/`cidades`/`censo_agregado` e a árvore de produtos em
+  /// `orcamento_produtos`.
   factory BudgetDetailDto.fromJson(Map<String, dynamic> json) {
     final List<ProductSelectionDto> productsList = [];
 
     final Map<String, bool> categoryStates = {};
 
-    final List<int> cities = [];
-    final List<Map<String, dynamic>> citiesDataList = [];
-
-    if (json['cidades'] != null && json['cidades'] is List) {
-      for (final cidade in json['cidades'] as List) {
-        if (cidade is Map<String, dynamic>) {
-          final cidadeId = cidade['id'] as int;
-          final indicadores = (cidade['indices'] ??
-                  cidade['indicadores'] ??
-                  cidade['cidades_has_indice_etapa'] ??
-                  []) as List;
-          cities.add(cidadeId);
-          citiesDataList.add({
-            'id': cidadeId,
-            'nome': cidade['nome'] ?? 'Cidade $cidadeId',
-            'indices': indicadores,
-            'indicadores': indicadores,
-          });
-        }
-      }
-    }
-    else if (json['cidade'] != null && json['cidade'] is Map) {
-      final cidadeMap = json['cidade'] as Map<String, dynamic>;
-      final cidadeId = cidadeMap['id'] as int;
-      final indicadores = (cidadeMap['indices'] ??
-              cidadeMap['indicadores'] ??
-              cidadeMap['cidades_has_indice_etapa'] ??
-              []) as List;
-      cities.add(cidadeId);
-      citiesDataList.add({
-        'id': cidadeId,
-        'nome': cidadeMap['nome'] ?? 'Cidade $cidadeId',
-        'indices': indicadores,
-        'indicadores': indicadores,
-      });
-    } else if (json['cidade_id'] != null) {
-      final cidadeId = json['cidade_id'] as int;
-      cities.add(cidadeId);
-      citiesDataList.add({
-        'id': cidadeId,
-        'nome': 'Cidade $cidadeId',
-        'indicadores': [],
-      });
-    }
+    final cityContext = BudgetCityContextDto.fromJson(json);
 
     final List<CategoryDTO> categoriesList = [];
-    if (json['categorias'] != null && json['categorias'] is List) {
-      categoriesList.addAll(
-        (json['categorias'] as List).map(
-          (c) => CategoryDTO.fromJson(Map<String, dynamic>.from(c)),
-        ),
-      );
+    final orcamentoProdutos = json['orcamento_produtos'];
+    if (orcamentoProdutos is List) {
+      categoriesList
+          .addAll(buildCategoriesFromOrcamentoProdutos(orcamentoProdutos));
     }
 
     if (categoriesList.isNotEmpty) {
@@ -122,35 +99,35 @@ class BudgetDetailDto {
       }
     }
 
-    final censoAgregadoJson =
-        json['censo_agregado'] as Map<String, dynamic>? ?? {};
-    final censoAgregado = censoAgregadoJson.map(
-      (key, value) => MapEntry(key, (value as num).toDouble()),
-    );
-
     final usuarioJson = json['usuario'] as Map<String, dynamic>?;
+    final userId = ApiNumberParser.toIntOrNull(usuarioJson?['usr_userId']) ??
+        ApiNumberParser.toInt(json['orc_usuario_id']);
 
     return BudgetDetailDto(
-      id: json['id'] as int? ?? 0,
-      name: json['nome'] as String?,
-      validityDays: json['dias_validade'] as int? ?? 30,
-      validityDate: json['data_validade'] != null
-          ? DateTime.tryParse(json['data_validade'] as String)
-          : null,
-      creationDate: json['created_at'] != null
-          ? DateTime.tryParse(json['created_at'] as String)
-          : null,
-      status: json['status'] as String? ?? 'rascunho',
-      total: (json['total'] as num?)?.toDouble() ?? 0.0,
-      userId: usuarioJson?['id'] as int? ?? 0,
-      partnerId: json['partner_destino_id'] as int?,
-      cityIds: cities,
+      id: ApiNumberParser.toInt(json['orc_orcamentoId']),
+      name: json['orc_nome'] as String?,
+      validityDays:
+          ApiNumberParser.toIntOrNull(json['orc_dias_validade']) ?? 30,
+      validityDate: _parseDate(json['orc_data_validade']),
+      creationDate: _parseDate(json['created_at']),
+      status: json['orc_status'] as String? ?? 'rascunho',
+      total: ApiNumberParser.toDouble(json['orc_total']),
+      userId: userId,
+      partnerId: ApiNumberParser.toIntOrNull(json['orc_partner_destino_id']),
+      cityIds: cityContext.cityIds,
       products: productsList,
       categoryStates: categoryStates,
       categories: categoriesList,
-      citiesData: citiesDataList,
-      censoAgregado: censoAgregado,
+      citiesData: cityContext.citiesData,
+      isArchived: json['orc_is_archived'] as bool? ?? false,
+      multiCity: cityContext.multiCity,
+      censoAgregado: cityContext.censoAgregado,
     );
+  }
+
+  static DateTime? _parseDate(dynamic value) {
+    if (value is! String || value.isEmpty) return null;
+    return DateTime.tryParse(value);
   }
 
   Map<String, dynamic> toJson() {
@@ -190,8 +167,91 @@ class BudgetDetailDto {
       categoryStates: categoryStates,
       categories: categories.map((c) => c.toEntity()).toList(),
       citiesData: citiesData,
+      isArchived: isArchived,
+      multiCity: multiCity,
       censoAgregado: censoAgregado,
     );
+  }
+
+  /// Builds the categories hierarchy from orcamento_produtos array.
+  /// The new API returns products with nested subcategoria.categoria
+  /// instead of a flat categorias array.
+  static List<CategoryDTO> buildCategoriesFromOrcamentoProdutos(
+      List orcamentoProdutos) {
+    // Map: categoriaId -> { categoria info, subcategorias map }
+    final Map<int, _CatBuilder> catMap = {};
+
+    for (final op in orcamentoProdutos) {
+      if (op is! Map<String, dynamic>) continue;
+      final produtoJson = op['produto'] as Map<String, dynamic>?;
+      if (produtoJson == null) continue;
+
+      final subcategoriaJson =
+          produtoJson['subcategoria'] as Map<String, dynamic>?;
+      if (subcategoriaJson == null) continue;
+
+      final categoriaJson =
+          subcategoriaJson['categoria'] as Map<String, dynamic>?;
+      if (categoriaJson == null) continue;
+
+      final catId = (categoriaJson['cat_categoriaId'] as num?)?.toInt() ?? 0;
+      final catNome = categoriaJson['cat_nome'] as String? ?? '';
+      final catOrdem = FractionalOrder.parse(categoriaJson['cat_ordem']);
+      final catExpandido = categoriaJson['cat_expandido'] as bool? ?? true;
+
+      final subId =
+          (subcategoriaJson['sub_subcategoriasId'] as num?)?.toInt() ?? 0;
+      final subNome = subcategoriaJson['sub_name'] as String? ?? '';
+      final subOrdem = FractionalOrder.parse(subcategoriaJson['sub_order']);
+
+      // Build product from the nested produto + orcamento_produto data
+      final productJson = Map<String, dynamic>.from(produtoJson);
+      // Inject orcamento_produto selection data
+      productJson['orcamento_produto'] = {
+        'selecionado': op['op_selecionado'] as bool? ?? false,
+        'quantidade':
+            double.tryParse(op['op_quantidade']?.toString() ?? '0') ?? 0.0,
+        'op_quantidade_manual': op['op_quantidade_manual'] as bool? ?? false,
+      };
+
+      // Check for overrides
+      final overrides = op['overrides_do_orcamento'] as List?;
+      if (overrides != null && overrides.isNotEmpty) {
+        productJson['tem_override'] = true;
+        // Apply override values
+        for (final ovr in overrides) {
+          if (ovr is Map<String, dynamic>) {
+            if (ovr['opo_tipo_override'] == 'produto_completo') {
+              if (ovr['opo_valor_override'] != null) {
+                productJson['pro_valor'] = ovr['opo_valor_override'];
+              }
+              if (ovr['opo_ativo_override'] != null) {
+                productJson['pro_ativo'] = ovr['opo_ativo_override'];
+              }
+            }
+          }
+        }
+      }
+
+      final product = ProductDTO.fromJson(productJson);
+
+      // Add to category map
+      catMap.putIfAbsent(
+          catId,
+          () => _CatBuilder(
+                id: catId,
+                nome: catNome,
+                ordem: catOrdem,
+                expandido: catExpandido,
+              ));
+
+      catMap[catId]!.addProduct(subId, subNome, subOrdem, product);
+    }
+
+    // Convert map to sorted list of CategoryDTO
+    final result = catMap.values.map((builder) => builder.build()).toList();
+    result.sort((a, b) => a.ordem.compareTo(b.ordem));
+    return result;
   }
 
   factory BudgetDetailDto.fromEntity(BudgetDetailEntity entity) {
@@ -213,7 +273,73 @@ class BudgetDetailDto {
       categories:
           entity.categories.map((c) => CategoryDTO.fromEntity(c)).toList(),
       citiesData: [],
+      multiCity: entity.multiCity,
       censoAgregado: entity.censoAgregado,
+    );
+  }
+}
+
+/// Helper class to build CategoryDTO from grouped orcamento_produtos
+class _CatBuilder {
+  final int id;
+  final String nome;
+  final FractionalOrder ordem;
+  final bool expandido;
+  final Map<int, _SubBuilder> _subcategorias = {};
+
+  _CatBuilder({
+    required this.id,
+    required this.nome,
+    required this.ordem,
+    required this.expandido,
+  });
+
+  void addProduct(
+      int subId, String subNome, FractionalOrder subOrdem, ProductDTO product) {
+    _subcategorias.putIfAbsent(
+        subId,
+        () => _SubBuilder(
+              id: subId,
+              nome: subNome,
+              ordem: subOrdem,
+            ));
+    _subcategorias[subId]!.produtos.add(product);
+  }
+
+  CategoryDTO build() {
+    final subs = _subcategorias.values.map((sb) => sb.build()).toList();
+    subs.sort((a, b) => a.ordem.compareTo(b.ordem));
+    return CategoryDTO(
+      id: id,
+      nome: nome,
+      ordem: ordem,
+      expandido: expandido,
+      subcategorias: subs,
+    );
+  }
+}
+
+/// Helper class to build SubcategoryDTO
+class _SubBuilder {
+  final int id;
+  final String nome;
+  final FractionalOrder ordem;
+  final List<ProductDTO> produtos = [];
+
+  _SubBuilder({
+    required this.id,
+    required this.nome,
+    required this.ordem,
+  });
+
+  SubcategoryDTO build() {
+    final sorted = List<ProductDTO>.from(produtos);
+    sorted.sort((a, b) => a.ordem.compareTo(b.ordem));
+    return SubcategoryDTO(
+      id: id,
+      nome: nome,
+      ordem: ordem,
+      produtos: sorted,
     );
   }
 }

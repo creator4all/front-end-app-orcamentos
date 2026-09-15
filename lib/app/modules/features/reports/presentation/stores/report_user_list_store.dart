@@ -1,4 +1,4 @@
-﻿import 'package:mobx/mobx.dart';
+import 'package:mobx/mobx.dart';
 
 import '../../domain/entities/report_budget.dart';
 import '../../domain/entities/report_user.dart';
@@ -41,15 +41,14 @@ abstract class _ReportUserListStoreBase with Store {
       result = allUsers.toList();
     } else {
       final query = filterStore.userSearchQuery.toLowerCase();
-      result =
-          allUsers
-              .where(
-                (user) =>
-                    user.nome.toLowerCase().contains(query) ||
-                    user.email.toLowerCase().contains(query) ||
-                    user.cargo.toLowerCase().contains(query),
-              )
-              .toList();
+      result = allUsers
+          .where(
+            (user) =>
+                user.nome.toLowerCase().contains(query) ||
+                user.email.toLowerCase().contains(query) ||
+                user.cargo.toLowerCase().contains(query),
+          )
+          .toList();
     }
 
     result.sort((a, b) => a.nome.toLowerCase().compareTo(b.nome.toLowerCase()));
@@ -70,94 +69,105 @@ abstract class _ReportUserListStoreBase with Store {
   int get gestoresCount {
     return allUsers.where((user) => user.isGestor).length;
   }
-  @action
-  Future<void> loadUsers(int partnerId, {String? partnerName}) async {
-    currentPartnerId = partnerId;
-    currentPartnerName = partnerName;
-    isLoading = true;
-    error = null;
 
-    final result = await reportsRepository.getPartnerUsers(
-      partnerId,
-      dataInicio: filterStore.dataInicio,
-      dataFim: filterStore.dataFim,
-    );
-
-    result.fold(
-      (failure) {
-        error = failure.message;
-        isLoading = false;
-      },
-      (users) {
-        allUsers.clear();
-        allUsers.addAll(users);
-        isLoading = false;
-      },
-    );
-  }
+  int _loadGeneration = 0;
 
   @observable
   ObservableList<ReportBudget> allPartnerBudgets =
       ObservableList<ReportBudget>();
-  @action
-  Future<void> loadPartnerSales(int partnerId) async {
-    final result = await reportsRepository.getPartnerSales(
-      partnerId,
-      dataInicio: filterStore.dataInicio,
-      dataFim: filterStore.dataFim,
-    );
 
-    result.fold(
-      (failure) {
-      },
-      (budgets) {
-        allPartnerBudgets.clear();
-        allPartnerBudgets.addAll(budgets);
-        _updateUserCounters();
-      },
-    );
+  /// Mantém o loading até usuários e orçamentos estarem completos. A publicação
+  /// é atômica: sem contadores zerados/parciais enquanto outra página carrega.
+  @action
+  Future<void> loadUsers(int partnerId, {String? partnerName}) async {
+    final generation = ++_loadGeneration;
+    currentPartnerId = partnerId;
+    currentPartnerName = partnerName;
+    final start = filterStore.dataInicio;
+    final end = filterStore.dataFim;
+    allUsers.clear();
+    allPartnerBudgets.clear();
+    error = filterStore.dateRangeError;
+    isLoading = error == null;
+    if (error != null) return;
+    try {
+      final usersResult = await reportsRepository.getPartnerUsers(partnerId);
+      if (generation != _loadGeneration) return;
+      final users = usersResult.fold(
+        (failure) {
+          error = failure.message;
+          return null;
+        },
+        (users) => users,
+      );
+      if (users == null) return;
+      final budgetsResult = await reportsRepository.getPartnerSales(partnerId,
+          dataInicio: start, dataFim: end);
+      if (generation != _loadGeneration) return;
+      budgetsResult.fold(
+        (failure) => error = failure.message,
+        (budgets) {
+          allUsers.addAll(users);
+          final userIds = users.map((user) => user.id).toSet();
+          allPartnerBudgets.addAll(
+              budgets.where((budget) => userIds.contains(budget.usuarioId)));
+          _updateUserCounters();
+        },
+      );
+    } catch (_) {
+      if (generation == _loadGeneration) {
+        error = 'Não foi possível carregar o relatório. Tente novamente.';
+      }
+    } finally {
+      if (generation == _loadGeneration) isLoading = false;
+    }
   }
+
+  @action
+  Future<void> loadPartnerSales(int partnerId) =>
+      loadUsers(partnerId, partnerName: currentPartnerName);
 
   void _updateUserCounters() {
     final userBudgets = <int, List<ReportBudget>>{};
-    for (final budget in allPartnerBudgets) {
+    for (final budget
+        in allPartnerBudgets.where((budget) => !budget.isArchived)) {
       userBudgets.putIfAbsent(budget.usuarioId, () => []).add(budget);
     }
 
-    final updatedUsers =
-        allUsers.map((user) {
-          final budgets = userBudgets[user.id] ?? [];
-          final aprovados =
-              budgets.where((b) => b.status.toLowerCase() == 'aprovado').length;
-          final pendentes =
-              budgets.where((b) => b.status.toLowerCase() == 'pendente').length;
-          final expirados =
-              budgets.where((b) => b.status.toLowerCase() == 'expirado').length;
-          final naoAprovados =
-              budgets
-                  .where(
-                    (b) =>
-                        b.status.toLowerCase() == 'nao_aprovado' ||
-                        b.status.toLowerCase() == 'não aprovado',
-                  )
-                  .length;
-          final totalVendas = budgets.fold<double>(
-            0.0,
-            (sum, b) => sum + b.total,
-          );
+    final updatedUsers = allUsers.map((user) {
+      final budgets = userBudgets[user.id] ?? [];
+      final aprovados =
+          budgets.where((b) => b.status.toLowerCase() == 'aprovado').length;
+      final pendentes =
+          budgets.where((b) => b.status.toLowerCase() == 'pendente').length;
+      final expirados =
+          budgets.where((b) => b.status.toLowerCase() == 'expirado').length;
+      final naoAprovados = budgets
+          .where(
+            (b) =>
+                b.status.toLowerCase() == 'nao_aprovado' ||
+                b.status.toLowerCase() == 'não aprovado',
+          )
+          .length;
+      final totalVendas = budgets.fold<double>(
+        0.0,
+        (sum, b) => sum + b.total,
+      );
 
-          return ReportUser(
-            id: user.id,
-            nome: user.nome,
-            email: user.email,
-            cargo: user.cargo,
-            totalVendas: totalVendas,
-            aprovados: aprovados,
-            pendentes: pendentes,
-            expirados: expirados,
-            naoAprovados: naoAprovados,
-          );
-        }).toList();
+      return ReportUser(
+        id: user.id,
+        nome: user.nome,
+        email: user.email,
+        cargo: user.cargo,
+        totalVendas: totalVendas,
+        aprovados: aprovados,
+        pendentes: pendentes,
+        expirados: expirados,
+        naoAprovados: naoAprovados,
+        rascunhos:
+            budgets.where((b) => b.status.toLowerCase() == 'rascunho').length,
+      );
+    }).toList();
 
     allUsers.clear();
     allUsers.addAll(updatedUsers);
@@ -167,12 +177,13 @@ abstract class _ReportUserListStoreBase with Store {
   Future<void> refresh() async {
     if (currentPartnerId != null) {
       await loadUsers(currentPartnerId!, partnerName: currentPartnerName);
-      await loadPartnerSales(currentPartnerId!);
     }
   }
 
   @action
   void clear() {
+    _loadGeneration++;
+    isLoading = false;
     allUsers.clear();
     allPartnerBudgets.clear();
     error = null;

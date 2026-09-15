@@ -40,13 +40,11 @@ class MultiCityBudgetDto {
   final int diasValidade;
   final List<CidadeCensoDto> cidades;
   final int? partnerDestinoId;
-  final int usuarioId;
 
   const MultiCityBudgetDto({
     required this.nome,
     required this.diasValidade,
     required this.cidades,
-    required this.usuarioId,
     this.partnerDestinoId,
   });
 
@@ -54,7 +52,6 @@ class MultiCityBudgetDto {
     final map = <String, dynamic>{
       'orc_nome': nome,
       'orc_dias_validade': diasValidade,
-      'orc_usuario_id': usuarioId,
       'cidades': cidades.map((c) => c.toMap()).toList(),
     };
 

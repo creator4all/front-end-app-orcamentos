@@ -18,10 +18,10 @@ class RenameBudgetUseCase {
           ValidationFailure('O nome do orçamento não pode ser vazio'));
     }
 
-    if (newName.trim().length < 3) {
+    if (newName.trim().length > 255) {
       return const Left(
         ValidationFailure(
-            'O nome do orçamento deve ter no mínimo 3 caracteres'),
+            'O nome do orçamento deve ter no máximo 255 caracteres'),
       );
     }
 

@@ -12,53 +12,13 @@ class BudgetEditRemoteDataSourceImpl implements BudgetEditRemoteDataSource {
   @override
   Future<BudgetEditDto> getBudgetForEdit(int id) async {
     try {
-      final response = await _client.get('/api/orcamentos/$id');
+      final response = await _client.get('/api/orcamentos/novo/$id');
 
       if (response.isSuccess) {
-        final data = response.body['dados'] as Map<String, dynamic>;
-        return BudgetEditDto.fromJson(data);
+        return BudgetEditDto.fromJson(response.body);
       }
 
       throw Exception(response.body['error'] ?? 'Orçamento não encontrado');
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  @override
-  Future<BudgetEditDto> updateBudget({
-    required int id,
-    String? name,
-    int? validityDays,
-    DateTime? validityDate,
-    String? status,
-    bool? isArchived,
-    List<int>? selectedProductIds,
-  }) async {
-    try {
-      final Map<String, dynamic> body = {};
-
-      if (name != null) body['nome'] = name;
-      if (validityDays != null) body['orc_dias_validade'] = validityDays;
-      if (validityDate != null) {
-        body['orc_data_validade'] = validityDate.toIso8601String();
-      }
-      if (status != null) body['orc_status'] = status;
-      if (selectedProductIds != null) {
-        body['produtos_selecionados'] = selectedProductIds;
-      }
-
-      final response = await _client.put(
-        '/api/orcamentos/$id',
-        data: body,
-      );
-
-      if (response.isSuccess) {
-        final data = response.body['dados'] as Map<String, dynamic>;
-        return BudgetEditDto.fromJson(data);
-      }
-
-      throw Exception(response.body['error'] ?? 'Erro ao atualizar orçamento');
     } catch (e) {
       rethrow;
     }
@@ -77,9 +37,9 @@ class BudgetEditRemoteDataSourceImpl implements BudgetEditRemoteDataSource {
         data: body,
       );
 
+      // O `PUT` responde sem corpo; a estrutura de edição é relida.
       if (response.isSuccess) {
-        final data = response.body['dados'] as Map<String, dynamic>;
-        return BudgetEditDto.fromJson(data);
+        return getBudgetForEdit(budgetId);
       }
 
       throw Exception(response.body['error'] ?? 'Erro ao atualizar orçamento');

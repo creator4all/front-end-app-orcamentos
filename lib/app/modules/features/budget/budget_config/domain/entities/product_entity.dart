@@ -1,6 +1,8 @@
 import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:equatable/equatable.dart';
+import 'package:multimidiaapp/app/shared/domain/value_objects/fractional_order.dart';
 import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
+import 'package:multimidiaapp/app/shared/utils/quantity_utils.dart';
 
 import 'indicador_etapa_entity.dart';
 
@@ -20,18 +22,26 @@ class ProductEntity extends Equatable {
   final double valor;
   final String indicacao;
   final String tipoProduto;
-  final int ordem;
+  final FractionalOrder ordem;
   final int subcategoriaId;
 
   /// Estado do checkbox (true = marcado)
   final bool selecionado;
 
   final double quantidade;
+
+  /// Se true, a quantidade foi definida manualmente e ignora os indicadores.
+  final bool quantidadeManual;
+
   final bool temOverride;
   final String? observacoes;
   final double valorOriginal;
   final bool ativoOriginal;
   final List<IndicadorEtapaEntity> indicadoresEtapa;
+
+  final double? percent;
+  final double? horasFixas;
+  final List<int> produtosRelacionadosIds;
 
   const ProductEntity({
     required this.id,
@@ -46,11 +56,15 @@ class ProductEntity extends Equatable {
     required this.subcategoriaId,
     required this.selecionado,
     required this.quantidade,
+    this.quantidadeManual = false,
     required this.temOverride,
     this.observacoes,
     required this.valorOriginal,
     required this.ativoOriginal,
     required this.indicadoresEtapa,
+    this.percent,
+    this.horasFixas,
+    this.produtosRelacionadosIds = const [],
   });
 
   bool get canBeDisplayed => ativo;
@@ -73,7 +87,7 @@ class ProductEntity extends Equatable {
 
   String get formattedTotalValue => CurrencyUtils.formatBRL(totalValue);
 
-  String get formattedQuantidade => quantidade.toInt().toString();
+  String get formattedQuantidade => QuantityUtils.format(quantidade);
 
   @override
   List<Object?> get props => [
@@ -89,11 +103,15 @@ class ProductEntity extends Equatable {
         subcategoriaId,
         selecionado,
         quantidade,
+        quantidadeManual,
         temOverride,
         observacoes,
         valorOriginal,
         ativoOriginal,
         indicadoresEtapa,
+        percent,
+        horasFixas,
+        produtosRelacionadosIds,
       ];
 
   @override

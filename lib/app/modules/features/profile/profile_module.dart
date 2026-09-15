@@ -4,7 +4,9 @@ import 'package:multimidiaapp/app/shared/core/http/app_http_client.dart';
 import 'data/datasources/profile_api_datasource.dart';
 import 'data/datasources/profile_datasource.dart';
 import 'data/repositories/profile_repository_impl.dart';
+import 'domain/repositories/avatar_image_validator.dart';
 import 'domain/repositories/profile_repository.dart';
+import 'external/avatar_image_validator_impl.dart';
 import 'presentation/pages/profile_page.dart';
 import 'presentation/stores/profile_store.dart';
 
@@ -15,8 +17,10 @@ class ProfileModule extends Module {
             (i) => ProfileApiDatasource(i<AppHttpClient>())),
         Bind.lazySingleton<ProfileRepository>(
             (i) => ProfileRepositoryImpl(i<ProfileDatasource>())),
-        Bind.lazySingleton<ProfileStore>(
-            (i) => ProfileStore(i<ProfileRepository>())),
+        Bind.lazySingleton<AvatarImageValidator>(
+            (i) => AvatarImageValidatorImpl()),
+        Bind.lazySingleton<ProfileStore>((i) =>
+            ProfileStore(i<ProfileRepository>(), i<AvatarImageValidator>())),
       ];
 
   @override

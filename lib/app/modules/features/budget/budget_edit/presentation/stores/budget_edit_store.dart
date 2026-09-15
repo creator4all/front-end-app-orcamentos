@@ -1,22 +1,26 @@
 import 'package:dartz/dartz.dart';
 import 'package:mobx/mobx.dart';
 
+import '../../../../../../shared/utils/api_number_parser.dart';
 import '../../../../auth/presentation/stores/auth_store.dart';
 import '../../../budget_config/data/models/category_dto.dart';
+import '../../../budget_config/domain/entities/budget_detail_entity.dart';
 import '../../../budget_config/domain/entities/category_entity.dart';
 import '../../../budget_config/domain/entities/censo_escolar_entity.dart';
-import '../../../budget_config/domain/entities/censo_group_entity.dart';
-import '../../../budget_config/domain/entities/censo_title_entity.dart';
 import '../../../budget_config/domain/entities/census_data_entity.dart';
 import '../../../budget_config/domain/entities/indicador_etapa_entity.dart';
 import '../../../budget_config/domain/entities/product_entity.dart';
 import '../../../budget_config/domain/entities/subcategory_entity.dart';
+import '../../../budget_config/domain/services/budget_value_rules.dart';
+import '../../../budget_config/domain/services/censo_escolar_mapper.dart';
 import '../../../budget_config/domain/services/product_calculation_service.dart';
+import '../../../budget_config/domain/services/product_quantity_rules.dart';
 import '../../../budget_config/domain/usecases/get_census_data_usecase.dart';
 import '../../../shared/errors/budget_failure.dart';
 import '../../../shared/models/budget_update_dto.dart';
 import '../../../shared/models/product_selection_update_dto.dart';
 import '../../domain/entities/budget_edit_entity.dart';
+import '../../domain/services/budget_versioning_decision.dart';
 import '../../domain/usecases/get_budget_for_edit_usecase.dart';
 import '../../domain/usecases/update_budget_usecase.dart';
 
@@ -30,6 +34,7 @@ abstract class _BudgetEditStoreBase with Store {
   final GetCensusDataUseCase getCensusDataUseCase;
   final AuthStore authStore;
   final ProductCalculationService calculationService;
+  final CensoEscolarMapper censoEscolarMapper;
 
   _BudgetEditStoreBase({
     required this.getBudgetForEditUseCase,
@@ -37,6 +42,7 @@ abstract class _BudgetEditStoreBase with Store {
     required this.getCensusDataUseCase,
     required this.authStore,
     required this.calculationService,
+    required this.censoEscolarMapper,
   });
 
   @observable
@@ -76,10 +82,9 @@ abstract class _BudgetEditStoreBase with Store {
   String _originalStatus = 'pendente';
   bool _originalIsArchived = false;
   DateTime? _originalValidityDate;
-  final Map<int, double> _originalProductQuantities = {};
-  final Map<int, double> _originalProductValues = {};
-  final Map<int, String?> _originalProductObservations = {};
-  final Map<int, Map<int, bool>> _originalProductIndicators = {};
+
+  /// Referência única do estado original dos produtos, usada por [hasChanges].
+  Map<int, BudgetProductSnapshot> _originalProductSnapshots = {};
 
   int _loadRequestVersion = 0;
 
@@ -110,36 +115,22 @@ abstract class _BudgetEditStoreBase with Store {
 
   @computed
   bool get hasChanges {
-    if (selectedProductIds.length != _originalSelectedProductIds.length)
-      return true;
-    if (!selectedProductIds.containsAll(_originalSelectedProductIds))
-      return true;
     if (selectedStatus != _originalStatus) return true;
     if (isArchived != _originalIsArchived) return true;
     if (validityDate != _originalValidityDate) return true;
 
-    for (final cat in categories) {
-      for (final sub in cat.subcategorias) {
-        for (final prod in sub.produtos) {
-          if (_originalProductQuantities[prod.id] != prod.quantidade)
-            return true;
-          if (_originalProductValues[prod.id] != prod.valor) return true;
-          if (_originalProductObservations[prod.id] != prod.observacoes)
-            return true;
+    return _hasProductChanges;
+  }
 
-          final origIndicators = _originalProductIndicators[prod.id];
-          if (origIndicators != null) {
-            for (final ind in prod.indicadoresEtapa) {
-              if (origIndicators[ind.produtoIndicadorId] != ind.selecionado) {
-                return true;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    return false;
+  /// Mudança de produto em relação ao estado original, usada só para indicar
+  /// alteração pendente na tela. A decisão de versionar é da API.
+  bool get _hasProductChanges {
+    return BudgetVersioningDecision.hasProductChanges(
+      selectedIds: selectedProductIds.toSet(),
+      originalSelectedIds: _originalSelectedProductIds,
+      current: BudgetVersioningDecision.snapshotsFromCategories(categories),
+      original: _originalProductSnapshots,
+    );
   }
 
   @computed
@@ -226,26 +217,7 @@ abstract class _BudgetEditStoreBase with Store {
           isLoadingProducts = false;
         },
         (budget) {
-          budgetData = budget;
-
-          categories.clear();
-          categories.addAll(_parseCategoriesFromBudget(budget));
-
-          selectedStatus = budget.status;
-          isArchived = budget.isArchived;
-          validityDate = budget.validityDate;
-          budgetName = budget.name;
-          _originalValidityDays = budget.validityDays;
-          _validityDateChanged = false;
-
-          _updateSelectedProductIds();
-
-          _parseCensoEscolarFromCitiesData();
-          _recalculateProductQuantities();
-          _snapshotOriginalState();
-
-          isLoading = false;
-          isLoadingProducts = false;
+          _applyLoadedBudget(budget);
         },
       );
     } catch (e) {
@@ -256,6 +228,39 @@ abstract class _BudgetEditStoreBase with Store {
       isLoading = false;
       isLoadingProducts = false;
     }
+  }
+
+  void initializeWithConfiguredBudget(BudgetDetailEntity configuredBudget) {
+    _loadRequestVersion++;
+
+    runInAction(() {
+      _clearBudgetStateForLoading();
+      _applyLoadedBudget(
+        BudgetEditEntity.fromBudgetDetail(configuredBudget),
+      );
+    });
+  }
+
+  void _applyLoadedBudget(BudgetEditEntity budget) {
+    budgetData = budget;
+
+    categories.clear();
+    categories.addAll(_parseCategoriesFromBudget(budget));
+
+    selectedStatus = budget.status;
+    isArchived = budget.isArchived;
+    validityDate = budget.validityDate;
+    budgetName = budget.name;
+    _originalValidityDays = budget.validityDays;
+    _validityDateChanged = false;
+
+    _updateSelectedProductIds();
+
+    _parseCensoEscolarFromCitiesData();
+    _snapshotOriginalState();
+
+    isLoading = false;
+    isLoadingProducts = false;
   }
 
   void _updateSelectedProductIds() {
@@ -284,7 +289,13 @@ abstract class _BudgetEditStoreBase with Store {
 
       for (var i = 0; i < categoriesList.length; i++) {
         try {
-          final categoryJson = categoriesList[i] as Map<String, dynamic>;
+          final rawCategory = categoriesList[i];
+          if (rawCategory is CategoryEntity) {
+            categories.add(rawCategory);
+            continue;
+          }
+
+          final categoryJson = rawCategory as Map<String, dynamic>;
 
           final categoryDto = CategoryDTO.fromJson(categoryJson);
           final categoryEntity = categoryDto.toEntity();
@@ -389,57 +400,6 @@ abstract class _BudgetEditStoreBase with Store {
   }
 
   @action
-  Future<Either<BudgetFailure, BudgetEditEntity>> updateBudget() async {
-    if (budgetData == null) {
-      error = 'Orçamento não carregado';
-      return const Left(ValidationFailure('Orçamento não carregado'));
-    }
-
-    isSaving = true;
-    error = null;
-
-    try {
-      int? validityDays;
-      if (_validityDateChanged && validityDate != null) {
-        final hoje = DateTime.now();
-        final hojeDate = DateTime(hoje.year, hoje.month, hoje.day);
-        final validade = validityDate!;
-        final validadeDate =
-            DateTime(validade.year, validade.month, validade.day);
-        validityDays = validadeDate.difference(hojeDate).inDays;
-      } else {
-        validityDays = _originalValidityDays;
-      }
-
-      final result = await updateBudgetUseCase(
-        budgetId: budgetData!.id,
-        validityDays: validityDays,
-        validityDate: validityDate,
-        status: selectedStatus,
-        isArchived: isArchived,
-        selectedProductIds: selectedProductIds.toList(),
-      );
-
-      return result.fold(
-        (failure) {
-          error = failure.message;
-          isSaving = false;
-          return Left(failure);
-        },
-        (updatedBudget) {
-          budgetData = updatedBudget;
-          isSaving = false;
-          return Right(updatedBudget);
-        },
-      );
-    } catch (e) {
-      error = 'Erro ao salvar: $e';
-      isSaving = false;
-      return Left(UnknownFailure(e.toString()));
-    }
-  }
-
-  @action
   Future<Either<BudgetFailure, BudgetEditEntity>> saveBudget() async {
     return saveBudgetWithDto();
   }
@@ -452,6 +412,11 @@ abstract class _BudgetEditStoreBase with Store {
     isSaving = false;
     isLoadingProducts = false;
     isLoadingCensus = false;
+  }
+
+  @action
+  void clearError() {
+    error = null;
   }
 
   void _clearBudgetStateForLoading() {
@@ -474,10 +439,7 @@ abstract class _BudgetEditStoreBase with Store {
     _originalStatus = 'pendente';
     _originalIsArchived = false;
     _originalValidityDate = null;
-    _originalProductQuantities.clear();
-    _originalProductValues.clear();
-    _originalProductObservations.clear();
-    _originalProductIndicators.clear();
+    _originalProductSnapshots = {};
   }
 
   @action
@@ -512,6 +474,14 @@ abstract class _BudgetEditStoreBase with Store {
         }
       }
     }
+
+    final changedIds = <int>{};
+    for (final sub in category.subcategorias) {
+      for (final prod in sub.produtos) {
+        changedIds.add(prod.id);
+      }
+    }
+    _recalcServicosDependentes(changedIds);
   }
 
   @action
@@ -557,6 +527,9 @@ abstract class _BudgetEditStoreBase with Store {
         selectedProductIds.remove(prod.id);
       }
     }
+
+    final changedIds = subcategory.produtos.map((p) => p.id).toSet();
+    _recalcServicosDependentes(changedIds);
   }
 
   @action
@@ -574,10 +547,16 @@ abstract class _BudgetEditStoreBase with Store {
           final product = subcategory.produtos[prodIndex];
           var updatedProduct = product.copyWith(selecionado: selected);
 
-          if (selected && censoEscolar != null) {
+          if (selected &&
+              censoEscolar != null &&
+              !updatedProduct.quantidadeManual) {
+            final todosProdutos = categories
+                .expand((c) => c.subcategorias.expand((s) => s.produtos))
+                .toList();
             final novaQuantidade = calculationService.calcularQuantidade(
               updatedProduct,
               censoEscolar,
+              todosProdutos: todosProdutos,
             );
             updatedProduct = updatedProduct.copyWith(
               quantidade: novaQuantidade,
@@ -610,6 +589,7 @@ abstract class _BudgetEditStoreBase with Store {
             selectedProductIds.remove(productId);
           }
 
+          _recalcServicosDependentes({productId});
           return;
         }
       }
@@ -630,7 +610,9 @@ abstract class _BudgetEditStoreBase with Store {
         if (prodIndex != -1) {
           final product = subcategory.produtos[prodIndex];
 
-          final updatedProduct = product.copyWith(valor: value);
+          final updatedProduct = product.copyWith(
+            valor: BudgetValueRules.clampUnitValue(value),
+          );
 
           final updatedProducts = List<ProductEntity>.from(
             subcategory.produtos,
@@ -658,7 +640,9 @@ abstract class _BudgetEditStoreBase with Store {
   }
 
   @action
-  void updateProductQuantity(int productId, double quantity) {
+  void updateProductQuantity(int productId, double rawQuantity) {
+    final quantity = ProductQuantityRules.clamp(rawQuantity);
+
     for (var i = 0; i < categories.length; i++) {
       final category = categories[i];
 
@@ -691,6 +675,109 @@ abstract class _BudgetEditStoreBase with Store {
           );
 
           categories[i] = updatedCategory;
+          _recalcServicosDependentes({productId});
+          return;
+        }
+      }
+    }
+  }
+
+  /// Define a quantidade manualmente para um produto, ativando o modo manual
+  /// (a quantidade passa a ignorar os indicadores).
+  @action
+  void setProductManualQuantity(int productId, double rawQuantity) {
+    final quantity = ProductQuantityRules.clamp(rawQuantity);
+
+    for (var i = 0; i < categories.length; i++) {
+      final category = categories[i];
+
+      for (var j = 0; j < category.subcategorias.length; j++) {
+        final subcategory = category.subcategorias[j];
+        final prodIndex = subcategory.produtos.indexWhere(
+          (p) => p.id == productId,
+        );
+
+        if (prodIndex != -1) {
+          final product = subcategory.produtos[prodIndex];
+          final updatedProduct = product.copyWith(
+            quantidade: quantity,
+            quantidadeManual: true,
+          );
+
+          final updatedProducts = List<ProductEntity>.from(
+            subcategory.produtos,
+          );
+          updatedProducts[prodIndex] = updatedProduct;
+
+          final updatedSubcategory = subcategory.copyWith(
+            produtos: updatedProducts,
+          );
+
+          final updatedSubcategories = List<SubcategoryEntity>.from(
+            category.subcategorias,
+          );
+          updatedSubcategories[j] = updatedSubcategory;
+
+          final updatedCategory = category.copyWith(
+            subcategorias: updatedSubcategories,
+          );
+
+          categories[i] = updatedCategory;
+          _recalcServicosDependentes({productId});
+          return;
+        }
+      }
+    }
+  }
+
+  /// Alterna o modo de cálculo da quantidade entre manual e por indicadores.
+  /// Ao voltar para indicadores (manual=false), recalcula a quantidade.
+  @action
+  void setProductQuantityMode(int productId, bool manual) {
+    for (var i = 0; i < categories.length; i++) {
+      final category = categories[i];
+
+      for (var j = 0; j < category.subcategorias.length; j++) {
+        final subcategory = category.subcategorias[j];
+        final prodIndex = subcategory.produtos.indexWhere(
+          (p) => p.id == productId,
+        );
+
+        if (prodIndex != -1) {
+          final product = subcategory.produtos[prodIndex];
+          var updatedProduct = product.copyWith(quantidadeManual: manual);
+
+          if (!manual) {
+            // Voltar ao cálculo por indicadores: recalcular a quantidade
+            final novaQuantidade = calculationService.calcularQuantidade(
+              updatedProduct,
+              censoEscolar,
+            );
+            updatedProduct = updatedProduct.copyWith(
+              quantidade: novaQuantidade,
+            );
+          }
+
+          final updatedProducts = List<ProductEntity>.from(
+            subcategory.produtos,
+          );
+          updatedProducts[prodIndex] = updatedProduct;
+
+          final updatedSubcategory = subcategory.copyWith(
+            produtos: updatedProducts,
+          );
+
+          final updatedSubcategories = List<SubcategoryEntity>.from(
+            category.subcategorias,
+          );
+          updatedSubcategories[j] = updatedSubcategory;
+
+          final updatedCategory = category.copyWith(
+            subcategorias: updatedSubcategories,
+          );
+
+          categories[i] = updatedCategory;
+          _recalcServicosDependentes({productId});
           return;
         }
       }
@@ -752,9 +839,8 @@ abstract class _BudgetEditStoreBase with Store {
         if (productIndex != -1) {
           final product = subcategory.produtos[productIndex];
 
-          final indicatorIndex = product.indicadoresEtapa.indexWhere(
-            (ind) => ind.produtoIndicadorId == indicatorId,
-          );
+          final indicatorIndex = product.indicadoresEtapa
+              .indexWhere((ind) => ind.indicadorId == indicatorId);
 
           if (indicatorIndex != -1) {
             final indicator = product.indicadoresEtapa[indicatorIndex];
@@ -773,10 +859,14 @@ abstract class _BudgetEditStoreBase with Store {
               indicadoresEtapa: updatedIndicators,
             );
 
-            if (censoEscolar != null) {
+            if (censoEscolar != null && !updatedProduct.quantidadeManual) {
+              final todosProdutos = categories
+                  .expand((c) => c.subcategorias.expand((s) => s.produtos))
+                  .toList();
               final novaQuantidade = calculationService.calcularQuantidade(
                 updatedProduct,
                 censoEscolar,
+                todosProdutos: todosProdutos,
               );
 
               updatedProduct = updatedProduct.copyWith(
@@ -804,6 +894,7 @@ abstract class _BudgetEditStoreBase with Store {
 
             categories[i] = updatedCategory;
 
+            _recalcServicosDependentes({productId});
             return;
           }
         }
@@ -813,6 +904,10 @@ abstract class _BudgetEditStoreBase with Store {
 
   @action
   Future<Either<BudgetFailure, BudgetEditEntity>> saveBudgetWithDto() async {
+    if (isSaving) {
+      return const Left(ValidationFailure('Salvamento em andamento'));
+    }
+
     if (budgetData == null) {
       error = 'Orçamento não carregado';
       return const Left(ValidationFailure('Orçamento não carregado'));
@@ -823,21 +918,34 @@ abstract class _BudgetEditStoreBase with Store {
       return const Left(ValidationFailure('Data de validade obrigatória'));
     }
 
+    // Sem cidades hidratadas não há como classificar o orçamento, e o
+    // versionamento cairia no endpoint de cidade única sem `orc_cidade_id`.
+    if (budgetData!.cityIds.isEmpty) {
+      const failure = ValidationFailure(
+        'O orçamento não possui cidades carregadas. Recarregue os dados antes de versionar.',
+      );
+      error = failure.message;
+      return const Left(failure);
+    }
+
+    if (BudgetValueRules.exceedsMaxTotal(totalValue)) {
+      const failure = ValidationFailure(BudgetValueRules.totalExceededMessage);
+      error = failure.message;
+      return const Left(failure);
+    }
+
     isSaving = true;
     error = null;
 
     try {
-      final produtosParaSalvar = <ProductSelectionUpdateDto>[];
-
-      for (final category in categories) {
-        for (final subcategory in category.subcategorias) {
-          for (final product in subcategory.produtos) {
-            produtosParaSalvar.add(
+      // Envia sempre o estado completo dos produtos: a API compara com o
+      // orçamento persistido e decide se versiona, atualiza ou mantém.
+      final produtosParaSalvar = <ProductSelectionUpdateDto>[
+        for (final category in categories)
+          for (final subcategory in category.subcategorias)
+            for (final product in subcategory.produtos)
               ProductSelectionUpdateDto.fromEntity(product),
-            );
-          }
-        }
-      }
+      ];
 
       final totalCalculado = totalValue;
 
@@ -860,7 +968,6 @@ abstract class _BudgetEditStoreBase with Store {
         status: selectedStatus,
         isArchived: isArchived,
         total: totalCalculado,
-        usuarioId: authStore.currentUser?.id ?? budgetData!.userId,
         cidadeId: isMultiCity ? null : budgetData!.cityIds.firstOrNull,
         cidades: isMultiCity ? budgetData!.cityIds : null,
         produtos: produtosParaSalvar,
@@ -887,15 +994,22 @@ abstract class _BudgetEditStoreBase with Store {
           return Left(failure);
         },
         (updatedBudget) {
-          budgetData = updatedBudget;
           isSaving = false;
+          budgetData = updatedBudget;
+          selectedStatus = updatedBudget.status;
+          isArchived = updatedBudget.isArchived;
+          validityDate = updatedBudget.validityDate;
+          budgetName = updatedBudget.name;
+          _originalValidityDays = updatedBudget.validityDays;
+          _validityDateChanged = false;
+          _snapshotOriginalState();
           return Right(updatedBudget);
         },
       );
-    } catch (e) {
-      error = 'Erro ao salvar orçamento: $e';
+    } catch (_) {
+      error = budgetSaveErrorMessage;
       isSaving = false;
-      return Left(UnknownFailure(e.toString()));
+      return const Left(UnknownFailure(budgetSaveErrorMessage));
     }
   }
 
@@ -904,38 +1018,33 @@ abstract class _BudgetEditStoreBase with Store {
     _originalStatus = selectedStatus;
     _originalIsArchived = isArchived;
     _originalValidityDate = validityDate;
-
-    _originalProductQuantities.clear();
-    _originalProductValues.clear();
-    _originalProductObservations.clear();
-    _originalProductIndicators.clear();
-
-    for (final cat in categories) {
-      for (final sub in cat.subcategorias) {
-        for (final prod in sub.produtos) {
-          _originalProductQuantities[prod.id] = prod.quantidade;
-          _originalProductValues[prod.id] = prod.valor;
-          _originalProductObservations[prod.id] = prod.observacoes;
-          final indicatorMap = <int, bool>{};
-          for (final ind in prod.indicadoresEtapa) {
-            indicatorMap[ind.produtoIndicadorId] = ind.selecionado;
-          }
-          _originalProductIndicators[prod.id] = indicatorMap;
-        }
-      }
-    }
+    _originalProductSnapshots =
+        BudgetVersioningDecision.snapshotsFromCategories(categories);
   }
 
-  void _updateOriginalQuantitiesSnapshot() {
-    _originalProductQuantities.clear();
+  /// Incorpora ao estado original apenas as quantidades alteradas pelo
+  /// recálculo do censo salvo. Edições pendentes do usuário (seleção, preço,
+  /// indicador, modo manual, observação e quantidade manual) continuam sendo
+  /// mudanças de produto e seguem no próximo salvamento.
+  void _updateOriginalQuantitiesSnapshot(
+    Map<int, BudgetProductSnapshot> beforeRecalc,
+  ) {
+    final afterRecalc =
+        BudgetVersioningDecision.snapshotsFromCategories(categories);
+    final updated = Map<int, BudgetProductSnapshot>.from(
+      _originalProductSnapshots,
+    );
 
-    for (final cat in categories) {
-      for (final sub in cat.subcategorias) {
-        for (final prod in sub.produtos) {
-          _originalProductQuantities[prod.id] = prod.quantidade;
-        }
-      }
+    for (final entry in afterRecalc.entries) {
+      final original = updated[entry.key];
+      final before = beforeRecalc[entry.key];
+      if (original == null || before == null) continue;
+      if (before.quantidade == entry.value.quantidade) continue;
+
+      updated[entry.key] = original.withQuantidade(entry.value.quantidade);
     }
+
+    _originalProductSnapshots = updated;
   }
 
   void _parseCensoEscolarFromCitiesData() {
@@ -945,7 +1054,7 @@ abstract class _BudgetEditStoreBase with Store {
     }
 
     if (budgetData!.censoAgregado.isNotEmpty) {
-      censoEscolar = _buildAggregatedCenso(
+      censoEscolar = censoEscolarMapper.buildAggregatedCenso(
         censoAgregado: budgetData!.censoAgregado,
         citiesData: budgetData!.citiesDataRaw,
       );
@@ -959,7 +1068,7 @@ abstract class _BudgetEditStoreBase with Store {
 
     try {
       final cityData = budgetData!.citiesDataRaw.first;
-      censoEscolar = _buildCensoFromCityData(cityData);
+      censoEscolar = censoEscolarMapper.buildCensoFromCityData(cityData);
     } catch (e) {
       censoEscolar = null;
     }
@@ -972,21 +1081,25 @@ abstract class _BudgetEditStoreBase with Store {
     if (budgetData != null && budgetData!.citiesDataRaw.isNotEmpty) {
       var cityUpdated = false;
       final updatedCitiesData = budgetData!.citiesDataRaw.map((cityData) {
-        final cityId = _toInt(cityData['idCidades'] ?? cityData['id']);
+        final cityId =
+            ApiNumberParser.toInt(cityData['idCidades'] ?? cityData['id']);
         if (cityId == updatedCenso.cidadeId && updatedCenso.cidadeId > 0) {
           cityUpdated = true;
-          return _updateCityDataWithCenso(cityData, updatedCenso);
+          return censoEscolarMapper.updateCityDataWithCenso(
+              cityData, updatedCenso);
         }
         return cityData;
       }).toList();
 
       if (!cityUpdated && updatedCenso.cidadeId > 0) {
         updatedCitiesData.add(
-          _updateCityDataWithCenso(<String, dynamic>{}, updatedCenso),
+          censoEscolarMapper
+              .updateCityDataWithCenso(<String, dynamic>{}, updatedCenso),
         );
       }
 
-      final updatedCensoAgregado = _calculateAggregatedCensoFromCities(
+      final updatedCensoAgregado =
+          censoEscolarMapper.calculateAggregatedCensoFromCities(
         updatedCitiesData,
         budgetData!.censoAgregado,
       );
@@ -995,9 +1108,18 @@ abstract class _BudgetEditStoreBase with Store {
         citiesDataRaw: updatedCitiesData,
         censoAgregado: updatedCensoAgregado,
       );
+
+      // Em multi-cidade a tela de censo devolve só a cidade editada; o
+      // orçamento continua calculando com o censo agregado de todas as cidades.
+      if (budgetData!.isMultiCity) {
+        censoEscolar = censoEscolarMapper.buildAggregatedCenso(
+          censoAgregado: updatedCensoAgregado,
+          citiesData: updatedCitiesData,
+        );
+      }
     } else if (budgetData != null && updatedCenso.cidadeId > 0) {
-      final newCityData =
-          _updateCityDataWithCenso(<String, dynamic>{}, updatedCenso);
+      final newCityData = censoEscolarMapper
+          .updateCityDataWithCenso(<String, dynamic>{}, updatedCenso);
       budgetData = budgetData!.copyWith(
         citiesDataRaw: [newCityData],
         censoAgregado: Map<String, double>.from(updatedCenso.valoresPorEtapa),
@@ -1010,8 +1132,10 @@ abstract class _BudgetEditStoreBase with Store {
     if (budgetData == null) return;
 
     _parseCensoEscolarFromCitiesData();
+    final beforeRecalc =
+        BudgetVersioningDecision.snapshotsFromCategories(categories);
     _recalculateProductQuantities();
-    _updateOriginalQuantitiesSnapshot();
+    _updateOriginalQuantitiesSnapshot(beforeRecalc);
     budgetData = budgetData?.copyWith(total: totalValue);
   }
 
@@ -1025,6 +1149,21 @@ abstract class _BudgetEditStoreBase with Store {
     );
     for (var i = 0; i < updated.length; i++) {
       categories[i] = updated[i];
+    }
+  }
+
+  void _recalcServicosDependentes(Set<int> changedProductIds) {
+    if (censoEscolar == null) return;
+
+    final updated = calculationService.recalcularServicosDependentes(
+      categories.toList(),
+      censoEscolar!,
+      changedProductIds,
+    );
+    for (var i = 0; i < updated.length; i++) {
+      if (!identical(updated[i], categories[i])) {
+        categories[i] = updated[i];
+      }
     }
   }
 
@@ -1081,328 +1220,5 @@ abstract class _BudgetEditStoreBase with Store {
     if (productsNeedingRemark.isEmpty) return;
 
     productsNeedingRemark.clear();
-  }
-
-  Map<String, dynamic> _updateCityDataWithCenso(
-    Map<String, dynamic> cityData,
-    CensoEscolarEntity updatedCenso,
-  ) {
-    final indices = _buildIndicesFromCenso(updatedCenso);
-    final existingName = cityData['nome'] ?? cityData['nome_cidade'];
-    final cityName = existingName == null || existingName.toString().isEmpty
-        ? updatedCenso.cidadeNome
-        : existingName.toString();
-
-    return {
-      ...cityData,
-      'id': _toInt(cityData['id'] ?? cityData['idCidades']) > 0
-          ? _toInt(cityData['id'] ?? cityData['idCidades'])
-          : updatedCenso.cidadeId,
-      'nome': cityName,
-      'indices': indices,
-      'indicadores': _buildIndicadoresFromIndices(indices),
-      'cidades_has_indice_etapa':
-          _buildLegacyIndicesFromIndices(indices, updatedCenso.cidadeId),
-    };
-  }
-
-  int _toInt(dynamic value) {
-    if (value is int) return value;
-    if (value is num) return value.toInt();
-    return int.tryParse(value?.toString() ?? '') ?? 0;
-  }
-
-  double _toDouble(dynamic value) {
-    if (value is double) return value;
-    if (value is num) return value.toDouble();
-    return double.tryParse(value?.toString() ?? '') ?? 0.0;
-  }
-
-  List<Map<String, dynamic>> _extractIndicesFromCityData(
-    Map<String, dynamic> cityData,
-  ) {
-    final rawIndices = cityData['indices'] as List? ??
-        cityData['indicadores'] as List? ??
-        cityData['cidades_has_indice_etapa'] as List? ??
-        const [];
-
-    return rawIndices
-        .whereType<Map>()
-        .map((item) => _normalizeCityIndice(Map<String, dynamic>.from(item)))
-        .where((item) => item['nome_etapa'].toString().isNotEmpty)
-        .toList();
-  }
-
-  Map<String, dynamic> _normalizeCityIndice(Map<String, dynamic> item) {
-    final group = item['grupo'] as Map<String, dynamic>?;
-    final pivot = item['pivot'] as Map<String, dynamic>?;
-
-    final groupId = _toInt(
-      item['grupo_id'] ??
-          item['grupos_grupo_id'] ??
-          group?['id'] ??
-          group?['grupo_id'],
-    );
-    final groupName =
-        (item['grupo_nome'] ?? group?['nome'] ?? group?['nome_grupo'] ?? '')
-            .toString();
-    final nomeEtapa = (item['nome_etapa'] ?? item['nome'] ?? '').toString();
-    final titulo = (item['titulo'] ??
-            item['titulo_etapa'] ??
-            item['nome'] ??
-            item['nome_etapa'] ??
-            '')
-        .toString();
-    final valor = _toDouble(
-      item['valor'] ?? item['etapa_valor'] ?? pivot?['etapa_valor'],
-    );
-
-    return <String, dynamic>{
-      'id': _toInt(
-        item['id'] ??
-            item['idindice_etapa'] ??
-            item['indice_etapa_id'] ??
-            item['indice_etapa_idindice_etapa'],
-      ),
-      'nome_etapa': nomeEtapa,
-      'titulo': titulo,
-      'valor': valor,
-      'percentual_populacao': item['percentual_populacao'],
-      'grupo': {
-        'id': groupId,
-        'nome': groupName,
-      },
-    };
-  }
-
-  CensoEscolarEntity? _buildCensoFromCityData(Map<String, dynamic> cityData) {
-    final normalizedIndices = _extractIndicesFromCityData(cityData);
-    if (normalizedIndices.isEmpty) return null;
-
-    final valoresPorEtapa = <String, double>{};
-    final gruposMap = <int, List<CensoTitleEntity>>{};
-    final grupoNomes = <int, String>{};
-
-    for (final indice in normalizedIndices) {
-      final nomeEtapa = indice['nome_etapa'].toString();
-      final titulo = indice['titulo'].toString();
-      final valor = _toDouble(indice['valor']);
-      final group = indice['grupo'] as Map<String, dynamic>? ?? const {};
-      final grupoId = _toInt(group['id']);
-      final grupoNome = (group['nome'] ?? '').toString();
-      final id = _toInt(indice['id']);
-
-      valoresPorEtapa[nomeEtapa] = valor;
-      grupoNomes[grupoId] = grupoNome;
-      gruposMap.putIfAbsent(grupoId, () => []);
-      gruposMap[grupoId]!.add(
-        CensoTitleEntity(
-          id: id,
-          nomeEtapa: nomeEtapa,
-          tituloExibicao: titulo,
-          valor: valor,
-          isProfessores: nomeEtapa.endsWith('P'),
-          grupoId: grupoId,
-          percentualPopulacao: indice['percentual_populacao'] != null
-              ? _toDouble(indice['percentual_populacao'])
-              : null,
-        ),
-      );
-    }
-
-    final grupos = gruposMap.entries
-        .map(
-          (entry) => CensoGroupEntity(
-            id: entry.key,
-            nome: grupoNomes[entry.key] ?? '',
-            titulos: entry.value,
-          ),
-        )
-        .toList();
-
-    return CensoEscolarEntity(
-      cidadeId: _toInt(cityData['id'] ?? cityData['idCidades']),
-      cidadeNome:
-          (cityData['nome'] ?? cityData['nome_cidade'] ?? '').toString(),
-      censoAno: _toInt(cityData['censo_ano']) == 0
-          ? null
-          : _toInt(cityData['censo_ano']),
-      anoPopulacao: _toInt(cityData['ano_populacao']) == 0
-          ? null
-          : _toInt(cityData['ano_populacao']),
-      grupos: grupos,
-      valoresPorEtapa: valoresPorEtapa,
-    );
-  }
-
-  CensoEscolarEntity _buildAggregatedCenso({
-    required Map<String, double> censoAgregado,
-    required List<Map<String, dynamic>> citiesData,
-  }) {
-    if (citiesData.isEmpty) {
-      final grupos = <CensoGroupEntity>[
-        CensoGroupEntity(
-          id: 0,
-          nome: 'Agregado',
-          titulos: censoAgregado.entries
-              .map(
-                (e) => CensoTitleEntity(
-                  id: 0,
-                  nomeEtapa: e.key,
-                  tituloExibicao: e.key,
-                  valor: e.value,
-                  isProfessores: e.key.endsWith('P'),
-                  grupoId: 0,
-                ),
-              )
-              .toList(),
-        ),
-      ];
-
-      return CensoEscolarEntity(
-        cidadeId: 0,
-        cidadeNome: 'Agregado',
-        anoPopulacao: null,
-        grupos: grupos,
-        valoresPorEtapa: censoAgregado,
-      );
-    }
-
-    final gruposMap = <int, List<CensoTitleEntity>>{};
-    final grupoNomes = <int, String>{};
-
-    for (final cityData in citiesData) {
-      final indices = _extractIndicesFromCityData(cityData);
-      for (final indice in indices) {
-        final nomeEtapa = indice['nome_etapa'].toString();
-        final titulo = indice['titulo'].toString();
-        final group = indice['grupo'] as Map<String, dynamic>? ?? const {};
-        final grupoId = _toInt(group['id']);
-        final grupoNome = (group['nome'] ?? '').toString();
-        final id = _toInt(indice['id']);
-        final valorAgregado = censoAgregado[nomeEtapa] ?? 0.0;
-
-        grupoNomes[grupoId] = grupoNome;
-        gruposMap.putIfAbsent(grupoId, () => []);
-
-        final jaExiste =
-            gruposMap[grupoId]!.any((titulo) => titulo.nomeEtapa == nomeEtapa);
-        if (jaExiste) continue;
-
-        gruposMap[grupoId]!.add(
-          CensoTitleEntity(
-            id: id,
-            nomeEtapa: nomeEtapa,
-            tituloExibicao: titulo,
-            valor: valorAgregado,
-            isProfessores: nomeEtapa.endsWith('P'),
-            grupoId: grupoId,
-            percentualPopulacao: indice['percentual_populacao'] != null
-                ? _toDouble(indice['percentual_populacao'])
-                : null,
-          ),
-        );
-      }
-    }
-
-    final grupos = gruposMap.entries
-        .map(
-          (entry) => CensoGroupEntity(
-            id: entry.key,
-            nome: grupoNomes[entry.key] ?? 'Agregado',
-            titulos: entry.value,
-          ),
-        )
-        .toList();
-
-    return CensoEscolarEntity(
-      cidadeId: 0,
-      cidadeNome: 'Agregado',
-      anoPopulacao: null,
-      grupos: grupos,
-      valoresPorEtapa: censoAgregado,
-    );
-  }
-
-  List<Map<String, dynamic>> _buildIndicesFromCenso(CensoEscolarEntity censo) {
-    final indices = <Map<String, dynamic>>[];
-    for (final grupo in censo.grupos) {
-      for (final titulo in grupo.titulos) {
-        indices.add({
-          'id': titulo.id,
-          'nome_etapa': titulo.nomeEtapa,
-          'titulo': titulo.tituloExibicao,
-          'valor': titulo.valor,
-          'grupo': {
-            'id': grupo.id,
-            'nome': grupo.nome,
-          },
-        });
-      }
-    }
-    return indices;
-  }
-
-  List<Map<String, dynamic>> _buildIndicadoresFromIndices(
-    List<Map<String, dynamic>> indices,
-  ) {
-    return indices.map((item) {
-      final grupo = item['grupo'] as Map<String, dynamic>? ?? const {};
-      return <String, dynamic>{
-        'id': item['id'],
-        'nome': item['nome_etapa'],
-        'titulo': item['titulo'],
-        'valor': item['valor'],
-        'grupo_id': _toInt(grupo['id']),
-        'grupo_nome': (grupo['nome'] ?? '').toString(),
-      };
-    }).toList();
-  }
-
-  List<Map<String, dynamic>> _buildLegacyIndicesFromIndices(
-    List<Map<String, dynamic>> indices,
-    int cidadeId,
-  ) {
-    return indices.map((item) {
-      final grupo = item['grupo'] as Map<String, dynamic>? ?? const {};
-      final grupoId = _toInt(grupo['id']);
-      final grupoNome = (grupo['nome'] ?? '').toString();
-
-      return <String, dynamic>{
-        'idindice_etapa': _toInt(item['id']),
-        'nome_etapa': item['nome_etapa'],
-        'titulo_etapa': item['titulo'],
-        'grupos_grupo_id': grupoId,
-        'grupo': {
-          'grupo_id': grupoId,
-          'nome_grupo': grupoNome,
-        },
-        'pivot': {
-          'cidades_idCidades': cidadeId,
-          'indice_etapa_idindice_etapa': _toInt(item['id']),
-          'etapa_valor': _toDouble(item['valor']),
-        },
-      };
-    }).toList();
-  }
-
-  Map<String, double> _calculateAggregatedCensoFromCities(
-    List<Map<String, dynamic>> citiesData,
-    Map<String, double> fallback,
-  ) {
-    final aggregated = <String, double>{};
-
-    for (final city in citiesData) {
-      final indices = _extractIndicesFromCityData(city);
-      for (final indice in indices) {
-        final nomeEtapa = indice['nome_etapa'].toString();
-        if (nomeEtapa.isEmpty) continue;
-        aggregated[nomeEtapa] =
-            (aggregated[nomeEtapa] ?? 0) + _toDouble(indice['valor']);
-      }
-    }
-
-    if (aggregated.isNotEmpty) return aggregated;
-    return Map<String, double>.from(fallback);
   }
 }

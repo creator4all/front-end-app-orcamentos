@@ -1,10 +1,11 @@
+import '../../../../../shared/domain/value_objects/fractional_order.dart';
 import '../../domain/entities/category_entity.dart';
 
 class CategoryDto {
   final int id;
   final String nome;
   final bool status;
-  final int ordem;
+  final FractionalOrder ordem;
 
   CategoryDto({
     required this.id,
@@ -21,7 +22,7 @@ class CategoryDto {
       id: json['cat_categoriaId'] as int,
       nome: json['cat_nome'] as String? ?? '',
       status: status,
-      ordem: json['cat_ordem'] as int? ?? 0,
+      ordem: FractionalOrder.parse(json['cat_ordem']),
     );
   }
 

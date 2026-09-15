@@ -33,7 +33,7 @@ class ReportUserDto {
   /// `{ usr_userId, usr_name, usr_email, usr_status, role: { rol_name } }`
   ///
   /// Estatísticas de vendas não vêm desse endpoint — são
-  /// calculadas pelo store cruzando com `/api/relatorios/.../vendas`.
+  /// calculadas pelo store cruzando com `/api/orcamentos`.
   factory ReportUserDto.fromJson(Map<String, dynamic> json) {
     final role = json['role'] as Map<String, dynamic>?;
 

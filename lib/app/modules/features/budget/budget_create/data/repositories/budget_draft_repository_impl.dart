@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 
 import '../../../../../../shared/core/constants/http_constants.dart';
+import '../../../../../../shared/core/errors/api_error_message.dart';
 import '../../../../../../shared/errors/http_exception.dart';
 import '../../../shared/errors/budget_failure.dart';
 import '../../domain/entities/budget_draft_entity.dart';
@@ -52,8 +53,9 @@ class BudgetDraftRepositoryImpl implements BudgetDraftRepository {
           return NotFoundFailure(exception.message);
         case HttpStatusCodes.unprocessableEntity:
           return ValidationFailure(exception.message);
+        // Erros 5xx podem trazer detalhes técnicos (ex.: SQL); nunca exibi-los.
         case >= HttpStatusCodes.internalServerError:
-          return ServerFailure(exception.message);
+          return const ServerFailure(ApiErrorMessage.serverFailure);
         default:
           return ServerFailure(
               'Erro ${exception.statusCode}: ${exception.message}');

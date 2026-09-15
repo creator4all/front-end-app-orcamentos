@@ -1,4 +1,4 @@
-﻿import '../../domain/entities/indicador_etapa_entity.dart';
+import '../../domain/entities/indicador_etapa_entity.dart';
 import 'indice_etapa_dto.dart';
 
 class IndicadorEtapaDto {
@@ -17,13 +17,15 @@ class IndicadorEtapaDto {
   });
 
   factory IndicadorEtapaDto.fromJson(Map<String, dynamic> json) {
-    final indiceEtapaJson = json['indicador_etapa'] as Map<String, dynamic>? ?? {};
-    
+    final indiceEtapaJson =
+        json['indicador_etapa'] as Map<String, dynamic>? ?? {};
+
     return IndicadorEtapaDto(
       id: (json['prd_produtos_indicadoresId'] as num?)?.toInt() ?? 0,
       valor: json['prd_valor'] as bool? ?? false,
       produtoId: (json['produtos_pro_produtosId'] as num?)?.toInt() ?? 0,
-      indiceEtapaId: (json['indicadores_etapa_ine_indicadoresId'] as num?)?.toInt() ?? 0,
+      indiceEtapaId:
+          (json['indicadores_etapa_ine_indicadoresId'] as num?)?.toInt() ?? 0,
       indiceEtapa: IndiceEtapaDto.fromJson(indiceEtapaJson),
     );
   }

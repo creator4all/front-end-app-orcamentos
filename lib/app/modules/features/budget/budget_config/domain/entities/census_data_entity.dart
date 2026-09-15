@@ -1,4 +1,4 @@
-﻿import 'package:copy_with_extension/copy_with_extension.dart';
+import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:equatable/equatable.dart';
 
 part 'census_data_entity.g.dart';
@@ -22,7 +22,6 @@ class CensusDataEntity extends Equatable {
     required this.totalStudents,
     required this.gradeDistribution,
   });
-
 
   bool get hasData => totalClasses > 0 || totalStudents > 0;
 

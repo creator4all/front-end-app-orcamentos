@@ -1,4 +1,5 @@
-﻿import '../../domain/entities/produto_entity.dart';
+﻿import '../../../../../../shared/utils/api_number_parser.dart';
+import '../../domain/entities/produto_entity.dart';
 import 'indicador_etapa_dto.dart';
 import 'subcategoria_dto.dart';
 
@@ -71,12 +72,17 @@ class ProdutoDto {
     }
 
     return ProdutoDto(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      status: json['status'] as bool? ?? false,
-      valor: (json['valor'] as num?)?.toDouble() ?? 0.0,
+      id: (json['pro_produtosId'] as num?)?.toInt() ??
+          (json['id'] as num?)?.toInt() ??
+          0,
+      status: json['pro_status'] as bool? ?? json['status'] as bool? ?? false,
+      valor: ApiNumberParser.toDouble(json['pro_valor'] ?? json['valor']),
       subcategoriaId: (json['pro_subcategoria_id'] as num?)?.toInt() ?? 0,
-      solucao: json['solucao'] as String? ?? '',
-      indicacao: json['indicacao'] as String? ?? '',
+      solucao:
+          json['pro_solucao'] as String? ?? json['solucao'] as String? ?? '',
+      indicacao: json['pro_indicacao'] as String? ??
+          json['indicacao'] as String? ??
+          '',
       indicadores: indicadores,
       subcategoria: SubcategoriaDto.fromJson(subcategoriaJson),
       orcamentoProduto: orcamentoProduto,

@@ -52,7 +52,7 @@ class SubcategoriesModal extends StatelessWidget {
           borderRadius: BorderRadius.circular(10.r),
           border: Border.all(
             color: hasSelectedProducts
-                ? const Color(0xFF2830F2)
+                ? const Color(0xFF117BBD)
                 : const Color(0xFFEAEAEA),
             width: 1.5,
           ),

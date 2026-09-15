@@ -26,7 +26,6 @@ class MultiCityBudgetRepositoryImpl implements MultiCityBudgetRepository {
   Future<Either<BudgetFailure, Map<String, dynamic>>> criarMultiCidade({
     required String nome,
     required int diasValidade,
-    required int usuarioId,
     required List<int> cidadeIds,
     required Map<int, Map<int, double>> overridesPorCidade,
     int? partnerDestinoId,
@@ -35,7 +34,6 @@ class MultiCityBudgetRepositoryImpl implements MultiCityBudgetRepository {
       final result = await _dataSource.criarMultiCidade(
         nome: nome,
         diasValidade: diasValidade,
-        usuarioId: usuarioId,
         cidadeIds: cidadeIds,
         overridesPorCidade: overridesPorCidade,
         partnerDestinoId: partnerDestinoId,

@@ -2,7 +2,9 @@
 ///
 /// Centraliza a regex de validação para evitar duplicação no projeto.
 class EmailValidator {
-  static final _emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+  static final _emailRegex = RegExp(
+    r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+  );
 
   /// Valida se o email está no formato correto.
   static bool isValid(String email) => _emailRegex.hasMatch(email);

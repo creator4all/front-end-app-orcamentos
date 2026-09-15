@@ -8,7 +8,7 @@ class HttpException implements Exception {
 
   const HttpException({required this.statusCode, required this.message});
 
-  bool get isUnauthorized => statusCode == 401 || statusCode == 403;
+  bool get isUnauthorized => statusCode == 401;
   bool get isNotFound => statusCode == 404;
   bool get isValidationError => statusCode == 422;
   bool get isServerError => statusCode >= 500;

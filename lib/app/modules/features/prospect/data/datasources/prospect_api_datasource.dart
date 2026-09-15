@@ -35,13 +35,23 @@ class ProspectApiDatasource implements ProspectDatasource {
   @override
   Future<ProspectDto> updateProspect(int id, bool isContatado) async {
     try {
-      final payload = {
-        'prp_is_contatado': isContatado,
-      };
+      // `PUT /api/private/prospeccao-parceiros/{id}` valida atualização
+      // completa: todas as chaves do schema precisam estar presentes. Como a
+      // tela só altera o flag de contato, os demais campos são relidos do
+      // próprio registro antes do envio.
+      final atual = await _buscarPorId(id);
 
       final response = await httpClient.put(
         '/api/private/prospeccao-parceiros/$id',
-        data: payload,
+        data: {
+          'prp_nome': atual.prpNome,
+          'prp_email': atual.prpEmail,
+          'prp_telefone': atual.prpTelefone,
+          'prp_empresa': atual.prpEmpresa,
+          'prp_documento': atual.prpDocumento,
+          'prp_experiencia_vendas_publicas': atual.prpExperienciaVendasPublicas,
+          'prp_is_contatado': isContatado,
+        },
       );
 
       if (response.statusCode == 200) {
@@ -53,5 +63,17 @@ class ProspectApiDatasource implements ProspectDatasource {
     } catch (e) {
       rethrow;
     }
+  }
+
+  Future<ProspectDto> _buscarPorId(int id) async {
+    final response = await httpClient.get(
+      '/api/private/prospeccao-parceiros/$id',
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Erro ao buscar prospect: ${response.statusCode}');
+    }
+
+    return ProspectDto.fromJson(response.body['dados']);
   }
 }

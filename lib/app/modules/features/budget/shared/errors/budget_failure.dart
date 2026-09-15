@@ -1,5 +1,9 @@
 import 'package:equatable/equatable.dart';
 
+/// Mensagem genérica para falhas inesperadas ao salvar um orçamento.
+const budgetSaveErrorMessage =
+    'Erro ao salvar orçamento, tente novamente mais tarde.';
+
 /// Classe abstrata base para todos os failures relacionados a orçamentos
 abstract class BudgetFailure extends Equatable {
   final String message;

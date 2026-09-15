@@ -46,7 +46,8 @@ class BudgetEntity extends Equatable {
     if (dataValidade == null) return 0;
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final target = DateTime(dataValidade!.year, dataValidade!.month, dataValidade!.day);
+    final target =
+        DateTime(dataValidade!.year, dataValidade!.month, dataValidade!.day);
     final difference = target.difference(today).inDays;
     return difference > 0 ? difference : 0;
   }
@@ -76,4 +77,25 @@ class BudgetEntity extends Equatable {
 
   @override
   bool get stringify => true;
+}
+
+class PaginatedBudgets extends Equatable {
+  final List<BudgetEntity> budgets;
+  final int currentPage;
+  final int perPage;
+  final int total;
+  final int lastPage;
+
+  const PaginatedBudgets({
+    required this.budgets,
+    required this.currentPage,
+    required this.perPage,
+    required this.total,
+    required this.lastPage,
+  });
+
+  bool get hasMore => currentPage < lastPage;
+
+  @override
+  List<Object?> get props => [budgets, currentPage, perPage, total, lastPage];
 }

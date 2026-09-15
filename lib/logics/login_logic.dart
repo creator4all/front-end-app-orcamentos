@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../app/shared/core/auth/session_expiration_handler.dart';
 import '../app/shared/utils/email_validator.dart';
 import '../entities/user_entity.dart';
 import '../services/auth_service.dart';
@@ -60,6 +61,7 @@ class LoginLogic {
 
         await storage.write(key: 'auth_token', value: user.token);
         await storage.write(key: 'user_data', value: jsonEncode(userData));
+        SessionExpirationHandler.arm();
 
         return {
           'success': true,
@@ -87,6 +89,7 @@ class LoginLogic {
       if (token != null && userData != null) {
         try {
           final user = UserEntity.fromJson(jsonDecode(userData));
+          SessionExpirationHandler.arm();
 
           return {
             'success': true,

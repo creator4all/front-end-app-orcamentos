@@ -1,5 +1,6 @@
-﻿import 'package:copy_with_extension/copy_with_extension.dart';
+import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:equatable/equatable.dart';
+import 'package:multimidiaapp/app/shared/domain/value_objects/fractional_order.dart';
 import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 
 import 'statistics_entity.dart';
@@ -13,7 +14,7 @@ class CategoryEntity extends Equatable {
 
   final String nome;
 
-  final int ordem;
+  final FractionalOrder ordem;
 
   final bool expandido;
 
@@ -37,7 +38,7 @@ class CategoryEntity extends Equatable {
   List<SubcategoryEntity> get orderedSubcategorias {
     return subcategorias.toList()..sort((a, b) => a.ordem.compareTo(b.ordem));
   }
-  
+
   int get activeSubcategoriesCount => activeSubcategories.length;
 
   int get totalActiveProducts {
@@ -64,6 +65,11 @@ class CategoryEntity extends Equatable {
   double get selectionPercentage {
     if (totalActiveProducts == 0) return 0.0;
     return (selectedProductsCount / totalActiveProducts) * 100;
+  }
+
+  bool get allActiveSubcategoriesSelected {
+    final active = activeSubcategories;
+    return active.isNotEmpty && active.every((s) => s.hasSelectedProducts);
   }
 
   bool get hasSelectedProducts => selectedProductsCount > 0;

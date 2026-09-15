@@ -2,6 +2,11 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 class BrlCurrencyInputFormatter extends TextInputFormatter {
+  BrlCurrencyInputFormatter({this.maxDigits});
+
+  /// Número máximo de dígitos aceitos, incluindo os centavos.
+  final int? maxDigits;
+
   final NumberFormat _formatter = NumberFormat.currency(
     locale: 'pt_BR',
     symbol: '',
@@ -28,7 +33,10 @@ class BrlCurrencyInputFormatter extends TextInputFormatter {
         selection: TextSelection.collapsed(offset: 0),
       );
     }
-    
+
+    final limit = maxDigits;
+    if (limit != null && digitsOnly.length > limit) return oldValue;
+
     final value = int.tryParse(digitsOnly);
     if (value == null) return oldValue;
 

@@ -1,10 +1,11 @@
+import '../../../../../shared/domain/value_objects/fractional_order.dart';
 import '../../domain/entities/subcategory_entity.dart';
 
 class SubcategoryDto {
   final int id;
   final String nome;
   final bool status;
-  final int ordem;
+  final FractionalOrder ordem;
   final int categoriaId;
 
   SubcategoryDto({
@@ -23,7 +24,7 @@ class SubcategoryDto {
       id: json['sub_subcategoriasId'] as int,
       nome: json['sub_name'] as String? ?? '',
       status: status,
-      ordem: json['sub_order'] as int? ?? 0,
+      ordem: FractionalOrder.parse(json['sub_order']),
       categoriaId: json['cat_categoria_id'] as int? ?? 0,
     );
   }

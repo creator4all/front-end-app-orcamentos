@@ -45,6 +45,8 @@ abstract class _SchoolCensusStoreBase with Store {
   @observable
   ObservableMap<int, double> editedValues = ObservableMap<int, double>();
 
+  final Map<int, double> _originalValues = {};
+
   @observable
   int? budgetId;
 
@@ -168,10 +170,19 @@ abstract class _SchoolCensusStoreBase with Store {
     error = null;
 
     if (budgetId != null) {
+      final indicesToSend = isMultiCity ? editedValues : _changedIndices();
+
+      if (!isMultiCity && indicesToSend.isEmpty) {
+        isEditMode = false;
+        _initEditedValues();
+        isSaving = false;
+        return;
+      }
+
       final updateResult = await _censusRepository.updateBudgetCensusIndices(
         budgetId: budgetId!,
         cityId: censoEscolar!.cidadeId,
-        updatedIndices: editedValues,
+        updatedIndices: indicesToSend,
       );
 
       updateResult.fold((l) => error = l.message, (r) {
@@ -269,13 +280,26 @@ abstract class _SchoolCensusStoreBase with Store {
 
   void _initEditedValues() {
     editedValues.clear();
+    _originalValues.clear();
     if (censoEscolar != null) {
       for (var group in censoEscolar!.grupos) {
         for (var title in group.titulos) {
           editedValues[title.id] = title.valor;
+          _originalValues[title.id] = title.valor;
         }
       }
     }
+  }
+
+  Map<int, double> _changedIndices() {
+    final changed = <int, double>{};
+    editedValues.forEach((id, value) {
+      final original = _originalValues[id];
+      if (original == null || (value - original).abs() > 0.0001) {
+        changed[id] = value;
+      }
+    });
+    return changed;
   }
 
   void _loadAggregatedView() {
@@ -292,16 +316,29 @@ abstract class _SchoolCensusStoreBase with Store {
       return group.copyWith(titulos: updatedTitles);
     }).toList();
 
+    // Os anos vêm das cidades agregadas: um único valor quando todas
+    // coincidem, um intervalo quando divergem. Fixar `null` aqui fazia a tela
+    // exibir "-" mesmo com todas as cidades informando o mesmo ano.
+    final (censoAnoInicio, censoAnoFim) = CensoEscolarEntity.faixaDeAnos(
+      cidades.map((c) => c.censoAno),
+    );
+    final (populacaoInicio, populacaoFim) = CensoEscolarEntity.faixaDeAnos(
+      cidades.map((c) => c.anoPopulacao),
+    );
+
     censoEscolar = CensoEscolarEntity(
       cidadeId: 0,
       cidadeNome: 'Todas as cidades',
-      censoAno: null,
-      anoPopulacao: null,
+      censoAno: censoAnoInicio,
+      anoPopulacao: populacaoInicio,
+      censoAnoFinal: censoAnoFim,
+      anoPopulacaoFinal: populacaoFim,
       grupos: updatedGroups,
       valoresPorEtapa: Map<String, double>.from(censoAgregado),
     );
 
     editedValues.clear();
+    _originalValues.clear();
   }
 
   void _updateCityInList(CensoEscolarEntity updatedCenso) {

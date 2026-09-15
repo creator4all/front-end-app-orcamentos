@@ -10,8 +10,15 @@ class BudgetRemoteDataSourceImpl implements BudgetRemoteDataSource {
   BudgetRemoteDataSourceImpl(this._client);
 
   @override
-  Future<List<BudgetDto>> getBudgets({String? status}) async {
-    final queryParams = <String, dynamic>{};
+  Future<PaginatedBudgetsDto> getBudgets({
+    String? status,
+    int page = 1,
+    int perPage = 15,
+  }) async {
+    final queryParams = <String, dynamic>{
+      'page': page,
+      'per_page': perPage,
+    };
     if (status != null) {
       queryParams['orc_status'] = status;
     }
@@ -22,12 +29,7 @@ class BudgetRemoteDataSourceImpl implements BudgetRemoteDataSource {
     );
 
     if (response.isSuccess) {
-      final List list =
-          response.body['dados'] is List ? response.body['dados'] as List : [];
-
-      return list
-          .map((e) => BudgetDto.fromJson(Map<String, dynamic>.from(e as Map)))
-          .toList();
+      return PaginatedBudgetsDto.fromJson(response.body);
     }
 
     throw Exception(response.body['error'] ?? 'Falha ao carregar orçamentos');
@@ -47,25 +49,41 @@ class BudgetRemoteDataSourceImpl implements BudgetRemoteDataSource {
 
   @override
   Future<BudgetDto> renameBudget(int budgetId, String newName) async {
+    // `PUT /api/orcamentos/{id}` valida atualização completa: todas as chaves
+    // do schema precisam estar presentes e o corpo da resposta vem vazio. O
+    // registro atual é relido para preencher os campos que a renomeação não
+    // altera e para devolver o orçamento já atualizado à store.
+    final atual = await _buscarRegistro(budgetId);
+
     final response = await _client.put(
       '/api/orcamentos/$budgetId',
-      data: {'nome': newName},
+      data: {
+        'orc_nome': newName,
+        'orc_dias_validade': atual['orc_dias_validade'],
+        'orc_status': atual['orc_status'],
+        'orc_total': atual['orc_total'],
+        'orc_partner_destino_id': atual['orc_partner_destino_id'],
+        'isArchived': atual['orc_is_archived'] ?? false,
+        'cidades': const <int>[],
+        'indicadores': const <Map<String, dynamic>>[],
+        'produtos': const <Map<String, dynamic>>[],
+      },
     );
 
     if (response.isSuccess) {
-      final data = response.body['dados'];
-      return BudgetDto.fromJson(Map<String, dynamic>.from(data as Map));
+      return BudgetDto.fromJson({...atual, 'orc_nome': newName});
     }
 
     throw Exception(response.body['error'] ?? 'Falha ao renomear orçamento');
   }
 
-  @override
-  Future<void> deleteBudget(int budgetId) async {
-    final response = await _client.delete('/api/orcamentos/$budgetId');
+  Future<Map<String, dynamic>> _buscarRegistro(int budgetId) async {
+    final response = await _client.get('/api/orcamentos/$budgetId');
 
     if (!response.isSuccess) {
-      throw Exception(response.body['error'] ?? 'Falha ao excluir orçamento');
+      throw Exception(response.body['error'] ?? 'Orçamento não encontrado');
     }
+
+    return Map<String, dynamic>.from(response.body['dados'] as Map);
   }
 }

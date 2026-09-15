@@ -5,16 +5,16 @@ import 'package:media_store_plus/media_store_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../domain/helpers/file_name_sanitizer.dart';
 import '../../domain/repositories/file_saver.dart';
 
 /// Concrete implementation of [FileSaver] that uses the MediaStore API
 /// on Android 10+ and direct file I/O on older Android versions.
 /// No iOS, salva em Documents/Downloads/ para visibilidade no app Arquivos.
 class FileSaverImpl implements FileSaver {
-
   @override
   Future<String> saveToDownloads(List<int> bytes, String fileName) async {
-    final sanitizedName = _sanitizeFileName(fileName);
+    final sanitizedName = FileNameSanitizer.sanitize(fileName);
 
     if (Platform.isAndroid) {
       return _saveOnAndroid(bytes, sanitizedName);
@@ -25,6 +25,104 @@ class FileSaverImpl implements FileSaver {
     }
 
     return _saveOnDesktop(bytes, sanitizedName);
+  }
+
+  @override
+  Future<String> saveDownloadedFile(String sourcePath, String fileName) async {
+    final sanitizedName = FileNameSanitizer.sanitize(fileName);
+
+    if (Platform.isAndroid) {
+      final sdkInt = await _getAndroidSdkVersion();
+      if (sdkInt >= 29) {
+        return _savePathViaMediaStore(sourcePath, sanitizedName);
+      }
+      return _copyToDirectory(
+        sourcePath,
+        await _resolveLegacyDirectory(),
+        sanitizedName,
+        requestPermission: true,
+      );
+    }
+
+    if (Platform.isIOS) {
+      final documentsDir = await getApplicationDocumentsDirectory();
+      final downloadsSubDir = Directory('${documentsDir.path}/Downloads');
+      return _copyToDirectory(sourcePath, downloadsSubDir, sanitizedName);
+    }
+
+    final downloadsDir = await getDownloadsDirectory();
+    final directory = downloadsDir ?? await getApplicationDocumentsDirectory();
+    return _copyToDirectory(sourcePath, directory, sanitizedName);
+  }
+
+  /// Copia [sourcePath] para [directory] com nome único, retornando o path.
+  Future<String> _copyToDirectory(
+    String sourcePath,
+    Directory directory,
+    String fileName, {
+    bool requestPermission = false,
+  }) async {
+    if (requestPermission) {
+      final hasPermission = await _requestLegacyStoragePermission();
+      if (!hasPermission) {
+        throw const FileSystemException('Permissão de armazenamento negada');
+      }
+    }
+
+    if (!await directory.exists()) {
+      await directory.create(recursive: true);
+    }
+
+    final uniquePath = await _buildUniqueFilePath(directory.path, fileName);
+    await File(sourcePath).copy(uniquePath);
+    return uniquePath;
+  }
+
+  /// Salva um arquivo já em disco via MediaStore (Android 10+), sem reescrever
+  /// os bytes. O MediaStore deriva o nome do arquivo a partir do tempFilePath.
+  Future<String> _savePathViaMediaStore(
+    String sourcePath,
+    String fileName,
+  ) async {
+    final mediaStore = MediaStore();
+    await MediaStore.ensureInitialized();
+    if (MediaStore.appFolder.isEmpty) {
+      MediaStore.appFolder = 'Multimidia B2B';
+    }
+
+    final tempDir = await getTemporaryDirectory();
+    final tempPath = _joinPath(tempDir.path, fileName);
+    final tempFile = File(tempPath);
+    final isDistinctTemp = sourcePath != tempPath;
+    if (isDistinctTemp) {
+      await File(sourcePath).copy(tempPath);
+    }
+
+    try {
+      final result = await mediaStore.saveFile(
+        tempFilePath: tempFile.path,
+        dirType: DirType.download,
+        dirName: DirName.download,
+      );
+
+      if (isDistinctTemp && await tempFile.exists()) {
+        await tempFile.delete();
+      }
+
+      if (result != null) {
+        return result.uri.toString();
+      }
+
+      throw const FileSystemException(
+        'MediaStore retornou nulo ao salvar o arquivo',
+      );
+    } catch (e) {
+      if (isDistinctTemp && await tempFile.exists()) {
+        await tempFile.delete();
+      }
+      if (e is FileSystemException) rethrow;
+      throw FileSystemException('Erro ao salvar via MediaStore: $e');
+    }
   }
 
   /// Android 10+ (API 29+): uses MediaStore.Downloads — no special permission.
@@ -50,8 +148,7 @@ class FileSaverImpl implements FileSaver {
 
     // Write bytes to a temp file first (media_store_plus works with file paths)
     final tempDir = await getTemporaryDirectory();
-    final uniqueName = await _buildUniqueDownloadName(fileName);
-    final tempFile = File(_joinPath(tempDir.path, uniqueName));
+    final tempFile = File(_joinPath(tempDir.path, fileName));
     await tempFile.writeAsBytes(bytes, flush: true);
 
     try {
@@ -185,20 +282,6 @@ class FileSaverImpl implements FileSaver {
     }
   }
 
-  /// Generates a unique file name for MediaStore to avoid collisions.
-  Future<String> _buildUniqueDownloadName(String fileName) async {
-    // MediaStore handles duplicates internally for most cases,
-    // but we add a timestamp to be safe
-    final extensionIndex = fileName.lastIndexOf('.');
-    final hasExtension =
-        extensionIndex > 0 && extensionIndex < fileName.length - 1;
-    final baseName =
-        hasExtension ? fileName.substring(0, extensionIndex) : fileName;
-    final extension = hasExtension ? fileName.substring(extensionIndex) : '';
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    return '${baseName}_$timestamp$extension';
-  }
-
   Future<String> _buildUniqueFilePath(
       String directoryPath, String fileName) async {
     final extensionIndex = fileName.lastIndexOf('.');
@@ -221,28 +304,157 @@ class FileSaverImpl implements FileSaver {
     }
   }
 
-  String _sanitizeFileName(String fileName) {
-    const accentMap = {
-      'á': 'a', 'à': 'a', 'ã': 'a', 'â': 'a', 'ä': 'a',
-      'é': 'e', 'è': 'e', 'ê': 'e', 'ë': 'e',
-      'í': 'i', 'ì': 'i', 'î': 'i', 'ï': 'i',
-      'ó': 'o', 'ò': 'o', 'õ': 'o', 'ô': 'o', 'ö': 'o',
-      'ú': 'u', 'ù': 'u', 'û': 'u', 'ü': 'u',
-      'ç': 'c', 'ñ': 'n',
-      'Á': 'A', 'À': 'A', 'Ã': 'A', 'Â': 'A', 'Ä': 'A',
-      'É': 'E', 'È': 'E', 'Ê': 'E', 'Ë': 'E',
-      'Í': 'I', 'Ì': 'I', 'Î': 'I', 'Ï': 'I',
-      'Ó': 'O', 'Ò': 'O', 'Õ': 'O', 'Ô': 'O', 'Ö': 'O',
-      'Ú': 'U', 'Ù': 'U', 'Û': 'U', 'Ü': 'U',
-      'Ç': 'C', 'Ñ': 'N',
-    };
+  @override
+  Future<String?> findInDownloads(String fileName) async {
+    final sanitizedName = FileNameSanitizer.sanitize(fileName);
 
-    var sanitized = fileName;
-    accentMap.forEach((accent, replacement) {
-      sanitized = sanitized.replaceAll(accent, replacement);
-    });
+    if (Platform.isAndroid) {
+      return _findOnAndroid(sanitizedName);
+    }
 
-    return sanitized.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_');
+    if (Platform.isIOS) {
+      return _findOnIOS(sanitizedName);
+    }
+
+    return _findOnDesktop(sanitizedName);
+  }
+
+  Future<String?> _findOnAndroid(String fileName) async {
+    final sdkInt = await _getAndroidSdkVersion();
+
+    if (sdkInt >= 29) {
+      return _findViaMediaStore(fileName);
+    }
+
+    return _findViaDirectIo(fileName);
+  }
+
+  Future<String?> _findViaMediaStore(String fileName) async {
+    File? tempFile;
+    try {
+      final mediaStore = MediaStore();
+      await MediaStore.ensureInitialized();
+      if (MediaStore.appFolder.isEmpty) {
+        MediaStore.appFolder = 'Multimidia B2B';
+      }
+
+      // Timeout defensivo: a chamada nativa do MediaStore pode não retornar
+      // (ex.: fluxo de permissão), o que travaria o compartilhamento.
+      final exists = await mediaStore
+          .isFileExist(
+            fileName: fileName,
+            dirType: DirType.download,
+            dirName: DirName.download,
+          )
+          .timeout(const Duration(seconds: 8), onTimeout: () => false);
+
+      if (exists != true) return null;
+
+      // Cria arquivo temp vazio para o MediaStore copiar o conteúdo
+      final tempDir = await getTemporaryDirectory();
+      final tempPath = _joinPath(tempDir.path, fileName);
+      tempFile = File(tempPath);
+      if (!await tempFile.exists()) {
+        await tempFile.create(recursive: true);
+      }
+
+      final readOk = await mediaStore
+          .readFile(
+            fileName: fileName,
+            tempFilePath: tempPath,
+            dirType: DirType.download,
+            dirName: DirName.download,
+          )
+          .timeout(const Duration(seconds: 30), onTimeout: () => false);
+
+      // Só reaproveita se realmente copiou conteúdo (evita temp vazio).
+      if (readOk == true &&
+          await tempFile.exists() &&
+          await tempFile.length() > 0) {
+        return tempPath;
+      }
+
+      await _deleteIfExists(tempFile);
+      return null;
+    } catch (_) {
+      await _deleteIfExists(tempFile);
+      return null;
+    }
+  }
+
+  Future<void> _deleteIfExists(File? file) async {
+    if (file == null) return;
+    try {
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } catch (_) {}
+  }
+
+  Future<String?> _findViaDirectIo(String fileName) async {
+    try {
+      final candidates = <String>[
+        _joinPath('/storage/emulated/0/Download', fileName),
+        _joinPath('/storage/emulated/0/Documents', fileName),
+      ];
+
+      for (final candidatePath in candidates) {
+        final file = File(candidatePath);
+        if (await file.exists()) {
+          final tempDir = await getTemporaryDirectory();
+          final tempPath = _joinPath(tempDir.path, fileName);
+          await file.copy(tempPath);
+          return tempPath;
+        }
+      }
+
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<String?> _findOnIOS(String fileName) async {
+    try {
+      final documentsDir = await getApplicationDocumentsDirectory();
+      final filePath = _joinPath(
+        _joinPath(documentsDir.path, 'Downloads'),
+        fileName,
+      );
+
+      final file = File(filePath);
+      if (await file.exists()) {
+        final tempDir = await getTemporaryDirectory();
+        final tempPath = _joinPath(tempDir.path, fileName);
+        await file.copy(tempPath);
+        return tempPath;
+      }
+
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<String?> _findOnDesktop(String fileName) async {
+    try {
+      final downloadsDir = await getDownloadsDirectory();
+      final directory =
+          downloadsDir ?? await getApplicationDocumentsDirectory();
+      final filePath = _joinPath(directory.path, fileName);
+
+      final file = File(filePath);
+      if (await file.exists()) {
+        final tempDir = await getTemporaryDirectory();
+        final tempPath = _joinPath(tempDir.path, fileName);
+        await file.copy(tempPath);
+        return tempPath;
+      }
+
+      return null;
+    } catch (_) {
+      return null;
+    }
   }
 
   String _joinPath(String left, String right) {

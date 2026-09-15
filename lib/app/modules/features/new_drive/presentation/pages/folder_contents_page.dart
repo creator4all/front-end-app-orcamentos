@@ -1,17 +1,15 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:multimidiaapp/app/shared/widgets/custom_info_dialog.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_top_bar.dart';
 
 import '../../../auth/presentation/stores/auth_store.dart';
 import '../../domain/entities/drive_item.dart';
 import '../stores/file_opener_store.dart';
 import '../stores/new_drive_store.dart';
+import '../widgets/drive_item_details.dart';
 import '../widgets/item_card_doc.dart';
-import '../widgets/file_details_modal.dart';
 
 class FolderContentsPage extends StatefulWidget {
   final String folderId;
@@ -33,14 +31,12 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
   final AuthStore _authStore = Modular.get<AuthStore>();
   final TextEditingController searchController = TextEditingController();
 
-  DriveItem? _localFolder;
-  bool _isLoading = true;
-  String? _errorMessage;
+  bool _isLeaving = false;
 
   @override
   void initState() {
     super.initState();
-    store.setSearchQuery('');
+    store.navigateToFolder(widget.folderId, widget.folderName ?? 'Pasta');
     _loadFolder();
   }
 
@@ -51,38 +47,13 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
   }
 
   Future<void> _loadFolder({bool forceRefresh = false}) async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    // Tentar restaurar do cache para evitar chamada desnecessária à API
-    if (!forceRefresh) {
-      final cached = store.getFolderFromCache(widget.folderId);
-      if (cached != null) {
-        setState(() {
-          _localFolder = cached;
-          _isLoading = false;
-        });
-        return;
-      }
+    if (forceRefresh || store.getFolderFromCache(widget.folderId) == null) {
+      await store.loadFolderContents(widget.folderId);
     }
-
-    await store.loadFolderContents(widget.folderId);
-
-    if (!mounted) return;
-
-    final loaded = store.getFolderFromCache(widget.folderId);
-    setState(() {
-      _localFolder = loaded;
-      _isLoading = false;
-      _errorMessage = loaded == null ? store.errorMessage : null;
-    });
   }
 
-  /// Filtra children da pasta local usando o searchQuery do store.
-  List<DriveItem> get _filteredChildren {
-    final children = _localFolder?.children ?? [];
+  List<DriveItem> _filteredChildren(DriveItem folder) {
+    final children = folder.children ?? [];
     if (store.searchQuery.isEmpty) return children;
 
     final query = store.searchQuery.toLowerCase();
@@ -93,27 +64,66 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
-      appBar: CustomTopBar(
-        title: widget.folderName ?? 'Pasta',
-        showBackButton: true,
-        onBackPressed: () {
+    return PopScope(
+      onPopInvokedWithResult: (didPop, result) {
+        // O breadcrumb já escolheu o destino antes de remover suas páginas.
+        if (didPop && store.activeFolderId == widget.folderId) {
           store.navigateBack();
-          Navigator.of(context).pop();
-        },
-        authStore: _authStore,
+          _syncFolderRouteArguments();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF3F4F6),
+        appBar: CustomTopBar(
+          title: widget.folderName ?? 'Pasta',
+          showBackButton: true,
+          onBackPressed: _goBack,
+          authStore: _authStore,
+        ),
+        body: Observer(builder: (_) => _buildBody()),
       ),
-      body: _buildBody(),
     );
   }
 
+  void _goBack() {
+    if (_isLeaving || !mounted) return;
+    _isLeaving = true;
+    Modular.to.pop();
+  }
+
+  void _navigateToAncestor(int index) {
+    if (_isLeaving || !mounted) return;
+    final pops = store.folderStack.length - 1 - index;
+    if (pops <= 0) return;
+
+    _isLeaving = true;
+    store.navigateToStackIndex(index);
+    _syncFolderRouteArguments();
+    if (index == -1) {
+      Modular.to.popUntil(ModalRoute.withName('/drive/'));
+    } else {
+      for (var i = 0; i < pops; i++) {
+        Modular.to.pop();
+      }
+    }
+  }
+
+  void _syncFolderRouteArguments() {
+    final target = store.folderStack.isEmpty ? null : store.folderStack.last;
+    // Modular 5 mantém args globais após pop. Seu setArguments ignora o dado
+    // recebido; usamos o setter do parser já instalado, sem recriar rotas.
+    Modular.routerDelegate.parser.setArguments(Modular.args.copyWith(data: {
+      if (target != null) 'folderId': target.id,
+      if (target != null) 'folderName': target.name,
+    }));
+  }
+
   Widget _buildBody() {
-    if (_isLoading) {
+    if (store.activeFolderId == widget.folderId && store.isLoadingFolder) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final folder = _localFolder;
+    final folder = store.getFolderFromCache(widget.folderId);
 
     if (folder == null) {
       return _buildErrorState();
@@ -124,14 +134,14 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
       child: Observer(
         builder: (_) {
           // Observer necessário para reagir a mudanças no searchQuery
-          final items = _filteredChildren;
+          final items = _filteredChildren(folder);
 
           return ListView(
             physics: const AlwaysScrollableScrollPhysics(
               parent: BouncingScrollPhysics(),
             ),
             children: [
-              _buildBreadcrumb(folder),
+              _buildBreadcrumb(),
               Padding(
                 padding: EdgeInsets.symmetric(
                   horizontal: 10.w,
@@ -161,17 +171,17 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
                 _buildEmptyState()
               else
                 ...items.map((item) => Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 10.w),
-                  child: Column(
-                    children: [
-                      ItemCardDoc(
-                        item: item,
-                        onTap: () => _handleItemTap(item),
+                      padding: EdgeInsets.symmetric(horizontal: 10.w),
+                      child: Column(
+                        children: [
+                          ItemCardDoc(
+                            item: item,
+                            onTap: () => _handleItemTap(item),
+                          ),
+                          SizedBox(height: 12.h),
+                        ],
                       ),
-                      SizedBox(height: 12.h),
-                    ],
-                  ),
-                )),
+                    )),
             ],
           );
         },
@@ -179,7 +189,7 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
     );
   }
 
-  Widget _buildBreadcrumb(DriveItem folder) {
+  Widget _buildBreadcrumb() {
     return Padding(
       padding: EdgeInsets.symmetric(
         horizontal: 10.w,
@@ -190,10 +200,7 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
         child: Row(
           children: [
             GestureDetector(
-              onTap: () {
-                store.navigateToStackIndex(-1);
-                Modular.to.popUntil(ModalRoute.withName('/drive/'));
-              },
+              onTap: () => _navigateToAncestor(-1),
               child: Text(
                 'Drive',
                 style: TextStyle(
@@ -221,16 +228,8 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
                           ),
                         ),
                         GestureDetector(
-                          onTap: isLast
-                              ? null
-                              : () {
-                                  store.navigateToStackIndex(index);
-                                  final pops =
-                                      store.folderStack.length - 1 - index;
-                                  for (var i = 0; i < pops; i++) {
-                                    Navigator.of(context).pop();
-                                  }
-                                },
+                          onTap:
+                              isLast ? null : () => _navigateToAncestor(index),
                           child: Text(
                             breadcrumb.name,
                             style: TextStyle(
@@ -341,12 +340,12 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
               color: const Color(0xFF171A1F),
             ),
           ),
-          if (_errorMessage != null && _errorMessage!.isNotEmpty) ...[
+          if (store.errorMessage?.isNotEmpty ?? false) ...[
             SizedBox(height: 8.h),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 24.w),
               child: Text(
-                _errorMessage!,
+                store.errorMessage!,
                 style: TextStyle(
                   fontSize: 12.sp,
                   color: const Color(0xFF565E6C),
@@ -357,7 +356,7 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
           ],
           SizedBox(height: 16.h),
           ElevatedButton(
-            onPressed: () => Modular.to.pop(),
+            onPressed: _goBack,
             child: const Text('Voltar'),
           ),
         ],
@@ -366,9 +365,16 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
   }
 
   void _handleItemTap(DriveItem item) {
-    if (item.type == DriveItemType.folder) {
-      store.navigateToFolder(item.id, item.name);
+    DriveItemDetails.show(
+      context: context,
+      item: item,
+      fileOpenerStore: fileOpenerStore,
+      onOpen: _openFileFromDetails,
+    );
+  }
 
+  Future<void> _openFileFromDetails(DriveItem item) async {
+    if (item.type == DriveItemType.folder) {
       Modular.to.pushNamed(
         './folder',
         arguments: {
@@ -376,54 +382,25 @@ class _FolderContentsPageState extends State<FolderContentsPage> {
           'folderName': item.name,
         },
       );
-    } else if (item.type == DriveItemType.video) {
+      return;
+    }
+
+    if (item.type == DriveItemType.video) {
       Modular.to.pushNamed(
         './video-player',
         arguments: item,
       );
-    } else if (item.type == DriveItemType.image) {
+      return;
+    }
+
+    if (item.type == DriveItemType.image) {
       Modular.to.pushNamed(
         './image-viewer',
         arguments: item,
       );
-    } else {
-      FileDetailsModal.show(
-        context: context,
-        item: item,
-        onOpen: () => fileOpenerStore.openFile(item),
-        onDownload: () => _handleDownload(item),
-      );
-    }
-  }
-
-  Future<void> _handleDownload(DriveItem item) async {
-    final savedPath = await fileOpenerStore.downloadFile(item);
-    if (!mounted) return;
-
-    if (savedPath != null) {
-      final fileName = savedPath.split('/').last;
-      final folderPath = savedPath.substring(0, savedPath.lastIndexOf('/'));
-      final messageStr = Platform.isIOS
-          ? 'O arquivo "$fileName" foi disponibilizado nos seus Arquivos'
-          : 'O arquivo "$fileName" foi salvo em:\n$folderPath';
-      CustomInfoDialog.show(
-        context: context,
-        type: DialogType.success,
-        title: 'Download concluído',
-        message: messageStr,
-      );
       return;
     }
 
-    final error = fileOpenerStore.errorMessage;
-    if (error != null && error.isNotEmpty) {
-      CustomInfoDialog.show(
-        context: context,
-        type: DialogType.error,
-        title: 'Erro no download',
-        message: error,
-      );
-      fileOpenerStore.clearError();
-    }
+    await fileOpenerStore.openFile(item);
   }
 }

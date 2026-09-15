@@ -23,6 +23,7 @@ abstract class _NewDriveStoreBase with Store {
   final GetOwnFilesUseCase getOwnFilesUseCase;
   final GetFolderContentsUseCase getFolderContentsUseCase;
   final DriveRepository driveRepository;
+  int _folderRequestVersion = 0;
 
   _NewDriveStoreBase({
     required this.getRecentItemsUseCase,
@@ -115,11 +116,17 @@ abstract class _NewDriveStoreBase with Store {
     if (selectedCategoryType == null) {
       return [];
     }
-    return allItems
-        .where(
-          (item) => item.type == selectedCategoryType && item.parentId == null,
-        )
-        .toList();
+    return allItems.where((item) {
+      if (item.type != selectedCategoryType) {
+        return false;
+      }
+
+      if (selectedCategoryType == DriveItemType.folder) {
+        return item.parentId == null;
+      }
+
+      return true;
+    }).toList();
   }
 
   @computed
@@ -209,12 +216,15 @@ abstract class _NewDriveStoreBase with Store {
 
   @action
   Future<void> loadFolderContents(String folderId) async {
+    final requestVersion = ++_folderRequestVersion;
     isLoadingFolder = true;
     errorMessage = null;
     activeFolderId = folderId;
+    currentFolder = folderCache[folderId];
 
     try {
       final result = await getFolderContentsUseCase(folderId);
+      if (requestVersion != _folderRequestVersion) return;
 
       result.fold(
         (failure) => errorMessage = failure.message,
@@ -224,9 +234,13 @@ abstract class _NewDriveStoreBase with Store {
         },
       );
     } catch (e) {
-      errorMessage = 'Erro ao carregar conteúdo da pasta';
+      if (requestVersion == _folderRequestVersion) {
+        errorMessage = 'Erro ao carregar conteúdo da pasta';
+      }
     } finally {
-      isLoadingFolder = false;
+      if (requestVersion == _folderRequestVersion) {
+        isLoadingFolder = false;
+      }
     }
   }
 
@@ -239,29 +253,25 @@ abstract class _NewDriveStoreBase with Store {
   Future<void> loadCategories() async {
     categories.clear();
 
-    final rootItems = allItems.where((item) => item.parentId == null);
+    final documentItems =
+        allItems.where((item) => item.type == DriveItemType.document);
+    final imageItems =
+        allItems.where((item) => item.type == DriveItemType.image);
+    final videoItems =
+        allItems.where((item) => item.type == DriveItemType.video);
+    final folderItems = allItems.where(
+      (item) => item.type == DriveItemType.folder && item.parentId == null,
+    );
 
-    final documents =
-        rootItems.where((item) => item.type == DriveItemType.document).length;
-    final images =
-        rootItems.where((item) => item.type == DriveItemType.image).length;
-    final videos =
-        rootItems.where((item) => item.type == DriveItemType.video).length;
-    final folders =
-        rootItems.where((item) => item.type == DriveItemType.folder).length;
+    final documents = documentItems.length;
+    final images = imageItems.length;
+    final videos = videoItems.length;
+    final folders = folderItems.length;
 
-    final documentsSize = _calculateTotalSize(
-      rootItems.where((item) => item.type == DriveItemType.document),
-    );
-    final imagesSize = _calculateTotalSize(
-      rootItems.where((item) => item.type == DriveItemType.image),
-    );
-    final videosSize = _calculateTotalSize(
-      rootItems.where((item) => item.type == DriveItemType.video),
-    );
-    final foldersSize = _calculateTotalSize(
-      rootItems.where((item) => item.type == DriveItemType.folder),
-    );
+    final documentsSize = _calculateTotalSize(documentItems);
+    final imagesSize = _calculateTotalSize(imageItems);
+    final videosSize = _calculateTotalSize(videoItems);
+    final foldersSize = _calculateTotalSize(folderItems);
 
     categories.addAll([
       DriveCategory(
@@ -302,7 +312,7 @@ abstract class _NewDriveStoreBase with Store {
     for (final item in items) {
       totalMB += _parseSizeToMB(item.size);
     }
-    return '${totalMB.toStringAsFixed(1)} MB';
+    return _formatSizeFromMB(totalMB);
   }
 
   double _parseSizeToMB(String size) {
@@ -320,6 +330,26 @@ abstract class _NewDriveStoreBase with Store {
       'GB' => value * 1024,
       _ => 0.0,
     };
+  }
+
+  String _formatSizeFromMB(double mb) {
+    if (mb < 1 / 1024) {
+      final bytes = mb * 1024 * 1024;
+      return '${bytes.toStringAsFixed(0)} B';
+    }
+    if (mb < 1) {
+      final kb = mb * 1024;
+      return '${kb.toStringAsFixed(1)} KB';
+    }
+    if (mb < 1024) {
+      return '${mb.toStringAsFixed(1)} MB';
+    }
+    if (mb < 1024 * 1024) {
+      final gb = mb / 1024;
+      return '${gb.toStringAsFixed(1)} GB';
+    }
+    final tb = mb / (1024 * 1024);
+    return '${tb.toStringAsFixed(1)} TB';
   }
 
   @action
@@ -373,33 +403,18 @@ abstract class _NewDriveStoreBase with Store {
       return;
     }
     folderStack.add(FolderBreadcrumb(id: folderId, name: folderName));
+    _activateFolder(folderId);
   }
 
   @action
   void navigateBack() {
-    if (folderStack.isNotEmpty) {
-      folderStack.removeLast();
-
-      if (folderStack.isNotEmpty) {
-        final previousFolderId = folderStack.last.id;
-        activeFolderId = previousFolderId;
-
-        // Restaurar do cache para evitar condição de corrida com chamada async
-        final cachedFolder = folderCache[previousFolderId];
-        if (cachedFolder != null) {
-          currentFolder = cachedFolder;
-        } else {
-          loadFolderContents(previousFolderId);
-        }
-      } else {
-        currentFolder = null;
-        activeFolderId = null;
-      }
-    }
+    if (folderStack.isEmpty) return;
+    navigateToStackIndex(folderStack.length - 2);
   }
 
   @action
   void navigateToStackIndex(int index) {
+    if (index == folderStack.length - 1 && index >= 0) return;
     if (index >= 0 && index < folderStack.length) {
       final itemsToRemove = folderStack.length - 1 - index;
       for (var i = 0; i < itemsToRemove; i++) {
@@ -407,12 +422,8 @@ abstract class _NewDriveStoreBase with Store {
       }
 
       final targetFolderId = folderStack.last.id;
-      activeFolderId = targetFolderId;
-
-      final cachedFolder = folderCache[targetFolderId];
-      if (cachedFolder != null) {
-        currentFolder = cachedFolder;
-      } else {
+      _activateFolder(targetFolderId);
+      if (currentFolder == null) {
         loadFolderContents(targetFolderId);
       }
     } else if (index == -1) {
@@ -420,12 +431,22 @@ abstract class _NewDriveStoreBase with Store {
     }
   }
 
+  // As transições invalidam respostas de pastas abandonadas, inclusive após
+  // sair e entrar novamente na mesma pasta antes de uma resposta chegar.
+  void _activateFolder(String? folderId) {
+    _folderRequestVersion++;
+    activeFolderId = folderId;
+    currentFolder = folderCache[folderId];
+    isLoadingFolder = false;
+    errorMessage = null;
+    searchQuery = '';
+  }
+
   /// Limpa todo o estado de navegação de pastas (stack, cache, currentFolder).
   @action
   void clearFolderNavigation() {
     folderStack.clear();
     folderCache.clear();
-    currentFolder = null;
-    activeFolderId = null;
+    _activateFolder(null);
   }
 }

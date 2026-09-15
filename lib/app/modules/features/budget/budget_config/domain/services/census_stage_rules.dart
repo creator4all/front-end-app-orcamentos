@@ -1,7 +1,10 @@
 class CensusStageRules {
   static bool isCursistaStage(String nomeEtapa) {
     final n = nomeEtapa.trim().toLowerCase();
-    return n == 'cursista' || n == 'cursistas';
+    return n == 'cursista' ||
+        n == 'cursistas' ||
+        n.startsWith('cursista-') ||
+        n.startsWith('cursistas-');
   }
 
   static bool isProfessorStage(String nomeEtapa) {

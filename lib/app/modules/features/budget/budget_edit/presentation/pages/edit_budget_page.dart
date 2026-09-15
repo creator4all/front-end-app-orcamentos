@@ -12,8 +12,10 @@ import '../../../../../../shared/widgets/budget_summary_card.dart';
 import '../../../../../../shared/widgets/custom_top_bar.dart';
 import '../../../../../../shared/widgets/export_pdf_modal.dart';
 import '../../../../../../shared/widgets/product_category.dart';
+import '../../../../../../shared/widgets/select_all_card.dart';
 import '../../../../../../shared/widgets/status_tag_widget.dart';
 import '../../../../auth/presentation/stores/auth_store.dart';
+import '../../../budget_config/domain/entities/budget_detail_entity.dart';
 import '../../../budget_config/domain/entities/category_entity.dart';
 import '../../../budget_config/domain/entities/product_entity.dart';
 import '../../../budget_config/domain/entities/subcategory_entity.dart';
@@ -27,11 +29,13 @@ import '../stores/budget_edit_store.dart';
 class EditBudgetPage extends StatefulWidget {
   final int budgetId;
   final String? initialTitle;
+  final BudgetDetailEntity? initialConfiguredBudget;
 
   const EditBudgetPage({
     super.key,
     required this.budgetId,
     this.initialTitle,
+    this.initialConfiguredBudget,
   });
 
   @override
@@ -44,6 +48,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
   bool _shouldRefreshBudgetList = false;
   String? _lastShownLoadErrorMessage;
   Map<String, dynamic>? _budgetListPatch;
+  bool _isClosing = false;
 
   final TextEditingController _dataOrcamentoController =
       TextEditingController();
@@ -58,8 +63,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
         final dias = nonNegativeDaysUntil(store.validityDate!);
         _validadeOrcamentoController.text = dias.toString();
       } else {
-        _validadeOrcamentoController.text = '60';
-        _updateValidityDate(60);
+        _validadeOrcamentoController.clear();
       }
     } finally {
       _validadeOrcamentoController.addListener(_onValidityDaysChanged);
@@ -97,6 +101,45 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     }
 
     return store.hasChanges ? '$title *' : title;
+  }
+
+  Future<void> _requestClosePage() async {
+    if (_isClosing || store.isSaving) return;
+    _isClosing = true;
+
+    if (store.hasChanges) {
+      final discard = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Descartar alterações?'),
+          content: const Text(
+            'As alterações não salvas serão perdidas. Deseja sair da edição?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFE55353),
+              ),
+              child: const Text('Descartar'),
+            ),
+          ],
+        ),
+      );
+
+      if (!mounted) return;
+      if (discard != true) {
+        _isClosing = false;
+        return;
+      }
+    }
+
+    if (!mounted) return;
+    _closePage();
   }
 
   void _closePage({Map<String, dynamic>? budgetListPatch}) {
@@ -268,7 +311,12 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
 
-      await store.initialize(widget.budgetId);
+      final initialConfiguredBudget = widget.initialConfiguredBudget;
+      if (initialConfiguredBudget != null) {
+        store.initializeWithConfiguredBudget(initialConfiguredBudget);
+      } else {
+        await store.initialize(widget.budgetId);
+      }
 
       if (!mounted) return;
 
@@ -328,24 +376,15 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
       return;
     }
 
-    if (store.budgetData != null && !store.budgetData!.canBeEdited) {
-      CustomInfoDialog.show(
-        context: context,
-        type: DialogType.error,
-        title: 'Ação não permitida',
-        message: 'Este orçamento não pode mais ser editado',
-      );
-      return;
-    }
-
     await _handleSaveChanges();
   }
 
   Future<void> _handleSaveChanges() async {
     final result = await store.saveBudgetWithDto();
+    if (!mounted) return;
 
-    result.fold((failure) {
-      CustomInfoDialog.show(
+    await result.fold<Future<void>>((failure) async {
+      await CustomInfoDialog.show(
         context: context,
         type: DialogType.error,
         title: 'Erro ao salvar',
@@ -357,6 +396,22 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
       _capturePersistedBudgetListPatchFromStore();
 
       await store.loadBudgetForEdit(budget.id);
+      if (!mounted) return;
+
+      if (store.error != null) {
+        final reloadError = store.error;
+        store.clearError();
+        if (mounted) {
+          await CustomInfoDialog.show(
+            context: context,
+            type: DialogType.error,
+            title: 'Erro ao recarregar após salvar',
+            message: reloadError ?? 'Não foi possível recarregar o orçamento.',
+          );
+        }
+        return;
+      }
+
       _syncValidityFieldWithStore();
 
       if (!mounted) return;
@@ -376,7 +431,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) {
-          _closePage();
+          _requestClosePage();
         }
       },
       child: Scaffold(
@@ -386,7 +441,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
             builder: (_) => CustomTopBar(
               title: _buildHeaderTitle(),
               showBackButton: true,
-              onBackPressed: _closePage,
+              onBackPressed: _requestClosePage,
               authStore: _authStore,
             ),
           ),
@@ -429,7 +484,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                           censoAgregado: store.censoEscolar?.valoresPorEtapa,
                           onTap: () async {
                             final isMultiCity =
-                                (store.budgetData?.cityIds.length ?? 0) > 1;
+                                store.budgetData?.isMultiCity ?? false;
                             final cityId =
                                 store.budgetData?.cityIds.firstOrNull ?? 0;
 
@@ -449,9 +504,16 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
                               },
                             );
 
+                            if (!mounted) return;
                             if (censusSaved == true) {
                               _shouldRefreshBudgetList = true;
-                              _capturePersistedBudgetListPatchFromStore();
+                              // A lista recarrega o censo salvo sem receber
+                              // totais que ainda incluem edições locais.
+                              if (store.hasChanges) {
+                                _budgetListPatch = null;
+                              } else {
+                                _capturePersistedBudgetListPatchFromStore();
+                              }
                             }
                           },
                         ),
@@ -667,16 +729,40 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     );
   }
 
+  Widget _buildSelectAllCategoryCard(CategoryEntity category) {
+    return Observer(
+      builder: (_) {
+        final currentCategory = store.categories.firstWhere(
+          (c) => c.id == category.id,
+          orElse: () => category,
+        );
+
+        return SelectAllCard(
+          value: currentCategory.allActiveSubcategoriesSelected,
+          onChanged: (selected) {
+            store.toggleCategoryWithCascade(currentCategory.id, selected);
+          },
+        );
+      },
+    );
+  }
+
   List<Widget> _buildExpandedSubcategories(CategoryEntity category) {
     final sortedSubcategories = category.subcategorias.toList()
       ..sort((a, b) => a.ordem.compareTo(b.ordem));
 
-    return sortedSubcategories.map((subcategory) {
-      return Padding(
+    return [
+      Padding(
         padding: EdgeInsets.only(bottom: 12.h),
-        child: _buildSubcategoryCard(subcategory, category),
-      );
-    }).toList();
+        child: _buildSelectAllCategoryCard(category),
+      ),
+      ...sortedSubcategories.map((subcategory) {
+        return Padding(
+          padding: EdgeInsets.only(bottom: 12.h),
+          child: _buildSubcategoryCard(subcategory, category),
+        );
+      }),
+    ];
   }
 
   Widget _buildSubcategoryCard(
@@ -841,7 +927,10 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
       onToggleProduct: store.toggleProduct,
       onUpdateProductValue: store.updateProductValue,
       onUpdateProductQuantity: store.updateProductQuantity,
+      onUpdateProductManualQuantity: store.setProductManualQuantity,
+      onUpdateProductQuantityMode: store.setProductQuantityMode,
       onToggleProductIndicator: store.toggleProductIndicator,
+      onToggleAllProducts: store.toggleSubcategoryWithCascade,
     );
   }
 
@@ -1097,10 +1186,23 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
   Future<void> _handleShare() async {
     if (store.budgetData == null) return;
 
+    final budgetId = store.budgetData!.id;
+    var generated = false;
     await ExportPdfModal.show(
       context: context,
-      orcamentoId: store.budgetData!.id,
+      orcamentoId: budgetId,
+      onGenerated: () {
+        generated = true;
+        _shouldRefreshBudgetList = true;
+        _budgetListPatch = null;
+      },
     );
+
+    if (!mounted || !generated || store.hasChanges) return;
+    await store.loadBudgetForEdit(budgetId);
+    if (!mounted || !store.hasData) return;
+    _syncValidityFieldWithStore();
+    _capturePersistedBudgetListPatchFromStore();
   }
 
   void _handleShareBlocked() {

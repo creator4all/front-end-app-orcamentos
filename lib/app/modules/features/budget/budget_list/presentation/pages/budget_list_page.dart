@@ -3,6 +3,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../../../../shared/core/navigation/app_route_observer.dart';
 import '../../../../../../shared/utils/user_role_mapper.dart';
 import '../../../../../../shared/widgets/rename_budget_modal.dart';
 import '../../../../../../shared/widgets/widgets.dart';
@@ -16,19 +17,62 @@ class BudgetListPage extends StatefulWidget {
   State<BudgetListPage> createState() => _BudgetListPageState();
 }
 
-class _BudgetListPageState extends State<BudgetListPage> {
+class _BudgetListPageState extends State<BudgetListPage> with RouteAware {
   late final BudgetListStore _store;
   late final AuthStore _authStore;
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _store = Modular.get<BudgetListStore>();
+    _authStore = Modular.get<AuthStore>();
+    _scrollController.addListener(_handleScroll);
+  }
+
+  void _handleScroll() {
+    if (!_scrollController.hasClients) return;
+    if (_store.isLoading || _store.isLoadingMore || !_store.hasMore) return;
+    if (_scrollController.position.extentAfter < 300) {
+      _store.loadMore().then((_) => _checkLoadMore());
+    }
+  }
+
+  void _checkLoadMore() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) return;
+      if (_store.isLoading || _store.isLoadingMore || !_store.hasMore) return;
+      if (_scrollController.position.extentAfter >= 300) return;
+      _store.loadMore().then((_) => _checkLoadMore());
+    });
+  }
+
+  @override
+  void dispose() {
+    appRouteObserver.unsubscribe(this);
+    _scrollController
+      ..removeListener(_handleScroll)
+      ..dispose();
+    super.dispose();
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _store = Modular.get<BudgetListStore>();
-    _authStore = Modular.get<AuthStore>();
+
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      appRouteObserver.subscribe(this, route);
+    }
 
     if (_store.allItems.isEmpty) {
-      _store.fetch();
+      _store.fetch().then((_) => _checkLoadMore());
     }
+  }
+
+  @override
+  void didPopNext() {
+    _handleEditBudgetReturn();
   }
 
   void _handleSearchChanged(String query) {
@@ -55,6 +99,7 @@ class _BudgetListPageState extends State<BudgetListPage> {
 
   Future<void> _handleEditBudgetReturn() async {
     await _store.refreshWithLoadingState();
+    _checkLoadMore();
   }
 
   Future<void> _handleRenameBudget(int budgetId, String currentName) async {
@@ -94,8 +139,9 @@ class _BudgetListPageState extends State<BudgetListPage> {
           authStore: _authStore,
         ),
         body: RefreshIndicator(
-          onRefresh: () => _store.refresh(),
+          onRefresh: () => _store.refresh().then((_) => _checkLoadMore()),
           child: CustomScrollView(
+            controller: _scrollController,
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               // Componente de filtros
@@ -128,14 +174,7 @@ class _BudgetListPageState extends State<BudgetListPage> {
                           ),
                         ),
                         ElevatedButton.icon(
-                          onPressed: () async {
-                            final result = await Modular.to.pushNamed(
-                              '/budget/new',
-                            );
-                            if (result == true) {
-                              _store.refresh();
-                            }
-                          },
+                          onPressed: () => Modular.to.pushNamed('/budget/new'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF117BBD),
                             foregroundColor: const Color(0xFFFFFFFF),
@@ -191,7 +230,7 @@ class _BudgetListPageState extends State<BudgetListPage> {
                       ),
                     );
                   }
-                  if (_store.items.isEmpty) {
+                  if (_store.items.isEmpty && !_store.hasMore) {
                     return SliverToBoxAdapter(
                       child: SizedBox(
                         height: MediaQuery.of(context).size.height * 0.6,
@@ -214,6 +253,15 @@ class _BudgetListPageState extends State<BudgetListPage> {
                     ),
                     sliver: SliverList(
                       delegate: SliverChildBuilderDelegate((context, index) {
+                        if (index == _store.items.length) {
+                          return Padding(
+                            padding: EdgeInsets.symmetric(vertical: 16.h),
+                            child: const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+                        }
+
                         final b = _store.items[index];
                         final budgetTitle = b.nome ?? 'Orçamento #${b.id}';
 
@@ -282,16 +330,15 @@ class _BudgetListPageState extends State<BudgetListPage> {
                                           'Por isso ele aparece na sua lista.',
                                     )
                                 : null,
-                            onTap: () async {
-                              await Modular.to.pushNamed(
-                                '/budget/edit/${b.id}',
-                                arguments: {'initialTitle': budgetTitle},
-                              );
-                              await _handleEditBudgetReturn();
-                            },
+                            onTap: () => Modular.to.pushNamed(
+                              '/budget/edit/${b.id}',
+                              arguments: {'initialTitle': budgetTitle},
+                            ),
                           ),
                         );
-                      }, childCount: _store.items.length),
+                      },
+                          childCount:
+                              _store.items.length + (_store.hasMore ? 1 : 0)),
                     ),
                   );
                 },

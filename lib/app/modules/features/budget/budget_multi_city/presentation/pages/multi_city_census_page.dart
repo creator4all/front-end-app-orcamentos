@@ -8,8 +8,6 @@ import 'package:multimidiaapp/app/shared/widgets/custom_info_dialog.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_top_bar.dart';
 import 'package:multimidiaapp/stores/store_provider.dart';
 
-import '../../../budget_config/domain/entities/censo_group_entity.dart';
-import '../../../budget_config/domain/services/census_stage_rules.dart';
 import '../../../budget_config/presentation/widgets/census_data_section_widget.dart';
 import '../stores/multi_city_census_store.dart';
 import '../widgets/city_selector_dropdown.dart';
@@ -295,16 +293,8 @@ class _MultiCityCensusPageState
           );
         }
 
-        final studentGroups = census.grupos
-            .map((group) {
-              final studentTitles = group.titulos
-                  .where((title) =>
-                      CensusStageRules.isStudentStage(title.nomeEtapa))
-                  .toList();
-              if (studentTitles.isEmpty) return null;
-              return group.copyWith(titulos: studentTitles);
-            })
-            .nonNulls
+        final groups = census.gruposOrdenados
+            .where((group) => group.titulos.isNotEmpty)
             .toList();
 
         return Padding(
@@ -312,7 +302,7 @@ class _MultiCityCensusPageState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ...studentGroups.map((group) {
+              ...groups.map((group) {
                 _syncControllersWithStore();
                 return CensusDataSectionWidget.withNomeEtapa(
                   group: group,

@@ -42,7 +42,6 @@ class ProductCheckbox extends StatelessWidget {
               onChanged: onChanged,
               activeColor: const Color(0xFF117BBD),
             ),
-
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -109,7 +108,6 @@ class ProductCheckbox extends StatelessWidget {
                 ],
               ),
             ),
-
             if (showDetails)
               IconButton(
                 onPressed: onTap,

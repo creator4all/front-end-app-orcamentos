@@ -1,4 +1,4 @@
-﻿import 'package:copy_with_extension/copy_with_extension.dart';
+import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:equatable/equatable.dart';
 
 import 'category_entity.dart';
@@ -35,6 +35,15 @@ class BudgetDetailEntity extends Equatable {
 
   final List<Map<String, dynamic>> citiesData;
 
+  final bool isArchived;
+
+  /// Classificação de multi-cidade declarada pelo backend (`multi_cidade`).
+  ///
+  /// O backend define multi-cidade por `orc_cidade_id === null`, o que admite
+  /// um orçamento multi-cidade com uma só cidade. A quantidade de cidades não
+  /// classifica o orçamento; sem classificação, [isMultiCity] é falso.
+  final bool? multiCity;
+
   final Map<String, double> censoAgregado;
 
   const BudgetDetailEntity({
@@ -52,9 +61,10 @@ class BudgetDetailEntity extends Equatable {
     required this.categoryStates,
     required this.categories,
     required this.citiesData,
+    this.isArchived = false,
+    this.multiCity,
     this.censoAgregado = const {},
   });
-
 
   bool get canBeFinalized => products.isNotEmpty && total > 0;
 
@@ -64,7 +74,7 @@ class BudgetDetailEntity extends Equatable {
 
   bool get isPending => status.toLowerCase() == 'pendente';
 
-  bool get isMultiCity => cityIds.length > 1;
+  bool get isMultiCity => multiCity ?? false;
 
   int get totalActiveProducts {
     return categories.fold(0, (sum, c) => sum + c.totalActiveProducts);
@@ -73,6 +83,7 @@ class BudgetDetailEntity extends Equatable {
   int get totalSelectedProducts {
     return categories.fold(0, (sum, c) => sum + c.selectedProductsCount);
   }
+
   double get calculatedTotal {
     return categories.fold(0.0, (sum, c) => sum + c.totalValue);
   }
@@ -95,6 +106,8 @@ class BudgetDetailEntity extends Equatable {
         categoryStates,
         categories,
         citiesData,
+        isArchived,
+        multiCity,
         censoAgregado,
       ];
 }

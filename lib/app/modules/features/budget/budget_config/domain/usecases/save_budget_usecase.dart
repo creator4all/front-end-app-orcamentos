@@ -18,7 +18,7 @@ class SaveBudgetUseCase {
 
   SaveBudgetUseCase(this.repository);
 
-  Future<Either<BudgetFailure, BudgetDetailEntity>> call({
+  Future<Either<BudgetFailure, BudgetDetailEntity?>> call({
     required int budgetId,
     required BudgetUpdateDto updateData,
   }) async {
@@ -37,7 +37,6 @@ class SaveBudgetUseCase {
         );
       }
 
-
       if (updateData.diasValidade == null || updateData.diasValidade! <= 0) {
         return const Left(
           ValidationFailure('Defina a data de validade do orçamento'),
@@ -46,35 +45,34 @@ class SaveBudgetUseCase {
 
       if (updateData.diasValidade! > 365) {
         return const Left(
-          ValidationFailure('Validade do orçamento deve estar entre 1 e 365 dias'),
+          ValidationFailure(
+              'Validade do orçamento deve estar entre 1 e 365 dias'),
         );
       }
 
-
-      if (updateData.produtos == null || updateData.produtos!.isEmpty) {
+      // Em modo delta, "produtos" contém apenas os itens alterados e pode
+      // estar vazio (nenhuma alteração). Por isso não exigimos lista cheia.
+      if (updateData.produtos == null) {
         return const Left(
           ValidationFailure('Nenhum produto encontrado para salvar'),
         );
       }
 
+      // A seleção mínima é avaliada pelo total (calculado no store sobre o
+      // estado completo do orçamento), não pela lista de delta enviada.
+      final temProdutoSelecionado = (updateData.total ?? 0) > 0;
 
-      final produtosSelecionados =
-          updateData.produtos!.where((p) => p.selecionado).toList();
-
-      if (produtosSelecionados.isEmpty) {
+      if (!temProdutoSelecionado) {
         return const Left(
           ValidationFailure('Selecione pelo menos um produto para o orçamento'),
         );
       }
-
-      
 
       return await repository.updateBudgetWithDto(
         budgetId: budgetId,
         updateData: updateData,
       );
     } catch (e) {
-      
       return Left(UnknownFailure(e.toString()));
     }
   }

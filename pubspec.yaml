@@ -3,7 +3,7 @@ description: "Aplicativo para gerenciamento de orçamentos empresariais"
 
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
-version: 1.0.19+22
+version: 1.1.0+30
 
 environment:
   sdk: '>=3.4.1 <4.0.0'
@@ -75,6 +75,7 @@ dev_dependencies:
   
   # Launcher Icons
   flutter_launcher_icons: ^0.13.1
+  patrol: ^4.9.0
 
 flutter:
 
@@ -100,3 +101,10 @@ flutter_launcher_icons:
   
   # Remove margens para melhor centralização
   remove_alpha_ios: true
+
+# Configuração do Patrol (testes E2E mobile)
+patrol:
+  app_name: Multimídia B2B
+  android:
+    package_name: br.com.multimidiaeducacional.parceiro
+  test_directory: test/patrol

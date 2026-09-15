@@ -1,6 +1,7 @@
 import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:equatable/equatable.dart';
 
+import '../../../budget_config/domain/entities/budget_detail_entity.dart';
 import '../../../budget_config/domain/entities/census_data_entity.dart';
 import '../../../budget_config/domain/entities/product_selection_entity.dart';
 
@@ -24,6 +25,12 @@ class BudgetEditEntity extends Equatable {
   final CensusDataEntity? censusData;
   final bool isArchived;
 
+  /// Classificação de multi-cidade declarada pelo backend (`multi_cidade`).
+  ///
+  /// Decide o endpoint de versionamento. A quantidade de cidades não
+  /// classifica o orçamento; sem classificação, [isMultiCity] é falso.
+  final bool? multiCity;
+
   final Map<String, double> censoAgregado;
 
   const BudgetEditEntity({
@@ -42,10 +49,32 @@ class BudgetEditEntity extends Equatable {
     required this.categoriesData,
     this.censusData,
     this.isArchived = false,
+    this.multiCity,
     this.censoAgregado = const {},
   });
 
-  bool get canBeEdited => status.toLowerCase() != 'aprovado';
+  factory BudgetEditEntity.fromBudgetDetail(BudgetDetailEntity budget) {
+    return BudgetEditEntity(
+      id: budget.id,
+      name: budget.name,
+      validityDays: budget.validityDays,
+      validityDate: budget.validityDate,
+      creationDate: budget.creationDate,
+      status: budget.status,
+      total: budget.total,
+      userId: budget.userId,
+      partnerId: budget.partnerId,
+      cityIds: List<int>.from(budget.cityIds),
+      citiesDataRaw: budget.citiesData
+          .map((city) => Map<String, dynamic>.from(city))
+          .toList(),
+      products: List<ProductSelectionEntity>.from(budget.products),
+      categoriesData: List.unmodifiable(budget.categories),
+      isArchived: budget.isArchived,
+      multiCity: budget.multiCity,
+      censoAgregado: Map<String, double>.from(budget.censoAgregado),
+    );
+  }
 
   bool get isExpired {
     if (validityDate == null) return false;
@@ -58,7 +87,7 @@ class BudgetEditEntity extends Equatable {
       .where((p) => p.isSelected)
       .fold(0.0, (sum, p) => sum + p.totalPrice);
 
-  bool get isMultiCity => cityIds.length > 1;
+  bool get isMultiCity => multiCity ?? false;
 
   @override
   List<Object?> get props => [
@@ -77,6 +106,7 @@ class BudgetEditEntity extends Equatable {
         categoriesData,
         censusData,
         isArchived,
+        multiCity,
         censoAgregado,
       ];
 }

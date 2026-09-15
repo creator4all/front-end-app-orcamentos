@@ -65,7 +65,7 @@ class ProductConfigApiDatasource implements ProductConfigDatasource {
   @override
   Future<List<IndicatorGroupDto>> getIndicators() async {
     final response = await httpClient.get('/api/indicadores-etapa');
-    final dataList = response.body['data'] as List<dynamic>? ?? [];
+    final dataList = response.body['dados'] as List<dynamic>? ?? [];
 
     return dataList
         .map((e) => IndicatorGroupDto.fromJson(e as Map<String, dynamic>))

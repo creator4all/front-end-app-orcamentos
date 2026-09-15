@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:multimidiaapp/app/modules/features/budget/budget_config/domain/services/census_stage_rules.dart';
+import 'package:multimidiaapp/app/shared/utils/quantity_utils.dart';
 
 import '../../../../../../shared/widgets/card_layout.dart';
 import '../../domain/services/census_value_normalizer.dart';
@@ -82,13 +83,6 @@ class SchoolCensusCard extends StatelessWidget {
     return totalStudents;
   }
 
-  String _formatNumber(int number) {
-    return number.toString().replaceAllMapped(
-          RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-          (match) => '${match.group(1)}.',
-        );
-  }
-
   String _pluralize(int count, String singular, String plural) {
     return count == 1 ? singular : plural;
   }
@@ -119,6 +113,11 @@ class SchoolCensusCard extends StatelessWidget {
     );
   }
 
+  /// Variante de tres linhas do card.
+  ///
+  /// `CardLayout` limita a altura da linha em `70.h`, o que deixa cerca de
+  /// `58.h` para esta coluna. Com tres linhas de 12.sp o respiro entre elas
+  /// precisa ser menor que o da variante de cidade unica, que tem duas.
   Widget _buildMultiCityContent(int totalClasses, int totalStudents) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -133,7 +132,7 @@ class SchoolCensusCard extends StatelessWidget {
             color: const Color(0xFF828282),
           ),
         ),
-        SizedBox(height: 4.h),
+        SizedBox(height: 2.h),
         Row(
           children: [
             Text(
@@ -158,9 +157,9 @@ class SchoolCensusCard extends StatelessWidget {
             ),
           ],
         ),
-        SizedBox(height: 4.h),
+        SizedBox(height: 2.h),
         Text(
-          '${_formatNumber(totalStudents)} ${_pluralize(totalStudents, 'Estudante', 'Estudantes')}',
+          '${QuantityUtils.format(totalStudents)} ${_pluralize(totalStudents, 'Estudante', 'Estudantes')}',
           style: TextStyle(
             fontSize: 12.sp,
             fontWeight: FontWeight.w400,
@@ -197,7 +196,7 @@ class SchoolCensusCard extends StatelessWidget {
         ),
         SizedBox(height: 2.h),
         Text(
-          '${_formatNumber(totalStudents)} ${_pluralize(totalStudents, 'Estudante', 'Estudantes')}',
+          '${QuantityUtils.format(totalStudents)} ${_pluralize(totalStudents, 'Estudante', 'Estudantes')}',
           style: TextStyle(
             fontSize: 12.sp,
             fontWeight: FontWeight.w400,

@@ -90,9 +90,9 @@ class ProfileRepositoryImpl implements ProfileRepository {
       return const Left(NetworkFailure('Tempo de conexão esgotado'));
     } on HttpException catch (e) {
       return Left(ServerFailure('Erro ${e.statusCode}: ${e.message}'));
-    } catch (e) {
-      return Left(
-          ServerFailure('Erro ao fazer upload do avatar: ${e.toString()}'));
+    } catch (_) {
+      return const Left(ServerFailure(
+          'Não foi possível atualizar o avatar. Tente novamente.'));
     }
   }
 

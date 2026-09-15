@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:multimidiaapp/app/modules/features/budget/budget_config/presentation/widgets/product_item_card.dart';
 
 import '../../../../../../shared/widgets/custom_modal.dart';
+import '../../../../../../shared/widgets/select_all_card.dart';
 import '../../domain/entities/category_entity.dart';
 import '../../domain/entities/product_entity.dart';
 import '../../domain/entities/subcategory_entity.dart';
@@ -17,7 +18,13 @@ typedef SubcategoryResolver = SubcategoryEntity Function(
 typedef ProductSelectionChanged = void Function(int productId, bool selected);
 typedef ProductValueChanged = void Function(int productId, double value);
 typedef ProductQuantityChanged = void Function(int productId, double quantity);
+typedef ProductQuantityModeChanged = void Function(int productId, bool manual);
 typedef ProductIndicatorToggled = void Function(int productId, int indicatorId);
+typedef SubcategoryBulkSelectionChanged = void Function(
+  int categoryId,
+  int subcategoryId,
+  bool selected,
+);
 
 class SubcategoryProductsModal extends StatelessWidget {
   final int categoryId;
@@ -27,7 +34,10 @@ class SubcategoryProductsModal extends StatelessWidget {
   final ProductSelectionChanged? onToggleProduct;
   final ProductValueChanged? onUpdateProductValue;
   final ProductQuantityChanged? onUpdateProductQuantity;
+  final ProductQuantityChanged? onUpdateProductManualQuantity;
+  final ProductQuantityModeChanged? onUpdateProductQuantityMode;
   final ProductIndicatorToggled? onToggleProductIndicator;
+  final SubcategoryBulkSelectionChanged? onToggleAllProducts;
   final bool isReadOnly;
 
   const SubcategoryProductsModal({
@@ -39,7 +49,10 @@ class SubcategoryProductsModal extends StatelessWidget {
     this.onToggleProduct,
     this.onUpdateProductValue,
     this.onUpdateProductQuantity,
+    this.onUpdateProductManualQuantity,
+    this.onUpdateProductQuantityMode,
     this.onToggleProductIndicator,
+    this.onToggleAllProducts,
     this.isReadOnly = false,
   });
 
@@ -52,7 +65,10 @@ class SubcategoryProductsModal extends StatelessWidget {
     ProductSelectionChanged? onToggleProduct,
     ProductValueChanged? onUpdateProductValue,
     ProductQuantityChanged? onUpdateProductQuantity,
+    ProductQuantityChanged? onUpdateProductManualQuantity,
+    ProductQuantityModeChanged? onUpdateProductQuantityMode,
     ProductIndicatorToggled? onToggleProductIndicator,
+    SubcategoryBulkSelectionChanged? onToggleAllProducts,
     bool isReadOnly = false,
   }) {
     return CustomModal.show(
@@ -66,7 +82,10 @@ class SubcategoryProductsModal extends StatelessWidget {
         onToggleProduct: onToggleProduct,
         onUpdateProductValue: onUpdateProductValue,
         onUpdateProductQuantity: onUpdateProductQuantity,
+        onUpdateProductManualQuantity: onUpdateProductManualQuantity,
+        onUpdateProductQuantityMode: onUpdateProductQuantityMode,
         onToggleProductIndicator: onToggleProductIndicator,
+        onToggleAllProducts: onToggleAllProducts,
         isReadOnly: isReadOnly,
       ),
     );
@@ -92,6 +111,13 @@ class SubcategoryProductsModal extends StatelessWidget {
       onQuantityChanged: isReadOnly
           ? null
           : (quantity) => onUpdateProductQuantity?.call(product.id, quantity),
+      onManualQuantityChanged: isReadOnly
+          ? null
+          : (quantity) =>
+              onUpdateProductManualQuantity?.call(product.id, quantity),
+      onQuantityModeChanged: isReadOnly
+          ? null
+          : (manual) => onUpdateProductQuantityMode?.call(product.id, manual),
       onIndicatorToggled: isReadOnly
           ? null
           : (indicatorId) =>
@@ -125,6 +151,19 @@ class SubcategoryProductsModal extends StatelessWidget {
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (!isReadOnly) ...[
+              SelectAllCard(
+                value: subcategory.isFullySelected,
+                onChanged: (selected) {
+                  onToggleAllProducts?.call(
+                    categoryId,
+                    subcategoryId,
+                    selected,
+                  );
+                },
+              ),
+              SizedBox(height: 12.h),
+            ],
             ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),

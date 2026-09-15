@@ -47,8 +47,11 @@ app.*.map.json
 /macos/
 /windows/
 /linux/
-/docs
+
 /android/.gradle/
-*.g.dart
 .agent/
 android/app
+/test/*
+/tmp/
+/patrol_test/
+/test/patrol/test_bundle.dart

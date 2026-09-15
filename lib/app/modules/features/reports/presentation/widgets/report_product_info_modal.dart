@@ -69,6 +69,7 @@ class ReportProductInfoModal extends StatelessWidget {
 
   Widget _buildProductInfo() {
     return Container(
+      width: double.infinity,
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         color: Colors.white,

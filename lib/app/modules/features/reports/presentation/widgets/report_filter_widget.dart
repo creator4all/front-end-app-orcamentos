@@ -19,25 +19,16 @@ class ReportFilterWidget extends StatefulWidget {
 
 class _ReportFilterWidgetState extends State<ReportFilterWidget> {
   final TextEditingController _searchController = TextEditingController();
-  final List<String> _selectedFilters = [
-    'pendente'
-  ];
+  final List<String> _selectedFilters = [];
 
   final List<Map<String, String>> _filterOptions = [
+    {'key': 'rascunho', 'label': 'Rascunhos'},
     {'key': 'aprovado', 'label': 'Aprovados'},
     {'key': 'nao_aprovado', 'label': 'Não aprovados'},
     {'key': 'expirado', 'label': 'Expirados'},
     {'key': 'pendente', 'label': 'Pendentes'},
     {'key': 'arquivado', 'label': 'Arquivados'},
   ];
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      widget.onFiltersChanged?.call(_selectedFilters);
-    });
-  }
 
   @override
   void dispose() {
@@ -59,7 +50,6 @@ class _ReportFilterWidgetState extends State<ReportFilterWidget> {
   void _resetFilters() {
     setState(() {
       _selectedFilters.clear();
-      _selectedFilters.add('pendente');
       _searchController.clear();
     });
     widget.onFiltersChanged?.call(_selectedFilters);
@@ -108,14 +98,12 @@ class _ReportFilterWidgetState extends State<ReportFilterWidget> {
               ),
             ],
           ),
-
           SizedBox(height: 8.h),
-
           TextField(
             controller: _searchController,
             onChanged: widget.onSearchChanged,
             decoration: InputDecoration(
-              hintText: 'Busca por código ou cidade',
+              hintText: 'Busca por código ou nome',
               hintStyle: TextStyle(
                 fontSize: 12.sp,
                 fontWeight: FontWeight.normal,
@@ -143,9 +131,7 @@ class _ReportFilterWidgetState extends State<ReportFilterWidget> {
               color: const Color(0xFF484848),
             ),
           ),
-
           SizedBox(height: 8.h),
-
           Wrap(
             spacing: 10.w,
             runSpacing: 10.h,

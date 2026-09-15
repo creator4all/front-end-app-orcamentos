@@ -13,12 +13,13 @@ import 'budget_config/data/datasources/census_remote_datasource.dart';
 import 'budget_config/data/datasources/census_remote_datasource_impl.dart';
 import 'budget_config/data/repositories/budget_detail_repository_impl.dart';
 import 'budget_config/data/repositories/census_repository_impl.dart';
+import 'budget_config/domain/entities/budget_detail_entity.dart';
 import 'budget_config/domain/entities/censo_escolar_entity.dart';
 import 'budget_config/domain/repositories/budget_detail_repository.dart';
 import 'budget_config/domain/repositories/census_repository.dart';
+import 'budget_config/domain/services/censo_escolar_mapper.dart';
 import 'budget_config/domain/services/product_calculation_service.dart';
 import 'budget_config/domain/usecases/calculate_totals_usecase.dart';
-import 'budget_config/domain/usecases/finalize_budget_usecase.dart';
 import 'budget_config/domain/usecases/get_budget_census_usecase.dart';
 import 'budget_config/domain/usecases/get_budget_detail_usecase.dart';
 import 'budget_config/domain/usecases/get_category_products_usecase.dart';
@@ -156,9 +157,6 @@ class BudgetModuleNew extends Module {
             (i) => ToggleCategoryUseCase()),
         Bind.lazySingleton<CalculateTotalsUseCase>(
             (i) => CalculateTotalsUseCase()),
-        Bind.lazySingleton<FinalizeBudgetUseCase>(
-          (i) => FinalizeBudgetUseCase(i.get<BudgetDetailRepository>()),
-        ),
         Bind.lazySingleton<SaveBudgetUseCase>(
           (i) => SaveBudgetUseCase(i.get<BudgetDetailRepository>()),
         ),
@@ -168,6 +166,9 @@ class BudgetModuleNew extends Module {
         Bind.lazySingleton<ProductCalculationService>(
           (i) => const ProductCalculationService(),
         ),
+        Bind.lazySingleton<CensoEscolarMapper>(
+          (i) => const CensoEscolarMapper(),
+        ),
         Bind.lazySingleton<BudgetConfigStore>(
           (i) => BudgetConfigStore(
             getBudgetDetailUseCase: i.get<GetBudgetDetailUseCase>(),
@@ -175,9 +176,9 @@ class BudgetModuleNew extends Module {
             getCensusDataUseCase: i.get<GetCensusDataUseCase>(),
             toggleCategoryUseCase: i.get<ToggleCategoryUseCase>(),
             calculateTotalsUseCase: i.get<CalculateTotalsUseCase>(),
-            finalizeBudgetUseCase: i.get<FinalizeBudgetUseCase>(),
             saveBudgetUseCase: i.get<SaveBudgetUseCase>(),
             calculationService: i.get<ProductCalculationService>(),
+            censoEscolarMapper: i.get<CensoEscolarMapper>(),
           ),
         ),
         Bind.lazySingleton(
@@ -223,6 +224,7 @@ class BudgetModuleNew extends Module {
             getCensusDataUseCase: i.get<GetCensusDataUseCase>(),
             authStore: Modular.get<AuthStore>(),
             calculationService: i.get<ProductCalculationService>(),
+            censoEscolarMapper: i.get<CensoEscolarMapper>(),
           ),
         ),
         Bind.lazySingleton<MultiCityBudgetRemoteDataSource>(
@@ -311,10 +313,13 @@ class BudgetModuleNew extends Module {
             final budgetId = int.parse(args.params['budgetId']);
             final argsData = args.data as Map<String, dynamic>?;
             final initialTitle = argsData?['initialTitle'] as String?;
+            final initialConfiguredBudget =
+                argsData?['initialConfiguredBudget'] as BudgetDetailEntity?;
 
             return EditBudgetPage(
               budgetId: budgetId,
               initialTitle: initialTitle,
+              initialConfiguredBudget: initialConfiguredBudget,
             );
           },
         ),

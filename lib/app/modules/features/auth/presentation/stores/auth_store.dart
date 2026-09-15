@@ -2,8 +2,9 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mobx/mobx.dart';
 
-import '../../../../../shared/utils/document_validators.dart';
+import '../../../../../shared/core/auth/session_expiration_handler.dart';
 import '../../../../../shared/core/utils/token_cache.dart';
+import '../../../../../shared/utils/document_validators.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/usecases/login_usecase.dart';
@@ -16,6 +17,7 @@ abstract class _AuthStoreBase with Store {
   final LoginUsecase loginUsecase;
   final AuthRepository authRepository;
   final FlutterSecureStorage secureStorage;
+  int _sessionGeneration = 0;
 
   _AuthStoreBase({
     required this.loginUsecase,
@@ -130,19 +132,23 @@ abstract class _AuthStoreBase with Store {
 
   @action
   Future<void> loadCurrentUser({bool forceRefresh = false}) async {
+    final generation = _sessionGeneration;
     isLoading = true;
     errorMessage = null;
 
     try {
       final token = await secureStorage.read(key: 'auth_token');
       if (token == null || token.isEmpty) {
+        if (generation != _sessionGeneration) return;
         isLoggedIn = false;
         currentUser = null;
         isLoading = false;
         return;
       }
       TokenCache.instance.setToken(token);
+      SessionExpirationHandler.arm();
     } catch (_) {
+      if (generation != _sessionGeneration) return;
       isLoggedIn = false;
       currentUser = null;
       isLoading = false;
@@ -151,6 +157,8 @@ abstract class _AuthStoreBase with Store {
 
     final result =
         await authRepository.getCurrentUser(forceRefresh: forceRefresh);
+
+    if (generation != _sessionGeneration) return;
 
     result.fold(
       (failure) {
@@ -169,12 +177,18 @@ abstract class _AuthStoreBase with Store {
   }
 
   @action
+  Future<void> restoreSession() async {
+    await loadCurrentUser(forceRefresh: true);
+  }
+
+  @action
   void clearError() {
     errorMessage = null;
   }
 
   @action
   void reset() {
+    _sessionGeneration++;
     isLoading = false;
     currentUser = null;
     errorMessage = null;
