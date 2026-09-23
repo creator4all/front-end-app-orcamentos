@@ -749,9 +749,13 @@ abstract class _BudgetEditStoreBase with Store {
 
           if (!manual) {
             // Voltar ao cálculo por indicadores: recalcular a quantidade
+            final todosProdutos = categories
+                .expand((c) => c.subcategorias.expand((s) => s.produtos))
+                .toList();
             final novaQuantidade = calculationService.calcularQuantidade(
               updatedProduct,
               censoEscolar,
+              todosProdutos: todosProdutos,
             );
             updatedProduct = updatedProduct.copyWith(
               quantidade: novaQuantidade,

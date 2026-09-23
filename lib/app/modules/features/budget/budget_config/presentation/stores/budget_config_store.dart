@@ -936,13 +936,13 @@ abstract class _BudgetConfigStoreBase with Store {
           final product = subcategory.produtos[productIndex];
           var updatedProduct = product.copyWith(quantidadeManual: manual);
 
-          if (!manual && censoEscolar != null) {
+          if (!manual) {
             final todosProdutos = categories
                 .expand((c) => c.subcategorias.expand((s) => s.produtos))
                 .toList();
             final novaQuantidade = calculationService.calcularQuantidade(
               updatedProduct,
-              censoEscolar!,
+              censoEscolar,
               todosProdutos: todosProdutos,
             );
             updatedProduct =

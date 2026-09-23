@@ -81,5 +81,32 @@ void main() {
 
       expect(json['observacoes'], 'obs');
     });
+
+    test('serviço manual envia quantidade e flag, e restaurado envia false',
+        () {
+      final servico = _produto().copyWith(
+        tipoProduto: 'servico',
+        quantidade: 347,
+        quantidadeManual: true,
+      );
+
+      final deltaJson = ProductSelectionUpdateDto.delta(
+        entity: servico,
+        selecionadoChanged: false,
+        quantidadeChanged: true,
+        valorChanged: false,
+        changedIndicatorIds: const {},
+      ).toJson();
+      expect(deltaJson['quantidade'], 347);
+      expect(deltaJson['quantidade_manual'], isTrue);
+
+      final restaurado =
+          servico.copyWith(quantidadeManual: false, quantidade: 280);
+      final dto = ProductSelectionUpdateDto.fromEntity(restaurado);
+      expect(dto.toJson()['quantidade'], 280);
+      expect(dto.toJson()['quantidade_manual'], isFalse);
+      expect(dto.toJsonForMultiCity()['quantidade'], 280);
+      expect(dto.toJsonForMultiCity()['quantidade_manual'], isFalse);
+    });
   });
 }

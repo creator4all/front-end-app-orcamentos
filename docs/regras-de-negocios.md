@@ -7,6 +7,8 @@
 >
 > **Rodada de validação de 10/09/2026.** Este documento já incorpora as decisões de negócio validadas com Pedro Penha em 10/09/2026. Os pontos decididos deixaram de ser "necessita validação" e passaram a ser regra; quando a implementação atual não segue a regra decidida, o texto identifica explicitamente a divergência.
 >
+> **Quantidades e horas manuais.** Este documento incorpora a regra de que digitar uma quantidade ou horas de serviço ativa o modo manual, preservado ao salvar e reabrir. O retorno ao automático ocorre pela flecha circular do próprio campo. Ver RF-ORC-008, RN-ORC-011, §12.6 e os critérios de aceite de orçamento.
+>
 > Convenções de linguagem:
 > - **deve** = regra confirmada (especificação + implementação coerentes);
 > - **decidido em 10/09/2026** = regra definida na validação de negócio; quando a implementação não a segue, há divergência declarada;
@@ -54,7 +56,7 @@ O vendedor atua em campo (atendimento a prefeituras) ou remotamente. O App mobil
 - Prospecção de novas parcerias;
 - Criação de orçamentos por cidade única e multi-cidade; o fluxo personalizado (sem município) está planejado para uma próxima versão;
 - Cálculo automático de quantidades a partir do Censo Escolar;
-- Quantidade manual sobrescrevendo o cálculo automático;
+- Quantidades de produtos e horas de serviço manuais, preservadas até o usuário restaurar o cálculo automático;
 - Edição de orçamentos com versionamento e preservação de histórico;
 - Controle de validade e expiração;
 - Arquivamento e desarquivamento;
@@ -82,7 +84,7 @@ O vendedor atua em campo (atendimento a prefeituras) ou remotamente. O App mobil
 - Criação, edição, versionamento, arquivamento e desarquivamento de orçamentos.
 - Orçamentos de cidade única e multi-cidade. O personalizado está especificado como evolução futura e ainda não integra a versão atual do App.
 - Cálculo de quantidades a partir do Censo Escolar (livros, tecnologias, serviços).
-- Quantidade manual sobrescrevendo o cálculo automático.
+- Quantidades de produtos e horas de serviço manuais, preservadas até o usuário restaurar o cálculo automático.
 - Geração de PDF de orçamento com identidade visual do parceiro.
 - Exportação de censo em CSV.
 - Catálogo administrativo (categorias, subcategorias, produtos, indicadores, diferenciais, grupos de censo, índices de etapa).
@@ -686,9 +688,9 @@ O sistema organiza-se nos seguintes domínios funcionais:
 
 **Fluxo principal:**
 1. O usuário abre o orçamento para edição.
-2. Altera produtos, indicadores, quantidades manuais, validade ou status.
-3. O sistema recalcula quantidades e total.
-4. O sistema persiste as alterações.
+2. Altera produtos, indicadores, quantidades manuais, horas de serviço, validade ou status.
+3. O sistema recalcula as quantidades automáticas e o total, preservando as quantidades e horas definidas manualmente.
+4. O sistema persiste as alterações, incluindo o valor da quantidade e seu modo de cálculo, para que sejam mantidos ao reabrir o orçamento.
 
 **Pós-condições:** O orçamento é atualizado.
 
@@ -708,8 +710,8 @@ O sistema organiza-se nos seguintes domínios funcionais:
 1. O usuário solicita o versionamento.
 2. O sistema arquiva o original.
 3. O sistema cria uma nova versão vinculada ao original (origem).
-4. O sistema copia produtos, quantidades, valores e preserva overrides de preço.
-5. O sistema recalcula o total da nova versão.
+4. O sistema copia produtos, quantidades, modos de cálculo e valores, preservando overrides de preço e quantidades/horas manuais não alteradas pelo usuário.
+5. O sistema recalcula o total da nova versão sem substituir as quantidades/horas que permanecem em modo manual.
 
 **Pós-condições:** O original fica arquivado; a nova versão fica ativa.
 
@@ -755,23 +757,25 @@ O sistema organiza-se nos seguintes domínios funcionais:
 
 ## RF-ORC-008 — Definir quantidade manual
 
-**Descrição:** O usuário deve poder sobrescrever a quantidade calculada de um produto informando uma quantidade manual.
+**Descrição:** O usuário deve poder sobrescrever a quantidade calculada de um produto ou as horas calculadas de um serviço, informando um valor manual no próprio campo.
 
 **Atores:** Vendedor, Gestor, Administrador.
 
-**Pré-condições:** Produto está no orçamento.
+**Pré-condições:** Produto ou serviço está no orçamento; usuário tem permissão para editar.
 
 **Fluxo principal:**
-1. O usuário ativa o modo manual do produto.
-2. O usuário informa a quantidade desejada.
-3. O sistema ignora o cálculo automático e usa a quantidade manual.
-4. Ao desativar o modo manual, o sistema recalcula automaticamente.
+1. O usuário abre as informações do item e digita uma quantidade válida no campo de quantidade ou em “Horas de Serviço”. A própria edição ativa o modo manual, sem exigir um acionamento separado.
+2. O sistema usa o valor informado e exibe a flecha circular com a ação “Voltar ao cálculo automático”.
+3. Enquanto o item permanecer manual, alterações no censo, nos indicadores ou nos produtos vinculados não substituem seu valor.
+4. O usuário salva o orçamento. O valor e o modo manual permanecem ao sair da tela e reabrir, inclusive quando o salvamento gera uma nova versão.
+5. Para voltar ao automático, o usuário toca na flecha do próprio campo. O sistema recalcula com os dados atuais, atualiza o campo e deixa de exibir a flecha.
+6. Ao salvar novamente, o sistema preserva o modo automático. Salvar o modal após o reset não deve reativar manual nem reaplicar o valor antigo.
 
-**Pós-condições:** A quantidade do produto passa a ser a manual (ou recalculada, se desativado).
+**Pós-condições:** Quantidade/horas e modo de cálculo refletem a última escolha explícita do usuário. A regra vale na configuração inicial e na edição, em cidade única e multi-cidade.
 
-**Exceções:** Nenhuma.
+**Exceções:** Em contexto somente leitura, a edição manual e a ação de retorno ao automático não ficam disponíveis. Abrir ou salvar o modal sem editar o campo não altera o modo de cálculo.
 
-**Regras relacionadas:** RN-ORC-011.
+**Regras relacionadas:** RN-ORC-011, §12.5 e §12.6.
 
 ## RF-ORC-009 — Gerar PDF do orçamento
 
@@ -1655,7 +1659,7 @@ O sistema organiza-se nos seguintes domínios funcionais:
 
 ## RN-ORC-002 — Cálculo automático de quantidades
 
-**Regra:** As quantidades de livros, tecnologias e serviços são calculadas automaticamente a partir dos indicadores selecionados e do censo (snapshot) do orçamento.
+**Regra:** Em modo automático, livros e tecnologias usam os indicadores selecionados e o censo (snapshot) do orçamento. Serviços usam as quantidades dos produtos vinculados selecionados, o percentual e as horas fixas do serviço. Se um vinculado tem quantidade manual, esse valor participa do cálculo do serviço automático; isso não torna o próprio serviço manual.
 
 **Aplicação:** Criação e edição de orçamento.
 
@@ -1713,7 +1717,7 @@ A regra deve ser aplicada uniformemente a **visualização, edição, exclusão,
 
 ## RN-ORC-006 — Total recalculado
 
-**Regra:** O total do orçamento é sempre recalculado pelo servidor, nunca confiado do cliente.
+**Regra:** O total do orçamento é sempre recalculado pelo servidor, nunca confiado do cliente. Esse recálculo deve usar as quantidades e horas manuais preservadas; recalcular o total não autoriza substituí-las pelo cálculo automático.
 
 **Aplicação:** Criação e edição.
 
@@ -1775,15 +1779,17 @@ Esta regra é a mesma para orçamentos de cidade única e **multi-cidade** (deci
 
 ## RN-ORC-011 — Quantidade manual sobrescreve cálculo
 
-**Regra:** Quando o modo manual está ativo, a quantidade informada pelo usuário substitui o cálculo automático; ao desativar, o sistema recalcula.
+**Regra:** Digitar uma quantidade válida de produto ou horas de serviço ativa o modo manual daquele item. O valor digitado tem prioridade sobre qualquer recálculo automático e deve ser preservado junto com o modo de cálculo ao salvar, versionar e reabrir o orçamento. Serviços seguem a mesma regra dos demais produtos, não uma exceção.
 
-**Aplicação:** Edição de orçamento.
+O retorno ao automático exige a ação explícita na flecha circular do próprio campo. Nesse momento, o sistema usa os indicadores/censo atuais do produto ou as quantidades atuais dos vinculados selecionados do serviço, conforme o tipo do item. Abrir ou salvar o modal, atualizar um vinculado ou recalcular o total não deve, por si só, trocar o modo manual por automático.
 
-**Exemplo:** Livro calculado em 50; vendedor ativa manual e digita 60; quantidade vira 60.
+**Aplicação:** Configuração inicial, edição e versionamento de orçamentos de cidade única e multi-cidade, respeitando as permissões existentes.
 
-**Exceções:** Serviços com quantidade manual retornam a quantidade informada.
+**Exemplo:** Serviço com percentual de 8% e 240 horas fixas, vinculado a um produto com quantidade 250, calcula 260 horas. O usuário digita 347 horas; mudar o vinculado para 500 mantém 347. Ao tocar na flecha do serviço, as horas passam a 280. Cada modo escolhido deve permanecer após salvar e reabrir.
 
-**Requisitos relacionados:** RF-ORC-008.
+**Exceções:** Sem permissão de edição, o campo fica somente leitura e o retorno ao automático não pode ser acionado. As restrições numéricas atuais permanecem; esta regra não introduz aceitação de zero ou horas fracionadas nem resolve a divergência de arredondamento descrita em §24.1.
+
+**Requisitos relacionados:** RF-ORC-008, CA-ORC-007, CA-ORC-013 a CA-ORC-017.
 
 ## RN-ORC-012 — PDF exige dados do vendedor
 
@@ -2440,7 +2446,7 @@ Os cálculos do orçamento combinam os seguintes conceitos:
 - **Produtos relacionados**: produtos vinculados a um serviço, usados como base para o cálculo da quantidade de horas do serviço. Não podem ser outros serviços.
 - **Percentual**: fator aplicado à soma das quantidades dos produtos relacionados de um serviço para obter as horas (ex.: 8%). É configurável por serviço, no intervalo de **0 a 100**; 0% é válido e faz a quantidade depender apenas das horas fixas.
 - **Horas fixas**: acréscimo fixo de horas somado ao resultado do percentual, configurável por serviço (≥ 0).
-- **Quantidade manual**: quantidade informada manualmente pelo usuário que sobrescreve o cálculo automático quando ativada.
+- **Quantidade manual**: quantidade de produto ou horas de serviço digitadas pelo usuário, com prioridade sobre o cálculo automático até que ele acione a flecha de retorno ao automático. O valor e o modo devem permanecer após salvar e reabrir.
 
 ## 12.2 Livros para estudantes
 
@@ -2487,7 +2493,7 @@ para cada indicador selecionado (exceto "professores"):
 
 ## 12.5 Serviços
 
-A quantidade de um serviço é calculada a partir das quantidades dos produtos relacionados, aplicando um percentual e somando horas fixas.
+Em modo automático, a quantidade de horas de um serviço é calculada a partir das quantidades dos produtos relacionados selecionados, aplicando um percentual e somando horas fixas. Em modo manual, usa-se diretamente a quantidade de horas digitada, sem aplicar essa fórmula até o usuário tocar na flecha de retorno ao automático (ver §12.6).
 
 **Fórmula:**
 
@@ -2496,7 +2502,7 @@ totalCenso = Σ calcularQuantidade(produtosRelacionados selecionados)
 quantidade = (totalCenso × percentual) + horasFixas
 ```
 
-- `totalCenso` é a soma das quantidades calculadas de todos os produtos relacionados do serviço.
+- `totalCenso` é a soma das quantidades efetivas dos produtos relacionados selecionados: quantidade calculada para vinculados automáticos ou quantidade digitada para vinculados manuais. Relacionados desmarcados não contribuem.
 - `percentual` é o fator configurado no serviço (ex.: 0,08 para 8%).
 - `horasFixas` é o acréscimo fixo configurado no serviço.
 
@@ -2506,8 +2512,45 @@ quantidade = (totalCenso × percentual) + horasFixas
 
 ## 12.6 Quantidade manual
 
-- Quando ativa, substitui o cálculo automático.
-- Ao desativar, o sistema recalcula.
+### Ativação e preservação
+
+- Digitar uma quantidade válida no campo de produto ou em “Horas de Serviço” ativa o modo manual do item. Não é necessário ativar um controle separado antes de digitar.
+- A quantidade manual substitui o cálculo automático, inclusive quando o serviço continua vinculado a produtos que têm suas próprias quantidades alteradas.
+- Os modos são independentes: um produto vinculado manual pode alimentar um serviço automático; um serviço manual permanece fixo mesmo que seus vinculados sejam automáticos.
+- A flecha circular “Voltar ao cálculo automático” aparece no campo manual quando a edição é permitida.
+- Abrir o modal ou pressionar “Salvar” sem editar a quantidade/horas não ativa o modo manual.
+
+### Retorno ao cálculo automático
+
+- O usuário deve tocar na flecha do próprio item. Alterações no censo, nos indicadores, nos vinculados ou no total não equivalem a essa ação.
+- O produto volta ao cálculo pelos indicadores/censo. O serviço volta ao cálculo com os vinculados atualmente selecionados, incluindo suas quantidades manuais, quando houver, e os parâmetros do serviço.
+- O campo deve mostrar o resultado recalculado imediatamente, sem manter o texto manual anterior; a flecha deixa de aparecer.
+- Se nenhum vinculado estiver selecionado, o serviço automático considera somente suas horas fixas. A divergência de arredondamento continua descrita em §12.5 e §24.1.
+- Após o retorno ao automático, novas alterações nos dados usados pelo cálculo voltam a afetar o item. Salvar o modal não deve reaplicar o valor manual antigo nem reativar o modo manual.
+
+### Salvamento e reabertura
+
+- A quantidade e o modo de cálculo são informações distintas e devem ser preservados em conjunto: apenas salvar o número não registra a intenção de mantê-lo manual.
+- O botão do modal atualiza o estado de edição. A persistência depende de salvar o orçamento; fechar e reabrir apenas o modal não comprova que o orçamento foi gravado.
+- Tanto as horas manuais quanto o retorno ao automático devem permanecer após salvar o orçamento, sair para a lista e reabrir.
+- A nova versão deve preservar quantidades/horas manuais não alteradas e respeitar um retorno explícito ao automático. A versão anterior continua imutável.
+- A regra é a mesma para a configuração inicial e a edição, em cidade única e multi-cidade. Recalcular o total não pode apagar a escolha manual.
+
+**Exemplo de transições:** para um serviço com percentual de 8% e 240 horas fixas:
+
+| Ação | Quantidade do vinculado selecionado | Horas do serviço | Modo do serviço |
+|---|---:|---:|---|
+| Cálculo inicial | 250 | 260 | Automático |
+| Usuário digita 347 horas | 250 | 347 | Manual |
+| Usuário muda o vinculado para 500 | 500 | 347 | Manual |
+| Salvar e reabrir o orçamento | 500 | 347 | Manual |
+| Usuário toca na flecha do serviço | 500 | 280 | Automático |
+| Salvar e reabrir novamente | 500 | 280 | Automático |
+| Usuário muda o vinculado para 750 | 750 | 300 | Automático |
+
+A tabela descreve o comportamento esperado, não o resultado de uma única execução de teste. A cobertura efetivamente executada e suas limitações estão registradas nos [casos de teste de horas manuais](testes/casos-de-teste-horas-manuais-servicos.md). Os parâmetros do exemplo não são fixos para todos os serviços.
+
+**Limites mantidos:** esta regra não altera a fórmula, as restrições atuais de entrada numérica ou as permissões existentes. Zero e horas fracionadas não passaram a ser aceitos por esta correção.
 
 ## 12.7 Orçamentos multi-cidade
 
@@ -2519,8 +2562,9 @@ Em orçamentos multi-cidade, o censo usado nos cálculos é o **censo agregado**
 censo_agregado[etapa] = Σ censo[cidade][etapa] para cada cidade selecionada
 ```
 
-- Todas as fórmulas das seções 12.2 a 12.5 aplicam-se normalmente, substituindo o censo de uma única cidade pelo censo agregado.
-- O usuário pode editar os valores por cidade; o agregado é recalculado.
+- Para os itens em modo automático, as fórmulas das seções 12.2 a 12.5 aplicam-se normalmente, substituindo o censo de uma única cidade pelo censo agregado.
+- Quantidades e horas definidas manualmente permanecem fixas até o usuário restaurar o automático no próprio item, conforme §12.6.
+- O usuário pode editar os valores por cidade; o agregado é recalculado sem sobrescrever quantidades/horas manuais.
 - A edição dos valores dentro do orçamento afeta apenas o snapshot do orçamento, não o censo oficial das cidades.
 
 **Exemplo:** Cidade A tem `in5ano` = 100; cidade B tem `in5ano` = 50. O censo agregado de `in5ano` é 150. Um livro com indicador `in5ano` selecionado terá quantidade 150.
@@ -2567,7 +2611,7 @@ As seguintes regras eram descritas na documentação antiga de cálculos e **for
 
 - **Livro**: exige ISBN; quantidade calculada por indicadores de aluno (e professor, se selecionado).
 - **Tecnologia**: quantidade calculada por indicadores de aluno + professor (se selecionado).
-- **Serviço**: exige produtos relacionados; quantidade calculada por percentual aplicado à soma dos relacionados, mais horas fixas.
+- **Serviço**: exige produtos relacionados; em modo automático, a quantidade é calculada por percentual aplicado à soma dos relacionados selecionados, mais horas fixas. As horas podem ser definidas manualmente no orçamento e só voltam ao automático pela flecha do campo (RN-ORC-011).
 
 ## 13.3 Ordenação
 
@@ -3054,13 +3098,13 @@ As seguintes regras eram descritas na documentação antiga de cálculos e **for
 
 **Dado que** o usuário tem permissão (dono, admin ou gestor da empresa)
 **Quando** editar produtos, indicadores, validade ou status
-**Então** o sistema deve recalcular quantidades e total e persistir.
+**Então** o sistema deve recalcular as quantidades automáticas e o total, preservar as quantidades/horas manuais e persistir o valor e o modo de cálculo de cada item.
 
 ### CA-ORC-005 — Versionar orçamento
 
 **Dado que** o usuário tem permissão
 **Quando** solicitar versionamento
-**Então** o sistema deve arquivar o original e criar uma nova versão com produtos, quantidades e overrides preservados.
+**Então** o sistema deve arquivar o original e criar uma nova versão preservando produtos, quantidades/horas manuais, modos de cálculo e overrides não alterados, respeitando as mudanças explícitas do usuário.
 
 ### CA-ORC-006 — Arquivar/desarquivar
 
@@ -3070,9 +3114,9 @@ As seguintes regras eram descritas na documentação antiga de cálculos e **for
 
 ### CA-ORC-007 — Quantidade manual
 
-**Dado que** o produto está no orçamento
-**Quando** o usuário ativar modo manual e informar quantidade
-**Então** o sistema deve usar a quantidade manual, ignorando o cálculo automático.
+**Dado que** o produto ou serviço está no orçamento e pode ser editado
+**Quando** o usuário digitar uma quantidade válida ou horas de serviço no campo correspondente
+**Então** o sistema deve ativar o modo manual, usar o valor informado no lugar do cálculo automático e mostrar a flecha “Voltar ao cálculo automático”.
 
 ### CA-ORC-008 — Gerar PDF
 
@@ -3104,6 +3148,38 @@ As seguintes regras eram descritas na documentação antiga de cálculos e **for
 **Quando** o usuário versionar e alterar a quantidade de X para 100
 **Então** a versão anterior deve continuar registrando 200, a nova versão deve registrar 100 e o censo da versão anterior deve ser mantido na nova versão, sem substituição pelo censo atual da cidade.
 
+### CA-ORC-013 — Vinculados não sobrescrevem horas manuais
+
+**Dado que** o serviço está com 347 horas definidas manualmente
+**Quando** o usuário alterar a quantidade ou a seleção de um produto vinculado, ou atualizar o censo do orçamento
+**Então** o serviço deve continuar com 347 horas e em modo manual, mesmo que seu cálculo automático passasse a produzir outro resultado.
+
+### CA-ORC-014 — Flecha restaura o cálculo com os vínculos atuais
+
+**Dado que** um serviço tem 347 horas manuais, percentual de 8%, 240 horas fixas e um único vinculado selecionado com quantidade 500
+**Quando** o usuário tocar na flecha do campo de horas
+**Então** o sistema deve mudar para automático, mostrar 280 horas imediatamente e ocultar a flecha; novas alterações no vinculado devem voltar a afetar o cálculo.
+
+### CA-ORC-015 — Abrir ou salvar o modal não ativa manual
+
+**Dado que** o serviço está em modo automático
+**Quando** o usuário abrir e salvar o modal sem editar as horas
+**Então** o serviço deve continuar automático. Se o usuário acabou de restaurar o automático pela flecha, salvar também não deve reaplicar o valor manual anterior.
+
+### CA-ORC-016 — Horas manuais persistem após salvar e reabrir
+
+**Dado que** o usuário definiu 347 horas manuais para um serviço, em orçamento de cidade única ou multi-cidade
+**Quando** salvar o orçamento e abri-lo novamente pela lista
+**Então** o serviço deve manter 347 horas e modo manual, com a flecha disponível quando houver permissão de edição. A regra vale tanto no primeiro salvamento quanto quando a edição gera uma nova versão.
+
+### CA-ORC-017 — Retorno ao automático persiste após salvar e reabrir
+
+**Dado que** o usuário restaurou o cálculo automático do serviço pela flecha
+**Quando** salvar o orçamento e abri-lo novamente
+**Então** o serviço deve continuar automático, sem a flecha, e usar os dados atuais dos vinculados no cálculo; o valor manual anterior não deve ser reaplicado.
+
+Os critérios acima são requisitos de aceitação. A execução e os limites de cobertura estão discriminados nos [casos de teste de horas manuais](testes/casos-de-teste-horas-manuais-servicos.md); essa referência não implica que todas as combinações foram testadas no simulador.
+
 ## Cálculos
 
 ### CA-CAL-001 — Livro sem professores
@@ -3126,7 +3202,7 @@ As seguintes regras eram descritas na documentação antiga de cálculos e **for
 
 ### CA-CAL-004 — Serviço
 
-**Dado que** o serviço tem produtos relacionados com quantidades 200 e 130; percentual 8%; horas fixas 5
+**Dado que** o serviço está em modo automático e tem produtos relacionados selecionados com quantidades efetivas 200 e 130; percentual 8%; horas fixas 5
 **Quando** calcular
 **Então** a quantidade deve ser (330 × 0.08) + 5 = 31.4 (sem arredondamento).
 
@@ -3230,8 +3306,9 @@ As seguintes regras eram descritas na documentação antiga de cálculos e **for
 - **Livro do estudante**: Produto do tipo livro, cuja quantidade é calculada pelos indicadores de aluno (e professor, se selecionado).
 - **Livro do professor**: Quantidade de livro calculada quando "professores" está selecionado, somando os indicadores de professor correspondentes.
 - **Tecnologia**: Produto do tipo tecnologia, cuja quantidade soma indicadores de aluno e professor (se selecionado).
-- **Serviço**: Produto do tipo serviço, cuja quantidade é calculada como (soma dos produtos relacionados × percentual) + horas fixas.
-- **Quantidade manual**: Quantidade informada manualmente pelo usuário que sobrescreve o cálculo automático.
+- **Serviço**: Produto cuja quantidade representa horas. Em modo automático, usa (soma das quantidades efetivas dos relacionados selecionados × percentual) + horas fixas; em modo manual, usa as horas digitadas pelo usuário.
+- **Quantidade manual**: Quantidade de produto ou horas de serviço digitadas pelo usuário e preservadas contra recálculos até o retorno explícito ao automático.
+- **Flecha de retorno ao automático**: Ação “Voltar ao cálculo automático”, exibida no campo manual editável, que desativa o modo manual e recalcula usando os dados atuais do item.
 - **Override**: Sobrescrita de preço de um produto em um orçamento específico.
 - **Orçamento multi-cidade**: Orçamento que abrange múltiplas cidades, com censo agregado (soma por etapa).
 - **Versão**: Cópia de um orçamento criada ao versionar; o original é arquivado e a nova versão é vinculada a ele.
@@ -3322,5 +3399,9 @@ Regra aplicável: §12 (cálculos sem arredondamento) e §12.8 (duas casas decim
 ## 24.7 Pendência de rastreabilidade
 
 A **matriz de rastreabilidade** que vincula requisito ↔ regra ↔ critério de aceite ↔ código, incluindo a definição das fontes documentais originais (`F1` a `F7`), **nunca foi produzida**. Esta é uma lacuna do conjunto documental que não pode ser resolvida a partir do código: depende dos documentos de especificação originais. Ela não afeta a leitura desta especificação, que é autocontida, mas impede auditar a origem de cada regra.
+
+**Rastreabilidade específica de quantidades e horas manuais:** RF-ORC-008, RN-ORC-011 e CA-ORC-007/013–017 têm seus cenários, arquivos de teste, evidências e limitações registrados em [Casos de teste — horas manuais de serviços e quantidades vinculadas](testes/casos-de-teste-horas-manuais-servicos.md). Esse registro não substitui a matriz global pendente.
+
+O contrato desta regra depende de preservar `quantidade` e `quantidade_manual` no envio e de devolver a flag correspondente na leitura, incluindo `op_quantidade_manual` na estrutura de detalhe. A ausência da flag pode fazer o App tratar um valor manual como automático. Foram adicionados testes de interface, stores e DTOs; o teste PHP da seleção da flag permaneceu bloqueado pela ausência de `.env.testing`. A validação local realizada não representa publicação em produção nem resolve as divergências numéricas de §24.1.
 
 ---

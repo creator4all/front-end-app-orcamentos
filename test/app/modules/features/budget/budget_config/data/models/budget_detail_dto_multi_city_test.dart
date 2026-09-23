@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:multimidiaapp/app/modules/features/budget/budget_config/data/models/budget_detail_dto.dart';
+import 'package:multimidiaapp/app/modules/features/budget/budget_config/domain/services/product_calculation_service.dart';
 
 /// Fatia mínima de `GET /api/orcamentos/{id}` para um orçamento multi-cidade.
 Map<String, dynamic> _multiCityPayload() => {
@@ -112,6 +113,52 @@ void main() {
       expect(entity.cityIds, hasLength(3));
       expect(entity.multiCity, isNull);
       expect(entity.isMultiCity, isFalse);
+    });
+
+    test('preserva quantidade manual de serviço vinda de orcamento_produtos',
+        () {
+      final payload = _multiCityPayload()
+        ..['orcamento_produtos'] = [
+          {
+            'op_quantidade': '347.00',
+            'op_quantidade_manual': true,
+            'op_selecionado': true,
+            'produto': {
+              'pro_produtosId': 9,
+              'pro_tipo_produto': 'servico',
+              'pro_valor': 290,
+              'pro_subcategoria_id': 1,
+              'subcategoria': {
+                'sub_subcategoriasId': 1,
+                'sub_name': 'Serviços',
+                'sub_order': '1',
+                'categoria': {
+                  'cat_categoriaId': 1,
+                  'cat_nome': 'Grupo',
+                  'cat_ordem': '1',
+                  'cat_expandido': true,
+                },
+              },
+            },
+          },
+        ];
+
+      final parsed = BudgetDetailDto.fromJson(payload)
+          .toEntity()
+          .categories
+          .single
+          .subcategorias
+          .single
+          .produtos
+          .single;
+
+      expect(parsed.quantidade, 347);
+      expect(parsed.quantidadeManual, isTrue);
+      const service = ProductCalculationService();
+      expect(
+        service.calcularQuantidade(parsed, null, todosProdutos: const []),
+        347,
+      );
     });
   });
 }

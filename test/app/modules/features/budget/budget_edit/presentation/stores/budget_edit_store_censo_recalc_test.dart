@@ -16,6 +16,7 @@ import 'package:multimidiaapp/app/modules/features/budget/budget_edit/domain/rep
 import 'package:multimidiaapp/app/modules/features/budget/budget_edit/domain/usecases/get_budget_for_edit_usecase.dart';
 import 'package:multimidiaapp/app/modules/features/budget/budget_edit/domain/usecases/update_budget_usecase.dart';
 import 'package:multimidiaapp/app/modules/features/budget/budget_edit/presentation/stores/budget_edit_store.dart';
+import 'package:multimidiaapp/app/modules/features/budget/shared/models/product_selection_update_dto.dart';
 import 'package:multimidiaapp/app/shared/domain/value_objects/fractional_order.dart';
 
 /// Repository que falha se qualquer endpoint for acionado.
@@ -286,6 +287,68 @@ void main() {
 
       final produto = store.categories.first.subcategorias.first.produtos.first;
       expect(produto.quantidade, 350);
+    });
+  });
+
+  group('horas manuais de serviços', () {
+    for (final comCenso in [true, false]) {
+      test('restaura horas pelos vínculos, comCenso=$comCenso', () {
+        final store = _store();
+        if (comCenso) {
+          store.censoEscolar =
+              _censoFromValores(1, 'Cidade', {'ef1ano': 100.0});
+        }
+        store.categories.add(_category([
+          _produto(1, quantidade: 250, quantidadeManual: true),
+          _produto(9,
+              tipoProduto: 'servico',
+              quantidade: 260,
+              percent: 0.08,
+              horasFixas: 240,
+              relacionados: [1]),
+        ]));
+        ProductEntity servico() =>
+            store.categories.first.subcategorias.first.produtos
+                .firstWhere((p) => p.id == 9);
+        store.setProductManualQuantity(9, 347);
+        store.setProductManualQuantity(1, 500);
+        expect(servico().quantidade, 347);
+        expect(servico().quantidadeManual, isTrue);
+        final dto = ProductSelectionUpdateDto.fromEntity(servico());
+        expect(dto.toJson()['quantidade'], 347);
+        expect(dto.toJson()['quantidade_manual'], isTrue);
+        expect(dto.toJsonForMultiCity()['quantidade_manual'], isTrue);
+        store.setProductQuantityMode(9, false);
+        expect(servico().quantidadeManual, isFalse);
+        expect(servico().quantidade, 280);
+        expect(
+            ProductSelectionUpdateDto.fromEntity(servico())
+                .toJson()['quantidade_manual'],
+            isFalse);
+        if (comCenso) {
+          store.setProductManualQuantity(1, 750);
+          expect(servico().quantidade, 300);
+        }
+      });
+    }
+
+    test('reset de serviço manual sem vínculo selecionado usa horas fixas', () {
+      final store = _store();
+      store.categories.add(_category([
+        _produto(1, selecionado: false),
+        _produto(9,
+            tipoProduto: 'servico',
+            quantidade: 260,
+            percent: 0.08,
+            horasFixas: 240,
+            relacionados: [1]),
+      ]));
+      store.setProductManualQuantity(9, 347);
+      store.setProductQuantityMode(9, false);
+      final servico = store.categories.first.subcategorias.first.produtos
+          .firstWhere((p) => p.id == 9);
+      expect(servico.quantidade, 240);
+      expect(servico.quantidadeManual, isFalse);
     });
   });
 }

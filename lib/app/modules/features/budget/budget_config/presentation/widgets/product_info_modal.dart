@@ -153,21 +153,10 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
   }
 
   void _handleSave() {
-    final product = widget.getProduct();
-
     final newValue = _parseValueInput();
     if (newValue != null) {
       widget.onValueChanged?.call(newValue);
     }
-
-    if (_isServico(product)) {
-      final horasText = _horasController.text;
-      final horas = int.tryParse(horasText) ?? 0;
-      if (horas > 0) {
-        widget.onQuantityChanged?.call(horas.toDouble());
-      }
-    }
-
     Navigator.pop(context);
   }
 
@@ -279,8 +268,18 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
   }
 
   Widget _buildHorasField(ProductEntity product) {
-    if (_horasController.text.isEmpty && product.quantidade > 0) {
-      _horasController.text = product.formattedQuantidade;
+    if (!_horasFocus.hasFocus) {
+      final text = product.quantidade > 0 ? product.formattedQuantidade : '';
+      if (_horasController.text != text) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && !_horasFocus.hasFocus) {
+            _horasController.value = TextEditingValue(
+              text: text,
+              selection: TextSelection.collapsed(offset: text.length),
+            );
+          }
+        });
+      }
     }
 
     return Column(
@@ -316,12 +315,13 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
           focusNode: _horasFocus,
           keyboardType: TextInputType.number,
           inputFormatters: _quantityInputFormatters,
+          readOnly: widget.onManualQuantityChanged == null,
           onChanged: (value) {
             final horas = ProductQuantityRules.clamp(
               QuantityUtils.parseToInt(value).toDouble(),
             );
             if (horas > 0) {
-              widget.onQuantityChanged?.call(horas);
+              widget.onManualQuantityChanged?.call(horas);
             }
           },
           decoration: InputDecoration(
@@ -332,6 +332,20 @@ class _ProductInfoModalState extends State<ProductInfoModal> {
             ),
             contentPadding:
                 EdgeInsets.symmetric(horizontal: 12.w, vertical: 12.h),
+            suffixIcon:
+                product.quantidadeManual && widget.onQuantityModeChanged != null
+                    ? IconButton(
+                        icon: const Icon(
+                          Icons.refresh,
+                          color: Color(0xFF117BBD),
+                        ),
+                        tooltip: 'Voltar ao cálculo automático',
+                        onPressed: () {
+                          _horasFocus.unfocus();
+                          widget.onQuantityModeChanged!(false);
+                        },
+                      )
+                    : null,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8.r),
               borderSide: const BorderSide(color: Color(0xFFD9D9D9)),
