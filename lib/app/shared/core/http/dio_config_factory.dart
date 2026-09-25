@@ -64,7 +64,7 @@ class DioConfigFactory {
     required String appVersion,
     String Function()? getToken,
     Future<void> Function()? onUnauthorized,
-    Function(dynamic)? onUpdateRequired,
+    void Function()? onUpdateRequired,
     List<HttpInterceptor>? additionalInterceptors,
   }) {
     final interceptors = <HttpInterceptor>[

@@ -1,10 +1,12 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter/services.dart';
 import 'package:multimidiaapp/app/shared/core/navigation/app_route_observer.dart';
+import 'package:multimidiaapp/app/shared/core/update/app_update_coordinator.dart';
 import 'package:multimidiaapp/stores/store_provider.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import 'app_module.dart';
 import 'theme/app_theme.dart';
@@ -22,9 +24,11 @@ Future<void> main() async {
     ),
   );
 
+  final packageInfo = await PackageInfo.fromPlatform();
+
   runApp(
     ModularApp(
-      module: AppModule(),
+      module: AppModule(packageInfo: packageInfo),
       child: Builder(
         builder: (context) => StoreProvider(
           child: const MyApp(),
@@ -50,6 +54,7 @@ class _MyAppState extends State<MyApp> {
     // primeiro frame para não disparar rebuild durante a construção da árvore.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Modular.setObservers([appRouteObserver]);
+      appUpdateCoordinator.attachNavigator(Modular.routerDelegate.navigatorKey);
     });
   }
 

@@ -3,7 +3,7 @@ description: "Aplicativo para gerenciamento de orçamentos empresariais"
 
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
-version: 1.1.0+33
+version: 1.1.1+34
 
 environment:
   sdk: '>=3.4.1 <4.0.0'
@@ -60,6 +60,8 @@ dependencies:
   # Image Cropping & Upload
   image_cropper: ^12.2.1
   http_parser: ^4.0.2
+  new_version_plus: 0.1.2
+  package_info_plus: 9.0.1
 
 
 dev_dependencies:

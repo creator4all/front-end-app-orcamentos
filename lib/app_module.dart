@@ -1,8 +1,11 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:multimidiaapp/app/modules/features/auth/presentation/stores/forgot_password_store.dart';
 import 'package:multimidiaapp/app/modules/features/partner_management/partner_management_module.dart';
 import 'package:multimidiaapp/app/modules/features/product_management/product_management_module.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import 'app/modules/features/auth/auth_module.dart';
 import 'app/modules/features/auth/data/datasources/auth_api_datasource.dart';
@@ -33,6 +36,8 @@ import 'app/shared/core/http/app_http_client.dart';
 import 'app/shared/core/http/dio_config_factory.dart';
 import 'app/shared/core/http/dio_http_client_impl.dart';
 import 'app/shared/core/http/http_client_config.dart';
+import 'app/shared/core/http/interceptors/version_checker_interceptor.dart';
+import 'app/shared/core/update/app_update_coordinator.dart';
 import 'app/shared/core/utils/token_cache.dart';
 import 'config/api_config.dart';
 import 'services/auth_service.dart';
@@ -40,6 +45,10 @@ import 'services/censo_service.dart';
 import 'services/geo_service.dart';
 
 class AppModule extends Module {
+  final PackageInfo? packageInfo;
+
+  AppModule({this.packageInfo});
+
   @override
   List<Bind> get binds => [
 
@@ -49,6 +58,16 @@ class AppModule extends Module {
             getToken: () => TokenCache.instance.getTokenOrEmpty(),
             onUnauthorized: SessionExpirationHandler.handleUnauthorized,
             enableLogger: _isDebugMode(),
+            additionalInterceptors: [
+              if (packageInfo != null)
+                VersionCheckerInterceptor(
+                  currentVersion: packageInfo!.version,
+                  currentBuild: packageInfo!.buildNumber,
+                  currentPlatform: Platform.operatingSystem,
+                  appIdentifier: packageInfo!.packageName,
+                  onUpdateRequired: appUpdateCoordinator.requireUpdate,
+                ),
+            ],
           ),
         ),
 
