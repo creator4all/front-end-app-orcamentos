@@ -152,6 +152,22 @@ abstract class _BudgetCreateStoreBase with Store {
     }
   }
 
+  Future<void> refreshPartners({int? excludePartnerId}) async {
+    final result =
+        await getStandardPartnersUseCase(excludePartnerId: excludePartnerId);
+    result.fold((_) {}, (partnerList) {
+      runInAction(() {
+        partners
+          ..clear()
+          ..addAll(partnerList);
+        if (selectedPartner != null &&
+            !partnerList.any((p) => p.id == selectedPartner!.id)) {
+          selectedPartner = null;
+        }
+      });
+    });
+  }
+
   @action
   void selectPartner(PartnerEntity partner) {
     selectedPartner = partner;

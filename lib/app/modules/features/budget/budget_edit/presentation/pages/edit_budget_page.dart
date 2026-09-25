@@ -74,6 +74,8 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     final text = _validadeOrcamentoController.text;
     if (text.isNotEmpty) {
       final dias = int.tryParse(text);
+      final current = store.validityDate;
+      if (current != null && nonNegativeDaysUntil(current) == dias) return;
       if (dias != null && dias > 0) {
         _updateValidityDate(dias);
       }
@@ -120,10 +122,15 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
               onPressed: () => Navigator.of(context).pop(false),
               child: const Text('Cancelar'),
             ),
-            ElevatedButton(
+            FilledButton(
               onPressed: () => Navigator.of(context).pop(true),
-              style: ElevatedButton.styleFrom(
+              style: FilledButton.styleFrom(
                 backgroundColor: const Color(0xFFE55353),
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(horizontal: 20.w),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
               ),
               child: const Text('Descartar'),
             ),

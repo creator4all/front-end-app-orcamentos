@@ -67,54 +67,66 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
 
   Future<String?> _showMultiCityBudgetNameModal() async {
     final controller = TextEditingController();
+    String? errorText;
 
     return CustomModal.show<String>(
       context: context,
       title: 'Nome do Orçamento',
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: controller,
-            autofocus: true,
-            decoration: InputDecoration(
-              hintText: 'Ex: Projeto Educação 2024',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 16.w,
-                vertical: 14.h,
-              ),
-            ),
-          ),
-          SizedBox(height: 24.h),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                if (controller.text.isNotEmpty) {
-                  Navigator.pop(context, controller.text);
-                }
+      content: StatefulBuilder(
+        builder: (context, setModalState) => Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: controller,
+              autofocus: true,
+              onChanged: (_) {
+                if (errorText != null) setModalState(() => errorText = null);
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF117BBD),
-                padding: EdgeInsets.symmetric(vertical: 14.h),
-                shape: RoundedRectangleBorder(
+              decoration: InputDecoration(
+                errorText: errorText,
+                hintText: 'Ex: Projeto Educação 2024',
+                border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8.r),
                 ),
-              ),
-              child: Text(
-                'Próximo',
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 16.w,
+                  vertical: 14.h,
                 ),
               ),
             ),
-          ),
-        ],
+            SizedBox(height: 24.h),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  final name = controller.text.trim();
+                  if (name.isEmpty) {
+                    setModalState(
+                      () => errorText = 'Informe o nome do orçamento',
+                    );
+                    return;
+                  }
+                  Navigator.pop(context, name);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF117BBD),
+                  padding: EdgeInsets.symmetric(vertical: 14.h),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                ),
+                child: Text(
+                  'Próximo',
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -353,6 +365,9 @@ class _NewBudgetPageState extends State<NewBudgetPage> {
                               ? _partnerLabel(_store.selectedPartner!)
                               : null,
                           enabled: _store.hasPartners,
+                          onOpen: () => _store.refreshPartners(
+                            excludePartnerId: _authStore.partnerId,
+                          ),
                           onChanged: (value) {
                             if (value == null) {
                               return;

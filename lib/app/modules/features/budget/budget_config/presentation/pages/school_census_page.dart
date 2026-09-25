@@ -178,6 +178,11 @@ class _SchoolCensusPageState
 
               return Column(
                 children: [
+                  if (store.isMultiCity)
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16.w),
+                      child: _buildCitySelector(),
+                    ),
                   Expanded(
                     child: RefreshIndicator(
                       onRefresh: () => _retryLoad(),
@@ -188,7 +193,6 @@ class _SchoolCensusPageState
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            if (store.isMultiCity) _buildCitySelector(),
                             if (!store.isAggregatedView) _buildEditModeToggle(),
                             _buildCensusInfo(),
                             SizedBox(height: 16.h),
@@ -217,6 +221,7 @@ class _SchoolCensusPageState
         label: 'Cidade',
         hint: 'Selecione uma cidade',
         searchHint: 'Pesquisar cidade...',
+        sortItems: false,
         value: store.selectedCityName,
         items: store.cityOptions.map((e) => e.name).toList(),
         onChanged: (cityName) {

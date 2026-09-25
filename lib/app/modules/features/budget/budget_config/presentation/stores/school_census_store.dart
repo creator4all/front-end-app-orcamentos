@@ -1,5 +1,6 @@
 import 'package:mobx/mobx.dart';
 
+import '../../../../../../shared/utils/string_utils.dart';
 import '../../data/models/budget_census_dto.dart';
 import '../../domain/entities/censo_escolar_entity.dart';
 import '../../domain/entities/censo_group_entity.dart';
@@ -100,7 +101,9 @@ abstract class _SchoolCensusStoreBase with Store {
       );
     }
 
-    for (final city in cidades) {
+    final sortedCities = List.of(cidades)
+      ..sort((a, b) => compareIgnoringAccents(a.nome, b.nome));
+    for (final city in sortedCities) {
       options.add(
         DropdownCityOption(id: city.id, name: city.nome, isAggregated: false),
       );

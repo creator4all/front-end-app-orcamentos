@@ -12,6 +12,7 @@ class SearchableDropdownWidget extends StatefulWidget {
   final bool enabled;
   final String searchHint;
   final bool sortItems;
+  final VoidCallback? onOpen;
 
   const SearchableDropdownWidget({
     super.key,
@@ -23,6 +24,7 @@ class SearchableDropdownWidget extends StatefulWidget {
     this.enabled = true,
     this.searchHint = 'Pesquisar...',
     this.sortItems = true,
+    this.onOpen,
   });
 
   @override
@@ -41,7 +43,6 @@ class _SearchableDropdownWidgetState extends State<SearchableDropdownWidget> {
   void initState() {
     super.initState();
     _sortedItems = _sortItems(widget.items);
-    _focusNode.addListener(_onFocusChange);
   }
 
   @override
@@ -64,7 +65,6 @@ class _SearchableDropdownWidgetState extends State<SearchableDropdownWidget> {
   @override
   void dispose() {
     _searchController.dispose();
-    _focusNode.removeListener(_onFocusChange);
     _focusNode.dispose();
     super.dispose();
   }
@@ -76,14 +76,9 @@ class _SearchableDropdownWidgetState extends State<SearchableDropdownWidget> {
     return sorted;
   }
 
-  void _onFocusChange() {
-    if (!_focusNode.hasFocus && _isOpen) {
-      _closeDropdown();
-    }
-  }
-
   void _openDropdown() {
     if (_isOpen || !widget.enabled) return;
+    widget.onOpen?.call();
 
     setState(() {
       _isOpen = true;
@@ -91,7 +86,7 @@ class _SearchableDropdownWidgetState extends State<SearchableDropdownWidget> {
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _focusNode.requestFocus();
+      if (mounted && _isOpen) _focusNode.requestFocus();
     });
   }
 

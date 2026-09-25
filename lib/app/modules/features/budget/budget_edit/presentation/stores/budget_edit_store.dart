@@ -117,9 +117,14 @@ abstract class _BudgetEditStoreBase with Store {
   bool get hasChanges {
     if (selectedStatus != _originalStatus) return true;
     if (isArchived != _originalIsArchived) return true;
-    if (validityDate != _originalValidityDate) return true;
+    if (!_isSameDay(validityDate, _originalValidityDate)) return true;
 
     return _hasProductChanges;
+  }
+
+  static bool _isSameDay(DateTime? a, DateTime? b) {
+    if (a == null || b == null) return a == b;
+    return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
   /// Mudança de produto em relação ao estado original, usada só para indicar

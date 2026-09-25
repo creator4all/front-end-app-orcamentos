@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+
 import 'custom_modal.dart';
 
 class RenameBudgetModal extends StatefulWidget {
@@ -57,6 +58,7 @@ class _RenameBudgetContent extends StatefulWidget {
 class _RenameBudgetContentState extends State<_RenameBudgetContent> {
   late final TextEditingController _nameController;
   bool _isLoading = false;
+  String? _errorText;
 
   @override
   void initState() {
@@ -72,15 +74,10 @@ class _RenameBudgetContentState extends State<_RenameBudgetContent> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
         Text(
           'Nome atual:',
           style: TextStyle(
@@ -99,7 +96,6 @@ class _RenameBudgetContentState extends State<_RenameBudgetContent> {
           ),
         ),
         SizedBox(height: 20.h),
-
         Text(
           'Novo nome:',
           style: TextStyle(
@@ -109,45 +105,47 @@ class _RenameBudgetContentState extends State<_RenameBudgetContent> {
           ),
         ),
         SizedBox(height: 8.h),
-        SizedBox(
-          height: 60.h,
-          child: TextFormField(
-            controller: _nameController,
-            enabled: !_isLoading,
-            decoration: InputDecoration(
-              hintText: 'Digite o novo nome do orçamento',
-              hintStyle: TextStyle(
-                fontSize: 14.sp,
-                color: Colors.grey[500],
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8.r),
-                borderSide: BorderSide(color: Colors.grey[300]!),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8.r),
-                borderSide: BorderSide(color: Colors.grey[300]!),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8.r),
-                borderSide: const BorderSide(color: Color(0xFF117BBD)),
-              ),
-              disabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8.r),
-                borderSide: BorderSide(color: Colors.grey[200]!),
-              ),
-              contentPadding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 16.h),
-              fillColor: _isLoading ? Colors.grey[50] : null,
-              filled: _isLoading,
-            ),
-            style: TextStyle(
+        TextFormField(
+          controller: _nameController,
+          enabled: !_isLoading,
+          onChanged: (_) {
+            if (_errorText != null) setState(() => _errorText = null);
+          },
+          decoration: InputDecoration(
+            errorText: _errorText,
+            errorMaxLines: 3,
+            hintText: 'Digite o novo nome do orçamento',
+            hintStyle: TextStyle(
               fontSize: 14.sp,
-              color: _isLoading ? Colors.grey[600] : Colors.black87,
+              color: Colors.grey[500],
             ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8.r),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8.r),
+              borderSide: BorderSide(color: Colors.grey[300]!),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8.r),
+              borderSide: const BorderSide(color: Color(0xFF117BBD)),
+            ),
+            disabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8.r),
+              borderSide: BorderSide(color: Colors.grey[200]!),
+            ),
+            contentPadding:
+                EdgeInsets.symmetric(horizontal: 12.w, vertical: 16.h),
+            fillColor: _isLoading ? Colors.grey[50] : null,
+            filled: _isLoading,
+          ),
+          style: TextStyle(
+            fontSize: 14.sp,
+            color: _isLoading ? Colors.grey[600] : Colors.black87,
           ),
         ),
         SizedBox(height: 24.h),
-
         SizedBox(
           width: double.infinity,
           height: 40.h,
@@ -185,9 +183,7 @@ class _RenameBudgetContentState extends State<_RenameBudgetContent> {
           ),
         ),
         SizedBox(height: 16.h),
-          ],
-        ),
-      ),
+      ],
     );
   }
 
@@ -206,6 +202,7 @@ class _RenameBudgetContentState extends State<_RenameBudgetContent> {
 
     setState(() {
       _isLoading = true;
+      _errorText = null;
     });
 
     try {
@@ -236,12 +233,6 @@ class _RenameBudgetContentState extends State<_RenameBudgetContent> {
   }
 
   void _showErrorMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 3),
-      ),
-    );
+    setState(() => _errorText = message);
   }
 }

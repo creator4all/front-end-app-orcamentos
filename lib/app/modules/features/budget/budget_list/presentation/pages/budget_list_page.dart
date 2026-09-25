@@ -77,6 +77,7 @@ class _BudgetListPageState extends State<BudgetListPage> with RouteAware {
 
   void _handleSearchChanged(String query) {
     _store.setSearchQuery(query);
+    _checkLoadMore();
   }
 
   void _handleFiltersChanged(List<String> filters) {
@@ -91,10 +92,12 @@ class _BudgetListPageState extends State<BudgetListPage> with RouteAware {
         _store.toggleFilter(filter);
       }
     }
+    _checkLoadMore();
   }
 
   void _handleReset() {
     _store.resetFilters();
+    _checkLoadMore();
   }
 
   Future<void> _handleEditBudgetReturn() async {
@@ -232,16 +235,10 @@ class _BudgetListPageState extends State<BudgetListPage> with RouteAware {
                   }
                   if (_store.items.isEmpty && !_store.hasMore) {
                     return SliverToBoxAdapter(
-                      child: SizedBox(
-                        height: MediaQuery.of(context).size.height * 0.6,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            SizedBox(height: 200.h),
-                            const Center(
-                              child: Text('Nenhum orçamento encontrado'),
-                            ),
-                          ],
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 48.h),
+                        child: const Center(
+                          child: Text('Nenhum orçamento encontrado'),
                         ),
                       ),
                     );

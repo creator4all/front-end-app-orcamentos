@@ -162,6 +162,7 @@ abstract class _BudgetListStoreBase with Store {
 
   @action
   Future<void> renameBudget(int budgetId, String newName) async {
+    error = null;
     try {
       final result = await renameBudgetUseCase(budgetId, newName);
 

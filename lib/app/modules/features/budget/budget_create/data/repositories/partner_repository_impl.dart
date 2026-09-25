@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 
 import '../../../../../../shared/core/constants/http_constants.dart';
+import '../../../../../../shared/core/errors/api_error_message.dart';
 import '../../../shared/errors/budget_failure.dart';
 import '../../domain/entities/partner_entity.dart';
 import '../../domain/repositories/partner_repository.dart';
@@ -39,30 +40,34 @@ class PartnerRepositoryImpl implements PartnerRepository {
 
   /// Mapeia exceções para Failures apropriados
   BudgetFailure _mapExceptionToFailure(Exception exception) {
-    final message = exception.toString();
+    final details = exception.toString();
+    final message = ApiErrorMessage.from(
+      exception,
+      fallback: 'Não foi possível carregar os parceiros. Tente novamente.',
+    );
 
-    if (message.contains('Sem conexão') ||
-        message.contains('connectionError') ||
-        message.contains('Timeout') ||
-        message.contains('Tempo de conexão excedido')) {
+    if (details.contains('Sem conexão') ||
+        details.contains('connectionError') ||
+        details.contains('Timeout') ||
+        details.contains('Tempo de conexão excedido')) {
       return ConnectionFailure(message);
     }
 
-    if (message.contains('Não autorizado') ||
-        message.contains('${HttpStatusCodes.unauthorized}') ||
-        message.contains('Acesso negado') ||
-        message.contains('${HttpStatusCodes.forbidden}')) {
+    if (details.contains('Não autorizado') ||
+        details.contains('${HttpStatusCodes.unauthorized}') ||
+        details.contains('Acesso negado') ||
+        details.contains('${HttpStatusCodes.forbidden}')) {
       return UnauthorizedFailure(message);
     }
 
-    if (message.contains('não encontrado') ||
-        message.contains('${HttpStatusCodes.notFound}') ||
-        message.contains('Parceiro não encontrado')) {
+    if (details.contains('não encontrado') ||
+        details.contains('${HttpStatusCodes.notFound}') ||
+        details.contains('Parceiro não encontrado')) {
       return NotFoundFailure(message);
     }
 
-    if (message.contains('Erro no servidor') ||
-        message.contains('${HttpStatusCodes.internalServerError}')) {
+    if (details.contains('Erro no servidor') ||
+        details.contains('${HttpStatusCodes.internalServerError}')) {
       return ServerFailure(message);
     }
 

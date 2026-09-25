@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../../shared/widgets/custom_info_dialog.dart';
 import '../../domain/entities/prospect_entity.dart';
 
 class ProspectCardWidget extends StatelessWidget {
@@ -21,59 +22,43 @@ class ProspectCardWidget extends StatelessWidget {
 
   Future<void> _openWhatsApp(BuildContext context) async {
     final cleanNumber = prospect.telefone.replaceAll(RegExp(r'[^0-9]'), '');
-    final whatsappUrl = Uri.parse('https://wa.me/55$cleanNumber');
-
-    try {
-      if (await canLaunchUrl(whatsappUrl)) {
-        await launchUrl(whatsappUrl, mode: LaunchMode.externalApplication);
-      } else {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Não foi possível abrir o WhatsApp'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao abrir WhatsApp: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
+    await _launchOrWarn(
+      context,
+      Uri.parse('https://wa.me/55$cleanNumber'),
+      title: 'Não foi possível abrir o WhatsApp',
+      message: 'Entre em contato pelo telefone ${prospect.telefoneFormatado}.',
+    );
   }
 
   Future<void> _openEmail(BuildContext context) async {
-    final emailUrl = Uri.parse('mailto:${prospect.email}');
+    await _launchOrWarn(
+      context,
+      Uri(scheme: 'mailto', path: prospect.email),
+      title: 'Não foi possível abrir o e-mail',
+      message: 'Nenhum aplicativo de e-mail disponível. '
+          'Envie sua mensagem para ${prospect.email}.',
+    );
+  }
 
+  Future<void> _launchOrWarn(
+    BuildContext context,
+    Uri url, {
+    required String title,
+    required String message,
+  }) async {
+    bool launched;
     try {
-      if (await canLaunchUrl(emailUrl)) {
-        await launchUrl(emailUrl);
-      } else {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Não foi possível abrir o cliente de e-mail'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao abrir e-mail: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      launched = await launchUrl(url, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      launched = false;
     }
+    if (launched || !context.mounted) return;
+    await CustomInfoDialog.show(
+      context: context,
+      type: DialogType.error,
+      title: title,
+      message: message,
+    );
   }
 
   @override
