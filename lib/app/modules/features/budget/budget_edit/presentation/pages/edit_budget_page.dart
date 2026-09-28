@@ -4,6 +4,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import 'package:multimidiaapp/app/shared/core/update/app_update_coordinator.dart';
 import 'package:multimidiaapp/app/shared/utils/currency_utils.dart';
 import 'package:multimidiaapp/app/shared/utils/date_utils.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_info_dialog.dart';
@@ -240,6 +241,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
   }
 
   void _showLoadErrorDialogIfNeeded(String message) {
+    if (appUpdateCoordinator.isUpdateRequired) return;
     if (_lastShownLoadErrorMessage == message) {
       return;
     }
@@ -247,7 +249,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
     _lastShownLoadErrorMessage = message;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
+      if (!mounted || appUpdateCoordinator.isUpdateRequired) return;
 
       CustomInfoDialog.show(
         context: context,
@@ -259,6 +261,10 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
   }
 
   Widget _buildLoadErrorState() {
+    if (appUpdateCoordinator.isUpdateRequired) {
+      return const SizedBox.shrink();
+    }
+
     final message = _buildUserFriendlyLoadErrorMessage(store.error);
 
     _showLoadErrorDialogIfNeeded(message);
@@ -389,8 +395,10 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
   Future<void> _handleSaveChanges() async {
     final result = await store.saveBudgetWithDto();
     if (!mounted) return;
+    if (appUpdateCoordinator.isUpdateRequired) return;
 
     await result.fold<Future<void>>((failure) async {
+      if (appUpdateCoordinator.isUpdateRequired) return;
       await CustomInfoDialog.show(
         context: context,
         type: DialogType.error,
@@ -403,7 +411,7 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
       _capturePersistedBudgetListPatchFromStore();
 
       await store.loadBudgetForEdit(budget.id);
-      if (!mounted) return;
+      if (!mounted || appUpdateCoordinator.isUpdateRequired) return;
 
       if (store.error != null) {
         final reloadError = store.error;
@@ -455,6 +463,10 @@ class _EditBudgetPageState extends State<EditBudgetPage> {
         ),
         body: Observer(
           builder: (_) {
+            if (appUpdateCoordinator.isUpdateRequired) {
+              return const SizedBox.shrink();
+            }
+
             if (store.error == null || store.hasData) {
               _lastShownLoadErrorMessage = null;
             }

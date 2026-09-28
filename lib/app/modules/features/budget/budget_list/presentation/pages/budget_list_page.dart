@@ -4,6 +4,7 @@ import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../../../../shared/core/navigation/app_route_observer.dart';
+import '../../../../../../shared/core/update/app_update_coordinator.dart';
 import '../../../../../../shared/utils/user_role_mapper.dart';
 import '../../../../../../shared/widgets/rename_budget_modal.dart';
 import '../../../../../../shared/widgets/widgets.dart';
@@ -31,6 +32,7 @@ class _BudgetListPageState extends State<BudgetListPage> with RouteAware {
   }
 
   void _handleScroll() {
+    if (appUpdateCoordinator.isUpdateRequired) return;
     if (!_scrollController.hasClients) return;
     if (_store.isLoading || _store.isLoadingMore || !_store.hasMore) return;
     if (_scrollController.position.extentAfter < 300) {
@@ -39,8 +41,13 @@ class _BudgetListPageState extends State<BudgetListPage> with RouteAware {
   }
 
   void _checkLoadMore() {
+    if (appUpdateCoordinator.isUpdateRequired) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_scrollController.hasClients) return;
+      if (!mounted ||
+          appUpdateCoordinator.isUpdateRequired ||
+          !_scrollController.hasClients) {
+        return;
+      }
       if (_store.isLoading || _store.isLoadingMore || !_store.hasMore) return;
       if (_scrollController.position.extentAfter >= 300) return;
       _store.loadMore().then((_) => _checkLoadMore());
@@ -119,7 +126,7 @@ class _BudgetListPageState extends State<BudgetListPage> with RouteAware {
         },
       );
     } catch (e) {
-      if (mounted) {
+      if (mounted && !appUpdateCoordinator.isUpdateRequired) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erro ao renomear orçamento: $e'),
@@ -205,6 +212,11 @@ class _BudgetListPageState extends State<BudgetListPage> with RouteAware {
               // Lista de orçamentos
               Observer(
                 builder: (_) {
+                  if (appUpdateCoordinator.isUpdateRequired) {
+                    return const SliverToBoxAdapter(
+                      child: SizedBox.shrink(),
+                    );
+                  }
                   if (_store.isLoading && _store.items.isEmpty) {
                     return SliverToBoxAdapter(
                       child: SizedBox(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:multimidiaapp/app/shared/core/update/app_update_coordinator.dart';
 
 import '../stores/auth_store.dart';
 
@@ -24,6 +25,7 @@ class _SplashPageState extends State<SplashPage> {
 
     try {
       await authStore.restoreSession();
+      if (appUpdateCoordinator.isUpdateRequired) return;
 
       if (authStore.isLoggedIn && authStore.currentUser != null) {
         Modular.to.pushReplacementNamed('/budget/');
@@ -31,6 +33,7 @@ class _SplashPageState extends State<SplashPage> {
         Modular.to.pushReplacementNamed('/auth/login');
       }
     } catch (_) {
+      if (appUpdateCoordinator.isUpdateRequired) return;
       Modular.to.pushReplacementNamed('/auth/login');
     }
   }

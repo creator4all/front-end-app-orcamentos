@@ -31,6 +31,8 @@ class AppUpdateCoordinator {
   bool _requiredDialogVisible = false;
   bool _optionalDialogVisible = false;
 
+  bool get isUpdateRequired => _required;
+
   void attachNavigator(GlobalKey<NavigatorState> navigatorKey) {
     _navigatorKey = navigatorKey;
     WidgetsBinding.instance.addPostFrameCallback((_) {

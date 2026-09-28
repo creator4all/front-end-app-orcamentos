@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:multimidiaapp/app/shared/core/update/app_update_coordinator.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_info_dialog.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -151,6 +152,10 @@ class _SchoolCensusPageState
         body: SafeArea(
           child: Observer(
             builder: (context) {
+              if (appUpdateCoordinator.isUpdateRequired) {
+                return const SizedBox.shrink();
+              }
+
               if (store.isLoading) {
                 return const Center(child: CircularProgressIndicator());
               }
@@ -397,6 +402,7 @@ class _SchoolCensusPageState
   }
 
   Future<void> _retryLoad() async {
+    if (appUpdateCoordinator.isUpdateRequired) return;
     if (widget.budgetId != null) {
       await store.loadBudgetCensus(widget.budgetId!);
     } else {
@@ -406,6 +412,7 @@ class _SchoolCensusPageState
 
   Future<void> _handleSave() async {
     await store.saveCensus();
+    if (!mounted || appUpdateCoordinator.isUpdateRequired) return;
     if (store.error == null) {
       _hasSavedChanges = true;
 
@@ -446,7 +453,7 @@ class _SchoolCensusPageState
 
       result.fold(
         (failure) {
-          if (mounted) {
+          if (mounted && !appUpdateCoordinator.isUpdateRequired) {
             CustomInfoDialog.show(
               context: context,
               type: DialogType.error,
@@ -480,7 +487,7 @@ class _SchoolCensusPageState
         },
       );
     } catch (e) {
-      if (mounted) {
+      if (mounted && !appUpdateCoordinator.isUpdateRequired) {
         CustomInfoDialog.show(
           context: context,
           type: DialogType.error,

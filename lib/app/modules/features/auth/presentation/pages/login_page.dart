@@ -3,6 +3,7 @@ import 'package:flutter_mobx/flutter_mobx.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:multimidiaapp/app/shared/core/update/app_update_coordinator.dart';
 import 'package:multimidiaapp/app/shared/utils/email_validator.dart';
 import 'package:multimidiaapp/app/shared/widgets/custom_info_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -324,10 +325,12 @@ class _LoginPageState extends State<LoginPage> {
           _passwordController.text,
         );
 
+        if (appUpdateCoordinator.isUpdateRequired) return;
         if (!store.isLoggedIn && mounted) {
           _showLoginErrorDialog();
         }
-      } catch (e) {
+      } catch (_) {
+        if (appUpdateCoordinator.isUpdateRequired) return;
         if (mounted) {
           _showLoginErrorDialog();
         }
@@ -340,7 +343,7 @@ class _LoginPageState extends State<LoginPage> {
       context: context,
       type: DialogType.error,
       title: 'Erro ao fazer login',
-      message: 'Login ou senha incorretos, tente novamente!',
+      message: store.errorMessage ?? 'Não foi possível realizar o login.',
     );
   }
 }
